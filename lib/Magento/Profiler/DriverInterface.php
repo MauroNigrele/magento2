@@ -22,16 +22,19 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
-interface Magento_Profiler_DriverInterface
+namespace Magento\Profiler;
+
+interface DriverInterface
 {
     /**
      * Start timer
      *
      * @param string $timerId
      * @param array|null $tags
+     * @return void
      */
     public function start($timerId, array $tags = null);
 
@@ -39,6 +42,7 @@ interface Magento_Profiler_DriverInterface
      * Stop timer
      *
      * @param string $timerId
+     * @return void
      */
     public function stop($timerId);
 
@@ -46,6 +50,7 @@ interface Magento_Profiler_DriverInterface
      * Clear collected statistics for specified timer or for whole profiler if timer name is omitted.
      *
      * @param string|null $timerId
+     * @return void
      */
     public function clear($timerId = null);
 }

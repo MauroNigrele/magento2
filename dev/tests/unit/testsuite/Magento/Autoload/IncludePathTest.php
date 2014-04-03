@@ -18,11 +18,12 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
+namespace Magento\Autoload;
 
-class Magento_Autoload_IncludePathTest extends PHPUnit_Framework_TestCase
+class IncludePathTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * @var string
@@ -46,9 +47,9 @@ class Magento_Autoload_IncludePathTest extends PHPUnit_Framework_TestCase
      */
     public function testGetFile($class, $expectedValue)
     {
-        $this->assertFalse(Magento_Autoload_IncludePath::getFile($class));
-        Magento_Autoload_IncludePath::addIncludePath(__DIR__ . '/_files');
-        $this->assertEquals($expectedValue, Magento_Autoload_IncludePath::getFile($class));
+        $this->assertFalse(\Magento\Autoload\IncludePath::getFile($class));
+        \Magento\Autoload\IncludePath::addIncludePath(__DIR__ . '/_files');
+        $this->assertEquals($expectedValue, \Magento\Autoload\IncludePath::getFile($class));
     }
 
     /**
@@ -59,7 +60,7 @@ class Magento_Autoload_IncludePathTest extends PHPUnit_Framework_TestCase
         return array(
             array('TestClass', realpath(__DIR__ . '/_files/TestClass.php')),
             array('\Ns\TestClass', realpath(__DIR__ . '/_files/Ns/TestClass.php')),
-            array('Non_Existing_Class', false),
+            array('Non_Existing_Class', false)
         );
     }
 
@@ -74,7 +75,7 @@ class Magento_Autoload_IncludePathTest extends PHPUnit_Framework_TestCase
     {
         $expectedIncludePath = str_replace('%include_path%', get_include_path(), $expectedIncludePath);
         $this->assertNotEquals($expectedIncludePath, get_include_path());
-        Magento_Autoload_IncludePath::addIncludePath($fixturePath, $prepend);
+        \Magento\Autoload\IncludePath::addIncludePath($fixturePath, $prepend);
         $this->assertEquals($expectedIncludePath, get_include_path());
     }
 
@@ -82,20 +83,18 @@ class Magento_Autoload_IncludePathTest extends PHPUnit_Framework_TestCase
     {
         $pathSeparator = PATH_SEPARATOR;
         return array(
-            'prepend string' => array(
-                'fixture_path', true, "fixture_path{$pathSeparator}%include_path%"
-            ),
+            'prepend string' => array('fixture_path', true, "fixture_path{$pathSeparator}%include_path%"),
             'prepend array' => array(
-                array('fixture_path_one', 'fixture_path_two'), true,
+                array('fixture_path_one', 'fixture_path_two'),
+                true,
                 "fixture_path_one{$pathSeparator}fixture_path_two{$pathSeparator}%include_path%"
             ),
-            'append string'  => array(
-                'fixture_path', false, "%include_path%{$pathSeparator}fixture_path"
-            ),
+            'append string' => array('fixture_path', false, "%include_path%{$pathSeparator}fixture_path"),
             'append array' => array(
-                array('fixture_path_one', 'fixture_path_two'), false,
+                array('fixture_path_one', 'fixture_path_two'),
+                false,
                 "%include_path%{$pathSeparator}fixture_path_one{$pathSeparator}fixture_path_two"
-            ),
+            )
         );
     }
 
@@ -106,9 +105,9 @@ class Magento_Autoload_IncludePathTest extends PHPUnit_Framework_TestCase
      */
     public function testLoad($class, $expectedValue)
     {
-        Magento_Autoload_IncludePath::addIncludePath(__DIR__ . '/_files');
+        \Magento\Autoload\IncludePath::addIncludePath(__DIR__ . '/_files');
         $this->assertFalse(class_exists($class, false));
-        Magento_Autoload_IncludePath::load($class);
+        \Magento\Autoload\IncludePath::load($class);
         if ($expectedValue) {
             $this->assertTrue(class_exists($class, false));
         } else {

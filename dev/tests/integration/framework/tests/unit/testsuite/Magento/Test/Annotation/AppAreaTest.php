@@ -18,31 +18,33 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
-class Magento_Test_Annotation_AppAreaTest extends PHPUnit_Framework_TestCase
+namespace Magento\Test\Annotation;
+
+class AppAreaTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var Magento_Test_Annotation_AppArea
+     * @var \Magento\TestFramework\Annotation\AppArea
      */
     protected $_object;
 
     /**
-     * @var PHPUnit_Framework_MockObject_MockObject
+     * @var \PHPUnit_Framework_MockObject_MockObject
      */
     protected $_applicationMock;
 
     /**
-     * @var PHPUnit_Framework_MockObject_MockObject
+     * @var \PHPUnit_Framework_MockObject_MockObject
      */
     protected $_testCaseMock;
 
     protected function setUp()
     {
         $this->_testCaseMock = $this->getMock('PHPUnit_Framework_TestCase', array(), array(), '', false);
-        $this->_applicationMock = $this->getMock('Magento_Test_Application', array(), array(), '', false);
-        $this->_object = new Magento_Test_Annotation_AppArea($this->_applicationMock);
+        $this->_applicationMock = $this->getMock('Magento\TestFramework\Application', array(), array(), '', false);
+        $this->_object = new \Magento\TestFramework\Annotation\AppArea($this->_applicationMock);
     }
 
     /**
@@ -62,37 +64,32 @@ class Magento_Test_Annotation_AppAreaTest extends PHPUnit_Framework_TestCase
     public function getTestAppAreaDataProvider()
     {
         return array(
-            'method scope' => array(
-                array('method' => array('magentoAppArea' => array('adminhtml'))), 'adminhtml'
-            ),
-            'class scope' => array(
-                array('class' => array('magentoAppArea' => array('frontend'))), 'frontend'
-            ),
+            'method scope' => array(array('method' => array('magentoAppArea' => array('adminhtml'))), 'adminhtml'),
+            'class scope' => array(array('class' => array('magentoAppArea' => array('frontend'))), 'frontend'),
             'mixed scope' => array(
                 array(
-                    'class'  => array('magentoAppArea' => array('adminhtml')),
-                    'method' => array('magentoAppArea' => array('frontend')),
-                ), 'frontend'
+                    'class' => array('magentoAppArea' => array('adminhtml')),
+                    'method' => array('magentoAppArea' => array('frontend'))
+                ),
+                'frontend'
             ),
-            'default area' => array(
-                array(), 'global'
-            ),
+            'default area' => array(array(), 'global')
         );
     }
 
     /**
-     * @expectedException Magento_Exception
+     * @expectedException \Magento\Exception
      */
     public function testGetTestAppAreaWithInvalidArea()
     {
-        $annotations =  array('method' => array('magentoAppArea' => array('some_invalid_area')));
+        $annotations = array('method' => array('magentoAppArea' => array('some_invalid_area')));
         $this->_testCaseMock->expects($this->once())->method('getAnnotations')->will($this->returnValue($annotations));
         $this->_object->startTest($this->_testCaseMock);
     }
 
     public function testStartTestPreventDoubleAreaLoadingAfterReinitialization()
     {
-        $annotations =  array('method' => array('magentoAppArea' => array('global')));
+        $annotations = array('method' => array('magentoAppArea' => array('global')));
         $this->_testCaseMock->expects($this->once())->method('getAnnotations')->will($this->returnValue($annotations));
         $this->_applicationMock->expects($this->at(0))->method('getArea')->will($this->returnValue('adminhtml'));
         $this->_applicationMock->expects($this->once())->method('reinitialize');
@@ -103,7 +100,7 @@ class Magento_Test_Annotation_AppAreaTest extends PHPUnit_Framework_TestCase
 
     public function testStartTestPreventDoubleAreaLoading()
     {
-        $annotations =  array('method' => array('magentoAppArea' => array('adminhtml')));
+        $annotations = array('method' => array('magentoAppArea' => array('adminhtml')));
         $this->_testCaseMock->expects($this->once())->method('getAnnotations')->will($this->returnValue($annotations));
         $this->_applicationMock->expects($this->once())->method('getArea')->will($this->returnValue('adminhtml'));
         $this->_applicationMock->expects($this->never())->method('reinitialize');

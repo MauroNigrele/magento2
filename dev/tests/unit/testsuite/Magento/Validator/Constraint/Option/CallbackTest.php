@@ -21,14 +21,16 @@
  * @category    Magento
  * @package     Magento_Validator
  * @subpackage  unit_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
 /**
- * Test case for Magento_Validator_Constraint_Option_Callback
+ * Test case for \Magento\Validator\Constraint\Option\Callback
  */
-class Magento_Validator_Constraint_Option_CallbackTest extends PHPUnit_Framework_TestCase
+namespace Magento\Validator\Constraint\Option;
+
+class CallbackTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * Value for test
@@ -47,7 +49,7 @@ class Magento_Validator_Constraint_Option_CallbackTest extends PHPUnit_Framework
      */
     public function testGetValue($callback, $expectedResult, $arguments = null, $createInstance = false)
     {
-        $option = new Magento_Validator_Constraint_Option_Callback($callback, $arguments, $createInstance);
+        $option = new \Magento\Validator\Constraint\Option\Callback($callback, $arguments, $createInstance);
         $this->assertEquals($expectedResult, $option->getValue());
     }
 
@@ -61,13 +63,17 @@ class Magento_Validator_Constraint_Option_CallbackTest extends PHPUnit_Framework
             return 'Value from closure';
         };
 
-        $mock = $this->getMockBuilder('Foo')
-            ->setMethods(array('getValue'))
-            ->getMock();
-        $mock->expects($this->once())
-            ->method('getValue')
-            ->with('arg1', 'arg2')
-            ->will($this->returnValue('Value from mock'));
+        $mock = $this->getMockBuilder('Foo')->setMethods(array('getValue'))->getMock();
+        $mock->expects(
+            $this->once()
+        )->method(
+            'getValue'
+        )->with(
+            'arg1',
+            'arg2'
+        )->will(
+            $this->returnValue('Value from mock')
+        );
 
         return array(
             array($functionName, 'Value from function'),
@@ -75,14 +81,14 @@ class Magento_Validator_Constraint_Option_CallbackTest extends PHPUnit_Framework
             array(array($this, 'getTestValue'), self::TEST_VALUE),
             array(array(__CLASS__, 'getTestValueStatically'), self::TEST_VALUE),
             array(array($mock, 'getValue'), 'Value from mock', array('arg1', 'arg2')),
-            array(array('Magento_Validator_Test_Callback', 'getId'), Magento_Validator_Test_Callback::ID, null, true)
+            array(array('Magento\Validator\Test\Callback', 'getId'), \Magento\Validator\Test\Callback::ID, null, true)
         );
     }
 
     /**
      * Get TEST_VALUE from static scope
      */
-    static public function getTestValueStatically()
+    public static function getTestValueStatically()
     {
         return self::TEST_VALUE;
     }
@@ -105,7 +111,7 @@ class Magento_Validator_Constraint_Option_CallbackTest extends PHPUnit_Framework
      */
     public function testSetArguments($value, $expectedValue)
     {
-        $option = new Magento_Validator_Constraint_Option_Callback(
+        $option = new \Magento\Validator\Constraint\Option\Callback(
             function () {
             }
         );
@@ -118,14 +124,11 @@ class Magento_Validator_Constraint_Option_CallbackTest extends PHPUnit_Framework
      */
     public function setArgumentsDataProvider()
     {
-        return array(
-            array('baz', array('baz')),
-            array(array('foo', 'bar'), array('foo', 'bar'))
-        );
+        return array(array('baz', array('baz')), array(array('foo', 'bar'), array('foo', 'bar')));
     }
 
     /**
-     * Test getValue method raises InvalidArgumentException
+     * Test getValue method raises \InvalidArgumentException
      *
      * @dataProvider getValueExceptionDataProvider
      *
@@ -135,7 +138,7 @@ class Magento_Validator_Constraint_Option_CallbackTest extends PHPUnit_Framework
      */
     public function testGetValueException($callback, $expectedMessage, $createInstance = false)
     {
-        $option = new Magento_Validator_Constraint_Option_Callback($callback, null, $createInstance);
+        $option = new \Magento\Validator\Constraint\Option\Callback($callback, null, $createInstance);
         $this->setExpectedException('InvalidArgumentException', $expectedMessage);
         $option->getValue();
     }
@@ -152,26 +155,14 @@ class Magento_Validator_Constraint_Option_CallbackTest extends PHPUnit_Framework
                 array('Not_Existing_Callback_Class', 'someMethod'),
                 'Class "Not_Existing_Callback_Class" was not found'
             ),
-            array(
-                array($this, 'notExistingMethod'),
-                'Callback does not callable'
-            ),
-            array(
-                array('object' => $this, 'method' => 'getTestValue'),
-                'Callback does not callable'
-            ),
-            array(
-                'unknown_function',
-                'Callback does not callable'
-            ),
-            array(
-                new stdClass(),
-                'Callback does not callable'
-            ),
+            array(array($this, 'notExistingMethod'), 'Callback does not callable'),
+            array(array('object' => $this, 'method' => 'getTestValue'), 'Callback does not callable'),
+            array('unknown_function', 'Callback does not callable'),
+            array(new \stdClass(), 'Callback does not callable'),
             array(
                 array($this, 'getTestValue'),
                 'Callable expected to be an array with class name as first element',
-                true,
+                true
             )
         );
     }

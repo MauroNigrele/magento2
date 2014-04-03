@@ -21,26 +21,65 @@
  * @category    Magento
  * @package     Magento_Validator
  * @subpackage  unit_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
+namespace Magento\Validator;
 
 /**
- * Test for Magento_Validator_Builder
+ * Class BuilderTest
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-class Magento_Validator_BuilderTest extends PHPUnit_Framework_TestCase
+class BuilderTest extends \PHPUnit_Framework_TestCase
 {
+    /**
+     * @var \Magento\TestFramework\Helper\ObjectManager
+     */
+    protected $_objectManager;
+
+    /**
+     * @var \Magento\ObjectManager\ObjectManager
+     */
+    protected $_realObjectManager;
+
+    protected function setUp()
+    {
+        $this->_objectManager = new \Magento\TestFramework\Helper\ObjectManager($this);
+
+        $argInterpreter = $this->getMock('\Magento\Data\Argument\InterpreterInterface', array(), array(), '', false);
+        $argObjectFactory = $this->getMock(
+            '\Magento\ObjectManager\Config\Argument\ObjectFactory',
+            array(),
+            array(),
+            '',
+            false
+        );
+        $config = new \Magento\ObjectManager\Config\Config(new \Magento\ObjectManager\Relations\Runtime());
+        $factory = new \Magento\ObjectManager\Factory\Factory($config, $argInterpreter, $argObjectFactory, null);
+        $this->_realObjectManager = new \Magento\ObjectManager\ObjectManager($factory, $config);
+    }
+
     /**
      * Test createValidator method
      *
      * @dataProvider createValidatorDataProvider
      *
      * @param array $constraints
-     * @param Magento_Validator_ValidatorInterface $expectedValidator
+     * @param \Magento\Validator\ValidatorInterface $expectedValidator
      */
     public function testCreateValidator(array $constraints, $expectedValidator)
     {
-        $builder = new Magento_Validator_Builder($constraints);
+        /** @var $builder \Magento\Validator\Builder */
+        $builder = $this->_objectManager->getObject(
+            'Magento\Validator\Builder',
+            array(
+                'constraintFactory' => new \Magento\Validator\ConstraintFactory($this->_realObjectManager),
+                'validatorFactory' => new \Magento\ValidatorFactory($this->_realObjectManager),
+                'oneValidatorFactory' => new \Magento\Validator\UniversalFactory($this->_realObjectManager),
+                'constraints' => $constraints
+            )
+        );
         $actualValidator = $builder->createValidator();
         $this->assertEquals($expectedValidator, $actualValidator);
     }
@@ -54,80 +93,83 @@ class Magento_Validator_BuilderTest extends PHPUnit_Framework_TestCase
     {
         $result = array();
 
-        /** @var Magento_Translate_AdapterAbstract $translator */
-        $translator = $this->getMockBuilder('Magento_Translate_AdapterAbstract')
-            ->getMockForAbstractClass();
-        Magento_Validator_ValidatorAbstract::setDefaultTranslator($translator);
+        /** @var \Magento\Translate\AbstractAdapter $translator */
+        $translator = $this->getMockBuilder('Magento\Translate\AbstractAdapter')->getMockForAbstractClass();
+        \Magento\Validator\AbstractValidator::setDefaultTranslator($translator);
 
         // Case 1. Check constructor with arguments
-        $actualConstraints = array(array(
-            'alias' => 'name_alias',
-            'class' => 'Magento_Validator_Test_StringLength',
-            'options' => array(
-                'arguments' => array(1, new Magento_Validator_Constraint_Option(20))
-            ),
-            'property' => 'name',
-            'type' => 'property',
-        ));
+        $actualConstraints = array(
+            array(
+                'alias' => 'name_alias',
+                'class' => 'Magento\Validator\Test\StringLength',
+                'options' => array(
+                    'arguments' => array(
+                        'options' => array('min' => 1, 'max' => new \Magento\Validator\Constraint\Option(20))
+                    )
+                ),
+                'property' => 'name',
+                'type' => 'property'
+            )
+        );
 
-        $expectedValidator = new Magento_Validator();
+        $expectedValidator = new \Magento\Validator();
         $expectedValidator->addValidator(
-            new Magento_Validator_Constraint_Property(
-                new Magento_Validator_Test_StringLength(1, 20), 'name', 'name_alias'
+            new \Magento\Validator\Constraint\Property(
+                new \Magento\Validator\Test\StringLength(1, 20),
+                'name',
+                'name_alias'
             )
         );
 
         $result[] = array($actualConstraints, $expectedValidator);
 
         // Case 2. Check method calls
-        $actualConstraints = array(array(
-            'alias' => 'description_alias',
-            'class' => 'Magento_Validator_Test_StringLength',
-            'options' => array(
-                'methods' => array (
-                    array(
-                        'method' => 'setMin',
-                        'arguments' => array(10)
-                    ),
-                    array(
-                        'method' => 'setMax',
-                        'arguments' => array(1000)
+        $actualConstraints = array(
+            array(
+                'alias' => 'description_alias',
+                'class' => 'Magento\Validator\Test\StringLength',
+                'options' => array(
+                    'methods' => array(
+                        array('method' => 'setMin', 'arguments' => array(10)),
+                        array('method' => 'setMax', 'arguments' => array(1000))
                     )
                 ),
-            ),
-            'property' => 'description',
-            'type' => 'property',
-        ));
+                'property' => 'description',
+                'type' => 'property'
+            )
+        );
 
-        $expectedValidator = new Magento_Validator();
+        $expectedValidator = new \Magento\Validator();
         $expectedValidator->addValidator(
-            new Magento_Validator_Constraint_Property(
-                new Magento_Validator_Test_StringLength(10, 1000), 'description', 'description_alias'
+            new \Magento\Validator\Constraint\Property(
+                new \Magento\Validator\Test\StringLength(10, 1000),
+                'description',
+                'description_alias'
             )
         );
 
         $result[] = array($actualConstraints, $expectedValidator);
 
         // Case 3. Check callback on validator
-        $actualConstraints = array(array(
+        $actualConstraints = array(
+        array(
             'alias' => 'sku_alias',
-            'class' => 'Magento_Validator_Test_StringLength',
-            'options' => array(
-                'callback' => array(new Magento_Validator_Constraint_Option_Callback(
-                    function ($validator) {
-                        $validator->setMin(20);
-                        $validator->setMax(100);
-                    }
-                ))
-            ),
-            'property' => 'sku',
-            'type' => 'property',
-        ));
+            'class' => 'Magento\Validator\Test\StringLength',
+        'options' => array(
+        'callback' => array(
+        new \Magento\Validator\Constraint\Option\Callback(
+            function ($validator) {
+                $validator->setMin(20);
+                $validator->setMax(100);
+            }
+        ))),'property' => 'sku', 'type' => 'property'));
 
-        $expectedValidator = new Magento_Validator();
+        $expectedValidator = new \Magento\Validator();
         $expectedValidator->addValidator(
-            new Magento_Validator_Constraint_Property(
-                new Magento_Validator_Test_StringLength(20, 100), 'sku', 'sku_alias'
+            new \Magento\Validator\Constraint\Property(
+                new \Magento\Validator\Test\StringLength(20, 100),
+                'sku',
+                'sku_alias'
             )
         );
 
@@ -148,7 +190,8 @@ class Magento_Validator_BuilderTest extends PHPUnit_Framework_TestCase
      */
     public function testAddConfiguration($constraints, $alias, $configuration, $expected)
     {
-        $builder = new Magento_Validator_Builder($constraints);
+        /** @var $builder \Magento\Validator\Builder */
+        $builder = $this->_objectManager->getObject('Magento\Validator\Builder', array('constraints' => $constraints));
         $builder->addConfiguration($alias, $configuration);
         $this->assertAttributeEquals($expected, '_constraints', $builder);
     }
@@ -165,7 +208,8 @@ class Magento_Validator_BuilderTest extends PHPUnit_Framework_TestCase
      */
     public function testAddConfigurations($constraints, $alias, $configuration, $expected)
     {
-        $builder = new Magento_Validator_Builder($constraints);
+        /** @var $builder \Magento\Validator\Builder */
+        $builder = $this->_objectManager->getObject('Magento\Validator\Builder', array('constraints' => $constraints));
         $configurations = array($alias => array($configuration));
         $builder->addConfigurations($configurations);
         $this->assertAttributeEquals($expected, '_constraints', $builder);
@@ -175,20 +219,22 @@ class Magento_Validator_BuilderTest extends PHPUnit_Framework_TestCase
      * Builder configurations data provider
      *
      * @return array
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      */
     public function configurationDataProvider()
     {
-        $callback = new Magento_Validator_Constraint_Option_Callback(array('Magento_Validator_Test_Callback', 'getId'));
+        $callback = new \Magento\Validator\Constraint\Option\Callback(
+            array('Magento\Validator\Test\Callback', 'getId')
+        );
         $someMethod = array('method' => 'getMessages');
-        $methodWithArgs = array('method' => 'setMax', 'arguments' => array(100));
-        $constructorArgs = array('arguments' => array(array('max' => '50')));
+        $methodWithArgs = array('method' => 'someMethod', 'arguments' => array('some_value_to_pass'));
         $callbackConfig = array('callback' => $callback);
 
         $configuredConstraint = array(
             'alias' => 'current_alias',
-            'class' => 'Magento_Validator_Test_NotEmpty',
+            'class' => 'Some\Validator\Class',
             'options' => array(
-                'arguments' => array(array('min' => 1)),
+                'arguments' => array('some_argument' => 'some_value'),
                 'callback' => array($callback),
                 'methods' => array($someMethod)
             ),
@@ -197,53 +243,91 @@ class Magento_Validator_BuilderTest extends PHPUnit_Framework_TestCase
         );
         $emptyConstraint = array(
             'alias' => 'current_alias',
-            'class' => 'Magento_Validator_Test_NotEmpty',
+            'class' => 'Some\Validator\Class',
             'options' => null,
             'property' => 'int',
             'type' => 'property'
         );
         $constraintWithArgs = array(
             'alias' => 'current_alias',
-            'class' => 'Magento_Validator_Test_NotEmpty',
-            'options' => array('arguments' => array(array('min' => 1))),
+            'class' => 'Some\Validator\Class',
+            'options' => array('arguments' => array('some_argument' => 'some_value')),
             'property' => 'int',
             'type' => 'property'
         );
         return array(
             'constraint is unchanged when alias not found' => array(
-                array($emptyConstraint), 'some_alias', $someMethod, array($emptyConstraint)),
-
-            'constraint options initialized with method' => array(array($emptyConstraint), 'current_alias', $someMethod,
-                array($this->_getExpectedConstraints($emptyConstraint, 'methods', array($someMethod)))),
-
-            'constraint options initialized with callback' => array(array($emptyConstraint), 'current_alias',
-                $callbackConfig, array($this->_getExpectedConstraints($emptyConstraint, 'callback', array($callback)))),
-
-            'constraint options initialized with arguments' => array(
-                array($emptyConstraint), 'current_alias', $constructorArgs,
-                array($this->_getExpectedConstraints($emptyConstraint, 'arguments', array(array('max' => '50'))))
+                array($emptyConstraint),
+                'some_alias',
+                $someMethod,
+                array($emptyConstraint)
             ),
-
+            'constraint options initialized with method' => array(
+                array($emptyConstraint),
+                'current_alias',
+                $someMethod,
+                array($this->_getExpectedConstraints($emptyConstraint, 'methods', array($someMethod)))
+            ),
+            'constraint options initialized with callback' => array(
+                array($emptyConstraint),
+                'current_alias',
+                $callbackConfig,
+                array($this->_getExpectedConstraints($emptyConstraint, 'callback', array($callback)))
+            ),
+            'constraint options initialized with arguments' => array(
+                array($emptyConstraint),
+                'current_alias',
+                array('arguments' => array('some_argument' => 'some_value')),
+                array(
+                    $this->_getExpectedConstraints(
+                        $emptyConstraint,
+                        'arguments',
+                        array('some_argument' => 'some_value')
+                    )
+                )
+            ),
+            'constraint options arguments overwritten by newer arguments' => array(
+                array($configuredConstraint),
+                'current_alias',
+                array('arguments' => array('some_argument' => 'some_value')),
+                array(
+                    $this->_getExpectedConstraints(
+                        $configuredConstraint,
+                        'arguments',
+                        array('some_argument' => 'some_value')
+                    )
+                )
+            ),
             'methods initialized' => array(
-                array($constraintWithArgs), 'current_alias', $methodWithArgs,
+                array($constraintWithArgs),
+                'current_alias',
+                $methodWithArgs,
                 array($this->_getExpectedConstraints($constraintWithArgs, 'methods', array($methodWithArgs)))
             ),
-
             'method added' => array(
-                array($configuredConstraint), 'current_alias', $methodWithArgs,
-                array($this->_getExpectedConstraints($configuredConstraint, 'methods',
-                    array($someMethod, $methodWithArgs)))
+                array($configuredConstraint),
+                'current_alias',
+                $methodWithArgs,
+                array(
+                    $this->_getExpectedConstraints(
+                        $configuredConstraint,
+                        'methods',
+                        array($someMethod, $methodWithArgs)
+                    )
+                )
             ),
-
             'callback initialized' => array(
-                array($constraintWithArgs), 'current_alias', $callbackConfig,
+                array($constraintWithArgs),
+                'current_alias',
+                $callbackConfig,
                 array($this->_getExpectedConstraints($constraintWithArgs, 'callback', array($callback)))
             ),
-
             'callback added' => array(
-                array($configuredConstraint), 'current_alias', $callbackConfig,
+                array($configuredConstraint),
+                'current_alias',
+                $callbackConfig,
                 array($this->_getExpectedConstraints($configuredConstraint, 'callback', array($callback, $callback)))
-            ),
+            )
         );
     }
 
@@ -277,17 +361,12 @@ class Magento_Validator_BuilderTest extends PHPUnit_Framework_TestCase
     {
         $this->setExpectedException($exception, $exceptionMessage);
         if (array_key_exists('method', $options)) {
-            $options = array(
-                'methods' => array($options)
-            );
+            $options = array('methods' => array($options));
         }
-        $constraints = array(array(
-            'alias' => 'alias',
-            'class' => 'Magento_Validator_Test_True',
-            'options' => $options,
-            'type' => 'entity'
-        ));
-        new Magento_Validator_Builder($constraints);
+        $constraints = array(
+            array('alias' => 'alias', 'class' => 'Some\Validator\Class', 'options' => $options, 'type' => 'entity')
+        );
+        $this->_objectManager->getObject('Magento\Validator\Builder', array('constraints' => $constraints));
     }
 
     /**
@@ -303,13 +382,11 @@ class Magento_Validator_BuilderTest extends PHPUnit_Framework_TestCase
     {
         $this->setExpectedException($exception, $exceptionMessage);
 
-        $constraints = array(array(
-            'alias' => 'alias',
-            'class' => 'Magento_Validator_Test_True',
-            'options' => null,
-            'type' => 'entity'
-        ));
-        $builder = new Magento_Validator_Builder($constraints);
+        $constraints = array(
+            array('alias' => 'alias', 'class' => 'Some\Validator\Class', 'options' => null, 'type' => 'entity')
+        );
+        /** @var $builder \Magento\Validator\Builder */
+        $builder = $this->_objectManager->getObject('Magento\Validator\Builder', array('constraints' => $constraints));
         $builder->addConfiguration('alias', $options);
     }
 
@@ -322,55 +399,45 @@ class Magento_Validator_BuilderTest extends PHPUnit_Framework_TestCase
     {
         return array(
             'constructor invalid arguments' => array(
-                array(
-                    'arguments' => 'invalid_argument'
-                ),
+                array('arguments' => 'invalid_argument'),
                 'InvalidArgumentException',
                 'Arguments must be an array'
             ),
-
             'methods invalid arguments' => array(
-                array(
-                    'method' => 'setValue',
-                    'arguments' => 'invalid_argument'
-                ),
+                array('method' => 'setValue', 'arguments' => 'invalid_argument'),
                 'InvalidArgumentException',
                 'Method arguments must be an array'
             ),
-
             'methods invalid format' => array(
-                array(
-                    'method' => array('name' => 'setValue')
-                ),
+                array('method' => array('name' => 'setValue')),
                 'InvalidArgumentException',
                 'Method has to be passed as string'
             ),
-
             'constructor arguments invalid callback' => array(
-                array(
-                    'callback' => array('invalid', 'callback')
-                ),
+                array('callback' => array('invalid', 'callback')),
                 'InvalidArgumentException',
-                'Callback must be instance of Magento_Validator_Constraint_Option_Callback'
+                'Callback must be instance of \Magento\Validator\Constraint\Option\Callback'
             )
         );
     }
 
     /**
-     * Check exception is thrown if validator is not an instance of Magento_Validator_ValidatorInterface
+     * Check exception is thrown if validator is not an instance of \Magento\Validator\ValidatorInterface
      *
-     * @expectedException InvalidArgumentException
-     * @expectedExceptionMessage Constraint class "Varien_Object" must implement Magento_Validator_ValidatorInterface
+     * @expectedException \InvalidArgumentException
+     * @expectedExceptionMessage Constraint class "StdClass" must implement \Magento\Validator\ValidatorInterface
      */
     public function testCreateValidatorInvalidInstance()
     {
-        $constraints = array(array(
-            'alias' => 'alias',
-            'class' => 'Varien_Object',
-            'options' => null,
-            'type' => 'entity'
-        ));
-        $builder = new Magento_Validator_Builder($constraints);
+        $builder = $this->_objectManager->getObject(
+            'Magento\Validator\Builder',
+            array(
+                'constraints' => array(
+                    array('alias' => 'alias', 'class' => 'StdClass', 'options' => null, 'type' => 'entity')
+                ),
+                'validatorFactory' => new \Magento\ValidatorFactory($this->_realObjectManager)
+            )
+        );
         $builder->createValidator();
     }
 
@@ -379,20 +446,18 @@ class Magento_Validator_BuilderTest extends PHPUnit_Framework_TestCase
      *
      * @dataProvider invalidConfigurationFormatDataProvider
      *
-     * @expectedException InvalidArgumentException
+     * @expectedException \InvalidArgumentException
      * @expectedExceptionMessage Configuration has incorrect format
      *
      * @param mixed $configuration
      */
     public function testAddConfigurationInvalidFormat($configuration)
     {
-        $constraints = array(array(
-            'alias' => 'alias',
-            'class' => 'Magento_Validator_Test_True',
-            'options' => null,
-            'type' => 'entity'
-        ));
-        $builder = new Magento_Validator_Builder($constraints);
+        $constraints = array(
+            array('alias' => 'alias', 'class' => 'Some\Validator\Class', 'options' => null, 'type' => 'entity')
+        );
+        /** @var $builder \Magento\Validator\Builder */
+        $builder = $this->_objectManager->getObject('Magento\Validator\Builder', array('constraints' => $constraints));
         $builder->addConfigurations($configuration);
     }
 
@@ -405,21 +470,10 @@ class Magento_Validator_BuilderTest extends PHPUnit_Framework_TestCase
     {
         return array(
             'configuration incorrect method call' => array(
-                array(
-                    'alias' => array(
-                        'method' => array('name' => 'incorrectMethodCall')
-                    )
-                )
+                array('alias' => array('method' => array('name' => 'incorrectMethodCall')))
             ),
-
             'configuration incorrect configuration' => array(
-                array(
-                    'alias' => array(
-                        array(
-                            'data' => array('incorrectData')
-                        )
-                    )
-                )
+                array('alias' => array(array('data' => array('incorrectData'))))
             )
         );
     }

@@ -18,29 +18,29 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Mage
- * @package     Mage_Core
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
 /**
  * Cache frontend decorator that performs profiling of cache operations
  */
-class Magento_Cache_Frontend_Decorator_Profiler extends Magento_Cache_Frontend_Decorator_Bare
+namespace Magento\Cache\Frontend\Decorator;
+
+class Profiler extends \Magento\Cache\Frontend\Decorator\Bare
 {
     /**
      * Backend class prefixes to be striped from profiler tags
      *
-     * @var array
+     * @var string[]
      */
     private $_backendPrefixes = array();
 
     /**
-     * @param Magento_Cache_FrontendInterface $frontend
-     * @param array $backendPrefixes Backend class prefixes to be striped for profiling informativeness
+     * @param \Magento\Cache\FrontendInterface $frontend
+     * @param string[] $backendPrefixes Backend class prefixes to be striped for profiling informativeness
      */
-    public function __construct(Magento_Cache_FrontendInterface $frontend, $backendPrefixes = array())
+    public function __construct(\Magento\Cache\FrontendInterface $frontend, $backendPrefixes = array())
     {
         parent::__construct($frontend);
         $this->_backendPrefixes = $backendPrefixes;
@@ -55,10 +55,10 @@ class Magento_Cache_Frontend_Decorator_Profiler extends Magento_Cache_Frontend_D
     protected function _getProfilerTags($operation)
     {
         return array(
-            'group'         => 'cache',
-            'operation'     => 'cache:' . $operation,
+            'group' => 'cache',
+            'operation' => 'cache:' . $operation,
             'frontend_type' => get_class($this->getLowLevelFrontend()),
-            'backend_type'  => $this->_getBackendType(),
+            'backend_type' => $this->_getBackendType()
         );
     }
 
@@ -84,9 +84,9 @@ class Magento_Cache_Frontend_Decorator_Profiler extends Magento_Cache_Frontend_D
      */
     public function test($identifier)
     {
-        Magento_Profiler::start('cache_test', $this->_getProfilerTags('test'));
+        \Magento\Profiler::start('cache_test', $this->_getProfilerTags('test'));
         $result = parent::test($identifier);
-        Magento_Profiler::stop('cache_test');
+        \Magento\Profiler::stop('cache_test');
         return $result;
     }
 
@@ -95,9 +95,9 @@ class Magento_Cache_Frontend_Decorator_Profiler extends Magento_Cache_Frontend_D
      */
     public function load($identifier)
     {
-        Magento_Profiler::start('cache_load', $this->_getProfilerTags('load'));
+        \Magento\Profiler::start('cache_load', $this->_getProfilerTags('load'));
         $result = parent::load($identifier);
-        Magento_Profiler::stop('cache_load');
+        \Magento\Profiler::stop('cache_load');
         return $result;
     }
 
@@ -108,9 +108,9 @@ class Magento_Cache_Frontend_Decorator_Profiler extends Magento_Cache_Frontend_D
      */
     public function save($data, $identifier, array $tags = array(), $lifeTime = null)
     {
-        Magento_Profiler::start('cache_save', $this->_getProfilerTags('save'));
+        \Magento\Profiler::start('cache_save', $this->_getProfilerTags('save'));
         $result = parent::save($data, $identifier, $tags, $lifeTime);
-        Magento_Profiler::stop('cache_save');
+        \Magento\Profiler::stop('cache_save');
         return $result;
     }
 
@@ -119,20 +119,20 @@ class Magento_Cache_Frontend_Decorator_Profiler extends Magento_Cache_Frontend_D
      */
     public function remove($identifier)
     {
-        Magento_Profiler::start('cache_remove', $this->_getProfilerTags('remove'));
+        \Magento\Profiler::start('cache_remove', $this->_getProfilerTags('remove'));
         $result = parent::remove($identifier);
-        Magento_Profiler::stop('cache_remove');
+        \Magento\Profiler::stop('cache_remove');
         return $result;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function clean($mode = Zend_Cache::CLEANING_MODE_ALL, array $tags = array())
+    public function clean($mode = \Zend_Cache::CLEANING_MODE_ALL, array $tags = array())
     {
-        Magento_Profiler::start('cache_clean', $this->_getProfilerTags('clean'));
+        \Magento\Profiler::start('cache_clean', $this->_getProfilerTags('clean'));
         $result = parent::clean($mode, $tags);
-        Magento_Profiler::stop('cache_clean');
+        \Magento\Profiler::stop('cache_clean');
         return $result;
     }
 }

@@ -21,29 +21,35 @@
  * @category    Magento
  * @package     Magento_ObjectManager
  * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
+namespace Magento\ObjectManager;
 
-class Magento_ObjectManagerTest extends PHPUnit_Framework_TestCase
+class ObjectManagerTest extends \PHPUnit_Framework_TestCase
 {
     /**#@+
      * Test classes for basic instantiation
      */
-    const TEST_CLASS           = 'Magento_ObjectManager_TestAsset_Basic';
-    const TEST_CLASS_INJECTION = 'Magento_ObjectManager_TestAsset_BasicInjection';
+    const TEST_CLASS = 'Magento\ObjectManager\TestAsset\Basic';
+
+    const TEST_CLASS_INJECTION = 'Magento\ObjectManager\TestAsset\BasicInjection';
+
     /**#@-*/
 
     /**#@+
      * Test classes and interface to test preferences
      */
-    const TEST_INTERFACE                = 'Magento_ObjectManager_TestAsset_Interface';
-    const TEST_INTERFACE_IMPLEMENTATION = 'Magento_ObjectManager_TestAsset_InterfaceImplementation';
-    const TEST_CLASS_WITH_INTERFACE     = 'Magento_ObjectManager_TestAsset_InterfaceInjection';
+    const TEST_INTERFACE = 'Magento\ObjectManager\TestAsset\TestAssetInterface';
+
+    const TEST_INTERFACE_IMPLEMENTATION = 'Magento\ObjectManager\TestAsset\InterfaceImplementation';
+
+    const TEST_CLASS_WITH_INTERFACE = 'Magento\ObjectManager\TestAsset\InterfaceInjection';
+
     /**#@-*/
 
     /**
-     * @var Magento_ObjectManager
+     * @var \Magento\ObjectManager
      */
     protected static $_objectManager;
 
@@ -53,17 +59,17 @@ class Magento_ObjectManagerTest extends PHPUnit_Framework_TestCase
      * @var array
      */
     protected $_numerableClasses = array(
-        0  => 'Magento_ObjectManager_TestAsset_ConstructorNoArguments',
-        1  => 'Magento_ObjectManager_TestAsset_ConstructorOneArgument',
-        2  => 'Magento_ObjectManager_TestAsset_ConstructorTwoArguments',
-        3  => 'Magento_ObjectManager_TestAsset_ConstructorThreeArguments',
-        4  => 'Magento_ObjectManager_TestAsset_ConstructorFourArguments',
-        5  => 'Magento_ObjectManager_TestAsset_ConstructorFiveArguments',
-        6  => 'Magento_ObjectManager_TestAsset_ConstructorSixArguments',
-        7  => 'Magento_ObjectManager_TestAsset_ConstructorSevenArguments',
-        8  => 'Magento_ObjectManager_TestAsset_ConstructorEightArguments',
-        9  => 'Magento_ObjectManager_TestAsset_ConstructorNineArguments',
-        10 => 'Magento_ObjectManager_TestAsset_ConstructorTenArguments',
+        0 => 'Magento\ObjectManager\TestAsset\ConstructorNoArguments',
+        1 => 'Magento\ObjectManager\TestAsset\ConstructorOneArgument',
+        2 => 'Magento\ObjectManager\TestAsset\ConstructorTwoArguments',
+        3 => 'Magento\ObjectManager\TestAsset\ConstructorThreeArguments',
+        4 => 'Magento\ObjectManager\TestAsset\ConstructorFourArguments',
+        5 => 'Magento\ObjectManager\TestAsset\ConstructorFiveArguments',
+        6 => 'Magento\ObjectManager\TestAsset\ConstructorSixArguments',
+        7 => 'Magento\ObjectManager\TestAsset\ConstructorSevenArguments',
+        8 => 'Magento\ObjectManager\TestAsset\ConstructorEightArguments',
+        9 => 'Magento\ObjectManager\TestAsset\ConstructorNineArguments',
+        10 => 'Magento\ObjectManager\TestAsset\ConstructorTenArguments'
     );
 
     /**
@@ -72,27 +78,37 @@ class Magento_ObjectManagerTest extends PHPUnit_Framework_TestCase
      * @var array
      */
     protected $_numerableProperties = array(
-        1  => '_one',
-        2  => '_two',
-        3  => '_three',
-        4  => '_four',
-        5  => '_five',
-        6  => '_six',
-        7  => '_seven',
-        8  => '_eight',
-        9  => '_nine',
-        10 => '_ten',
+        1 => '_one',
+        2 => '_two',
+        3 => '_three',
+        4 => '_four',
+        5 => '_five',
+        6 => '_six',
+        7 => '_seven',
+        8 => '_eight',
+        9 => '_nine',
+        10 => '_ten'
     );
 
     public static function setUpBeforeClass()
     {
-        self::$_objectManager = new Magento_ObjectManager_ObjectManager();
-        self::$_objectManager->configure(array(
-            'preferences' => array(
-                self::TEST_INTERFACE => self::TEST_INTERFACE_IMPLEMENTATION
-            )
-        ));
+        $config = new \Magento\ObjectManager\Config\Config();
 
+        $dirList = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
+            'Magento\App\Filesystem\DirectoryList'
+        );
+        $loader = new \Magento\App\Arguments\Loader($dirList);
+        $arguments = new \Magento\App\Arguments(array(), $loader);
+        $const = new \Magento\Data\Argument\Interpreter\Constant();
+        $argInterpreter = new \Magento\App\Arguments\ArgumentInterpreter($arguments, $const);
+        $argObjectFactory = new \Magento\ObjectManager\Config\Argument\ObjectFactory($config);
+        $factory = new \Magento\ObjectManager\Factory\Factory($config, $argInterpreter, $argObjectFactory);
+
+        self::$_objectManager = new \Magento\ObjectManager\ObjectManager($factory, $config);
+        self::$_objectManager->configure(
+            array('preferences' => array(self::TEST_INTERFACE => self::TEST_INTERFACE_IMPLEMENTATION))
+        );
+        $argObjectFactory->setObjectManager(self::$_objectManager);
     }
 
     public static function tearDownAfterClass()
@@ -110,12 +126,12 @@ class Magento_ObjectManagerTest extends PHPUnit_Framework_TestCase
         $data = array(
             'basic model' => array(
                 '$actualClassName' => self::TEST_CLASS_INJECTION,
-                '$properties'      => array('_object' => self::TEST_CLASS),
+                '$properties' => array('_object' => self::TEST_CLASS)
             ),
             'model with interface' => array(
                 '$actualClassName' => self::TEST_CLASS_WITH_INTERFACE,
-                '$properties'      => array('_object' => self::TEST_INTERFACE_IMPLEMENTATION),
-            ),
+                '$properties' => array('_object' => self::TEST_INTERFACE_IMPLEMENTATION)
+            )
         );
 
         foreach ($this->_numerableClasses as $number => $className) {
@@ -124,10 +140,7 @@ class Magento_ObjectManagerTest extends PHPUnit_Framework_TestCase
                 $propertyName = $this->_numerableProperties[$i];
                 $properties[$propertyName] = self::TEST_CLASS;
             }
-            $data[$number . ' arguments'] = array(
-                '$actualClassName' => $className,
-                '$properties'      => $properties,
-            );
+            $data[$number . ' arguments'] = array('$actualClassName' => $className, '$properties' => $properties);
         }
 
         return $data;

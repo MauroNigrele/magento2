@@ -18,16 +18,18 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
 /**
  * Decorator class for compressing data before storing in cache
  *
- * @todo re-implement as a cache frontend decorator similarly to Magento_Cache_Frontend_Decorator_*
+ * @todo re-implement as a cache frontend decorator similarly to \Magento\Cache\Frontend\Decorator\*
  */
-class Magento_Cache_Backend_Decorator_Compression extends Magento_Cache_Backend_Decorator_DecoratorAbstract
+namespace Magento\Cache\Backend\Decorator;
+
+class Compression extends \Magento\Cache\Backend\Decorator\AbstractDecorator
 {
     /**
      * Prefix of compressed strings
@@ -38,9 +40,7 @@ class Magento_Cache_Backend_Decorator_Compression extends Magento_Cache_Backend_
      * Array of specific options. Made in separate array to distinguish from parent options
      * @var array
      */
-    protected $_decoratorOptions = array(
-        'compression_threshold' => 512
-    );
+    protected $_decoratorOptions = array('compression_threshold' => 512);
 
     /**
      * Test if a cache is available for the given id and (if yes) return it (false else)
@@ -68,14 +68,14 @@ class Magento_Cache_Backend_Decorator_Compression extends Magento_Cache_Backend_
      * Note : $data is always "string" (serialization is done by the
      * core not by the backend)
      *
-     * @param  string $data             Datas to cache
-     * @param  string $cacheId          Cache id
-     * @param  array  $tags             Array of strings, the cache record will be tagged by each string entry
-     * @param  bool   $specificLifetime If != false, set a specific lifetime for this cache record
+     * @param string $data              Datas to cache
+     * @param string $cacheId           Cache id
+     * @param string[] $tags            Array of strings, the cache record will be tagged by each string entry
+     * @param bool $specificLifetime    If != false, set a specific lifetime for this cache record
      *                                  (null => infinite lifetime)
-     * @param  int    $priority         integer between 0 (very low priority) and 10 (maximum priority) used by
+     * @param int $priority             integer between 0 (very low priority) and 10 (maximum priority) used by
      *                                  some particular backends
-     * @return boolean true if no problem
+     * @return bool true if no problem
      */
     public function save($data, $cacheId, $tags = array(), $specificLifetime = false, $priority = 8)
     {
@@ -105,7 +105,7 @@ class Magento_Cache_Backend_Decorator_Compression extends Magento_Cache_Backend_
      */
     protected function _isCompressionNeeded($data)
     {
-        return (strlen($data) > (int)$this->_decoratorOptions['compression_threshold']);
+        return strlen($data) > (int)$this->_decoratorOptions['compression_threshold'];
     }
 
     /**
@@ -127,7 +127,6 @@ class Magento_Cache_Backend_Decorator_Compression extends Magento_Cache_Backend_
      */
     protected function _isDecompressionNeeded($data)
     {
-        return (strpos($data, self::COMPRESSION_PREFIX) === 0);
+        return strpos($data, self::COMPRESSION_PREFIX) === 0;
     }
-
 }

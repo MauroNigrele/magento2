@@ -18,8 +18,8 @@
  * needs please refer to http://www.magentocommerce.com for more information.
  *
  * @category    Mage
- * @package     Mage_Adminhtml
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @package     Magento_Adminhtml
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
@@ -43,13 +43,13 @@ tinyMceWysiwygSetup.prototype =
 
     notifyFirebug: function() {
         if (firebugEnabled() && $('fb' + this.id) == undefined) {
-            var noticeHtml = '<ul class="messages message-firebug" id="fb' + this.id + '"><li class="notice-msg">';
-                noticeHtml+= '<ul><li>';
+            var noticeHtml = '<div class="messages message-firebug" id="fb' + this.id + '"><div class="message notice">';
+                noticeHtml+= '<div>';
                 noticeHtml+= '<b>' + this.config.firebug_warning_title + ':</b> ';
                 noticeHtml+= this.config.firebug_warning_text;
                 noticeHtml+= ' <a id="hidefb' + this.id + '" href="">' + this.config.firebug_warning_anchor + '</a>';
-                noticeHtml+= '</li></ul>';
-                noticeHtml+= '</li></ul>';
+                noticeHtml+= '</div>';
+                noticeHtml+= '</div></div>';
             $('buttons' + this.id).insert({before: noticeHtml});
             Event.observe($('hidefb' + this.id), "click", function(e) {
                 $('fb' + this.id).remove();

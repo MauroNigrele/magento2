@@ -18,50 +18,28 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 return array(
     'root' => array(
         array(
-            'simple' => array(
-                array(
-                    'node_two' => array(
-                        array('__content__' => 'valueOne'),
-                    ),
-                ),
-            ),
-            'cdata' => array(
-                array(
-                    'node_one' => array(
-                        array('__content__' => '<valueTwo>'),
-                    ),
-                ),
-            ),
+            'simple' => array(array('node_two' => array(array('__content__' => 'valueOne')))),
+            'cdata' => array(array('node_one' => array(array('__content__' => '<valueTwo>')))),
             'mixed' => array(
                 array(
                     'node_one' => array(
-                        array(
-                            '__attributes__' => array('attributeOne' => '10'),
-                            '__content__' => '<valueThree>'
-                        ),
-                        array(
-                            '__attributes__' => array('attributeTwo' => '20'),
-                            '__content__' => 'valueFour'
-                        ),
-                    ),
-                ),
+                        array('__attributes__' => array('attributeOne' => '10'), '__content__' => '<valueThree>'),
+                        array('__attributes__' => array('attributeTwo' => '20'), '__content__' => 'valueFour')
+                    )
+                )
             ),
             'mixed_different_names' => array(
                 array(
-                    'node_one' => array(
-                        array('__content__' => 'valueFive'),
-                    ),
-                    'node_two' => array(
-                        array('__content__' => 'valueSix'),
-                    ),
-                ),
-            ),
-        ),
-    ),
+                    'node_one' => array(array('__content__' => 'valueFive')),
+                    'node_two' => array(array('__content__' => 'valueSix'))
+                )
+            )
+        )
+    )
 );

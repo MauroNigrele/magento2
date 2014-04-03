@@ -21,17 +21,19 @@
  * @category    Magento
  * @package     Magento
  * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
 /**
- * Test class for Magento_Test_Bootstrap_Settings.
+ * Test class for \Magento\TestFramework\Bootstrap\Settings.
  */
-class Magento_Test_Bootstrap_SettingsTest extends PHPUnit_Framework_TestCase
+namespace Magento\Test\Bootstrap;
+
+class SettingsTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var Magento_Test_Bootstrap_Settings
+     * @var \Magento\TestFramework\Bootstrap\Settings
      */
     protected $_object;
 
@@ -50,26 +52,29 @@ class Magento_Test_Bootstrap_SettingsTest extends PHPUnit_Framework_TestCase
     public function __construct($name = null, array $data = array(), $dataName = '')
     {
         parent::__construct($name, $data, $dataName);
-        $this->_fixtureDir = __DIR__ . DIRECTORY_SEPARATOR . '_files' . DIRECTORY_SEPARATOR;
+        $this->_fixtureDir = realpath(__DIR__ . '/_files') . '/';
     }
 
     protected function setUp()
     {
-        $this->_object = new Magento_Test_Bootstrap_Settings($this->_fixtureDir, array(
-            'item_label'                => 'Item Label',
-            'number_of_items'           => 42,
-            'item_price'                => 12.99,
-            'is_in_stock'               => true,
-            'free_shipping'             => 'enabled',
-            'zero_value'                => '0',
-            'test_file'                 => 'metrics.php',
-            'all_xml_files'             => '*.xml',
-            'all_xml_or_one_php_file'   => '{*.xml,4.php}',
-            'one_xml_or_any_php_file'   => '1.xml;?.php',
-            'config_file_with_dist'     => '1.xml',
-            'config_file_no_dist'       => '2.xml',
-            'no_config_file_dist'       => '3.xml',
-        ));
+        $this->_object = new \Magento\TestFramework\Bootstrap\Settings(
+            $this->_fixtureDir,
+            array(
+                'item_label' => 'Item Label',
+                'number_of_items' => 42,
+                'item_price' => 12.99,
+                'is_in_stock' => true,
+                'free_shipping' => 'enabled',
+                'zero_value' => '0',
+                'test_file' => 'metrics.php',
+                'all_xml_files' => '*.xml',
+                'all_xml_or_one_php_file' => '{*.xml,4.php}',
+                'one_xml_or_any_php_file' => '1.xml;?.php',
+                'config_file_with_dist' => '1.xml',
+                'config_file_no_dist' => '2.xml',
+                'no_config_file_dist' => '3.xml'
+            )
+        );
     }
 
     protected function tearDown()
@@ -78,12 +83,12 @@ class Magento_Test_Bootstrap_SettingsTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException InvalidArgumentException
+     * @expectedException \InvalidArgumentException
      * @expectedExceptionMessage Base path 'non_existing_dir' has to be an existing directory.
      */
     public function testConstructorNonExistingBaseDir()
     {
-        new Magento_Test_Bootstrap_Settings('non_existing_dir', array());
+        new \Magento\TestFramework\Bootstrap\Settings('non_existing_dir', array());
     }
 
     /**
@@ -100,13 +105,13 @@ class Magento_Test_Bootstrap_SettingsTest extends PHPUnit_Framework_TestCase
     public function getDataProvider()
     {
         return array(
-            'string type'   => array('item_label', null, 'Item Label'),
-            'integer type'  => array('number_of_items', null, 42),
-            'float type'    => array('item_price', null, 12.99),
-            'boolean type'  => array('is_in_stock', null, true),
-            'non-existing'  => array('non_existing', null, null),
-            'zero string'   => array('zero_value', '1', '0'),
-            'default value' => array('non_existing', 'default', 'default'),
+            'string type' => array('item_label', null, 'Item Label'),
+            'integer type' => array('number_of_items', null, 42),
+            'float type' => array('item_price', null, 12.99),
+            'boolean type' => array('is_in_stock', null, true),
+            'non-existing' => array('non_existing', null, null),
+            'zero string' => array('zero_value', '1', '0'),
+            'default value' => array('non_existing', 'default', 'default')
         );
     }
 
@@ -123,9 +128,9 @@ class Magento_Test_Bootstrap_SettingsTest extends PHPUnit_Framework_TestCase
     public function getAsBooleanDataProvider()
     {
         return array(
-            'non-enabled string'    => array('item_label', false),
-            'non-enabled boolean'   => array('is_in_stock', false),
-            'enabled string'        => array('free_shipping', true),
+            'non-enabled string' => array('item_label', false),
+            'non-enabled boolean' => array('is_in_stock', false),
+            'enabled string' => array('free_shipping', true)
         );
     }
 
@@ -143,11 +148,11 @@ class Magento_Test_Bootstrap_SettingsTest extends PHPUnit_Framework_TestCase
     public function getAsFileDataProvider()
     {
         return array(
-            'existing file'         => array('test_file', '', "{$this->_fixtureDir}metrics.php"),
-            'zero value setting'    => array('zero_value', 'default_should_be_ignored', "{$this->_fixtureDir}0"),
-            'empty default value'   => array('non_existing_file', '', ''),
-            'zero default value'    => array('non_existing_file', '0', "{$this->_fixtureDir}0"),
-            'default value'         => array('non_existing_file', 'metrics.php', "{$this->_fixtureDir}metrics.php"),
+            'existing file' => array('test_file', '', "{$this->_fixtureDir}metrics.php"),
+            'zero value setting' => array('zero_value', 'default_should_be_ignored', "{$this->_fixtureDir}0"),
+            'empty default value' => array('non_existing_file', '', ''),
+            'zero default value' => array('non_existing_file', '0', "{$this->_fixtureDir}0"),
+            'default value' => array('non_existing_file', 'metrics.php', "{$this->_fixtureDir}metrics.php")
         );
     }
 
@@ -169,21 +174,19 @@ class Magento_Test_Bootstrap_SettingsTest extends PHPUnit_Framework_TestCase
     {
         return array(
             'single pattern' => array(
-                'all_xml_files', array("{$this->_fixtureDir}1.xml", "{$this->_fixtureDir}2.xml")
+                'all_xml_files',
+                array("{$this->_fixtureDir}1.xml", "{$this->_fixtureDir}2.xml")
             ),
             'pattern with braces' => array(
                 'all_xml_or_one_php_file',
                 array("{$this->_fixtureDir}1.xml", "{$this->_fixtureDir}2.xml", "{$this->_fixtureDir}4.php")
             ),
             'multiple patterns' => array(
-                'one_xml_or_any_php_file', array("{$this->_fixtureDir}1.xml", "{$this->_fixtureDir}4.php")
+                'one_xml_or_any_php_file',
+                array("{$this->_fixtureDir}1.xml", "{$this->_fixtureDir}4.php")
             ),
-            'non-existing setting' => array(
-                'non_existing', array()
-            ),
-            'setting with zero value' => array(
-                'zero_value', array("{$this->_fixtureDir}0")
-            ),
+            'non-existing setting' => array('non_existing', array()),
+            'setting with zero value' => array('zero_value', array("{$this->_fixtureDir}0"))
         );
     }
 
@@ -204,15 +207,9 @@ class Magento_Test_Bootstrap_SettingsTest extends PHPUnit_Framework_TestCase
     public function getAsConfigFileDataProvider()
     {
         return array(
-            'config file & dist file' => array(
-                'config_file_with_dist', "{$this->_fixtureDir}1.xml"
-            ),
-            'config file & no dist file' => array(
-                'config_file_no_dist', "{$this->_fixtureDir}2.xml"
-            ),
-            'no config file & dist file' => array(
-                'no_config_file_dist', "{$this->_fixtureDir}3.xml.dist"
-            ),
+            'config file & dist file' => array('config_file_with_dist', "{$this->_fixtureDir}1.xml"),
+            'config file & no dist file' => array('config_file_no_dist', "{$this->_fixtureDir}2.xml"),
+            'no config file & dist file' => array('no_config_file_dist', "{$this->_fixtureDir}3.xml.dist")
         );
     }
 
@@ -223,7 +220,7 @@ class Magento_Test_Bootstrap_SettingsTest extends PHPUnit_Framework_TestCase
      */
     public function testGetAsConfigFileException($settingName, $expectedExceptionMsg)
     {
-        $this->setExpectedException('Magento_Exception', $expectedExceptionMsg);
+        $this->setExpectedException('Magento\Exception', $expectedExceptionMsg);
         $this->_object->getAsConfigFile($settingName);
     }
 
@@ -237,7 +234,7 @@ class Magento_Test_Bootstrap_SettingsTest extends PHPUnit_Framework_TestCase
             'non-existing file' => array(
                 'item_label',
                 "Setting 'item_label' specifies the non-existing file '{$this->_fixtureDir}Item Label.dist'."
-            ),
+            )
         );
     }
 }

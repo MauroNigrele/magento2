@@ -21,73 +21,28 @@
  * @category    Magento
  * @package     Framework
  * @subpackage  unit_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
+namespace Magento\Config;
 
-class Magento_Config_ThemeTest extends PHPUnit_Framework_TestCase
+class ThemeTest extends \PHPUnit_Framework_TestCase
 {
-    /**
-     * @var Magento_Config_Theme
-     */
-    protected static $_model = null;
-
-    public static function setUpBeforeClass()
-    {
-        self::$_model = new Magento_Config_Theme(glob(__DIR__ . '/_files/packages/*/*/theme.xml'));
-    }
-
-    /**
-     * @expectedException InvalidArgumentException
-     */
-    public function testConstructException()
-    {
-        new Magento_Config_Theme(array());
-    }
-
     public function testGetSchemaFile()
     {
-        $this->assertFileExists(self::$_model->getSchemaFile());
+        $config = new \Magento\Config\Theme(file_get_contents(__DIR__ . '/_files/area/default_default/theme.xml'));
+        $this->assertFileExists($config->getSchemaFile());
     }
 
     /**
-     * @param string $package
-     * @param mixed $expected
-     * @dataProvider getPackageTitleDataProvider
-     */
-    public function testGetPackageTitle($package, $expected)
-    {
-        $this->assertSame($expected, self::$_model->getPackageTitle($package));
-    }
-
-    /**
-     * @return array
-     */
-    public function getPackageTitleDataProvider()
-    {
-        return array(
-            array('default', 'Default'),
-            array('test',    'Test'),
-        );
-    }
-
-    /**
-     * @expectedException Magento_Exception
-     */
-    public function testGetPackageTitleException()
-    {
-        self::$_model->getPackageTitle('invalid');
-    }
-
-    /**
-     * @param string $package
-     * @param string $theme
+     * @param string $themePath
      * @param mixed $expected
      * @dataProvider getThemeTitleDataProvider
      */
-    public function testGetThemeTitle($package, $theme, $expected)
+    public function testGetThemeTitle($themePath, $expected)
     {
-        $this->assertSame($expected, self::$_model->getThemeTitle($package, $theme));
+        $config = new \Magento\Config\Theme(file_get_contents(__DIR__ . "/_files/area/{$themePath}/theme.xml"));
+        $this->assertSame($expected, $config->getThemeTitle());
     }
 
     /**
@@ -95,21 +50,18 @@ class Magento_Config_ThemeTest extends PHPUnit_Framework_TestCase
      */
     public function getThemeTitleDataProvider()
     {
-        return array(
-            array('default', 'default', 'Default'),
-            array('default', 'test',    'Test'),
-        );
+        return array(array('default_default', 'Default'), array('default_test', 'Test'));
     }
 
     /**
-     * @param string $package
-     * @param string $theme
+     * @param string $themePath
      * @param mixed $expected
      * @dataProvider getParentThemeDataProvider
      */
-    public function testGetParentTheme($package, $theme, $expected)
+    public function testGetParentTheme($themePath, $expected)
     {
-        $this->assertSame($expected, self::$_model->getParentTheme($package, $theme));
+        $config = new \Magento\Config\Theme(file_get_contents(__DIR__ . "/_files/area/{$themePath}/theme.xml"));
+        $this->assertSame($expected, $config->getParentTheme());
     }
 
     /**
@@ -118,52 +70,56 @@ class Magento_Config_ThemeTest extends PHPUnit_Framework_TestCase
     public function getParentThemeDataProvider()
     {
         return array(
-            array('default', 'default', null),
-            array('default', 'test', array('default', 'default')),
-            array('default', 'test2', array('default', 'test')),
-            array('test', 'external_package_descendant', array('default', 'test2')),
+            array('default_default', null),
+            array('default_test', array('default_default')),
+            array('default_test2', array('default_test')),
+            array('test_external_package_descendant', array('default_test2'))
         );
     }
 
     /**
-     * @dataProvider getCompatibleVersionsDataProvider
+     * @param string $themePath
+     * @param array $expected
+     * @dataProvider dataGetterDataProvider
      */
-    public function testGetCompatibleVersions($package, $theme, $versions)
+    public function testDataGetter($themePath, $expected)
     {
-        $this->assertEquals($versions, self::$_model->getCompatibleVersions($package, $theme));
-    }
-
-    public function getCompatibleVersionsDataProvider()
-    {
-        return array(
-            array('test', 'default', array('from' => '2.0.0.0-dev1', 'to' => '*')),
-            array('default', 'test', array('from' => '2.0.0.0', 'to' => '*')),
-        );
-    }
-
-    /**
-     * @param string $getter
-     * @param string $package
-     * @param string $theme
-     * @dataProvider ensureThemeExistsExceptionDataProvider
-     * @expectedException Magento_Exception
-     */
-    public function testEnsureThemeExistsException($getter, $package, $theme)
-    {
-        self::$_model->$getter($package, $theme);
+        $expected = reset($expected);
+        $config = new \Magento\Config\Theme(file_get_contents(__DIR__ . "/_files/area/$themePath/theme.xml"));
+        $this->assertSame($expected['version'], $config->getThemeVersion());
+        $this->assertSame($expected['media'], $config->getMedia());
     }
 
     /**
      * @return array
      */
-    public function ensureThemeExistsExceptionDataProvider()
+    public function dataGetterDataProvider()
     {
-        $result = array();
-        foreach (array('getThemeTitle', 'getParentTheme', 'getCompatibleVersions') as $getter) {
-            $result[] = array($getter, 'invalid', 'invalid');
-            $result[] = array($getter, 'default', 'invalid');
-            $result[] = array($getter, 'invalid', 'default');
-        }
-        return $result;
+        return array(
+            array(
+                'default_default',
+                array(array(
+                    'version' => '2.0.0.9',
+                    'media' => array('preview_image' => 'media/default_default.jpg'),
+                ))),
+            array(
+                'default_test',
+                array(array(
+                    'version' => '2.1.0.0',
+                    'media' => array('preview_image' => ''),
+                ))),
+            array(
+                'default_test2',
+                array(array(
+                    'version' => '2.0.0.0',
+                    'media' => array('preview_image' => ''),
+                ))),
+            array(
+                'test_default',
+                array(array(
+                    'version' => '2.0.1.0',
+                    'media' => array('preview_image' => 'media/test_default.jpg'),
+                ))),
+        );
     }
 }

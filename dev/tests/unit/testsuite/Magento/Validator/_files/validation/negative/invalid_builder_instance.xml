@@ -22,23 +22,23 @@
  * @category    Magento
  * @package     Magento_Validator
  * @subpackage  unit_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 -->
-<validation>
+<validation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../../../../../../lib/Magento/Validator/etc/validation.xsd">
     <entity name="catalog_product">
         <rules>
             <rule name="name_sku_and_price">
                 <property_constraints>
                     <property name="name">
-                        <constraint alias="some_validator" class="Magento_Validator_StringLenght"/>
+                        <constraint alias="some_validator" class="Magento\Validator_StringLenght"/>
                     </property>
                 </property_constraints>
             </rule>
         </rules>
         <groups>
-            <!-- builder class must implement Magento_Validator_Builder -->
+            <!-- builder class must implement \Magento\Validator\Builder -->
             <group name="create" builder="stdClass">
                 <uses>
                     <use rule="name_sku_and_price"/>

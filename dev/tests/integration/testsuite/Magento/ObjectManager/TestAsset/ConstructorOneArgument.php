@@ -21,14 +21,15 @@
  * @category    Magento
  * @package     Magento_ObjectManager
  * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
+namespace Magento\ObjectManager\TestAsset;
 
-class Magento_ObjectManager_TestAsset_ConstructorOneArgument
+class ConstructorOneArgument
 {
     /**
-     * @var Magento_ObjectManager_TestAsset_Basic
+     * @var \Magento\ObjectManager\TestAsset\Basic
      */
     protected $_one;
 
@@ -39,11 +40,10 @@ class Magento_ObjectManager_TestAsset_ConstructorOneArgument
     /**
      * One argument
      *
-     * @param Magento_ObjectManager_TestAsset_Basic $one
+     * @param \Magento\ObjectManager\TestAsset\Basic $one
      */
-    public function __construct(
-        Magento_ObjectManager_TestAsset_Basic $one
-    ) {
+    public function __construct(\Magento\ObjectManager\TestAsset\Basic $one)
+    {
         $this->_one = $one;
     }
 }

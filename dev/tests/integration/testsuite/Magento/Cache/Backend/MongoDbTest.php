@@ -18,21 +18,23 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
+namespace Magento\Cache\Backend;
 
-class Magento_Cache_Backend_MongoDbTest extends PHPUnit_Framework_TestCase
+class MongoDbTest extends \PHPUnit_Framework_TestCase
 {
     protected $_connectionString;
+
     protected $_dbName = 'magento_integration_test';
 
     /**
-     * @var Magento_Cache_Backend_MongoDb|null
+     * @var \Magento\Cache\Backend\MongoDb|null
      */
     protected $_model = null;
 
-    public function setUp()
+    protected function setUp()
     {
         if (defined('MONGODB_CONNECTION_STRING')) {
             $this->_connectionString = MONGODB_CONNECTION_STRING;
@@ -45,27 +47,27 @@ class Magento_Cache_Backend_MongoDbTest extends PHPUnit_Framework_TestCase
         if (defined('MONGODB_DATABASE_NAME')) {
             $this->_dbName = MONGODB_DATABASE_NAME;
         }
-        $this->_model = new Magento_Cache_Backend_MongoDb(
+        $this->_model = new \Magento\Cache\Backend\MongoDb(
             array('connection_string' => $this->_connectionString, 'db' => $this->_dbName)
         );
     }
 
-    public function tearDown()
+    protected function tearDown()
     {
         if (!empty($this->_connectionString) && extension_loaded('mongo')) {
             $this->_model = null;
-            $connection = new Mongo($this->_connectionString);
+            $connection = new \Mongo($this->_connectionString);
             $connection->dropDB($this->_dbName);
         }
     }
 
     /**
-     * @expectedException Zend_Cache_Exception
+     * @expectedException \Zend_Cache_Exception
      * @expectedExceptionMessage 'db' option is not specified
      */
     public function testConstructorException()
     {
-        new Magento_Cache_Backend_MongoDb();
+        new \Magento\Cache\Backend\MongoDb();
     }
 
     public function testGetIds()
@@ -100,7 +102,7 @@ class Magento_Cache_Backend_MongoDbTest extends PHPUnit_Framework_TestCase
     {
         return array(
             'one tag' => array(array('tag1'), array('test1', 'test2', 'test3')),
-            'multiple tags' => array(array('tag1', 'tag2'), array('test1', 'test3')),
+            'multiple tags' => array(array('tag1', 'tag2'), array('test1', 'test3'))
         );
     }
 
@@ -118,7 +120,7 @@ class Magento_Cache_Backend_MongoDbTest extends PHPUnit_Framework_TestCase
     {
         return array(
             'one tag' => array(array('tag2'), array('test2', 'test4', 'test5')),
-            'multiple tags' => array(array('tag1', 'tag2'), array('test4', 'test5')),
+            'multiple tags' => array(array('tag1', 'tag2'), array('test4', 'test5'))
         );
     }
 
@@ -135,9 +137,9 @@ class Magento_Cache_Backend_MongoDbTest extends PHPUnit_Framework_TestCase
     public function getIdsMatchingAnyTagsDataProvider()
     {
         return array(
-            'no tags'       => array(array(), array()),
-            'one tag'       => array(array('tag2'), array('test1', 'test3')),
-            'multiple tags' => array(array('tag1', 'tag2'), array('test1', 'test2', 'test3')),
+            'no tags' => array(array(), array()),
+            'one tag' => array(array('tag2'), array('test1', 'test3')),
+            'multiple tags' => array(array('tag1', 'tag2'), array('test1', 'test2', 'test3'))
         );
     }
 
@@ -155,14 +157,14 @@ class Magento_Cache_Backend_MongoDbTest extends PHPUnit_Framework_TestCase
 
     /**
      * @param int $extraLifeTime
-     * @param PHPUnit_Framework_Constraint $constraint
+     * @param \PHPUnit_Framework_Constraint $constraint
      * @dataProvider touchDataProvider
      */
-    public function testTouch($extraLifeTime, PHPUnit_Framework_Constraint $constraint)
+    public function testTouch($extraLifeTime, \PHPUnit_Framework_Constraint $constraint)
     {
         $cacheId = 'test';
         $this->_model->save('test data', $cacheId, array(), 2);
-        $this->assertGreaterThan(0, $this->_model->test($cacheId), "Cache with id '$cacheId' has not been saved");
+        $this->assertGreaterThan(0, $this->_model->test($cacheId), "Cache with id '{$cacheId}' has not been saved");
         $this->_model->touch($cacheId, $extraLifeTime);
         sleep(2);
         $this->assertThat($this->_model->test($cacheId), $constraint);
@@ -172,7 +174,7 @@ class Magento_Cache_Backend_MongoDbTest extends PHPUnit_Framework_TestCase
     {
         return array(
             'not enough extra lifetime' => array(0, $this->isFalse()),
-            'enough extra lifetime'     => array(1000, $this->logicalNot($this->isFalse())),
+            'enough extra lifetime' => array(1000, $this->logicalNot($this->isFalse()))
         );
     }
 
@@ -194,10 +196,10 @@ class Magento_Cache_Backend_MongoDbTest extends PHPUnit_Framework_TestCase
     public function loadDataProvider()
     {
         return array(
-            'infinite lifetime with validity'    => array('test data', null, false, 'test data'),
+            'infinite lifetime with validity' => array('test data', null, false, 'test data'),
             'infinite lifetime without validity' => array('test data', null, true, 'test data'),
-            'zero lifetime with validity'        => array('test data', 0, false, false),
-            'zero lifetime without validity'     => array('test data', 0, true, 'test data'),
+            'zero lifetime with validity' => array('test data', 0, false, false),
+            'zero lifetime without validity' => array('test data', 0, true, 'test data')
         );
     }
 
@@ -226,15 +228,15 @@ class Magento_Cache_Backend_MongoDbTest extends PHPUnit_Framework_TestCase
     {
         $cacheId = 'test';
         $this->_model->save('test data', $cacheId);
-        $this->assertGreaterThan(0, $this->_model->test($cacheId), "Cache with id '$cacheId' has not been found");
+        $this->assertGreaterThan(0, $this->_model->test($cacheId), "Cache with id '{$cacheId}' has not been found");
         $this->_model->remove($cacheId);
-        $this->assertFalse($this->_model->test($cacheId), "Cache with id '$cacheId' has not been removed");
+        $this->assertFalse($this->_model->test($cacheId), "Cache with id '{$cacheId}' has not been removed");
     }
 
     /**
      * @dataProvider cleanDataProvider
      */
-    public function testClean($mode, $tags = array(), $expectedIds)
+    public function testClean($mode, $tags, $expectedIds)
     {
         $this->_prepareCollection();
 
@@ -246,22 +248,22 @@ class Magento_Cache_Backend_MongoDbTest extends PHPUnit_Framework_TestCase
     public function cleanDataProvider()
     {
         return array(
-            'clean all cache' => array(Zend_Cache::CLEANING_MODE_ALL, array(), array()),
+            'clean all cache' => array(\Zend_Cache::CLEANING_MODE_ALL, array(), array()),
             'clean cache matching all tags' => array(
-                Zend_Cache::CLEANING_MODE_MATCHING_TAG,
+                \Zend_Cache::CLEANING_MODE_MATCHING_TAG,
                 array('tag1', 'tag2'),
                 array('test2', 'test4', 'test5')
             ),
             'clean cache not matching tags' => array(
-                Zend_Cache::CLEANING_MODE_NOT_MATCHING_TAG,
+                \Zend_Cache::CLEANING_MODE_NOT_MATCHING_TAG,
                 array('tag1', 'tag2'),
                 array('test1', 'test2', 'test3')
             ),
             'clean cache matching any tags' => array(
-                Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG,
+                \Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG,
                 array('tag1', 'tag2'),
                 array('test4', 'test5')
-            ),
+            )
         );
     }
 
@@ -270,7 +272,7 @@ class Magento_Cache_Backend_MongoDbTest extends PHPUnit_Framework_TestCase
         $this->_model->save('long-living entity', 'long', array(), 1000);
         $this->_model->save('infinite-living entity', 'infinite', array(), null);
         $this->_model->save('short-living entity', 'short', array(), 0);
-        $this->_model->clean(Zend_Cache::CLEANING_MODE_OLD);
+        $this->_model->clean(\Zend_Cache::CLEANING_MODE_OLD);
         $expectedIds = array('long', 'infinite');
         $actualIds = $this->_model->getIds();
         $this->assertSame($expectedIds, $actualIds);

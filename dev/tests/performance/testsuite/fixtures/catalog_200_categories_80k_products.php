@@ -18,9 +18,11 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
+
+/** @var \Magento\TestFramework\Application $this */
 
 /**
  * Create categories
@@ -30,27 +32,38 @@ $maxNestingLevel = 3;
 $anchorStep = 2;
 
 $nestingLevel = 1;
-$parentCategoryId = $defaultParentCategoryId = Mage::app()->getStore()->getRootCategoryId();
-$nestingPath = "1/$parentCategoryId";
+$parentCategoryId = $defaultParentCategoryId = $this->getObjectManager()->get(
+    'Magento\Core\Model\StoreManagerInterface'
+)->getStore()->getRootCategoryId();
+$nestingPath = "1/{$parentCategoryId}";
 $categoryPath = '';
 $categoryIndex = 1;
 
 $categories = array();
 
-$category = Mage::getModel('Mage_Catalog_Model_Category');
+$category = $this->getObjectManager()->create('Magento\Catalog\Model\Category');
 while ($categoryIndex <= $categoriesNumber) {
-    $category->setId(null)
-        ->setName("Category $categoryIndex")
-        ->setParentId($parentCategoryId)
-        ->setPath($nestingPath)
-        ->setLevel($nestingLevel)
-        ->setAvailableSortBy('name')
-        ->setDefaultSortBy('name')
-        ->setIsActive(true)
-        ->setIsAnchor($categoryIndex++ % $anchorStep == 0)
-        ->save();
+    $category->setId(
+        null
+    )->setName(
+        "Category {$categoryIndex}"
+    )->setParentId(
+        $parentCategoryId
+    )->setPath(
+        $nestingPath
+    )->setLevel(
+        $nestingLevel
+    )->setAvailableSortBy(
+        'name'
+    )->setDefaultSortBy(
+        'name'
+    )->setIsActive(
+        true
+    )->setIsAnchor(
+        $categoryIndex++ % $anchorStep == 0
+    )->save();
 
-    $categoryPath .=  '/' . $category->getName();
+    $categoryPath .= '/' . $category->getName();
     $categories[] = ltrim($categoryPath, '/');
 
     if ($nestingLevel++ == $maxNestingLevel) {
@@ -61,7 +74,7 @@ while ($categoryIndex <= $categoriesNumber) {
     } else {
         $parentCategoryId = $category->getId();
     }
-    $nestingPath .= "/$parentCategoryId";
+    $nestingPath .= "/{$parentCategoryId}";
 }
 
 /**
@@ -70,7 +83,7 @@ while ($categoryIndex <= $categoriesNumber) {
 $productsNumber = 80000;
 $pattern = array(
     '_attribute_set' => 'Default',
-    '_type' => Mage_Catalog_Model_Product_Type::TYPE_SIMPLE,
+    '_type' => \Magento\Catalog\Model\Product\Type::TYPE_SIMPLE,
     '_product_websites' => 'base',
     '_category' => function ($index) use ($categories, $categoriesNumber) {
         return $categories[$index % $categoriesNumber];
@@ -81,8 +94,8 @@ $pattern = array(
     'description' => 'Description %s',
     'sku' => 'product_dynamic_%s',
     'price' => 10,
-    'visibility' => Mage_Catalog_Model_Product_Visibility::VISIBILITY_BOTH,
-    'status' => Mage_Catalog_Model_Product_Status::STATUS_ENABLED,
+    'visibility' => \Magento\Catalog\Model\Product\Visibility::VISIBILITY_BOTH,
+    'status' => \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_ENABLED,
     'tax_class_id' => 0,
 
     // actually it saves without stock data, but by default system won't show on the frontend products out of stock
@@ -96,10 +109,14 @@ $pattern = array(
     'use_config_manage_stock' => '1',
     'use_config_qty_increments' => '1',
     'use_config_enable_qty_inc' => '1',
-    'stock_id' => Mage_CatalogInventory_Model_Stock::DEFAULT_STOCK_ID,
+    'stock_id' => \Magento\CatalogInventory\Model\Stock::DEFAULT_STOCK_ID
 );
-$generator = new Magento_ImportExport_Fixture_Generator($pattern, $productsNumber);
-$import = new Mage_ImportExport_Model_Import(array('entity' => 'catalog_product', 'behavior' => 'append'));
+$generator = new \Magento\TestFramework\ImportExport\Fixture\Generator($pattern, $productsNumber);
+/** @var \Magento\ImportExport\Model\Import $import */
+$import = $this->getObjectManager()->create(
+    'Magento\ImportExport\Model\Import',
+    array('data' => array('entity' => 'catalog_product', 'behavior' => 'append'))
+);
 // it is not obvious, but the validateSource() will actually save import queue data to DB
 $import->validateSource($generator);
 // this converts import queue into actual entities

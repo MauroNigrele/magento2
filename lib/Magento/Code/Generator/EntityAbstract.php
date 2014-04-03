@@ -20,11 +20,14 @@
  *
  * @category    Magento
  * @package     Magento_Code
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
+namespace Magento\Code\Generator;
 
-abstract class Magento_Code_Generator_EntityAbstract
+use Magento\Autoload\IncludePath;
+
+abstract class EntityAbstract
 {
     /**
      * Entity type
@@ -32,7 +35,7 @@ abstract class Magento_Code_Generator_EntityAbstract
     const ENTITY_TYPE = 'abstract';
 
     /**
-     * @var array
+     * @var string[]
      */
     private $_errors = array();
 
@@ -51,55 +54,55 @@ abstract class Magento_Code_Generator_EntityAbstract
     private $_resultClassName;
 
     /**
-     * @var Magento_Code_Generator_Io
+     * @var Io
      */
     private $_ioObject;
 
     /**
      * Autoloader instance
      *
-     * @var Magento_Autoload_IncludePath
+     * @var IncludePath
      */
     private $_autoloader;
 
     /**
      * Class generator object
      *
-     * @var Magento_Code_Generator_CodeGenerator_Interface
+     * @var CodeGenerator\CodeGeneratorInterface
      */
     protected $_classGenerator;
 
     /**
-     * @param string $sourceClassName
-     * @param string $resultClassName
-     * @param Magento_Code_Generator_Io $ioObject
-     * @param Magento_Code_Generator_CodeGenerator_Interface $classGenerator
-     * @param Magento_Autoload_IncludePath $autoLoader
+     * @param null|string $sourceClassName
+     * @param null|string $resultClassName
+     * @param Io $ioObject
+     * @param CodeGenerator\CodeGeneratorInterface $classGenerator
+     * @param IncludePath $autoLoader
      */
     public function __construct(
         $sourceClassName = null,
         $resultClassName = null,
-        Magento_Code_Generator_Io $ioObject = null,
-        Magento_Code_Generator_CodeGenerator_Interface $classGenerator = null,
-        Magento_Autoload_IncludePath $autoLoader = null
+        Io $ioObject = null,
+        CodeGenerator\CodeGeneratorInterface $classGenerator = null,
+        IncludePath $autoLoader = null
     ) {
         if ($autoLoader) {
             $this->_autoloader = $autoLoader;
         } else {
-            $this->_autoloader = new Magento_Autoload_IncludePath();
+            $this->_autoloader = new IncludePath();
         }
         if ($ioObject) {
             $this->_ioObject = $ioObject;
         } else {
-            $this->_ioObject = new Magento_Code_Generator_Io(new Varien_Io_File(), $this->_autoloader);
+            $this->_ioObject = new Io(new \Magento\Filesystem\Driver\File(), $this->_autoloader);
         }
         if ($classGenerator) {
             $this->_classGenerator = $classGenerator;
         } else {
-            $this->_classGenerator = new Magento_Code_Generator_CodeGenerator_Zend();
+            $this->_classGenerator = new CodeGenerator\Zend();
         }
 
-        $this->_sourceClassName = ltrim($sourceClassName, Magento_Autoload_IncludePath::NS_SEPARATOR);
+        $this->_sourceClassName = ltrim($sourceClassName, IncludePath::NS_SEPARATOR);
         if ($resultClassName) {
             $this->_resultClassName = $resultClassName;
         } elseif ($sourceClassName) {
@@ -125,7 +128,7 @@ abstract class Magento_Code_Generator_EntityAbstract
                     $this->_addError('Can\'t generate source code.');
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $this->_addError($e->getMessage());
         }
         return false;
@@ -134,7 +137,7 @@ abstract class Magento_Code_Generator_EntityAbstract
     /**
      * List of occurred generation errors
      *
-     * @return array
+     * @return string[]
      */
     public function getErrors()
     {
@@ -142,6 +145,8 @@ abstract class Magento_Code_Generator_EntityAbstract
     }
 
     /**
+     * Get source class name
+     *
      * @return string
      */
     protected function _getSourceClassName()
@@ -150,16 +155,19 @@ abstract class Magento_Code_Generator_EntityAbstract
     }
 
     /**
+     * Get fully qualified class name
+     *
      * @param string $className
      * @return string
      */
     protected function _getFullyQualifiedClassName($className)
     {
-        return Magento_Autoload_IncludePath::NS_SEPARATOR
-            . ltrim($className, Magento_Autoload_IncludePath::NS_SEPARATOR);
+        return IncludePath::NS_SEPARATOR . ltrim($className, IncludePath::NS_SEPARATOR);
     }
 
     /**
+     * Get result class name
+     *
      * @return string
      */
     protected function _getResultClassName()
@@ -168,6 +176,8 @@ abstract class Magento_Code_Generator_EntityAbstract
     }
 
     /**
+     * Get default result class name
+     *
      * @param string $modelClassName
      * @return string
      */
@@ -185,14 +195,12 @@ abstract class Magento_Code_Generator_EntityAbstract
     {
         // protected $_objectManager = null;
         $objectManager = array(
-            'name'       => '_objectManager',
+            'name' => '_objectManager',
             'visibility' => 'protected',
-            'docblock'   => array(
+            'docblock' => array(
                 'shortDescription' => 'Object Manager instance',
-                'tags'             => array(
-                    array('name' => 'var', 'description' => '\Magento_ObjectManager')
-                )
-            ),
+                'tags' => array(array('name' => 'var', 'description' => '\Magento\ObjectManager'))
+            )
         );
 
         return array($objectManager);
@@ -203,32 +211,40 @@ abstract class Magento_Code_Generator_EntityAbstract
      *
      * @return array
      */
-    protected abstract function _getDefaultConstructorDefinition();
+    abstract protected function _getDefaultConstructorDefinition();
 
     /**
      * Returns list of methods for class generator
      *
-     * @return mixed
+     * @return array
      */
     abstract protected function _getClassMethods();
 
     /**
+     * Generate code
+     *
      * @return string
      */
     protected function _generateCode()
     {
-        $this->_classGenerator
-            ->setName($this->_getResultClassName())
-            ->addProperties($this->_getClassProperties())
-            ->addMethods($this->_getClassMethods())
-            ->setClassDocBlock($this->_getClassDocBlock());
+        $this->_classGenerator->setName(
+            $this->_getResultClassName()
+        )->addProperties(
+            $this->_getClassProperties()
+        )->addMethods(
+            $this->_getClassMethods()
+        )->setClassDocBlock(
+            $this->_getClassDocBlock()
+        );
 
         return $this->_getGeneratedCode();
     }
 
     /**
+     * Add error message
+     *
      * @param string $message
-     * @return Magento_Code_Generator_EntityAbstract
+     * @return $this
      */
     protected function _addError($message)
     {
@@ -243,22 +259,36 @@ abstract class Magento_Code_Generator_EntityAbstract
     {
         $sourceClassName = $this->_getSourceClassName();
         $resultClassName = $this->_getResultClassName();
-        $resultFileName  = $this->_ioObject->getResultFileName($resultClassName);
+        $resultFileName = $this->_ioObject->getResultFileName($resultClassName);
 
         $autoloader = $this->_autoloader;
 
         // @todo the controller handling logic below must be removed when controllers become PSR-0 compliant
         $controllerSuffix = 'Controller';
         $pathParts = explode('_', $sourceClassName);
-        if (strrpos($sourceClassName, $controllerSuffix) === strlen($sourceClassName) - strlen($controllerSuffix)
-            && isset($pathParts[2])
-            && !in_array($pathParts[2], array('Block', 'Helper', 'Model'))
+        if (strrpos(
+            $sourceClassName,
+            $controllerSuffix
+        ) === strlen(
+            $sourceClassName
+        ) - strlen(
+            $controllerSuffix
+        ) && isset(
+            $pathParts[2]
+        ) && !in_array(
+            $pathParts[2],
+            array('Block', 'Helper', 'Model')
+        )
         ) {
-            $controllerPath = preg_replace('/^([0-9A-Za-z]*)_([0-9A-Za-z]*)/', '\\1_\\2_controllers', $sourceClassName);
-            $filePath = stream_resolve_include_path(str_replace('_', DIRECTORY_SEPARATOR, $controllerPath) . '.php');
+            $controllerPath = preg_replace(
+                '/^([0-9A-Za-z]*)_([0-9A-Za-z]*)/',
+                '\\1_\\2_controllers',
+                $sourceClassName
+            );
+            $filePath = stream_resolve_include_path(str_replace('_', '/', $controllerPath) . '.php');
             $isSourceClassValid = !empty($filePath);
         } else {
-            $isSourceClassValid =$autoloader::getFile($sourceClassName);
+            $isSourceClassValid = $autoloader::getFile($sourceClassName);
         }
 
         if (!$isSourceClassValid) {
@@ -302,7 +332,7 @@ abstract class Magento_Code_Generator_EntityAbstract
 
     /**
      * @param string $sourceCode
-     * @return mixed
+     * @return string
      */
     protected function _fixCodeStyle($sourceCode)
     {
@@ -339,10 +369,10 @@ abstract class Magento_Code_Generator_EntityAbstract
     /**
      * Retrieve method parameter info
      *
-     * @param ReflectionParameter $parameter
+     * @param \ReflectionParameter $parameter
      * @return array
      */
-    protected function _getMethodParameterInfo(ReflectionParameter $parameter)
+    protected function _getMethodParameterInfo(\ReflectionParameter $parameter)
     {
         $parameterInfo = array(
             'name' => $parameter->getName(),
@@ -367,5 +397,18 @@ abstract class Magento_Code_Generator_EntityAbstract
         }
 
         return $parameterInfo;
+    }
+
+    /**
+     * Reinit generator
+     *
+     * @param string $sourceClassName
+     * @param string $resultClassName
+     * @return void
+     */
+    public function init($sourceClassName, $resultClassName)
+    {
+        $this->_sourceClassName = $sourceClassName;
+        $this->_resultClassName = $resultClassName;
     }
 }

@@ -1,6 +1,6 @@
 <?php
 /**
- * Test class for Magento_Profiler_Driver_Standard_Stat
+ * Test class for \Magento\Profiler\Driver\Standard\Stat
  *
  * Magento
  *
@@ -20,23 +20,25 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
-class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCase
+namespace Magento\Profiler\Driver\Standard;
+
+class StatTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var Magento_Profiler_Driver_Standard_Stat
+     * @var \Magento\Profiler\Driver\Standard\Stat
      */
     protected $_stat;
 
     protected function setUp()
     {
-        $this->_stat = new Magento_Profiler_Driver_Standard_Stat();
+        $this->_stat = new \Magento\Profiler\Driver\Standard\Stat();
     }
 
     /**
-     * Test start and stop methods of Magento_Profiler_Driver_Standard_Stat
+     * Test start and stop methods of \Magento\Profiler\Driver\Standard\Stat
      *
      * @dataProvider actionsDataProvider
      * @param array $actions
@@ -55,8 +57,8 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
 
         foreach ($expected as $timerId => $expectedTimer) {
             $actualTimer = $this->_stat->get($timerId);
-            $this->assertInternalType('array', $actualTimer, "Timer '$timerId' must be an array");
-            $this->assertEquals($expectedTimer, $actualTimer, "Timer '$timerId' has unexpected value");
+            $this->assertInternalType('array', $actualTimer, "Timer '{$timerId}' must be an array");
+            $this->assertEquals($expectedTimer, $actualTimer, "Timer '{$timerId}' has unexpected value");
         }
     }
 
@@ -70,34 +72,34 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
         return array(
             'Start only once' => array(
                 'actions' => array(
-                    array('start', 'timer1', 'time' => 25, 'realMemory' => 1500, 'emallocMemory' => 10),
+                    array('start', 'timer1', 'time' => 25, 'realMemory' => 1500, 'emallocMemory' => 10)
                 ),
                 'expected' => array(
                     'timer1' => array(
-                        Magento_Profiler_Driver_Standard_Stat::START => 25,
-                        Magento_Profiler_Driver_Standard_Stat::TIME => 0,
-                        Magento_Profiler_Driver_Standard_Stat::REALMEM => 0,
-                        Magento_Profiler_Driver_Standard_Stat::EMALLOC => 0,
-                        Magento_Profiler_Driver_Standard_Stat::REALMEM_START => 1500,
-                        Magento_Profiler_Driver_Standard_Stat::EMALLOC_START => 10,
-                        Magento_Profiler_Driver_Standard_Stat::COUNT => 1
+                        \Magento\Profiler\Driver\Standard\Stat::START => 25,
+                        \Magento\Profiler\Driver\Standard\Stat::TIME => 0,
+                        \Magento\Profiler\Driver\Standard\Stat::REALMEM => 0,
+                        \Magento\Profiler\Driver\Standard\Stat::EMALLOC => 0,
+                        \Magento\Profiler\Driver\Standard\Stat::REALMEM_START => 1500,
+                        \Magento\Profiler\Driver\Standard\Stat::EMALLOC_START => 10,
+                        \Magento\Profiler\Driver\Standard\Stat::COUNT => 1
                     )
                 )
             ),
             'Start only twice' => array(
                 'actions' => array(
                     array('start', 'timer1', 'time' => 25, 'realMemory' => 1500, 'emallocMemory' => 10),
-                    array('start', 'timer1', 'time' => 75, 'realMemory' => 2000, 'emallocMemory' => 20),
+                    array('start', 'timer1', 'time' => 75, 'realMemory' => 2000, 'emallocMemory' => 20)
                 ),
                 'expected' => array(
                     'timer1' => array(
-                        Magento_Profiler_Driver_Standard_Stat::START => 75,
-                        Magento_Profiler_Driver_Standard_Stat::TIME => 0,
-                        Magento_Profiler_Driver_Standard_Stat::REALMEM => 0,
-                        Magento_Profiler_Driver_Standard_Stat::EMALLOC => 0,
-                        Magento_Profiler_Driver_Standard_Stat::REALMEM_START => 2000,
-                        Magento_Profiler_Driver_Standard_Stat::EMALLOC_START => 20,
-                        Magento_Profiler_Driver_Standard_Stat::COUNT => 2
+                        \Magento\Profiler\Driver\Standard\Stat::START => 75,
+                        \Magento\Profiler\Driver\Standard\Stat::TIME => 0,
+                        \Magento\Profiler\Driver\Standard\Stat::REALMEM => 0,
+                        \Magento\Profiler\Driver\Standard\Stat::EMALLOC => 0,
+                        \Magento\Profiler\Driver\Standard\Stat::REALMEM_START => 2000,
+                        \Magento\Profiler\Driver\Standard\Stat::EMALLOC_START => 20,
+                        \Magento\Profiler\Driver\Standard\Stat::COUNT => 2
                     )
                 )
             ),
@@ -106,17 +108,17 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
                     array('start', 'timer1', 'time' => 25, 'realMemory' => 1500, 'emallocMemory' => 10),
                     array('stop', 'timer1', 'time' => 75, 'realMemory' => 2000, 'emallocMemory' => 20),
                     array('start', 'timer1', 'time' => 200, 'realMemory' => 3000, 'emallocMemory' => 50),
-                    array('stop', 'timer1', 'time' => 250, 'realMemory' => 4000, 'emallocMemory' => 80),
+                    array('stop', 'timer1', 'time' => 250, 'realMemory' => 4000, 'emallocMemory' => 80)
                 ),
                 'expected' => array(
                     'timer1' => array(
-                        Magento_Profiler_Driver_Standard_Stat::START => false,
-                        Magento_Profiler_Driver_Standard_Stat::TIME => 100,
-                        Magento_Profiler_Driver_Standard_Stat::REALMEM => 1500,
-                        Magento_Profiler_Driver_Standard_Stat::EMALLOC => 40,
-                        Magento_Profiler_Driver_Standard_Stat::REALMEM_START => 3000,
-                        Magento_Profiler_Driver_Standard_Stat::EMALLOC_START => 50,
-                        Magento_Profiler_Driver_Standard_Stat::COUNT => 2
+                        \Magento\Profiler\Driver\Standard\Stat::START => false,
+                        \Magento\Profiler\Driver\Standard\Stat::TIME => 100,
+                        \Magento\Profiler\Driver\Standard\Stat::REALMEM => 1500,
+                        \Magento\Profiler\Driver\Standard\Stat::EMALLOC => 40,
+                        \Magento\Profiler\Driver\Standard\Stat::REALMEM_START => 3000,
+                        \Magento\Profiler\Driver\Standard\Stat::EMALLOC_START => 50,
+                        \Magento\Profiler\Driver\Standard\Stat::COUNT => 2
                     )
                 )
             ),
@@ -125,26 +127,26 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
                     array('start', 'timer1', 'time' => 25, 'realMemory' => 1500, 'emallocMemory' => 10),
                     array('start', 'timer2', 'time' => 50, 'realMemory' => 2000, 'emallocMemory' => 20),
                     array('stop', 'timer2', 'time' => 80, 'realMemory' => 2500, 'emallocMemory' => 25),
-                    array('stop', 'timer1', 'time' => 100, 'realMemory' => 4200, 'emallocMemory' => 55),
+                    array('stop', 'timer1', 'time' => 100, 'realMemory' => 4200, 'emallocMemory' => 55)
                 ),
                 'expected' => array(
                     'timer1' => array(
-                        Magento_Profiler_Driver_Standard_Stat::START => false,
-                        Magento_Profiler_Driver_Standard_Stat::TIME => 75,
-                        Magento_Profiler_Driver_Standard_Stat::REALMEM => 2700,
-                        Magento_Profiler_Driver_Standard_Stat::EMALLOC => 45,
-                        Magento_Profiler_Driver_Standard_Stat::REALMEM_START => 1500,
-                        Magento_Profiler_Driver_Standard_Stat::EMALLOC_START => 10,
-                        Magento_Profiler_Driver_Standard_Stat::COUNT => 1
+                        \Magento\Profiler\Driver\Standard\Stat::START => false,
+                        \Magento\Profiler\Driver\Standard\Stat::TIME => 75,
+                        \Magento\Profiler\Driver\Standard\Stat::REALMEM => 2700,
+                        \Magento\Profiler\Driver\Standard\Stat::EMALLOC => 45,
+                        \Magento\Profiler\Driver\Standard\Stat::REALMEM_START => 1500,
+                        \Magento\Profiler\Driver\Standard\Stat::EMALLOC_START => 10,
+                        \Magento\Profiler\Driver\Standard\Stat::COUNT => 1
                     ),
                     'timer2' => array(
-                        Magento_Profiler_Driver_Standard_Stat::START => false,
-                        Magento_Profiler_Driver_Standard_Stat::TIME => 30,
-                        Magento_Profiler_Driver_Standard_Stat::REALMEM => 500,
-                        Magento_Profiler_Driver_Standard_Stat::EMALLOC => 5,
-                        Magento_Profiler_Driver_Standard_Stat::REALMEM_START => 2000,
-                        Magento_Profiler_Driver_Standard_Stat::EMALLOC_START => 20,
-                        Magento_Profiler_Driver_Standard_Stat::COUNT => 1
+                        \Magento\Profiler\Driver\Standard\Stat::START => false,
+                        \Magento\Profiler\Driver\Standard\Stat::TIME => 30,
+                        \Magento\Profiler\Driver\Standard\Stat::REALMEM => 500,
+                        \Magento\Profiler\Driver\Standard\Stat::EMALLOC => 5,
+                        \Magento\Profiler\Driver\Standard\Stat::REALMEM_START => 2000,
+                        \Magento\Profiler\Driver\Standard\Stat::EMALLOC_START => 20,
+                        \Magento\Profiler\Driver\Standard\Stat::COUNT => 1
                     )
                 )
             )
@@ -154,7 +156,7 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
     /**
      * Test get method with invalid timer id
      *
-     * @expectedException InvalidArgumentException
+     * @expectedException \InvalidArgumentException
      * @expectedExceptionMessage Timer "unknown_timer" doesn't exist.
      */
     public function testGetWithInvalidTimer()
@@ -165,7 +167,7 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
     /**
      * Test stop method with invalid timer id
      *
-     * @expectedException InvalidArgumentException
+     * @expectedException \InvalidArgumentException
      * @expectedExceptionMessage Timer "unknown_timer" doesn't exist.
      */
     public function testStopWithInvalidTimer()
@@ -218,12 +220,9 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
                     array('start', 'root'),
                     array('start', 'root->init'),
                     array('stop', 'root->init'),
-                    array('stop', 'root'),
+                    array('stop', 'root')
                 ),
-                'expected' => array(
-                    'root',
-                    'root->init',
-                )
+                'expected' => array('root', 'root->init')
             ),
             'Simple sorting' => array(
                 'actions' => array(
@@ -238,7 +237,7 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
                     array('stop', 'root->init'),
                     array('start', 'root->dispatch'),
                     array('stop', 'root->dispatch'),
-                    array('stop', 'root'),
+                    array('stop', 'root')
                 ),
                 'expected' => array(
                     'root',
@@ -246,7 +245,7 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
                     'root->init',
                     'root->init->init_stores',
                     'root->init->init_stores->store_collection_load_after',
-                    'root->dispatch',
+                    'root->dispatch'
                 )
             ),
             'Nested sorting' => array(
@@ -258,14 +257,9 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
                     array('start', 'root->init->init_config'),
                     array('stop', 'root->init->init_config'),
                     array('stop', 'root->init'),
-                    array('stop', 'root'),
+                    array('stop', 'root')
                 ),
-                'expected' => array(
-                    'root',
-                    'root->init',
-                    'root->init->init_config',
-                    'root->system',
-                )
+                'expected' => array('root', 'root->init', 'root->init->init_config', 'root->system')
             )
         );
     }
@@ -300,13 +294,11 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
                     array('start', 'root'),
                     array('start', 'root->init'),
                     array('stop', 'root->init'),
-                    array('stop', 'root'),
+                    array('stop', 'root')
                 ),
                 'thresholds' => array(),
                 'filterPattern' => '/^root$/',
-                'expected' => array(
-                    'root',
-                )
+                'expected' => array('root')
             ),
             'Filtering by thresholds' => array(
                 'actions' => array(
@@ -315,18 +307,16 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
                     array('start', 'root->init->init_cache', 'time' => 50, 'realMemory' => 1000),
                     array('stop', 'root->init->init_cache', 'time' => 100, 'realMemory' => 21000),
                     array('stop', 'root->init', 999),
-                    array('stop', 'root', 'time' => 1000, 'realMemory' => 500, 'emallocMemory' => 0),
+                    array('stop', 'root', 'time' => 1000, 'realMemory' => 500, 'emallocMemory' => 0)
                 ),
                 'thresholds' => array(
-                    Magento_Profiler_Driver_Standard_Stat::TIME => 1000,
-                    Magento_Profiler_Driver_Standard_Stat::REALMEM => 20000,
+                    \Magento\Profiler\Driver\Standard\Stat::TIME => 1000,
+                    \Magento\Profiler\Driver\Standard\Stat::REALMEM => 20000
                 ),
                 'filterPattern' => null,
-                'expected' => array(
-                    'root', // TIME >= 1000
-                    'root->init->init_cache', // REALMEM >= 20000
-                )
-            ),
+                // TIME >= 1000, REALMEM >= 20000
+                'expected' => array('root', 'root->init->init_cache')
+            )
         );
     }
 
@@ -346,7 +336,7 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
         foreach ($expects as $expectedData) {
             /** @var bool|int|PHPUnit_Framework_Constraint $expectedValue */
             list($timerId, $key, $expectedValue) = array_values($expectedData);
-            if ($expectedValue instanceof PHPUnit_Framework_Constraint) {
+            if ($expectedValue instanceof \PHPUnit_Framework_Constraint) {
                 $expectedValue->evaluate($this->_stat->fetch($timerId, $key));
             } else {
                 $this->assertEquals($expectedValue, $this->_stat->fetch($timerId, $key));
@@ -363,29 +353,29 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
             array(
                 'actions' => array(
                     array('start', 'root', 'time' => 0, 'realMemory' => 0, 'emallocMemory' => 0),
-                    array('stop', 'root', 'time' => 1000, 'realMemory' => 500, 'emallocMemory' => 10),
+                    array('stop', 'root', 'time' => 1000, 'realMemory' => 500, 'emallocMemory' => 10)
                 ),
                 'expects' => array(
                     array(
                         'timerId' => 'root',
-                        'key' => Magento_Profiler_Driver_Standard_Stat::START,
+                        'key' => \Magento\Profiler\Driver\Standard\Stat::START,
                         'expectedValue' => false
                     ),
                     array(
                         'timerId' => 'root',
-                        'key' => Magento_Profiler_Driver_Standard_Stat::TIME,
+                        'key' => \Magento\Profiler\Driver\Standard\Stat::TIME,
                         'expectedValue' => 1000
                     ),
                     array(
                         'timerId' => 'root',
-                        'key' => Magento_Profiler_Driver_Standard_Stat::REALMEM,
+                        'key' => \Magento\Profiler\Driver\Standard\Stat::REALMEM,
                         'expectedValue' => 500
                     ),
                     array(
                         'timerId' => 'root',
-                        'key' => Magento_Profiler_Driver_Standard_Stat::EMALLOC,
+                        'key' => \Magento\Profiler\Driver\Standard\Stat::EMALLOC,
                         'expectedValue' => 10
-                    ),
+                    )
                 )
             ),
             array(
@@ -393,33 +383,36 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
                     array('start', 'root', 'time' => 0),
                     array('stop', 'root', 'time' => 10),
                     array('start', 'root', 'time' => 20),
-                    array('stop', 'root', 'time' => 30),
+                    array('stop', 'root', 'time' => 30)
                 ),
-                'expects' => array(array(
-                    'timerId' => 'root',
-                    'key' => Magento_Profiler_Driver_Standard_Stat::AVG,
-                    'expectedValue' => 10
-                ))
+                'expects' => array(
+                    array(
+                        'timerId' => 'root',
+                        'key' => \Magento\Profiler\Driver\Standard\Stat::AVG,
+                        'expectedValue' => 10
+                    )
+                )
             ),
             array(
-                'actions' => array(
-                    array('start', 'root', 'time' => 0),
-                ),
-                'expects' => array(array(
-                    'timerId' => 'root',
-                    'key' => Magento_Profiler_Driver_Standard_Stat::TIME,
-                    'expectedValue' => $this->greaterThan(microtime(true))
-                ), array(
-                    'timerId' => 'root',
-                    'key' => Magento_Profiler_Driver_Standard_Stat::ID,
-                    'expectedValue' => 'root'
-                ))
-            ),
+                'actions' => array(array('start', 'root', 'time' => 0)),
+                'expects' => array(
+                    array(
+                        'timerId' => 'root',
+                        'key' => \Magento\Profiler\Driver\Standard\Stat::TIME,
+                        'expectedValue' => $this->greaterThan(microtime(true))
+                    ),
+                    array(
+                        'timerId' => 'root',
+                        'key' => \Magento\Profiler\Driver\Standard\Stat::ID,
+                        'expectedValue' => 'root'
+                    )
+                )
+            )
         );
     }
 
     /**
-     * @expectedException InvalidArgumentException
+     * @expectedException \InvalidArgumentException
      * @expectedMessage Timer "foo" doesn't exist.
      */
     public function testFetchInvalidTimer()
@@ -428,7 +421,7 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
     }
 
     /**
-     * @expectedException InvalidArgumentException
+     * @expectedException \InvalidArgumentException
      * @expectedMessage Timer "foo" doesn't have value for "bar".
      */
     public function testFetchInvalidKey()
@@ -456,7 +449,7 @@ class Magento_Profiler_Driver_Standard_StatTest extends PHPUnit_Framework_TestCa
                 $this->_stat->stop($timerId, $time, $realMemory, $emallocMemory);
                 break;
             default:
-                $this->fail("Unexpected action '$action'");
+                $this->fail("Unexpected action '{$action}'");
                 break;
         }
     }

@@ -18,18 +18,20 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  * 
- * @copyright Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
-class Magento_Test_Di_Child_Interceptor extends Magento_Test_Di_Child
+namespace Magento\Test\Di\Child;
+
+class Interceptor extends \Magento\Test\Di\Child
 {
     /**
-     * @var Magento_ObjectManager_Config
+     * @var \Magento\ObjectManager\Config
      */
     protected $_config;
 
     /**
-     * @var Magento_ObjectManager
+     * @var \Magento\ObjectManager
      */
     protected $_factory;
 
@@ -39,7 +41,7 @@ class Magento_Test_Di_Child_Interceptor extends Magento_Test_Di_Child
     protected $_plugins = array();
 
     /**
-     * @var Magento_ObjectManager_ObjectManager
+     * @var \Magento\ObjectManager\ObjectManager
      */
     protected $_objectManager;
 
@@ -59,15 +61,15 @@ class Magento_Test_Di_Child_Interceptor extends Magento_Test_Di_Child
     protected $_arguments;
 
     /**
-     * @param Magento_ObjectManager_Factory $factory
-     * @param Magento_ObjectManager_ObjectManager $objectManager
+     * @param \Magento\ObjectManager\Factory $factory
+     * @param \Magento\ObjectManager\ObjectManager $objectManager
      * @param string $subjectType
      * @param array $pluginList
      * @param array $arguments
      */
     public function __construct(
-        Magento_ObjectManager_Factory $factory,
-        Magento_ObjectManager_ObjectManager $objectManager,
+        \Magento\ObjectManager\Factory $factory,
+        \Magento\ObjectManager\ObjectManager $objectManager,
         $subjectType,
         array $pluginList,
         array $arguments
@@ -96,20 +98,20 @@ class Magento_Test_Di_Child_Interceptor extends Magento_Test_Di_Child
         $beforeFunc = __FUNCTION__ . 'Before';
         if (isset($this->_pluginList[$beforeFunc])) {
             foreach ($this->_pluginList[$beforeFunc] as $plugin) {
-                $param = $this->_objectManager->get($plugin)->$beforeFunc($param);
+                $param = $this->_objectManager->get($plugin)->{$beforeFunc}($param);
             }
         }
         $insteadFunc = __FUNCTION__;
         if (isset($this->_pluginList[$insteadFunc])) {
             $first = reset($this->_pluginList[$insteadFunc]);
-            $returnValue = $this->_objectManager->get($first)->$insteadFunc();
+            $returnValue = $this->_objectManager->get($first)->{$insteadFunc}();
         } else {
             $returnValue = $this->_getSubject()->wrap($param);
         }
         $afterFunc = __FUNCTION__ . 'After';
         if (isset($this->_pluginList[$afterFunc])) {
             foreach (array_reverse($this->_pluginList[$afterFunc]) as $plugin) {
-                $returnValue = $this->_objectManager->get($plugin)->$afterFunc($returnValue);
+                $returnValue = $this->_objectManager->get($plugin)->{$afterFunc}($returnValue);
             }
         }
         return $returnValue;

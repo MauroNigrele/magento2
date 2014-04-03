@@ -19,7 +19,7 @@
  *
  * @category    Varien
  * @package     js
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 function popWin(url,win,para) {
@@ -372,7 +372,7 @@ Varien.searchForm.prototype = {
 }
 /* Varien.Tabs is depricated.
    IK: 12/17/12
-   Only one usage left in /app/code/Mage/Install/view/install/download.phtml - Questionable becuase that page does not have the markup using CSS class "tabs"
+   Only one usage left in /app/code/Magento/Install/view/install/download.phtml - Questionable becuase that page does not have the markup using CSS class "tabs"
    Need further investigation
  */
 Varien.Tabs = Class.create();
@@ -465,7 +465,7 @@ Varien.DateElement.prototype = {
 
             if (day<1 || day>countDaysInMonth) {
                 errorType = 'day';
-                error = 'Please enter a valid day (1-%d).';
+                error = 'Please enter a valid day (1-%1).';
             } else if (month<1 || month>12) {
                 errorType = 'month';
                 error = 'Please enter a valid month (1-12).';
@@ -494,7 +494,7 @@ Varien.DateElement.prototype = {
                 error = jQuery.mage.__(error);
             }
             if (!valueError) {
-                this.advice.innerHTML = error.replace('%d', countDaysInMonth);
+                this.advice.innerHTML = error.replace('%1', countDaysInMonth);
             } else {
                 this.advice.innerHTML = this.errorTextModifier(error);
             }
@@ -517,9 +517,9 @@ Varien.DateElement.prototype = {
         return (year>=1900 && year<=this.curyear);
     },
     validateDataErrorType: 'year',
-    validateDataErrorText: 'Please enter a valid year (1900-%d).',
+    validateDataErrorText: 'Please enter a valid year (1900-%1).',
     errorTextModifier: function(text) {
-        return text.replace('%d', this.curyear);
+        return text.replace('%1', this.curyear);
     },
     setDateRange: function(minDate, maxDate) {
         this.minDate = minDate;

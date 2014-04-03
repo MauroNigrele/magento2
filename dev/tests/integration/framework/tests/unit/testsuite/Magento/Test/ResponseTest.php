@@ -21,15 +21,19 @@
  * @category    Magento
  * @package     Magento
  * @subpackage  integration_tests
- * @copyright   Copyright (c) 2013 X.commerce, Inc. (http://www.magentocommerce.com)
+ * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
+namespace Magento\Test;
 
-class Magento_Test_ResponseTest extends PHPUnit_Framework_TestCase
+class ResponseTest extends \PHPUnit_Framework_TestCase
 {
     public function testCanSendHeaders()
     {
-        $response = new Magento_Test_Response();
+        $response = new \Magento\TestFramework\Response(
+            $this->getMock('\Magento\Stdlib\Cookie', array(), array(), '', false),
+            $this->getMock('Magento\App\Http\Context', array(), array(), '', false)
+        );
         $this->assertTrue($response->canSendHeaders());
         $this->assertTrue($response->canSendHeaders(false));
     }
