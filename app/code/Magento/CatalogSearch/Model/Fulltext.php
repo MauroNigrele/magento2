@@ -18,21 +18,17 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_CatalogSearch
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 namespace Magento\CatalogSearch\Model;
 
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\CatalogSearch\Helper\Data;
-use Magento\CatalogSearch\Model\Query;
-use Magento\Model\AbstractModel;
-use Magento\Model\Context;
-use Magento\Registry;
-use Magento\Model\Resource\AbstractResource;
-use Magento\Core\Model\Store\Config;
-use Magento\Data\Collection\Db;
+use Magento\Framework\Model\Context;
+use Magento\Framework\Registry;
+use Magento\Framework\Model\Resource\AbstractResource;
+use Magento\Framework\Data\Collection\Db;
 
 /**
  * Catalog advanced search model
@@ -46,11 +42,9 @@ use Magento\Data\Collection\Db;
  * @method string getDataIndex()
  * @method \Magento\CatalogSearch\Model\Fulltext setDataIndex(string $value)
  *
- * @category    Magento
- * @package     Magento_CatalogSearch
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-class Fulltext extends AbstractModel
+class Fulltext extends \Magento\Framework\Model\AbstractModel
 {
     const SEARCH_TYPE_LIKE = 1;
 
@@ -70,15 +64,15 @@ class Fulltext extends AbstractModel
     /**
      * Core store config
      *
-     * @var Config
+     * @var ScopeConfigInterface
      */
-    protected $_coreStoreConfig;
+    protected $_scopeConfig;
 
     /**
      * @param Context $context
      * @param Registry $registry
      * @param Data $catalogSearchData
-     * @param Config $coreStoreConfig
+     * @param ScopeConfigInterface $scopeConfig
      * @param AbstractResource $resource
      * @param Db $resourceCollection
      * @param array $data
@@ -87,13 +81,13 @@ class Fulltext extends AbstractModel
         Context $context,
         Registry $registry,
         Data $catalogSearchData,
-        Config $coreStoreConfig,
+        ScopeConfigInterface $scopeConfig,
         AbstractResource $resource = null,
         Db $resourceCollection = null,
         array $data = array()
     ) {
         $this->_catalogSearchData = $catalogSearchData;
-        $this->_coreStoreConfig = $coreStoreConfig;
+        $this->_scopeConfig = $scopeConfig;
         parent::__construct($context, $registry, $resource, $resourceCollection, $data);
     }
 
@@ -103,45 +97,6 @@ class Fulltext extends AbstractModel
     protected function _construct()
     {
         $this->_init('Magento\CatalogSearch\Model\Resource\Fulltext');
-    }
-
-    /**
-     * Regenerate all Stores index
-     *
-     * Examples:
-     * (null, null) => Regenerate index for all stores
-     * (1, null)    => Regenerate index for store Id=1
-     * (1, 2)       => Regenerate index for product Id=2 and its store view Id=1
-     * (null, 2)    => Regenerate index for all store views of product Id=2
-     *
-     * @param int|null $storeId Store View Id
-     * @param int|array|null $productIds Product Entity Id
-     *
-     * @return $this
-     */
-    public function rebuildIndex($storeId = null, $productIds = null)
-    {
-        $this->getResource()->rebuildIndex($storeId, $productIds);
-        return $this;
-    }
-
-    /**
-     * Delete index data
-     *
-     * Examples:
-     * (null, null) => Clean index of all stores
-     * (1, null)    => Clean index of store Id=1
-     * (1, 2)       => Clean index of product Id=2 and its store view Id=1
-     * (null, 2)    => Clean index of all store views of product Id=2
-     *
-     * @param int $storeId Store View Id
-     * @param int $productId Product Entity Id
-     * @return $this
-     */
-    public function cleanIndex($storeId = null, $productId = null)
-    {
-        $this->getResource()->cleanIndex($storeId, $productId);
-        return $this;
     }
 
     /**
@@ -182,38 +137,10 @@ class Fulltext extends AbstractModel
      */
     public function getSearchType($storeId = null)
     {
-        return $this->_coreStoreConfig->getConfig(self::XML_PATH_CATALOG_SEARCH_TYPE, $storeId);
-    }
-
-    // Deprecated methods
-
-    /**
-     * Set whether table changes are allowed
-     *
-     * @deprecated after 1.6.1.0
-     *
-     * @param bool $value
-     * @return $this
-     */
-    public function setAllowTableChanges($value = true)
-    {
-        $this->_allowTableChanges = $value;
-        return $this;
-    }
-
-    /**
-     * Update category products indexes
-     *
-     * @deprecated after 1.6.2.0
-     *
-     * @param array $productIds
-     * @param array $categoryIds
-     *
-     * @return $this
-     */
-    public function updateCategoryIndex($productIds, $categoryIds)
-    {
-        $this->getResource()->updateCategoryIndex($productIds, $categoryIds);
-        return $this;
+        return $this->_scopeConfig->getValue(
+            self::XML_PATH_CATALOG_SEARCH_TYPE,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
     }
 }

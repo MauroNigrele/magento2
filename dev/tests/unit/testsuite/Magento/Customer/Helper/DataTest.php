@@ -41,7 +41,7 @@ class DataTest extends \PHPUnit_Framework_TestCase
     /** @var \Magento\Customer\Helper\Data|\PHPUnit_Framework_MockObject_MockObject */
     protected $_dataHelper;
 
-    /** @var \Magento\App\RequestInterface|\PHPUnit_Framework_MockObject_MockObject */
+    /** @var \Magento\Framework\App\RequestInterface|\PHPUnit_Framework_MockObject_MockObject */
     protected $_mockRequest;
 
     /** @var array */
@@ -59,9 +59,9 @@ class DataTest extends \PHPUnit_Framework_TestCase
         )->getMock();
 
         $this->_mockRequest = $this->getMock(
-            'Magento\App\RequestInterface',
-            array('getPost', 'getModuleName', 'setModuleName', 'getActionName', 'setActionName', 'getParam'),
-            array(),
+            'Magento\Framework\App\RequestInterface',
+            ['getPost', 'getModuleName', 'setModuleName', 'getActionName', 'setActionName', 'getParam', 'getCookie'],
+            [],
             '',
             false
         );
@@ -178,7 +178,7 @@ class DataTest extends \PHPUnit_Framework_TestCase
         )->with(
             self::ENTITY,
             self::FORM_CODE,
-            array(),
+            [],
             false,
             \Magento\Customer\Model\Metadata\Form::DONT_IGNORE_INVISIBLE
         )->will(

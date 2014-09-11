@@ -50,19 +50,21 @@ $product->setTypeId(\Magento\Catalog\Model\Product\Type::TYPE_SIMPLE)
                 'price_qty'  => 5,
                 'price'      => 5,
             ),
+            array(
+                'website_id' => 0,
+                'cust_group' => \Magento\Customer\Service\V1\CustomerGroupServiceInterface::NOT_LOGGED_IN_ID,
+                'price_qty'  => 3,
+                'price'      => 5,
+            ),
         )
     )
     ->setDescription('Description with <b>html tag</b>')
-
     ->setMetaTitle('meta title')
     ->setMetaKeyword('meta keyword')
     ->setMetaDescription('meta description')
-
     ->setVisibility(\Magento\Catalog\Model\Product\Visibility::VISIBILITY_BOTH)
     ->setStatus(\Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_ENABLED)
-
     ->setCategoryIds(array(2))
-
     ->setStockData(
         array(
             'use_config_manage_stock'   => 1,

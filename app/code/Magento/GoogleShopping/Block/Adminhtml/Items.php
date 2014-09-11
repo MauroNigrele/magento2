@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_GoogleShopping
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,8 +26,6 @@ namespace Magento\GoogleShopping\Block\Adminhtml;
 /**
  * Adminhtml Google Content Items Grids Container
  *
- * @category   Magento
- * @package    Magento_GoogleShopping
  * @author     Magento Core Team <core@magentocommerce.com>
  */
 class Items extends \Magento\Backend\Block\Widget\Grid\Container
@@ -47,12 +43,12 @@ class Items extends \Magento\Backend\Block\Widget\Grid\Container
     protected $_flagFactory;
 
     /**
-     * @param \Magento\Backend\Block\Template\Context $context
+     * @param \Magento\Backend\Block\Widget\Context $context
      * @param \Magento\GoogleShopping\Model\FlagFactory $flagFactory
      * @param array $data
      */
     public function __construct(
-        \Magento\Backend\Block\Template\Context $context,
+        \Magento\Backend\Block\Widget\Context $context,
         \Magento\GoogleShopping\Model\FlagFactory $flagFactory,
         array $data = array()
     ) {
@@ -69,20 +65,20 @@ class Items extends \Magento\Backend\Block\Widget\Grid\Container
     {
         $this->addChild('item', 'Magento\GoogleShopping\Block\Adminhtml\Items\Item');
         $this->addChild('product', 'Magento\GoogleShopping\Block\Adminhtml\Items\Product');
-        $this->addChild('store_switcher', 'Magento\GoogleShopping\Block\Adminhtml\Store\Switcher');
+        //$this->addChild('store_switcher', 'Magento\GoogleShopping\Block\Adminhtml\Store\Switcher');
 
         return $this;
     }
 
-    /**
-     * Get HTML code for Store Switcher select
-     *
-     * @return string
-     */
-    public function getStoreSwitcherHtml()
-    {
-        return $this->getChildHtml('store_switcher');
-    }
+    // /**
+    //  * Get HTML code for Store Switcher select
+    //  *
+    //  * @return string
+    //  */
+    // public function getStoreSwitcherHtml()
+    // {
+    //     return $this->getChildHtml('store_switcher');
+    // }
 
     /**
      * Get HTML code for CAPTCHA
@@ -103,7 +99,7 @@ class Items extends \Magento\Backend\Block\Widget\Grid\Container
     /**
      * Get selecetd store
      *
-     * @return \Magento\Core\Model\Store
+     * @return \Magento\Store\Model\Store
      */
     public function getStore()
     {

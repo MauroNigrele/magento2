@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -67,8 +65,6 @@ use Magento\Catalog\Model\Attribute\LockValidatorInterface;
  * @method int setIsUsedForPromoRules(int $value)
  * @method string getFrontendLabel()
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 class Attribute extends \Magento\Eav\Model\Entity\Attribute
@@ -82,13 +78,6 @@ class Attribute extends \Magento\Eav\Model\Entity\Attribute
     const MODULE_NAME = 'Magento_Catalog';
 
     const ENTITY = 'catalog_eav_attribute';
-
-    /**
-     * Index indexer
-     *
-     * @var \Magento\Index\Model\Indexer
-     */
-    protected $_indexIndexer;
 
     /**
      * @var LockValidatorInterface
@@ -127,46 +116,51 @@ class Attribute extends \Magento\Eav\Model\Entity\Attribute
     protected $_productFlatIndexerHelper;
 
     /**
-     * @param \Magento\Model\Context $context
-     * @param \Magento\Registry $registry
+     * @var \Magento\Catalog\Model\Indexer\Product\Eav\Processor
+     */
+    protected $_indexerEavProcessor;
+
+    /**
+     * @param \Magento\Framework\Model\Context $context
+     * @param \Magento\Framework\Registry $registry
      * @param \Magento\Core\Helper\Data $coreData
      * @param \Magento\Eav\Model\Config $eavConfig
      * @param \Magento\Eav\Model\Entity\TypeFactory $eavTypeFactory
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param \Magento\Eav\Model\Resource\Helper $resourceHelper
-     * @param \Magento\Validator\UniversalFactory $universalFactory
-     * @param \Magento\Stdlib\DateTime\TimezoneInterface $localeDate
-     * @param \Magento\Catalog\Model\ProductFactory $catalogProductFactory
-     * @param \Magento\Locale\ResolverInterface $localeResolver
-     * @param \Magento\Index\Model\Indexer $indexIndexer
+     * @param \Magento\Framework\Validator\UniversalFactory $universalFactory
+     * @param \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate
+     * @param \Magento\Catalog\Model\Product\ReservedAttributeList $reservedAttributeList
+     * @param \Magento\Framework\Locale\ResolverInterface $localeResolver
      * @param \Magento\Catalog\Model\Indexer\Product\Flat\Processor $productFlatIndexerProcessor
+     * @param \Magento\Catalog\Model\Indexer\Product\Eav\Processor $indexerEavProcessor
      * @param \Magento\Catalog\Helper\Product\Flat\Indexer $productFlatIndexerHelper
      * @param LockValidatorInterface $lockValidator
-     * @param \Magento\Model\Resource\AbstractResource $resource
-     * @param \Magento\Data\Collection\Db $resourceCollection
+     * @param \Magento\Framework\Model\Resource\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\Db $resourceCollection
      * @param array $data
      */
     public function __construct(
-        \Magento\Model\Context $context,
-        \Magento\Registry $registry,
+        \Magento\Framework\Model\Context $context,
+        \Magento\Framework\Registry $registry,
         \Magento\Core\Helper\Data $coreData,
         \Magento\Eav\Model\Config $eavConfig,
         \Magento\Eav\Model\Entity\TypeFactory $eavTypeFactory,
-        \Magento\Core\Model\StoreManagerInterface $storeManager,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Eav\Model\Resource\Helper $resourceHelper,
-        \Magento\Validator\UniversalFactory $universalFactory,
-        \Magento\Stdlib\DateTime\TimezoneInterface $localeDate,
-        \Magento\Catalog\Model\ProductFactory $catalogProductFactory,
-        \Magento\Locale\ResolverInterface $localeResolver,
-        \Magento\Index\Model\Indexer $indexIndexer,
+        \Magento\Framework\Validator\UniversalFactory $universalFactory,
+        \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate,
+        \Magento\Catalog\Model\Product\ReservedAttributeList $reservedAttributeList,
+        \Magento\Framework\Locale\ResolverInterface $localeResolver,
         \Magento\Catalog\Model\Indexer\Product\Flat\Processor $productFlatIndexerProcessor,
+        \Magento\Catalog\Model\Indexer\Product\Eav\Processor $indexerEavProcessor,
         \Magento\Catalog\Helper\Product\Flat\Indexer $productFlatIndexerHelper,
         LockValidatorInterface $lockValidator,
-        \Magento\Model\Resource\AbstractResource $resource = null,
-        \Magento\Data\Collection\Db $resourceCollection = null,
+        \Magento\Framework\Model\Resource\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\Db $resourceCollection = null,
         array $data = array()
     ) {
-        $this->_indexIndexer = $indexIndexer;
+        $this->_indexerEavProcessor = $indexerEavProcessor;
         $this->_productFlatIndexerProcessor = $productFlatIndexerProcessor;
         $this->_productFlatIndexerHelper = $productFlatIndexerHelper;
         $this->attrLockValidator = $lockValidator;
@@ -180,7 +174,7 @@ class Attribute extends \Magento\Eav\Model\Entity\Attribute
             $resourceHelper,
             $universalFactory,
             $localeDate,
-            $catalogProductFactory,
+            $reservedAttributeList,
             $localeResolver,
             $resource,
             $resourceCollection,
@@ -199,8 +193,8 @@ class Attribute extends \Magento\Eav\Model\Entity\Attribute
     /**
      * Processing object before save data
      *
-     * @return \Magento\Model\AbstractModel
-     * @throws \Magento\Model\Exception
+     * @return \Magento\Framework\Model\AbstractModel
+     * @throws \Magento\Framework\Model\Exception
      */
     protected function _beforeSave()
     {
@@ -212,8 +206,8 @@ class Attribute extends \Magento\Eav\Model\Entity\Attribute
             if ($this->_data['is_global'] != $this->_origData['is_global']) {
                 try {
                     $this->attrLockValidator->validate($this);
-                } catch (\Magento\Model\Exception $exception) {
-                    throw new \Magento\Model\Exception(__('Do not change the scope. ' . $exception->getMessage()));
+                } catch (\Magento\Framework\Model\Exception $exception) {
+                    throw new \Magento\Framework\Model\Exception(__('Do not change the scope. ' . $exception->getMessage()));
                 }
             }
         }
@@ -233,7 +227,7 @@ class Attribute extends \Magento\Eav\Model\Entity\Attribute
     /**
      * Processing object after save data
      *
-     * @return \Magento\Model\AbstractModel
+     * @return \Magento\Framework\Model\AbstractModel
      */
     protected function _afterSave()
     {
@@ -242,43 +236,55 @@ class Attribute extends \Magento\Eav\Model\Entity\Attribute
          */
         $this->_eavConfig->clear();
 
-        $enableBefore = $this->getOrigData(
-            'backend_type'
-        ) == 'static' || $this->_productFlatIndexerHelper->isAddFilterableAttributes() && $this->getOrigData(
-            'is_filterable'
-        ) > 0 || $this->getOrigData(
-            'used_in_product_listing'
-        ) == 1 || $this->getOrigData(
-            'used_for_sort_by'
-        ) == 1;
-        $enableAfter = $this->getData(
-            'backend_type'
-        ) == 'static' || $this->_productFlatIndexerHelper->isAddFilterableAttributes() && $this->getData(
-            'is_filterable'
-        ) > 0 || $this->getData(
-            'used_in_product_listing'
-        ) == 1 || $this->getData(
-            'used_for_sort_by'
-        ) == 1;
-
-        if ($enableBefore != $enableAfter) {
+        if ($this->_isOriginalEnabledInFlat() != $this->_isEnabledInFlat()) {
             $this->_productFlatIndexerProcessor->markIndexerAsInvalid();
         }
+        if ($this->_isOriginalIndexable() !== $this->isIndexable()
+            || ($this->isIndexable() && $this->dataHasChangedFor('is_global'))
+        ) {
+            $this->_indexerEavProcessor->markIndexerAsInvalid();
+        }
 
-        $this->_indexIndexer->processEntityAction($this, self::ENTITY, \Magento\Index\Model\Event::TYPE_SAVE);
         return parent::_afterSave();
+    }
+
+    /**
+     * Is attribute enabled for flat indexing
+     *
+     * @return bool
+     */
+    protected function _isEnabledInFlat()
+    {
+        return $this->getData('backend_type') == 'static'
+        || $this->_productFlatIndexerHelper->isAddFilterableAttributes()
+        && $this->getData('is_filterable') > 0
+        || $this->getData('used_in_product_listing') == 1
+        || $this->getData('used_for_sort_by') == 1;
+    }
+
+    /**
+     * Is original attribute enabled for flat indexing
+     *
+     * @return bool
+     */
+    protected function _isOriginalEnabledInFlat()
+    {
+        return $this->getOrigData('backend_type') == 'static'
+        || $this->_productFlatIndexerHelper->isAddFilterableAttributes()
+        && $this->getOrigData('is_filterable') > 0
+        || $this->getOrigData('used_in_product_listing') == 1
+        || $this->getOrigData('used_for_sort_by') == 1;
     }
 
     /**
      * Register indexing event before delete catalog eav attribute
      *
      * @return $this
-     * @throws \Magento\Model\Exception
+     * @throws \Magento\Framework\Model\Exception
      */
     protected function _beforeDelete()
     {
         $this->attrLockValidator->validate($this);
-        $this->_indexIndexer->logEvent($this, self::ENTITY, \Magento\Index\Model\Event::TYPE_DELETE);
         return parent::_beforeDelete();
     }
 
@@ -291,9 +297,12 @@ class Attribute extends \Magento\Eav\Model\Entity\Attribute
     {
         parent::_afterDeleteCommit();
 
-        $this->_productFlatIndexerProcessor->markIndexerAsInvalid();
-
-        $this->_indexIndexer->indexEvents(self::ENTITY, \Magento\Index\Model\Event::TYPE_DELETE);
+        if ($this->_isOriginalEnabledInFlat()) {
+            $this->_productFlatIndexerProcessor->markIndexerAsInvalid();
+        }
+        if ($this->_isOriginalIndexable()) {
+            $this->_indexerEavProcessor->markIndexerAsInvalid();
+        }
         return $this;
     }
 
@@ -434,6 +443,38 @@ class Attribute extends \Magento\Eav\Model\Entity\Attribute
 
         $backendType = $this->getBackendType();
         $frontendInput = $this->getFrontendInput();
+
+        if ($backendType == 'int' && $frontendInput == 'select') {
+            return true;
+        } else if ($backendType == 'varchar' && $frontendInput == 'multiselect') {
+            return true;
+        } else if ($backendType == 'decimal') {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Is original attribute config indexable
+     *
+     * @return bool
+     */
+    protected function _isOriginalIndexable()
+    {
+        // exclude price attribute
+        if ($this->getOrigData('attribute_code') == 'price') {
+            return false;
+        }
+
+        if (!$this->getOrigData('is_filterable_in_search')
+            && !$this->getOrigData('is_visible_in_advanced_search')
+            && !$this->getOrigData('is_filterable')) {
+            return false;
+        }
+
+        $backendType = $this->getOrigData('backend_type');
+        $frontendInput = $this->getOrigData('frontend_input');
 
         if ($backendType == 'int' && $frontendInput == 'select') {
             return true;

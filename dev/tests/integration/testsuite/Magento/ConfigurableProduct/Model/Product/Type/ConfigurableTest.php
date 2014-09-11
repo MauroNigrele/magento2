@@ -58,7 +58,7 @@ class ConfigurableTest extends \PHPUnit_Framework_TestCase
     public function testGetRelationInfo()
     {
         $info = $this->_model->getRelationInfo();
-        $this->assertInstanceOf('Magento\Object', $info);
+        $this->assertInstanceOf('Magento\Framework\Object', $info);
         $this->assertEquals('catalog_product_super_link', $info->getTable());
         $this->assertEquals('parent_id', $info->getParentFieldName());
         $this->assertEquals('product_id', $info->getChildFieldName());
@@ -174,10 +174,7 @@ class ConfigurableTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetParentIdsByChild()
     {
-        $attributes = $this->_model->getConfigurableAttributesAsArray($this->_product);
-        $attribute = reset($attributes);
-        $optionValueId = $attribute['values'][0]['value_index'];
-        $result = $this->_model->getParentIdsByChild($optionValueId * 10);
+        $result = $this->_model->getParentIdsByChild(10);
         // fixture
         $this->assertEquals(array(1), $result);
     }
@@ -248,7 +245,7 @@ class ConfigurableTest extends \PHPUnit_Framework_TestCase
             $this->_product
         );
         $this->assertInstanceOf('Magento\Catalog\Model\Product', $product);
-        $this->assertEquals("simple_{$optionValueId}", $product->getSku());
+        $this->assertEquals("simple_10", $product->getSku());
     }
 
     /**
@@ -294,7 +291,7 @@ class ConfigurableTest extends \PHPUnit_Framework_TestCase
         $attribute = reset($attributes);
         $optionValueId = $attribute['values'][0]['value_index'];
 
-        $buyRequest = new \Magento\Object(
+        $buyRequest = new \Magento\Framework\Object(
             array('qty' => 5, 'super_attribute' => array($attribute['attribute_id'] => $optionValueId))
         );
         $result = $this->_model->prepareForCart($buyRequest, $this->_product);
@@ -303,7 +300,7 @@ class ConfigurableTest extends \PHPUnit_Framework_TestCase
         foreach ($result as $product) {
             $this->assertInstanceOf('Magento\Catalog\Model\Product', $product);
         }
-        $this->assertInstanceOf('Magento\Object', $result[1]->getCustomOption('parent_product_id'));
+        $this->assertInstanceOf('Magento\Framework\Object', $result[1]->getCustomOption('parent_product_id'));
     }
 
     public function testGetSpecifyOptionMessage()
@@ -359,7 +356,11 @@ class ConfigurableTest extends \PHPUnit_Framework_TestCase
 
         $this->_product->setCustomOptions(
             array(
-                'simple_product' => new \Magento\Object(array('product' => new \Magento\Object(array('weight' => 2))))
+                'simple_product' => new \Magento\Framework\Object(
+                        array(
+                            'product' => new \Magento\Framework\Object(array('weight' => 2))
+                        )
+                    )
             )
         );
         $this->assertEquals(2, $this->_model->getWeight($this->_product));
@@ -367,7 +368,7 @@ class ConfigurableTest extends \PHPUnit_Framework_TestCase
 
     public function testAssignProductToOption()
     {
-        $option = new \Magento\Object();
+        $option = new \Magento\Framework\Object();
         $this->_model->assignProductToOption('test', $option, $this->_product);
         $this->assertEquals('test', $option->getProduct());
         // other branch of logic depends on \Magento\Sales module
@@ -394,7 +395,7 @@ class ConfigurableTest extends \PHPUnit_Framework_TestCase
 
     public function testProcessBuyRequest()
     {
-        $buyRequest = new \Magento\Object(array('super_attribute' => array('10', 'string')));
+        $buyRequest = new \Magento\Framework\Object(array('super_attribute' => array('10', 'string')));
         $result = $this->_model->processBuyRequest($this->_product, $buyRequest);
         $this->assertEquals(array('super_attribute' => array(10)), $result);
     }
@@ -454,20 +455,20 @@ class ConfigurableTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @param array $productsData
-     * @dataProvider generateSimpleProductsWithoutQtyDataProvider
+     * @dataProvider generateSimpleProductsWithPartialDataDataProvider
      * @magentoDbIsolation enabled
      */
-    public function testGenerateSimpleProductsWithoutQty($productsData)
+    public function testGenerateSimpleProductsWithPartialData($productsData)
     {
+        $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
+        /** @var \Magento\CatalogInventory\Service\V1\StockItemService $stockItemService */
+        $stockItemService = $objectManager->get('Magento\CatalogInventory\Service\V1\StockItemService');
         $this->_product->setNewVariationsAttributeSetId(4);
         $generatedProducts = $this->_model->generateSimpleProducts($this->_product, $productsData);
         foreach ($generatedProducts as $productId) {
-            /** @var $product \Magento\Catalog\Model\Product */
-            $product = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
-                'Magento\Catalog\Model\Product'
-            );
-            $product->load($productId);
-            $this->assertEquals('0', $product->getStockItem()->getData('manage_stock'));
+            $stockItemData = $stockItemService->getStockItem($productId);
+            $this->assertEquals('0', $stockItemData->isManageStock());
+            $this->assertEquals('1', $stockItemData->getIsInStock());
         }
     }
 
@@ -511,7 +512,7 @@ class ConfigurableTest extends \PHPUnit_Framework_TestCase
     /**
      * @return array
      */
-    public static function generateSimpleProductsWithoutQtyDataProvider()
+    public static function generateSimpleProductsWithPartialDataDataProvider()
     {
         return array(
             array(
@@ -554,7 +555,7 @@ class ConfigurableTest extends \PHPUnit_Framework_TestCase
         $attribute = reset($attributes);
         $optionValueId = $attribute['values'][0]['value_index'];
 
-        $buyRequest = new \Magento\Object(
+        $buyRequest = new \Magento\Framework\Object(
             array('qty' => 5, 'super_attribute' => array($attribute['attribute_id'] => $optionValueId))
         );
         $this->_model->prepareForCart($buyRequest, $this->_product);

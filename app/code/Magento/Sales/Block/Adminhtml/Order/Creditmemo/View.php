@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Sales
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,8 +26,6 @@ namespace Magento\Sales\Block\Adminhtml\Order\Creditmemo;
 /**
  * Adminhtml creditmemo view
  *
- * @category   Magento
- * @package    Magento_Sales
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 class View extends \Magento\Backend\Block\Widget\Form\Container
@@ -37,18 +33,18 @@ class View extends \Magento\Backend\Block\Widget\Form\Container
     /**
      * Core registry
      *
-     * @var \Magento\Registry
+     * @var \Magento\Framework\Registry
      */
     protected $_coreRegistry = null;
 
     /**
-     * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\Registry $registry
+     * @param \Magento\Backend\Block\Widget\Context $context
+     * @param \Magento\Framework\Registry $registry
      * @param array $data
      */
     public function __construct(
-        \Magento\Backend\Block\Template\Context $context,
-        \Magento\Registry $registry,
+        \Magento\Backend\Block\Widget\Context $context,
+        \Magento\Framework\Registry $registry,
         array $data = array()
     ) {
         $this->_coreRegistry = $registry;
@@ -68,16 +64,16 @@ class View extends \Magento\Backend\Block\Widget\Form\Container
 
         parent::_construct();
 
-        $this->_removeButton('save');
-        $this->_removeButton('reset');
-        $this->_removeButton('delete');
+        $this->buttonList->remove('save');
+        $this->buttonList->remove('reset');
+        $this->buttonList->remove('delete');
 
         if (!$this->getCreditmemo()) {
             return;
         }
 
         if ($this->getCreditmemo()->canCancel()) {
-            $this->_addButton(
+            $this->buttonList->add(
                 'cancel',
                 array(
                     'label' => __('Cancel'),
@@ -92,6 +88,7 @@ class View extends \Magento\Backend\Block\Widget\Form\Container
                 'send_notification',
                 array(
                     'label' => __('Send Email'),
+                    'class' => 'send-email',
                     'onclick' => 'confirmSetLocation(\'' . __(
                         'Are you sure you want to send a Credit memo email to customer?'
                     ) . '\', \'' . $this->getEmailUrl() . '\')'
@@ -100,33 +97,33 @@ class View extends \Magento\Backend\Block\Widget\Form\Container
         }
 
         if ($this->getCreditmemo()->canRefund()) {
-            $this->_addButton(
+            $this->buttonList->add(
                 'refund',
                 array(
                     'label' => __('Refund'),
-                    'class' => 'save',
+                    'class' => 'refund',
                     'onclick' => 'setLocation(\'' . $this->getRefundUrl() . '\')'
                 )
             );
         }
 
         if ($this->getCreditmemo()->canVoid()) {
-            $this->_addButton(
+            $this->buttonList->add(
                 'void',
                 array(
                     'label' => __('Void'),
-                    'class' => 'save',
+                    'class' => 'void',
                     'onclick' => 'setLocation(\'' . $this->getVoidUrl() . '\')'
                 )
             );
         }
 
         if ($this->getCreditmemo()->getId()) {
-            $this->_addButton(
+            $this->buttonList->add(
                 'print',
                 array(
                     'label' => __('Print'),
-                    'class' => 'save',
+                    'class' => 'print',
                     'onclick' => 'setLocation(\'' . $this->getPrintUrl() . '\')'
                 )
             );
@@ -246,14 +243,14 @@ class View extends \Magento\Backend\Block\Widget\Form\Container
     {
         if ($flag) {
             if ($this->getCreditmemo()->getBackUrl()) {
-                return $this->_updateButton(
+                return $this->buttonList->update(
                     'back',
                     'onclick',
                     'setLocation(\'' . $this->getCreditmemo()->getBackUrl() . '\')'
                 );
             }
 
-            return $this->_updateButton(
+            return $this->buttonList->update(
                 'back',
                 'onclick',
                 'setLocation(\'' . $this->getUrl('sales/creditmemo/') . '\')'

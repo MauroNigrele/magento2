@@ -25,7 +25,7 @@
  */
 namespace Magento\AdminNotification\Model\Resource\Inbox\Collection;
 
-class Critical extends \Magento\Model\Resource\Db\Collection\AbstractCollection
+class Critical extends \Magento\Framework\Model\Resource\Db\Collection\AbstractCollection
 {
     /**
      * Resource collection initialization
@@ -54,7 +54,7 @@ class Critical extends \Magento\Model\Resource\Db\Collection\AbstractCollection
             array('neq' => 1)
         )->addFieldToFilter(
             'severity',
-            \Magento\AdminNotification\Model\Inbox::SEVERITY_CRITICAL
+            \Magento\Framework\Notification\MessageInterface::SEVERITY_CRITICAL
         )->setPageSize(
             1
         );

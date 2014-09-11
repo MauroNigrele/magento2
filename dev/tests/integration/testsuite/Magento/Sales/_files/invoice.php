@@ -24,6 +24,7 @@
  * @license http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
+require 'default_rollback.php';
 require 'order.php';
 /** @var \Magento\Sales\Model\Order $order */
 
@@ -35,5 +36,5 @@ $invoice = $orderService->prepareInvoice();
 $invoice->register();
 $order->setIsInProcess(true);
 $transactionSave = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
-    ->create('Magento\DB\Transaction');
+    ->create('Magento\Framework\DB\Transaction');
 $transactionSave->addObject($invoice)->addObject($order)->save();

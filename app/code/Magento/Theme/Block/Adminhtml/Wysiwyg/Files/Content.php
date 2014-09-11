@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Theme
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -43,13 +41,13 @@ class Content extends \Magento\Backend\Block\Widget\Container
     protected $_coreHelper;
 
     /**
-     * @param \Magento\Backend\Block\Template\Context $context
+     * @param \Magento\Backend\Block\Widget\Context $context
      * @param \Magento\Theme\Helper\Storage $storageHelper
      * @param \Magento\Core\Helper\Data $coreHelper
      * @param array $data
      */
     public function __construct(
-        \Magento\Backend\Block\Template\Context $context,
+        \Magento\Backend\Block\Widget\Context $context,
         \Magento\Theme\Helper\Storage $storageHelper,
         \Magento\Core\Helper\Data $coreHelper,
         array $data = array()
@@ -68,8 +66,9 @@ class Content extends \Magento\Backend\Block\Widget\Container
     {
         parent::_construct();
         $this->_headerText = __('Media Storage');
-        $this->_removeButton('back')->_removeButton('edit');
-        $this->_addButton(
+        $this->buttonList->remove('back');
+        $this->buttonList->remove('edit');
+        $this->buttonList->add(
             'newfolder',
             array(
                 'class' => 'save',
@@ -79,7 +78,7 @@ class Content extends \Magento\Backend\Block\Widget\Container
             )
         );
 
-        $this->_addButton(
+        $this->buttonList->add(
             'delete_folder',
             array(
                 'class' => 'delete no-display',
@@ -90,7 +89,7 @@ class Content extends \Magento\Backend\Block\Widget\Container
             )
         );
 
-        $this->_addButton(
+        $this->buttonList->add(
             'delete_files',
             array(
                 'class' => 'delete no-display',
@@ -101,7 +100,7 @@ class Content extends \Magento\Backend\Block\Widget\Container
             )
         );
 
-        $this->_addButton(
+        $this->buttonList->add(
             'insert_files',
             array(
                 'class' => 'save no-display',
@@ -133,7 +132,7 @@ class Content extends \Magento\Backend\Block\Widget\Container
      */
     public function getFilebrowserSetupObject()
     {
-        $setupObject = new \Magento\Object();
+        $setupObject = new \Magento\Framework\Object();
 
         $setupObject->setData(
             array(

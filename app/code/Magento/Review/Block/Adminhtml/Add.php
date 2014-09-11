@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Review
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,8 +26,6 @@ namespace Magento\Review\Block\Adminhtml;
 /**
  * Adminhtml add Review main block
  *
- * @category   Magento
- * @package    Magento_Review
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 class Add extends \Magento\Backend\Block\Widget\Form\Container
@@ -47,10 +43,10 @@ class Add extends \Magento\Backend\Block\Widget\Form\Container
         $this->_controller = 'adminhtml';
         $this->_mode = 'add';
 
-        $this->_updateButton('save', 'label', __('Save Review'));
-        $this->_updateButton('save', 'id', 'save_button');
+        $this->buttonList->update('save', 'label', __('Save Review'));
+        $this->buttonList->update('save', 'id', 'save_button');
 
-        $this->_updateButton('reset', 'id', 'reset_button');
+        $this->buttonList->update('reset', 'id', 'reset_button');
 
         $this->_formScripts[] = '
             toggleParentVis("add_review_form");

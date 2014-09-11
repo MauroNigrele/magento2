@@ -25,52 +25,49 @@
  */
 namespace Magento\Backend\App\Router;
 
-class NoRouteHandler implements \Magento\App\Router\NoRouteHandlerInterface
+class NoRouteHandler implements \Magento\Framework\App\Router\NoRouteHandlerInterface
 {
     /**
      * @var \Magento\Backend\Helper\Data
      */
-    protected $_helper;
+    protected $helper;
 
     /**
-     * @var \Magento\App\Route\ConfigInterface
+     * @var \Magento\Framework\App\Route\ConfigInterface
      */
-    protected $_routeConfig;
+    protected $routeConfig;
 
     /**
      * @param \Magento\Backend\Helper\Data $helper
-     * @param \Magento\App\Route\ConfigInterface $routeConfig
+     * @param \Magento\Framework\App\Route\ConfigInterface $routeConfig
      */
     public function __construct(
         \Magento\Backend\Helper\Data $helper,
-        \Magento\App\Route\ConfigInterface $routeConfig
+        \Magento\Framework\App\Route\ConfigInterface $routeConfig
     ) {
-        $this->_helper = $helper;
-        $this->_routeConfig = $routeConfig;
+        $this->helper = $helper;
+        $this->routeConfig = $routeConfig;
     }
 
     /**
      * Check and process no route request
      *
-     * @param \Magento\App\RequestInterface $request
+     * @param \Magento\Framework\App\RequestInterface $request
      * @return bool
      */
-    public function process(\Magento\App\RequestInterface $request)
+    public function process(\Magento\Framework\App\RequestInterface $request)
     {
         $requestPathParams = explode('/', trim($request->getPathInfo(), '/'));
         $areaFrontName = array_shift($requestPathParams);
 
-        if ($areaFrontName == $this->_helper->getAreaFrontName()) {
+        if ($areaFrontName == $this->helper->getAreaFrontName()) {
 
-            $moduleName = $this->_routeConfig->getRouteFrontName('adminhtml');
-            $controllerName = 'noroute';
+            $moduleName = $this->routeConfig->getRouteFrontName('adminhtml');
+            $actionNamespace = 'noroute';
             $actionName = 'index';
-
-            $request->setModuleName($moduleName)->setControllerName($controllerName)->setActionName($actionName);
-
+            $request->setModuleName($moduleName)->setControllerName($actionNamespace)->setActionName($actionName);
             return true;
         }
-
         return false;
     }
 }

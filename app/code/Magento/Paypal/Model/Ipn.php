@@ -24,6 +24,8 @@
 namespace Magento\Paypal\Model;
 
 use Exception;
+use Magento\Sales\Model\Order\Email\Sender\OrderSender;
+use Magento\Sales\Model\Order\Email\Sender\CreditmemoSender;
 
 /**
  * PayPal Instant Payment Notification processor model
@@ -48,24 +50,40 @@ class Ipn extends \Magento\Paypal\Model\AbstractIpn implements IpnInterface
     protected $_paypalInfo;
 
     /**
+     * @var OrderSender
+     */
+    protected $orderSender;
+
+    /**
+     * @var CreditmemoSender
+     */
+    protected $creditmemoSender;
+
+    /**
      * @param \Magento\Paypal\Model\ConfigFactory $configFactory
-     * @param \Magento\Logger\AdapterFactory $logAdapterFactory
-     * @param \Magento\HTTP\Adapter\CurlFactory $curlFactory
+     * @param \Magento\Framework\Logger\AdapterFactory $logAdapterFactory
+     * @param \Magento\Framework\HTTP\Adapter\CurlFactory $curlFactory
      * @param \Magento\Sales\Model\OrderFactory $orderFactory
      * @param Info $paypalInfo
+     * @param OrderSender $orderSender
+     * @param CreditmemoSender $creditmemoSender
      * @param array $data
      */
     public function __construct(
         \Magento\Paypal\Model\ConfigFactory $configFactory,
-        \Magento\Logger\AdapterFactory $logAdapterFactory,
-        \Magento\HTTP\Adapter\CurlFactory $curlFactory,
+        \Magento\Framework\Logger\AdapterFactory $logAdapterFactory,
+        \Magento\Framework\HTTP\Adapter\CurlFactory $curlFactory,
         \Magento\Sales\Model\OrderFactory $orderFactory,
         Info $paypalInfo,
+        OrderSender $orderSender,
+        CreditmemoSender $creditmemoSender,
         array $data = array()
     ) {
         parent::__construct($configFactory, $logAdapterFactory, $curlFactory, $data);
         $this->_orderFactory = $orderFactory;
         $this->_paypalInfo = $paypalInfo;
+        $this->orderSender = $orderSender;
+        $this->creditmemoSender = $creditmemoSender;
     }
 
     /**
@@ -107,7 +125,7 @@ class Ipn extends \Magento\Paypal\Model\AbstractIpn implements IpnInterface
         }
         /** @link https://cms.paypal.com/cgi-bin/marketingweb?cmd=_render-content&content_ID=developer/e_howto_admin_IPNIntro */
         // verify merchant email intended to receive notification
-        $merchantEmail = $this->_config->businessAccount;
+        $merchantEmail = $this->_config->getConfigValue('businessAccount');
         if (!$merchantEmail) {
             return $this->_config;
         }
@@ -143,7 +161,7 @@ class Ipn extends \Magento\Paypal\Model\AbstractIpn implements IpnInterface
      * Admin will be notified on errors.
      *
      * @return void
-     * @throws \Magento\Model\Exception
+     * @throws \Magento\Framework\Model\Exception
      */
     protected function _processOrder()
     {
@@ -165,7 +183,7 @@ class Ipn extends \Magento\Paypal\Model\AbstractIpn implements IpnInterface
                     $this->_registerTransaction();
                     break;
             }
-        } catch (\Magento\Model\Exception $e) {
+        } catch (\Magento\Framework\Model\Exception $e) {
             $comment = $this->_createIpnComment(__('Note: %1', $e->getMessage()), true);
             $comment->save();
             throw $e;
@@ -218,7 +236,7 @@ class Ipn extends \Magento\Paypal\Model\AbstractIpn implements IpnInterface
      * Process regular IPN notifications
      *
      * @return void
-     * @throws \Magento\Model\Exception
+     * @throws \Magento\Framework\Model\Exception
      * @throws Exception
      */
     protected function _registerTransaction()
@@ -229,7 +247,7 @@ class Ipn extends \Magento\Paypal\Model\AbstractIpn implements IpnInterface
             switch ($paymentStatus) {
                 // paid
                 case Info::PAYMENTSTATUS_COMPLETED:
-                    $this->_registerPaymentCapture();
+                    $this->_registerPaymentCapture(true);
                     break;
                     // the holded payment was denied on paypal side
                 case Info::PAYMENTSTATUS_DENIED:
@@ -264,7 +282,7 @@ class Ipn extends \Magento\Paypal\Model\AbstractIpn implements IpnInterface
                 default:
                     throw new Exception("Cannot handle payment status '{$paymentStatus}'.");
             }
-        } catch (\Magento\Model\Exception $e) {
+        } catch (\Magento\Framework\Model\Exception $e) {
             $comment = $this->_createIpnComment(__('Note: %1', $e->getMessage()), true);
             $comment->save();
             throw $e;
@@ -274,36 +292,46 @@ class Ipn extends \Magento\Paypal\Model\AbstractIpn implements IpnInterface
     /**
      * Process completed payment (either full or partial)
      *
+     * @param bool $skipFraudDetection
      * @return void
      */
-    protected function _registerPaymentCapture()
+    protected function _registerPaymentCapture($skipFraudDetection = false)
     {
         if ($this->getRequestData('transaction_entity') == 'auth') {
             return;
         }
+        $parentTransactionId = $this->getRequestData('parent_txn_id');
         $this->_importPaymentInformation();
         $payment = $this->_order->getPayment();
         $payment->setTransactionId(
             $this->getRequestData('txn_id')
-        )->setCurrencyCode(
+        );
+        $payment->setCurrencyCode(
             $this->getRequestData('mc_currency')
-        )->setPreparedMessage(
+        );
+        $payment->setPreparedMessage(
             $this->_createIpnComment('')
-        )->setParentTransactionId(
-            $this->getRequestData('parent_txn_id')
-        )->setShouldCloseParentTransaction(
+        );
+        $payment->setParentTransactionId(
+            $parentTransactionId
+        );
+        $payment->setShouldCloseParentTransaction(
             'Completed' === $this->getRequestData('auth_status')
-        )->setIsTransactionClosed(
+        );
+        $payment->setIsTransactionClosed(
             0
-        )->registerCaptureNotification(
-            $this->getRequestData('mc_gross')
+        );
+        $payment->registerCaptureNotification(
+            $this->getRequestData('mc_gross'),
+            $skipFraudDetection && $parentTransactionId
         );
         $this->_order->save();
 
         // notify customer
         $invoice = $payment->getCreatedInvoice();
         if ($invoice && !$this->_order->getEmailSent()) {
-            $this->_order->sendNewOrderEmail()->addStatusHistoryComment(
+            $this->orderSender->send($this->_order);
+            $this->_order->addStatusHistoryComment(
                 __('You notified customer about invoice #%1.', $invoice->getIncrementId())
             )->setIsCustomerNotified(
                 true
@@ -360,7 +388,9 @@ class Ipn extends \Magento\Paypal\Model\AbstractIpn implements IpnInterface
             throw new Exception('The "order" authorizations are not implemented.');
         }
         // case when was placed using PayPal standard
-        if (\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT == $this->_order->getState()) {
+        if (\Magento\Sales\Model\Order::STATE_PENDING_PAYMENT == $this->_order->getState()
+            && !$this->getRequestData('transaction_entity')
+        ) {
             $this->_registerPaymentCapture();
             return;
         }
@@ -399,6 +429,8 @@ class Ipn extends \Magento\Paypal\Model\AbstractIpn implements IpnInterface
                 $this->getRequestData('txn_id')
             )->setParentTransactionId(
                 $this->getRequestData('parent_txn_id')
+            )->setCurrencyCode(
+                $this->getRequestData('mc_currency')
             )->setIsTransactionClosed(
                 0
             )->registerAuthorizationNotification(
@@ -406,7 +438,7 @@ class Ipn extends \Magento\Paypal\Model\AbstractIpn implements IpnInterface
             );
         }
         if (!$this->_order->getEmailSent()) {
-            $this->_order->sendNewOrderEmail();
+            $this->orderSender->send($this->_order);
         }
         $this->_order->save();
     }
@@ -477,7 +509,7 @@ class Ipn extends \Magento\Paypal\Model\AbstractIpn implements IpnInterface
 
         $creditMemo = $payment->getCreatedCreditmemo();
         if ($creditMemo) {
-            $creditMemo->sendEmail();
+            $this->creditmemoSender->send($creditMemo);
             $this->_order->addStatusHistoryComment(
                 __('You notified customer about creditmemo #%1.', $creditMemo->getIncrementId())
             )->setIsCustomerNotified(

@@ -23,13 +23,8 @@
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 -->
-<layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../Core/etc/layout_single.xsd">
-    <update handle="page_two_columns_left"/>
-    <referenceContainer name="left">
-        <container name="checkout.progress.wrapper" label="Checkout Progress Wrapper" htmlTag="div" htmlId="checkout-progress-wrapper">
-            <block class="Magento\Checkout\Block\Onepage\Progress" name="checkout.progress" before="-" template="onepage/progress.phtml"/>
-        </container>
-    </referenceContainer>
+<page layout="1column" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../Core/etc/page.xsd">
+    <update handle="checkout_shipping_price_renderer" />
     <referenceContainer name="content">
         <block class="Magento\Checkout\Block\Onepage" name="checkout.onepage" template="onepage.phtml">
             <block class="Magento\Checkout\Block\Onepage\Login" name="checkout.onepage.login" as="login" template="onepage/login.phtml" cacheable="false">
@@ -46,11 +41,14 @@
             </block>
             <block class="Magento\Checkout\Block\Onepage\Payment" name="checkout.onepage.payment" as="payment" template="onepage/payment.phtml" cacheable="false">
                 <block class="Magento\Checkout\Block\Onepage\Payment\Methods" name="checkout.payment.methods" as="methods" template="onepage/payment/methods.phtml" cacheable="false"/>
-                <block class="Magento\View\Element\Template" name="checkout.onepage.payment.additional" as="additional"/>
-                <block class="Magento\View\Element\Template" name="checkout.onepage.payment.methods_additional" as="methods_additional"/>
+                <block class="Magento\Framework\View\Element\Template" name="checkout.onepage.payment.additional" as="additional"/>
+                <block class="Magento\Framework\View\Element\Template" name="checkout.onepage.payment.methods_additional" as="methods_additional"/>
             </block>
             <block class="Magento\Checkout\Block\Onepage\Review" name="checkout.onepage.review" as="review" template="onepage/review.phtml" cacheable="false"/>
         </block>
+        <container name="checkout.progress.wrapper" label="Checkout Progress Wrapper" htmlTag="div" htmlClass="opc-block-progress-wrapper" htmlId="checkout-progress-wrapper" after="-">
+            <block class="Magento\Checkout\Block\Onepage\Progress" name="checkout.progress" before="-" template="onepage/progress.phtml"/>
+        </container>
     </referenceContainer>
     <update handle="customer_form_template_handle"/>
-</layout>
+</page>

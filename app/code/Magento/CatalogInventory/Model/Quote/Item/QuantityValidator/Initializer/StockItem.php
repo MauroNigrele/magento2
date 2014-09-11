@@ -56,8 +56,8 @@ class StockItem
      * @param \Magento\Sales\Model\Quote\Item $quoteItem
      * @param int $qty
      *
-     * @return \Magento\Object
-     * @throws \Magento\Model\Exception
+     * @return \Magento\Framework\Object
+     * @throws \Magento\Framework\Model\Exception
      */
     public function initialize(
         \Magento\CatalogInventory\Model\Stock\Item $stockItem,
@@ -72,13 +72,15 @@ class StockItem
             /**
              * we are using 0 because original qty was processed
              */
-            $qtyForCheck = $this->quoteItemQtyList->getQty($quoteItem->getProduct()->getId(), $quoteItem->getId(), 0);
+            $qtyForCheck = $this->quoteItemQtyList
+                ->getQty($quoteItem->getProduct()->getId(), $quoteItem->getId(), $quoteItem->getQuoteId(), 0);
         } else {
             $increaseQty = $quoteItem->getQtyToAdd() ? $quoteItem->getQtyToAdd() : $qty;
             $rowQty = $qty;
             $qtyForCheck = $this->quoteItemQtyList->getQty(
                 $quoteItem->getProduct()->getId(),
                 $quoteItem->getId(),
+                $quoteItem->getQuoteId(),
                 $increaseQty
             );
         }

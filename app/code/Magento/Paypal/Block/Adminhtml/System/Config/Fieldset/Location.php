@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Paypal
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -31,19 +29,20 @@
  */
 namespace Magento\Paypal\Block\Adminhtml\System\Config\Fieldset;
 
-class Location extends \Magento\Backend\Block\System\Config\Form\Fieldset
+class Location extends \Magento\Paypal\Block\Adminhtml\System\Config\Fieldset\Expanded
 {
     /**
      * Render fieldset html
      *
-     * @param \Magento\Data\Form\Element\AbstractElement $element
+     * @param \Magento\Framework\Data\Form\Element\AbstractElement $element
      * @return string
      */
-    public function render(\Magento\Data\Form\Element\AbstractElement $element)
+    public function render(\Magento\Framework\Data\Form\Element\AbstractElement $element)
     {
         $this->setElement($element);
         $js = '
-            document.observe("dom:loaded", function() {
+            require(["jquery", "prototype"], function(jQuery){
+            jQuery("body").on("adminConfigDefined", function() {
                 $$(".with-button button.button").each(function(configureButton) {
                     togglePaypalSolutionConfigureButton(configureButton, true);
                 });
@@ -254,6 +253,26 @@ class Location extends \Magento\Backend\Block\System\Config\Form\Fieldset
                         }
                         paypalConflictsObject.ecCheckAvailability();
                         paypalConflictsObject.sharePayflowEnabling(enabler, isEvent);
+                    },
+                    handleBmlEnabler: function(event) {
+                        required = Event.element(event);
+                        var bml = $(required).bmlEnabler;
+                        if (required.value == "1") {
+                            bml.value = "1";
+                        }
+                        paypalConflictsObject.toggleBmlEnabler(required);
+                    },
+
+                    toggleBmlEnabler: function(required) {
+                        var bml = $(required).bmlEnabler;
+                        if (!bml) {
+                            return;
+                        }
+                        if (required.value != "1") {
+                            bml.value = "0";
+                            $(bml).disable();
+                        }
+                        $(bml).requiresObj.indicateEnabled();
                     }
                 };
 
@@ -310,9 +329,19 @@ class Location extends \Magento\Backend\Block\System\Config\Form\Fieldset
                         $(ecPayflowScopeElement).click();
                     }
                 }
+                $$(".paypal-bml").each(function(bmlEnabler) {
+                    $(bmlEnabler).classNames().each(function(className) {
+                        if (className.indexOf("requires-") !== -1) {
+                            var required = $(className.replace("requires-", ""));
+                            required.bmlEnabler = bmlEnabler;
+                            Event.observe(required, "change", paypalConflictsObject.handleBmlEnabler);
+                        }
+                    });
+                });
 
                 $$(".paypal-enabler").each(function(enablerElement) {
                     paypalConflictsObject.checkPaymentConflicts(enablerElement, "initial");
+                    paypalConflictsObject.toggleBmlEnabler(enablerElement);
                 });
                 if (paypalConflictsObject.isConflict || paypalConflictsObject.ecMissed) {
                     var notification = \'' .
@@ -374,7 +403,9 @@ class Location extends \Magento\Backend\Block\System\Config\Form\Fieldset
                     }
                 });
             });
+
+            });
         ';
-        return $this->toHtml() . $this->_jsHelper->getScript($js);
+        return parent::render($element) . $this->_jsHelper->getScript($js);
     }
 }

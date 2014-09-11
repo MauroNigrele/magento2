@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Sales
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -27,14 +25,10 @@ namespace Magento\Sales\Block\Adminhtml\Order\Create\Items;
 
 use Magento\Catalog\Model\Product\Attribute\Source\Status as ProductStatus;
 use Magento\Sales\Model\Quote\Item;
-use Magento\Session\SessionManagerInterface;
+use Magento\Framework\Session\SessionManagerInterface;
 
 /**
  * Adminhtml sales order create items grid block
- *
- * @category   Magento
- * @package    Magento_Sales
- * @author      Magento Core Team <core@magentocommerce.com>
  */
 class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
 {
@@ -50,7 +44,7 @@ class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
      *
      * @var \Magento\Tax\Helper\Data
      */
-    protected $_taxData = null;
+    protected $_taxData;
 
     /**
      * Wishlist factory
@@ -81,6 +75,11 @@ class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
     protected $_messageHelper;
 
     /**
+     * @var \Magento\CatalogInventory\Service\V1\StockItemService
+     */
+    protected $stockItemService;
+
+    /**
      * @param \Magento\Backend\Block\Template\Context $context
      * @param \Magento\Backend\Model\Session\Quote $sessionQuote
      * @param \Magento\Sales\Model\AdminOrder\Create $orderCreate
@@ -89,6 +88,7 @@ class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
      * @param \Magento\Tax\Model\Config $taxConfig
      * @param \Magento\Tax\Helper\Data $taxData
      * @param \Magento\GiftMessage\Helper\Message $messageHelper
+     * @param \Magento\CatalogInventory\Service\V1\StockItemService $stockItemService
      * @param array $data
      */
     public function __construct(
@@ -100,6 +100,7 @@ class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
         \Magento\Tax\Model\Config $taxConfig,
         \Magento\Tax\Helper\Data $taxData,
         \Magento\GiftMessage\Helper\Message $messageHelper,
+        \Magento\CatalogInventory\Service\V1\StockItemService $stockItemService,
         array $data = array()
     ) {
         $this->_messageHelper = $messageHelper;
@@ -107,6 +108,7 @@ class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
         $this->_giftMessageSave = $giftMessageSave;
         $this->_taxConfig = $taxConfig;
         $this->_taxData = $taxData;
+        $this->stockItemService = $stockItemService;
         parent::__construct($context, $sessionQuote, $orderCreate, $data);
     }
 
@@ -134,18 +136,35 @@ class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
         foreach ($items as $item) {
             // To dispatch inventory event sales_quote_item_qty_set_after, set item qty
             $item->setQty($item->getQty());
-            $stockItem = $item->getProduct()->getStockItem();
-            if ($stockItem instanceof \Magento\CatalogInventory\Model\Stock\Item) {
-                // This check has been performed properly in Inventory observer, so it has no sense
-                /*
-                $check = $stockItem->checkQuoteItemQty($item->getQty(), $item->getQty(), $item->getQty());
-                $item->setMessage($check->getMessage());
-                $item->setHasError($check->getHasError());
-                */
-                if ($item->getProduct()->getStatus() == ProductStatus::STATUS_DISABLED) {
-                    $item->setMessage(__('This product is disabled.'));
-                    $item->setHasError(true);
+
+            if (!$item->getMessage()) {
+                //Getting product ids for stock item last quantity validation before grid display
+                $stockItemToCheck = array();
+
+                $childItems = $item->getChildren();
+                if (count($childItems)) {
+                    foreach ($childItems as $childItem) {
+                        $stockItemToCheck[] = $childItem->getProduct()->getId();
+                    }
+                } else {
+                    $stockItemToCheck[] = $item->getProduct()->getId();
                 }
+
+                foreach ($stockItemToCheck as $productId) {
+                    $check = $this->stockItemService->checkQuoteItemQty(
+                        $productId,
+                        $item->getQty(),
+                        $item->getQty(),
+                        $item->getQty()
+                    );
+                    $item->setMessage($check->getMessage());
+                    $item->setHasError($check->getHasError());
+                }
+            }
+
+            if ($item->getProduct()->getStatus() == ProductStatus::STATUS_DISABLED) {
+                $item->setMessage(__('This product is disabled.'));
+                $item->setHasError(true);
             }
         }
         $this->getQuote()->setIsSuperMode($oldSuperMode);
@@ -203,7 +222,6 @@ class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
      */
     public function getItemOrigPrice($item)
     {
-        //        return $this->convertPrice($item->getProduct()->getPrice());
         return $this->convertPrice($item->getPrice());
     }
 
@@ -218,7 +236,6 @@ class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
         if (is_null($item)) {
             return $this->_messageHelper->getIsMessagesAvailable('items', $this->getQuote(), $this->getStore());
         }
-
         return $this->_messageHelper->getIsMessagesAvailable('item', $item, $this->getStore());
     }
 
@@ -240,12 +257,9 @@ class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
      */
     public function displayTotalsIncludeTax()
     {
-        $res = $this->_taxConfig->displayCartSubtotalInclTax(
-            $this->getStore()
-        ) || $this->_taxConfig->displayCartSubtotalBoth(
-            $this->getStore()
-        );
-        return $res;
+        $result = $this->_taxConfig->displayCartSubtotalInclTax($this->getStore())
+            || $this->_taxConfig->displayCartSubtotalBoth($this->getStore());
+        return $result;
     }
 
     /**
@@ -256,15 +270,13 @@ class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
     public function getSubtotal()
     {
         $address = $this->getQuoteAddress();
-        if ($this->displayTotalsIncludeTax()) {
-            if ($address->getSubtotalInclTax()) {
-                return $address->getSubtotalInclTax();
-            }
-            return $address->getSubtotal() + $address->getTaxAmount();
-        } else {
+        if (!$this->displayTotalsIncludeTax()) {
             return $address->getSubtotal();
         }
-        return false;
+        if ($address->getSubtotalInclTax()) {
+            return $address->getSubtotalInclTax();
+        }
+        return $address->getSubtotal() + $address->getTaxAmount();
     }
 
     /**
@@ -336,13 +348,15 @@ class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
      */
     public function getQtyTitle($item)
     {
-        $prices = $item->getProduct()->getTierPrice();
+        $prices = $item->getProduct()
+            ->getPriceInfo()
+            ->getPrice(\Magento\Catalog\Pricing\Price\TierPrice::PRICE_CODE)
+            ->getTierPriceList();
         if ($prices) {
             $info = array();
             foreach ($prices as $data) {
-                $qty = $data['price_qty'] * 1;
                 $price = $this->convertPrice($data['price']);
-                $info[] = __('Buy %1 for price %2', $qty, $price);
+                $info[] = __('Buy %1 for price %2', $data['price_qty'], $price);
             }
             return implode(', ', $info);
         } else {
@@ -361,13 +375,13 @@ class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
         $html = '';
         $prices = $item->getProduct()->getTierPrice();
         if ($prices) {
-            $info = $item->getProductType() ==
-                \Magento\Catalog\Model\Product\Type::TYPE_BUNDLE ? $this->_getBundleTierPriceInfo(
-                    $prices
-                ) : $this->_getTierPriceInfo(
-                    $prices
-                );
-            $html = implode('<br/>', $info);
+            if ($item->getProductType() == \Magento\Catalog\Model\Product\Type::TYPE_BUNDLE) {
+                $info = $this->_getBundleTierPriceInfo($prices);
+            } else {
+                $info = $this->_getTierPriceInfo($prices);
+            }
+
+            $html = implode('<br />', $info);
         }
         return $html;
     }
@@ -417,19 +431,13 @@ class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
         $this->_moveToCustomerStorage = true;
         if ($optionIds = $item->getOptionByCode('option_ids')) {
             foreach (explode(',', $optionIds->getValue()) as $optionId) {
-                if ($option = $item->getProduct()->getOptionById($optionId)) {
-                    $optionValue = $item->getOptionByCode('option_' . $option->getId())->getValue();
-
+                $option = $item->getProduct()->getOptionById($optionId);
+                if ($option) {
                     $optionStr .= $option->getTitle() . ':';
-
                     $quoteItemOption = $item->getOptionByCode('option_' . $option->getId());
-                    $group = $option->groupFactory(
-                        $option->getType()
-                    )->setOption(
-                        $option
-                    )->setQuoteItemOption(
-                        $quoteItemOption
-                    );
+                    $group = $option->groupFactory($option->getType())
+                        ->setOption($option)
+                        ->setQuoteItemOption($quoteItemOption);
 
                     $optionStr .= $group->getEditableOptionValue($quoteItemOption->getValue());
                     $optionStr .= "\n";
@@ -509,7 +517,7 @@ class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
     /**
      * Get store
      *
-     * @return \Magento\Core\Model\Store
+     * @return \Magento\Store\Model\Store
      */
     public function getStore()
     {
@@ -541,7 +549,7 @@ class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
      * Get order item extra info block
      *
      * @param Item $item
-     * @return \Magento\View\Element\AbstractBlock
+     * @return \Magento\Framework\View\Element\AbstractBlock
      */
     public function getItemExtraInfo($item)
     {
@@ -567,5 +575,44 @@ class Grid extends \Magento\Sales\Block\Adminhtml\Order\Create\AbstractCreate
     public function getCustomerWishlists()
     {
         return $this->_wishlistFactory->create()->getCollection()->filterByCustomerId($this->getCustomerId());
+    }
+
+    /**
+     * Get the item unit price html
+     *
+     * @param Item $item
+     * @return string
+     */
+    public function getItemUnitPriceHtml(Item $item)
+    {
+        $block = $this->getLayout()->getBlock('item_unit_price');
+        $block->setItem($item);
+        return $block->toHtml();
+    }
+
+    /**
+     * Get the item row total html
+     *
+     * @param Item $item
+     * @return string
+     */
+    public function getItemRowTotalHtml(Item $item)
+    {
+        $block = $this->getLayout()->getBlock('item_row_total');
+        $block->setItem($item);
+        return $block->toHtml();
+    }
+
+    /**
+     * Return html for row total with discount
+     *
+     * @param Item $item
+     * @return string
+     */
+    public function getItemRowTotalWithDiscountHtml(Item $item)
+    {
+        $block = $this->getLayout()->getBlock('item_row_total_with_discount');
+        $block->setItem($item);
+        return $block->toHtml();
     }
 }

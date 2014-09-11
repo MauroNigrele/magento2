@@ -18,15 +18,12 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Core
- * @subpackage  integration_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 namespace Magento\Core\Model\Resource\Theme;
 
-use Magento\View\Design\ThemeInterface;
+use Magento\Framework\View\Design\ThemeInterface;
 
 class CollectionTest extends \PHPUnit_Framework_TestCase
 {
@@ -75,7 +72,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
     {
         $themeCollection = self::_getThemesCollection();
         $hasFound = false;
-        /** @var $theme \Magento\View\Design\ThemeInterface */
+        /** @var $theme \Magento\Framework\View\Design\ThemeInterface */
         foreach ($themeCollection as $theme) {
             if ($theme->getFullPath() == $fullPath) {
                 $hasFound = true;
@@ -175,7 +172,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
         );
         $themeCollection->addAreaFilter('test_area3')->filterVisibleThemes();
         $this->assertCount(2, $themeCollection);
-        /** @var $theme \Magento\View\Design\ThemeInterface */
+        /** @var $theme \Magento\Framework\View\Design\ThemeInterface */
         foreach ($themeCollection as $theme) {
             $this->assertTrue(
                 in_array($theme->getType(), array(ThemeInterface::TYPE_PHYSICAL, ThemeInterface::TYPE_VIRTUAL))
@@ -222,9 +219,9 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
         $themeCollection = self::_getThemesCollection();
         $themeCollection->load();
         foreach (self::getThemeList() as $themeData) {
-            /** @var $themeModel \Magento\View\Design\ThemeInterface */
+            /** @var $themeModel \Magento\Framework\View\Design\ThemeInterface */
             $themeModel = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
-                'Magento\View\Design\ThemeInterface'
+                'Magento\Framework\View\Design\ThemeInterface'
             );
             $themeModel->setData($themeData);
             $themeCollection->addItem($themeModel);
@@ -240,9 +237,9 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
         $fixture = self::getInheritedThemeList();
         $idByPath = array();
         foreach ($fixture as $themeData) {
-            /** @var $themeModel \Magento\View\Design\ThemeInterface */
+            /** @var $themeModel \Magento\Framework\View\Design\ThemeInterface */
             $themeModel = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
-                'Magento\View\Design\ThemeInterface'
+                'Magento\Framework\View\Design\ThemeInterface'
             );
             $themeModel->setData($themeData);
 
@@ -267,7 +264,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
                 'parent_id' => '0',
                 'theme_path' => 'test/default',
                 'code' => 'test/default',
-                'theme_version' => '2.0.0.0',
+                'theme_version' => '0.1.0',
                 'theme_title' => 'Test',
                 'preview_image' => 'test_default.jpg',
                 'is_featured' => '1',
@@ -278,7 +275,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
                 'parent_id' => '0',
                 'theme_path' => 'test/pro',
                 'code' => 'test/pro',
-                'theme_version' => '2.0.0.0',
+                'theme_version' => '0.1.0',
                 'theme_title' => 'Professional Test',
                 'preview_image' => 'test_default.jpg',
                 'is_featured' => '1',
@@ -289,7 +286,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
                 'parent_id' => '0',
                 'theme_path' => 'test/fixed1',
                 'code' => 'test/fixed1',
-                'theme_version' => '2.0.0.0',
+                'theme_version' => '0.1.0',
                 'theme_title' => 'Theme test 1',
                 'preview_image' => 'test_default.jpg',
                 'is_featured' => '1',
@@ -300,7 +297,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
                 'parent_id' => '0',
                 'theme_path' => 'test/fixed2',
                 'code' => 'test/fixed2',
-                'theme_version' => '2.0.0.0',
+                'theme_version' => '0.1.0',
                 'theme_title' => 'Theme test 2',
                 'preview_image' => 'test_default.jpg',
                 'is_featured' => '1',
@@ -311,7 +308,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
                 'parent_id' => '0',
                 'theme_path' => 'test/fixed3',
                 'code' => 'test/fixed3',
-                'theme_version' => '2.0.0.0',
+                'theme_version' => '0.1.0',
                 'theme_title' => 'Theme test 3',
                 'preview_image' => 'test_default.jpg',
                 'is_featured' => '1',
@@ -331,7 +328,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
                 'parent_id' => '0',
                 'theme_path' => 'test1/test1',
                 'code' => 'test1/test1',
-                'theme_version' => '2.0.0.0',
+                'theme_version' => '0.1.0',
                 'theme_title' => 'Test1',
                 'preview_image' => 'test1_test1.jpg',
                 'is_featured' => '1',
@@ -342,7 +339,7 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
                 'parent_id' => 'area51/test1/test1',
                 'theme_path' => 'test1/test2',
                 'code' => 'test1/test2',
-                'theme_version' => '2.0.0.0',
+                'theme_version' => '0.1.0',
                 'theme_title' => 'Test2',
                 'preview_image' => 'test1_test2.jpg',
                 'is_featured' => '1',
@@ -353,23 +350,23 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
                 'parent_id' => 'area51/test1/test2',
                 'theme_path' => 'test1/test3',
                 'code' => 'test1/test3',
-                'theme_version' => '2.0.0.0',
+                'theme_version' => '0.1.0',
                 'theme_title' => 'Test3',
                 'preview_image' => 'test1_test3.jpg',
                 'is_featured' => '1',
                 'area' => 'area51',
-                'type' => \Magento\View\Design\ThemeInterface::TYPE_VIRTUAL
+                'type' => \Magento\Framework\View\Design\ThemeInterface::TYPE_VIRTUAL
             ),
             array(
                 'parent_id' => 'area51/test1/test0',
                 'theme_path' => 'test1/test4',
                 'code' => 'test1/test4',
-                'theme_version' => '2.0.0.0',
+                'theme_version' => '0.1.0',
                 'theme_title' => 'Test4',
                 'preview_image' => 'test1_test4.jpg',
                 'is_featured' => '1',
                 'area' => 'area51',
-                'type' => \Magento\View\Design\ThemeInterface::TYPE_VIRTUAL
+                'type' => \Magento\Framework\View\Design\ThemeInterface::TYPE_VIRTUAL
             )
         );
     }
@@ -387,9 +384,9 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
             $collection->count()
         );
 
-        /** @var $theme \Magento\View\Design\ThemeInterface */
+        /** @var $theme \Magento\Framework\View\Design\ThemeInterface */
         foreach ($collection as $theme) {
-            $this->assertEquals(\Magento\Core\Model\App\Area::AREA_FRONTEND, $theme->getArea());
+            $this->assertEquals(\Magento\Framework\App\Area::AREA_FRONTEND, $theme->getArea());
             $this->assertEquals(ThemeInterface::TYPE_PHYSICAL, $theme->getType());
         }
     }
@@ -403,9 +400,9 @@ class CollectionTest extends \PHPUnit_Framework_TestCase
 
         $this->assertGreaterThan(0, $collection->count());
 
-        /** @var $theme \Magento\View\Design\ThemeInterface */
+        /** @var $theme \Magento\Framework\View\Design\ThemeInterface */
         foreach ($collection as $theme) {
-            $this->assertEquals(\Magento\Core\Model\App\Area::AREA_FRONTEND, $theme->getArea());
+            $this->assertEquals(\Magento\Framework\App\Area::AREA_FRONTEND, $theme->getArea());
             $this->assertEquals(ThemeInterface::TYPE_PHYSICAL, $theme->getType());
         }
     }

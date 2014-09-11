@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Sales
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -31,8 +29,6 @@ use Magento\Sales\Model\Order;
 /**
  * Flat sales order status history collection
  *
- * @category    Magento
- * @package     Magento_Sales
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 class Collection extends \Magento\Sales\Model\Resource\Order\Collection\AbstractCollection
@@ -67,11 +63,9 @@ class Collection extends \Magento\Sales\Model\Resource\Order\Collection\Abstract
      * \Magento\Sales\Model\Order\Creditmemo, \Magento\Sales\Model\Order\Invoice, \Magento\Sales\Model\Order\Shipment
      *
      * @param AbstractModel $instance
-     * @param string $historyEntityName
-     *
      * @return \Magento\Sales\Model\Order\Status\History|null
      */
-    public function getUnnotifiedForInstance($instance, $historyEntityName = Order::HISTORY_ENTITY_NAME)
+    public function getUnnotifiedForInstance($instance)
     {
         if (!$instance instanceof Order) {
             $instance = $instance->getOrder();
@@ -83,14 +77,14 @@ class Collection extends \Magento\Sales\Model\Resource\Order\Collection\Abstract
             'desc'
         )->addFieldToFilter(
             'entity_name',
-            $historyEntityName
+            $instance->getEntityType()
         )->addFieldToFilter(
             'is_customer_notified',
             0
         )->setPageSize(
             1
         );
-        foreach ($this as $historyItem) {
+        foreach ($this->getItems() as $historyItem) {
             return $historyItem;
         }
         return null;

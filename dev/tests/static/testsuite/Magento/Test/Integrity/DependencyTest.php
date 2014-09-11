@@ -20,15 +20,15 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    tests
- * @package     static
- * @subpackage  Integrity
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  *
  */
 namespace Magento\Test\Integrity;
 
+/**
+ * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
+ */
 class DependencyTest extends \PHPUnit_Framework_TestCase
 {
     /**
@@ -428,11 +428,12 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
     protected function _prepareFiles($fileType, $files, $skip = null)
     {
         $result = array();
-        foreach (array_keys($files) as $file) {
-            if (!$skip && substr_count(self::_getRelativeFilename($file), '/') < self::DIR_PATH_COUNT) {
+        foreach ($files as $relativePath => $file) {
+            $absolutePath = $file[0];
+            if (!$skip && substr_count($relativePath, '/') < self::DIR_PATH_COUNT) {
                 continue;
             }
-            $result[$file] = array($fileType, $file);
+            $result[$relativePath] = array($fileType, $absolutePath);
         }
         return $result;
     }
@@ -500,7 +501,7 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
         foreach ($files as $file) {
             if (preg_match('/(?<namespace>[A-Z][a-z]+)[_\/\\\\](?<module>[A-Z][a-zA-Z]+)/', $file, $matches)) {
                 $module = $matches['namespace'] . '\\' . $matches['module'];
-                self::$_listRoutesXml[$module] = $file;
+                self::$_listRoutesXml[$module][] = $file;
             }
         }
     }
@@ -517,24 +518,40 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
         foreach ($files as $file) {
             if (preg_match($pattern, $file, $matches)) {
                 $module = $matches['namespace'] . '\\' . $matches['module'];
-                if (isset(self::$_listRoutesXml[$module])) {
-                    // Read module's routes.xml file
-                    $config = simplexml_load_file(self::$_listRoutesXml[$module]);
-                    $nodes = $config->xpath("/config/router/*");
-                    foreach ($nodes as $node) {
-                        $id = (string)$node['id'];
-                        if ($id != 'adminhtml' && '' == (string)$node['frontName']) {
-                            // Exclude overridden routers
-                            continue;
-                        }
-                        if (!isset(self::$_mapRouters[$id])) {
-                            self::$_mapRouters[$id] = array();
-                        }
-                        if (!in_array($module, self::$_mapRouters[$id])) {
-                            self::$_mapRouters[$id][] = $module;
-                        }
+                if (!empty(self::$_listRoutesXml[$module])) {
+                    foreach (self::$_listRoutesXml[$module] as $configFile) {
+                        self::updateRoutersMap($module, $configFile);
+
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * Update routers map for the module basing on the routing config file
+     *
+     * @param string $module
+     * @param string $configFile
+     *
+     * @return void
+     */
+    private static function updateRoutersMap($module, $configFile)
+    {
+        // Read module's routes.xml file
+        $config = simplexml_load_file($configFile);
+        $nodes  = $config->xpath("/config/router/*");
+        foreach ($nodes as $node) {
+            $id = (string)$node['id'];
+            if ($id != 'adminhtml' && '' == (string)$node['frontName']) {
+                // Exclude overridden routers
+                continue;
+            }
+            if (!isset(self::$_mapRouters[$id])) {
+                self::$_mapRouters[$id] = array();
+            }
+            if (!in_array($module, self::$_mapRouters[$id])) {
+                self::$_mapRouters[$id][] = $module;
             }
         }
     }
@@ -605,6 +622,8 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
 
     /**
      * Initialise map of dependencies
+     *
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     protected static function _initDependencies()
     {
@@ -627,18 +646,21 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
                 }
             }
 
-            foreach ($module[0]->depends->children() as $dependency) {
-                /** @var \SimpleXMLElement $dependency */
-                $type = isset(
-                    $dependency['type']
-                ) && (string)$dependency['type'] == self::TYPE_SOFT ? self::TYPE_SOFT : self::TYPE_HARD;
-                if ($dependency->getName() == 'module') {
-                    self::_addDependencies(
-                        $moduleName,
-                        $type,
-                        self::MAP_TYPE_DECLARED,
-                        str_replace('_', '\\', (string)$dependency->attributes()->name)
-                    );
+            if (isset($module[0]->depends)) {
+                foreach ($module[0]->depends->children() as $dependency) {
+                    /** @var \SimpleXMLElement $dependency */
+                    $type = self::TYPE_HARD;
+                    if (isset($dependency['type']) && (string)$dependency['type'] == self::TYPE_SOFT) {
+                        $type = self::TYPE_SOFT;
+                    }
+                    if ($dependency->getName() == 'module') {
+                        self::_addDependencies(
+                            $moduleName,
+                            $type,
+                            self::MAP_TYPE_DECLARED,
+                            str_replace('_', '\\', (string)$dependency->attributes()->name)
+                        );
+                    }
                 }
             }
         }

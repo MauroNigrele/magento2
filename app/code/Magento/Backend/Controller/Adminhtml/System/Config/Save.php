@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Backend
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -30,8 +28,6 @@ use Magento\Backend\Controller\Adminhtml\System\AbstractConfig;
 /**
  * System Configuration Save Controller
  *
- * @category   Magento
- * @package    Magento_Backend
  * @author     Magento Core Team <core@magentocommerce.com>
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
@@ -45,78 +41,35 @@ class Save extends AbstractConfig
     protected $_configFactory;
 
     /**
-     * @var \Magento\Cache\FrontendInterface
+     * @var \Magento\Framework\Cache\FrontendInterface
      */
     protected $_cache;
 
     /**
-     * @var \Magento\Stdlib\String
+     * @var \Magento\Framework\Stdlib\String
      */
     protected $string;
 
     /**
      * @param \Magento\Backend\App\Action\Context $context
      * @param \Magento\Backend\Model\Config\Structure $configStructure
+     * @param \Magento\Backend\Controller\Adminhtml\System\ConfigSectionChecker $sectionChecker
      * @param \Magento\Backend\Model\Config\Factory $configFactory
-     * @param \Magento\Cache\FrontendInterface $cache
-     * @param \Magento\Stdlib\String $string
+     * @param \Magento\Framework\Cache\FrontendInterface $cache
+     * @param \Magento\Framework\Stdlib\String $string
      */
     public function __construct(
         \Magento\Backend\App\Action\Context $context,
         \Magento\Backend\Model\Config\Structure $configStructure,
+        \Magento\Backend\Controller\Adminhtml\System\ConfigSectionChecker $sectionChecker,
         \Magento\Backend\Model\Config\Factory $configFactory,
-        \Magento\Cache\FrontendInterface $cache,
-        \Magento\Stdlib\String $string
+        \Magento\Framework\Cache\FrontendInterface $cache,
+        \Magento\Framework\Stdlib\String $string
     ) {
-        parent::__construct($context, $configStructure);
+        parent::__construct($context, $configStructure, $sectionChecker);
         $this->_configFactory = $configFactory;
         $this->_cache = $cache;
         $this->string = $string;
-    }
-
-    /**
-     * Save configuration
-     *
-     * @return void
-     */
-    public function indexAction()
-    {
-        try {
-            if (false == $this->_isSectionAllowed($this->getRequest()->getParam('section'))) {
-                throw new \Exception(__('This section is not allowed.'));
-            }
-
-            // custom save logic
-            $this->_saveSection();
-            $section = $this->getRequest()->getParam('section');
-            $website = $this->getRequest()->getParam('website');
-            $store = $this->getRequest()->getParam('store');
-
-            $configData = array(
-                'section' => $section,
-                'website' => $website,
-                'store' => $store,
-                'groups' => $this->_getGroupsForSave()
-            );
-            /** @var \Magento\Backend\Model\Config $configModel  */
-            $configModel = $this->_configFactory->create(array('data' => $configData));
-            $configModel->save();
-
-            $this->messageManager->addSuccess(__('You saved the configuration.'));
-        } catch (\Magento\Model\Exception $e) {
-            $messages = explode("\n", $e->getMessage());
-            foreach ($messages as $message) {
-                $this->messageManager->addError($message);
-            }
-        } catch (\Exception $e) {
-            $this->messageManager->addException(
-                $e,
-                __('An error occurred while saving this configuration:') . ' ' . $e->getMessage()
-            );
-        }
-
-        $this->_saveState($this->getRequest()->getPost('config_state'));
-        $this->_redirect('adminhtml/system_config/edit', array('_current' => array('section', 'website', 'store')));
     }
 
     /**
@@ -199,5 +152,46 @@ class Save extends AbstractConfig
     protected function _saveAdvanced()
     {
         $this->_cache->clean();
+    }
+
+    /**
+     * Save configuration
+     *
+     * @return void
+     */
+    public function execute()
+    {
+        try {
+            // custom save logic
+            $this->_saveSection();
+            $section = $this->getRequest()->getParam('section');
+            $website = $this->getRequest()->getParam('website');
+            $store = $this->getRequest()->getParam('store');
+
+            $configData = array(
+                'section' => $section,
+                'website' => $website,
+                'store' => $store,
+                'groups' => $this->_getGroupsForSave()
+            );
+            /** @var \Magento\Backend\Model\Config $configModel  */
+            $configModel = $this->_configFactory->create(array('data' => $configData));
+            $configModel->save();
+
+            $this->messageManager->addSuccess(__('You saved the configuration.'));
+        } catch (\Magento\Framework\Model\Exception $e) {
+            $messages = explode("\n", $e->getMessage());
+            foreach ($messages as $message) {
+                $this->messageManager->addError($message);
+            }
+        } catch (\Exception $e) {
+            $this->messageManager->addException(
+                $e,
+                __('An error occurred while saving this configuration:') . ' ' . $e->getMessage()
+            );
+        }
+
+        $this->_saveState($this->getRequest()->getPost('config_state'));
+        $this->_redirect('adminhtml/system_config/edit', array('_current' => array('section', 'website', 'store')));
     }
 }

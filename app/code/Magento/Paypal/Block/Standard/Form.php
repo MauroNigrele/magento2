@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Paypal
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -49,20 +47,20 @@ class Form extends \Magento\Payment\Block\Form
     protected $_paypalConfigFactory;
 
     /**
-     * @var \Magento\Locale\ResolverInterface
+     * @var \Magento\Framework\Locale\ResolverInterface
      */
     protected $_localeResolver;
 
     /**
-     * @param \Magento\View\Element\Template\Context $context
+     * @param \Magento\Framework\View\Element\Template\Context $context
      * @param \Magento\Paypal\Model\ConfigFactory $paypalConfigFactory
-     * @param \Magento\Locale\ResolverInterface $localeResolver
+     * @param \Magento\Framework\Locale\ResolverInterface $localeResolver
      * @param array $data
      */
     public function __construct(
-        \Magento\View\Element\Template\Context $context,
+        \Magento\Framework\View\Element\Template\Context $context,
         \Magento\Paypal\Model\ConfigFactory $paypalConfigFactory,
-        \Magento\Locale\ResolverInterface $localeResolver,
+        \Magento\Framework\Locale\ResolverInterface $localeResolver,
         array $data = array()
     ) {
         $this->_paypalConfigFactory = $paypalConfigFactory;
@@ -78,26 +76,15 @@ class Form extends \Magento\Payment\Block\Form
     protected function _construct()
     {
         $this->_config = $this->_paypalConfigFactory->create()->setMethod($this->getMethodCode());
-        /** @var $mark \Magento\View\Element\Template */
-        $mark = $this->_layout->createBlock('Magento\View\Element\Template');
-        $mark->setTemplate(
-            'Magento_Paypal::payment/mark.phtml'
-        )->setPaymentAcceptanceMarkHref(
+        $mark = $this->_getMarkTemplate();
+        $mark->setPaymentAcceptanceMarkHref(
             $this->_config->getPaymentMarkWhatIsPaypalUrl($this->_localeResolver)
         )->setPaymentAcceptanceMarkSrc(
             $this->_config->getPaymentMarkImageUrl($this->_localeResolver->getLocaleCode())
         );
+
         // known issue: code above will render only static mark image
-        $this->setTemplate(
-            'Magento_Paypal::payment/redirect.phtml'
-        )->setRedirectMessage(
-            __('You will be redirected to the PayPal website when you place an order.')
-        )->setMethodTitle(
-            // Output PayPal mark, omit title
-            ''
-        )->setMethodLabelAfterHtml(
-            $mark->toHtml()
-        );
+        $this->_initializeRedirectTemplateWithMark($mark);
         return parent::_construct();
     }
 
@@ -109,5 +96,40 @@ class Form extends \Magento\Payment\Block\Form
     public function getMethodCode()
     {
         return $this->_methodCode;
+    }
+
+    /**
+     * Get initialized mark template
+     *
+     * @return \Magento\Framework\View\Element\Template
+     */
+    protected function _getMarkTemplate()
+    {
+        /** @var $mark \Magento\Framework\View\Element\Template */
+        $mark = $this->_layout->createBlock('Magento\Framework\View\Element\Template');
+        $mark->setTemplate(
+            'Magento_Paypal::payment/mark.phtml'
+        );
+        return $mark;
+    }
+
+    /**
+     * Initializes redirect template and set mark
+     * @param \Magento\Framework\View\Element\Template $mark
+     *
+     * @return void
+     */
+    protected function _initializeRedirectTemplateWithMark(\Magento\Framework\View\Element\Template $mark)
+    {
+        $this->setTemplate(
+            'Magento_Paypal::payment/redirect.phtml'
+        )->setRedirectMessage(
+            __('You will be redirected to the PayPal website when you place an order.')
+        )->setMethodTitle(
+            // Output PayPal mark, omit title
+            ''
+        )->setMethodLabelAfterHtml(
+            $mark->toHtml()
+        );
     }
 }

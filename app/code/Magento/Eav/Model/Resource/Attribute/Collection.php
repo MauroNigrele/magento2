@@ -18,20 +18,16 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Eav
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 namespace Magento\Eav\Model\Resource\Attribute;
 
-use Magento\Core\Model\Website;
+use Magento\Store\Model\Website;
 
 /**
  * EAV additional attribute resource collection (Using Forms)
  *
- * @category    Magento
- * @package     Magento_Eav
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 abstract class Collection extends \Magento\Eav\Model\Resource\Entity\Attribute\Collection
@@ -61,29 +57,29 @@ abstract class Collection extends \Magento\Eav\Model\Resource\Entity\Attribute\C
     protected $_eavConfig;
 
     /**
-     * @var \Magento\Core\Model\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
      * @param \Magento\Core\Model\EntityFactory $entityFactory
-     * @param \Magento\Logger $logger
-     * @param \Magento\Data\Collection\Db\FetchStrategyInterface $fetchStrategy
-     * @param \Magento\Event\ManagerInterface $eventManager
+     * @param \Magento\Framework\Logger $logger
+     * @param \Magento\Framework\Data\Collection\Db\FetchStrategyInterface $fetchStrategy
+     * @param \Magento\Framework\Event\ManagerInterface $eventManager
      * @param \Magento\Eav\Model\Config $eavConfig
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param mixed $connection
-     * @param \Magento\Model\Resource\Db\AbstractDb $resource
+     * @param \Magento\Framework\Model\Resource\Db\AbstractDb $resource
      */
     public function __construct(
         \Magento\Core\Model\EntityFactory $entityFactory,
-        \Magento\Logger $logger,
-        \Magento\Data\Collection\Db\FetchStrategyInterface $fetchStrategy,
-        \Magento\Event\ManagerInterface $eventManager,
+        \Magento\Framework\Logger $logger,
+        \Magento\Framework\Data\Collection\Db\FetchStrategyInterface $fetchStrategy,
+        \Magento\Framework\Event\ManagerInterface $eventManager,
         \Magento\Eav\Model\Config $eavConfig,
-        \Magento\Core\Model\StoreManagerInterface $storeManager,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         $connection = null,
-        \Magento\Model\Resource\Db\AbstractDb $resource = null
+        \Magento\Framework\Model\Resource\Db\AbstractDb $resource = null
     ) {
         $this->_storeManager = $storeManager;
         $this->_eavConfig = $eavConfig;
@@ -205,19 +201,19 @@ abstract class Collection extends \Magento\Eav\Model\Resource\Entity\Attribute\C
                 $scopeColumns['scope_website_id'] = $columnName;
             } else {
                 if (isset($mainColumns[$columnName])) {
-                    $alias = sprintf('scope_%s', $columnName);
-                    $expression = $connection->getCheckSql('main_table.%s IS NULL', 'scope_table.%s', 'main_table.%s');
-                    $expression = sprintf($expression, $columnName, $columnName, $columnName);
+                    $alias = 'scope_' . $columnName;
+                    $condition = 'main_table.' . $columnName . ' IS NULL';
+                    $true = 'scope_table.' . $columnName;
+                    $false = 'main_table.' . $columnName;
+                    $expression = $connection->getCheckSql($condition, $true, $false);
                     $this->addFilterToMap($columnName, $expression);
                     $scopeColumns[$alias] = $columnName;
                 } elseif (isset($extraColumns[$columnName])) {
-                    $alias = sprintf('scope_%s', $columnName);
-                    $expression = $connection->getCheckSql(
-                        'additional_table.%s IS NULL',
-                        'scope_table.%s',
-                        'additional_table.%s'
-                    );
-                    $expression = sprintf($expression, $columnName, $columnName, $columnName);
+                    $alias = 'scope_' . $columnName;
+                    $condition = 'additional_table.' . $columnName . ' IS NULL';
+                    $true = 'scope_table.' . $columnName;
+                    $false = 'additional_table.' . $columnName;
+                    $expression = $connection->getCheckSql($condition, $true, $false);
                     $this->addFilterToMap($columnName, $expression);
                     $scopeColumns[$alias] = $columnName;
                 }

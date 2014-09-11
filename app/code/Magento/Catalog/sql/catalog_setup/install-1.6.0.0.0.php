@@ -18,14 +18,12 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
-$installer = $this;
 /* @var $installer \Magento\Catalog\Model\Resource\Setup */
+$installer = $this;
 
 $installer->startSetup();
 
@@ -36,55 +34,55 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_entity')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'entity_type_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity Type ID'
 )->addColumn(
     'attribute_set_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Attribute Set ID'
 )->addColumn(
     'type_id',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     32,
-    array('nullable' => false, 'default' => \Magento\Catalog\Model\Product\Type::DEFAULT_TYPE),
+    array('nullable' => false, 'default' => 'simple'),
     'Type ID'
 )->addColumn(
     'sku',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     64,
     array(),
     'SKU'
 )->addColumn(
     'has_options',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('nullable' => false, 'default' => '0'),
     'Has Options'
 )->addColumn(
     'required_options',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Required Options'
 )->addColumn(
     'created_at',
-    \Magento\DB\Ddl\Table::TYPE_TIMESTAMP,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TIMESTAMP,
     null,
     array(),
     'Creation Time'
 )->addColumn(
     'updated_at',
-    \Magento\DB\Ddl\Table::TYPE_TIMESTAMP,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TIMESTAMP,
     null,
     array(),
     'Update Time'
@@ -102,15 +100,15 @@ $table = $installer->getConnection()->newTable(
     'attribute_set_id',
     $installer->getTable('eav_attribute_set'),
     'attribute_set_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_entity', 'entity_type_id', 'eav_entity_type', 'entity_type_id'),
     'entity_type_id',
     $installer->getTable('eav_entity_type'),
     'entity_type_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Table'
 );
@@ -125,37 +123,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_entity_datetime')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'nullable' => false, 'primary' => true),
     'Value ID'
 )->addColumn(
     'entity_type_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity Type ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_DATETIME,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DATETIME,
     null,
     array(),
     'Value'
@@ -163,40 +161,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_product_entity_datetime',
         array('entity_id', 'attribute_id', 'store_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('entity_id', 'attribute_id', 'store_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_product_entity_datetime', array('attribute_id')),
     array('attribute_id')
 )->addIndex(
     $installer->getIdxName('catalog_product_entity_datetime', array('store_id')),
     array('store_id')
-)->addIndex(
-    $installer->getIdxName('catalog_product_entity_datetime', array('entity_id')),
-    array('entity_id')
 )->addForeignKey(
     $installer->getFkName('catalog_product_entity_datetime', 'attribute_id', 'eav_attribute', 'attribute_id'),
     'attribute_id',
     $installer->getTable('eav_attribute'),
     'attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_entity_datetime', 'entity_id', 'catalog_product_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_entity_datetime', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_product_entity_datetime', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Datetime Attribute Backend Table'
 );
@@ -209,37 +204,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_entity_decimal')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'nullable' => false, 'primary' => true),
     'Value ID'
 )->addColumn(
     'entity_type_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity Type ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Value'
@@ -247,16 +242,13 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_product_entity_decimal',
         array('entity_id', 'attribute_id', 'store_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('entity_id', 'attribute_id', 'store_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_product_entity_decimal', array('store_id')),
     array('store_id')
-)->addIndex(
-    $installer->getIdxName('catalog_product_entity_decimal', array('entity_id')),
-    array('entity_id')
 )->addIndex(
     $installer->getIdxName('catalog_product_entity_decimal', array('attribute_id')),
     array('attribute_id')
@@ -265,22 +257,22 @@ $table = $installer->getConnection()->newTable(
     'attribute_id',
     $installer->getTable('eav_attribute'),
     'attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_entity_decimal', 'entity_id', 'catalog_product_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_entity_decimal', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_product_entity_decimal', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Decimal Attribute Backend Table'
 );
@@ -293,37 +285,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_entity_int')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'nullable' => false, 'primary' => true),
     'Value ID'
 )->addColumn(
     'entity_type_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity Type ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array(),
     'Value'
@@ -331,40 +323,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_product_entity_int',
         array('entity_id', 'attribute_id', 'store_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('entity_id', 'attribute_id', 'store_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_product_entity_int', array('attribute_id')),
     array('attribute_id')
 )->addIndex(
     $installer->getIdxName('catalog_product_entity_int', array('store_id')),
     array('store_id')
-)->addIndex(
-    $installer->getIdxName('catalog_product_entity_int', array('entity_id')),
-    array('entity_id')
 )->addForeignKey(
     $installer->getFkName('catalog_product_entity_int', 'attribute_id', 'eav_attribute', 'attribute_id'),
     'attribute_id',
     $installer->getTable('eav_attribute'),
     'attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_entity_int', 'entity_id', 'catalog_product_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_entity_int', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_product_entity_int', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Integer Attribute Backend Table'
 );
@@ -377,37 +366,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_entity_text')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'nullable' => false, 'primary' => true),
     'Value ID'
 )->addColumn(
     'entity_type_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity Type ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     '64k',
     array(),
     'Value'
@@ -415,40 +404,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_product_entity_text',
         array('entity_id', 'attribute_id', 'store_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('entity_id', 'attribute_id', 'store_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_product_entity_text', array('attribute_id')),
     array('attribute_id')
 )->addIndex(
     $installer->getIdxName('catalog_product_entity_text', array('store_id')),
     array('store_id')
-)->addIndex(
-    $installer->getIdxName('catalog_product_entity_text', array('entity_id')),
-    array('entity_id')
 )->addForeignKey(
     $installer->getFkName('catalog_product_entity_text', 'attribute_id', 'eav_attribute', 'attribute_id'),
     'attribute_id',
     $installer->getTable('eav_attribute'),
     'attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_entity_text', 'entity_id', 'catalog_product_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_entity_text', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_product_entity_text', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Text Attribute Backend Table'
 );
@@ -461,37 +447,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_entity_varchar')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'nullable' => false, 'primary' => true),
     'Value ID'
 )->addColumn(
     'entity_type_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity Type ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     255,
     array(),
     'Value'
@@ -499,40 +485,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_product_entity_varchar',
         array('entity_id', 'attribute_id', 'store_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('entity_id', 'attribute_id', 'store_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_product_entity_varchar', array('attribute_id')),
     array('attribute_id')
 )->addIndex(
     $installer->getIdxName('catalog_product_entity_varchar', array('store_id')),
     array('store_id')
-)->addIndex(
-    $installer->getIdxName('catalog_product_entity_varchar', array('entity_id')),
-    array('entity_id')
 )->addForeignKey(
     $installer->getFkName('catalog_product_entity_varchar', 'attribute_id', 'eav_attribute', 'attribute_id'),
     'attribute_id',
     $installer->getTable('eav_attribute'),
     'attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_entity_varchar', 'entity_id', 'catalog_product_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_entity_varchar', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_product_entity_varchar', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Varchar Attribute Backend Table'
 );
@@ -545,43 +528,43 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_entity_gallery')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'nullable' => false, 'primary' => true),
     'Value ID'
 )->addColumn(
     'entity_type_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity Type ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity ID'
 )->addColumn(
     'position',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('nullable' => false, 'default' => '0'),
     'Position'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     255,
     array('nullable' => true, 'default' => null),
     'Value'
@@ -589,10 +572,10 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_product_entity_gallery',
         array('entity_type_id', 'entity_id', 'attribute_id', 'store_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('entity_type_id', 'entity_id', 'attribute_id', 'store_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_product_entity_gallery', array('entity_id')),
     array('entity_id')
@@ -607,22 +590,22 @@ $table = $installer->getConnection()->newTable(
     'attribute_id',
     $installer->getTable('eav_attribute'),
     'attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_entity_gallery', 'entity_id', 'catalog_product_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_entity_gallery', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_product_entity_gallery', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Gallery Attribute Backend Table'
 );
@@ -635,61 +618,61 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_category_entity')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'entity_type_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity Type ID'
 )->addColumn(
     'attribute_set_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Attriute Set ID'
 )->addColumn(
     'parent_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Parent Category ID'
 )->addColumn(
     'created_at',
-    \Magento\DB\Ddl\Table::TYPE_TIMESTAMP,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TIMESTAMP,
     null,
     array(),
     'Creation Time'
 )->addColumn(
     'updated_at',
-    \Magento\DB\Ddl\Table::TYPE_TIMESTAMP,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TIMESTAMP,
     null,
     array(),
     'Update Time'
 )->addColumn(
     'path',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     255,
     array('nullable' => false),
     'Tree Path'
 )->addColumn(
     'position',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('nullable' => false),
     'Position'
 )->addColumn(
     'level',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('nullable' => false, 'default' => '0'),
     'Tree Level'
 )->addColumn(
     'children_count',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('nullable' => false),
     'Child Count'
@@ -709,37 +692,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_category_entity_datetime')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'nullable' => false, 'primary' => true),
     'Value ID'
 )->addColumn(
     'entity_type_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity Type ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_DATETIME,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DATETIME,
     null,
     array(),
     'Value'
@@ -747,10 +730,10 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_category_entity_datetime',
         array('entity_type_id', 'entity_id', 'attribute_id', 'store_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('entity_type_id', 'entity_id', 'attribute_id', 'store_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_category_entity_datetime', array('entity_id')),
     array('entity_id')
@@ -765,22 +748,22 @@ $table = $installer->getConnection()->newTable(
     'attribute_id',
     $installer->getTable('eav_attribute'),
     'attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_category_entity_datetime', 'entity_id', 'catalog_category_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_category_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_category_entity_datetime', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_category_entity_datetime', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Category Datetime Attribute Backend Table'
 );
@@ -793,37 +776,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_category_entity_decimal')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'nullable' => false, 'primary' => true),
     'Value ID'
 )->addColumn(
     'entity_type_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity Type ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Value'
@@ -831,10 +814,10 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_category_entity_decimal',
         array('entity_type_id', 'entity_id', 'attribute_id', 'store_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('entity_type_id', 'entity_id', 'attribute_id', 'store_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_category_entity_decimal', array('entity_id')),
     array('entity_id')
@@ -849,22 +832,22 @@ $table = $installer->getConnection()->newTable(
     'attribute_id',
     $installer->getTable('eav_attribute'),
     'attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_category_entity_decimal', 'entity_id', 'catalog_category_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_category_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_category_entity_decimal', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_category_entity_decimal', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Category Decimal Attribute Backend Table'
 );
@@ -877,37 +860,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_category_entity_int')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'nullable' => false, 'primary' => true),
     'Value ID'
 )->addColumn(
     'entity_type_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity Type ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array(),
     'Value'
@@ -915,10 +898,10 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_category_entity_int',
         array('entity_type_id', 'entity_id', 'attribute_id', 'store_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('entity_type_id', 'entity_id', 'attribute_id', 'store_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_category_entity_int', array('entity_id')),
     array('entity_id')
@@ -933,22 +916,22 @@ $table = $installer->getConnection()->newTable(
     'attribute_id',
     $installer->getTable('eav_attribute'),
     'attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_category_entity_int', 'entity_id', 'catalog_category_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_category_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_category_entity_int', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_category_entity_int', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Category Integer Attribute Backend Table'
 );
@@ -961,37 +944,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_category_entity_text')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'nullable' => false, 'primary' => true),
     'Value ID'
 )->addColumn(
     'entity_type_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity Type ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     '64k',
     array(),
     'Value'
@@ -999,10 +982,10 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_category_entity_text',
         array('entity_type_id', 'entity_id', 'attribute_id', 'store_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('entity_type_id', 'entity_id', 'attribute_id', 'store_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_category_entity_text', array('entity_id')),
     array('entity_id')
@@ -1017,22 +1000,22 @@ $table = $installer->getConnection()->newTable(
     'attribute_id',
     $installer->getTable('eav_attribute'),
     'attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_category_entity_text', 'entity_id', 'catalog_category_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_category_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_category_entity_text', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_category_entity_text', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Category Text Attribute Backend Table'
 );
@@ -1045,37 +1028,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_category_entity_varchar')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'nullable' => false, 'primary' => true),
     'Value ID'
 )->addColumn(
     'entity_type_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity Type ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     255,
     array(),
     'Value'
@@ -1083,10 +1066,10 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_category_entity_varchar',
         array('entity_type_id', 'entity_id', 'attribute_id', 'store_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('entity_type_id', 'entity_id', 'attribute_id', 'store_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_category_entity_varchar', array('entity_id')),
     array('entity_id')
@@ -1101,22 +1084,22 @@ $table = $installer->getConnection()->newTable(
     'attribute_id',
     $installer->getTable('eav_attribute'),
     'attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_category_entity_varchar', 'entity_id', 'catalog_category_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_category_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_category_entity_varchar', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_category_entity_varchar', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Category Varchar Attribute Backend Table'
 );
@@ -1129,19 +1112,19 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_category_product')
 )->addColumn(
     'category_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true, 'default' => '0'),
     'Category ID'
 )->addColumn(
     'product_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true, 'default' => '0'),
     'Product ID'
 )->addColumn(
     'position',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('nullable' => false, 'default' => '0'),
     'Position'
@@ -1155,15 +1138,15 @@ $table = $installer->getConnection()->newTable(
     'category_id',
     $installer->getTable('catalog_category_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_category_product', 'product_id', 'catalog_product_entity', 'entity_id'),
     'product_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product To Category Linkage Table'
 );
@@ -1176,37 +1159,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_category_product_index')
 )->addColumn(
     'category_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true, 'default' => '0'),
     'Category ID'
 )->addColumn(
     'product_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true, 'default' => '0'),
     'Product ID'
 )->addColumn(
     'position',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true),
     'Position'
 )->addColumn(
     'is_parent',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Is Parent'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'visibility',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false),
     'Visibility'
@@ -1227,22 +1210,22 @@ $table = $installer->getConnection()->newTable(
     'category_id',
     $installer->getTable('catalog_category_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_category_product_index', 'product_id', 'catalog_product_entity', 'entity_id'),
     'product_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_category_product_index', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_category_product_index', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Category Product Index'
 );
@@ -1255,37 +1238,34 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_compare_item')
 )->addColumn(
     'catalog_compare_item_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true),
     'Compare Item ID'
 )->addColumn(
     'visitor_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Visitor ID'
 )->addColumn(
     'customer_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true),
     'Customer ID'
 )->addColumn(
     'product_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Product ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true),
     'Store ID'
-)->addIndex(
-    $installer->getIdxName('catalog_compare_item', array('customer_id')),
-    array('customer_id')
 )->addIndex(
     $installer->getIdxName('catalog_compare_item', array('product_id')),
     array('product_id')
@@ -1303,22 +1283,22 @@ $table = $installer->getConnection()->newTable(
     'customer_id',
     $installer->getTable('customer_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_compare_item', 'product_id', 'catalog_product_entity', 'entity_id'),
     'product_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_compare_item', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_compare_item', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_SET_NULL,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_SET_NULL,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Compare Table'
 );
@@ -1331,13 +1311,13 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_website')
 )->addColumn(
     'product_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Product ID'
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Website ID'
@@ -1345,19 +1325,19 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName('catalog_product_website', array('website_id')),
     array('website_id')
 )->addForeignKey(
-    $installer->getFkName('catalog_product_website', 'website_id', 'core_website', 'website_id'),
+    $installer->getFkName('catalog_product_website', 'website_id', 'store_website', 'website_id'),
     'website_id',
-    $installer->getTable('core_website'),
+    $installer->getTable('store_website'),
     'website_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_website', 'product_id', 'catalog_product_entity', 'entity_id'),
     'product_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product To Website Linkage Table'
 );
@@ -1370,19 +1350,19 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_enabled_index')
 )->addColumn(
     'product_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true, 'default' => '0'),
     'Product ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'visibility',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Visibility'
@@ -1394,15 +1374,15 @@ $table = $installer->getConnection()->newTable(
     'product_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_enabled_index', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_product_enabled_index', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Visibility Index Table'
 );
@@ -1415,13 +1395,13 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_link_type')
 )->addColumn(
     'link_type_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true),
     'Link Type ID'
 )->addColumn(
     'code',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     32,
     array('nullable' => true, 'default' => null),
     'Code'
@@ -1437,25 +1417,25 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_link')
 )->addColumn(
     'link_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true),
     'Link ID'
 )->addColumn(
     'product_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Product ID'
 )->addColumn(
     'linked_product_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Linked Product ID'
 )->addColumn(
     'link_type_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Link Type ID'
@@ -1463,40 +1443,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_product_link',
         array('link_type_id', 'product_id', 'linked_product_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('link_type_id', 'product_id', 'linked_product_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_product_link', array('product_id')),
     array('product_id')
 )->addIndex(
     $installer->getIdxName('catalog_product_link', array('linked_product_id')),
     array('linked_product_id')
-)->addIndex(
-    $installer->getIdxName('catalog_product_link', array('link_type_id')),
-    array('link_type_id')
 )->addForeignKey(
     $installer->getFkName('catalog_product_link', 'linked_product_id', 'catalog_product_entity', 'entity_id'),
     'linked_product_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_link', 'product_id', 'catalog_product_entity', 'entity_id'),
     'product_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_link', 'link_type_id', 'catalog_product_link_type', 'link_type_id'),
     'link_type_id',
     $installer->getTable('catalog_product_link_type'),
     'link_type_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product To Product Linkage Table'
 );
@@ -1509,25 +1486,25 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_link_attribute')
 )->addColumn(
     'product_link_attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true),
     'Product Link Attribute ID'
 )->addColumn(
     'link_type_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Link Type ID'
 )->addColumn(
     'product_link_attribute_code',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     32,
     array('nullable' => true, 'default' => null),
     'Product Link Attribute Code'
 )->addColumn(
     'data_type',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     32,
     array('nullable' => true, 'default' => null),
     'Data Type'
@@ -1544,8 +1521,8 @@ $table = $installer->getConnection()->newTable(
     'link_type_id',
     $installer->getTable('catalog_product_link_type'),
     'link_type_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Link Attribute Table'
 );
@@ -1558,31 +1535,28 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_link_attribute_decimal')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true),
     'Value ID'
 )->addColumn(
     'product_link_attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true),
     'Product Link Attribute ID'
 )->addColumn(
     'link_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('nullable' => false, 'unsigned' => true),
     'Link ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array('nullable' => false, 'default' => '0.0000'),
     'Value'
-)->addIndex(
-    $installer->getIdxName('catalog_product_link_attribute_decimal', array('product_link_attribute_id')),
-    array('product_link_attribute_id')
 )->addIndex(
     $installer->getIdxName('catalog_product_link_attribute_decimal', array('link_id')),
     array('link_id')
@@ -1590,17 +1564,17 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_product_link_attribute_decimal',
         array('product_link_attribute_id', 'link_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('product_link_attribute_id', 'link_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addForeignKey(
     $installer->getFkName('catalog_product_link_attribute_decimal', 'link_id', 'catalog_product_link', 'link_id'),
     'link_id',
     $installer->getTable('catalog_product_link'),
     'link_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName(
         'catalog_product_link_attribute_decimal',
@@ -1611,8 +1585,8 @@ $table = $installer->getConnection()->newTable(
     'product_link_attribute_id',
     $installer->getTable('catalog_product_link_attribute'),
     'product_link_attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Link Decimal Attribute Table'
 );
@@ -1625,31 +1599,28 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_link_attribute_int')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true),
     'Value ID'
 )->addColumn(
     'product_link_attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true),
     'Product Link Attribute ID'
 )->addColumn(
     'link_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('nullable' => false, 'unsigned' => true),
     'Link ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('nullable' => false, 'default' => '0'),
     'Value'
-)->addIndex(
-    $installer->getIdxName('catalog_product_link_attribute_int', array('product_link_attribute_id')),
-    array('product_link_attribute_id')
 )->addIndex(
     $installer->getIdxName('catalog_product_link_attribute_int', array('link_id')),
     array('link_id')
@@ -1657,17 +1628,17 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_product_link_attribute_int',
         array('product_link_attribute_id', 'link_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('product_link_attribute_id', 'link_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addForeignKey(
     $installer->getFkName('catalog_product_link_attribute_int', 'link_id', 'catalog_product_link', 'link_id'),
     'link_id',
     $installer->getTable('catalog_product_link'),
     'link_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName(
         'catalog_product_link_attribute_int',
@@ -1678,8 +1649,8 @@ $table = $installer->getConnection()->newTable(
     'product_link_attribute_id',
     $installer->getTable('catalog_product_link_attribute'),
     'product_link_attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Link Integer Attribute Table'
 );
@@ -1692,31 +1663,28 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_link_attribute_varchar')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true),
     'Value ID'
 )->addColumn(
     'product_link_attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Product Link Attribute ID'
 )->addColumn(
     'link_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('nullable' => false, 'unsigned' => true),
     'Link ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     255,
     array(),
     'Value'
-)->addIndex(
-    $installer->getIdxName('catalog_product_link_attribute_varchar', array('product_link_attribute_id')),
-    array('product_link_attribute_id')
 )->addIndex(
     $installer->getIdxName('catalog_product_link_attribute_varchar', array('link_id')),
     array('link_id')
@@ -1724,17 +1692,17 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_product_link_attribute_varchar',
         array('product_link_attribute_id', 'link_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('product_link_attribute_id', 'link_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addForeignKey(
     $installer->getFkName('catalog_product_link_attribute_varchar', 'link_id', 'catalog_product_link', 'link_id'),
     'link_id',
     $installer->getTable('catalog_product_link'),
     'link_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName(
         'catalog_product_link_attribute_varchar',
@@ -1745,8 +1713,8 @@ $table = $installer->getConnection()->newTable(
     'product_link_attribute_id',
     $installer->getTable('catalog_product_link_attribute'),
     'product_link_attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Link Varchar Attribute Table'
 );
@@ -1759,43 +1727,43 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_entity_tier_price')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'nullable' => false, 'primary' => true),
     'Value ID'
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity ID'
 )->addColumn(
     'all_groups',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '1'),
     'Is Applicable To All Customer Groups'
 )->addColumn(
     'customer_group_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Customer Group ID'
 )->addColumn(
     'qty',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array('nullable' => false, 'default' => '1.0000'),
     'QTY'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array('nullable' => false, 'default' => '0.0000'),
     'Value'
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false),
     'Website ID'
@@ -1803,13 +1771,10 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_product_entity_tier_price',
         array('entity_id', 'all_groups', 'customer_group_id', 'qty', 'website_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('entity_id', 'all_groups', 'customer_group_id', 'qty', 'website_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
-)->addIndex(
-    $installer->getIdxName('catalog_product_entity_tier_price', array('entity_id')),
-    array('entity_id')
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_product_entity_tier_price', array('customer_group_id')),
     array('customer_group_id')
@@ -1826,22 +1791,22 @@ $table = $installer->getConnection()->newTable(
     'customer_group_id',
     $installer->getTable('customer_group'),
     'customer_group_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_entity_tier_price', 'entity_id', 'catalog_product_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_entity_tier_price', 'website_id', 'core_website', 'website_id'),
+    $installer->getFkName('catalog_product_entity_tier_price', 'website_id', 'store_website', 'website_id'),
     'website_id',
-    $installer->getTable('core_website'),
+    $installer->getTable('store_website'),
     'website_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Tier Price Attribute Backend Table'
 );
@@ -1854,25 +1819,25 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_entity_media_gallery')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true),
     'Value ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Attribute ID'
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Entity ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     255,
     array(),
     'Value'
@@ -1887,15 +1852,15 @@ $table = $installer->getConnection()->newTable(
     'attribute_id',
     $installer->getTable('eav_attribute'),
     'attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_entity_media_gallery', 'entity_id', 'catalog_product_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Media Gallery Attribute Backend Table'
 );
@@ -1908,31 +1873,31 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_entity_media_gallery_value')
 )->addColumn(
     'value_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true, 'default' => '0'),
     'Value ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'label',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     255,
     array(),
     'Label'
 )->addColumn(
     'position',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true),
     'Position'
 )->addColumn(
     'disabled',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Is Disabled'
@@ -1949,15 +1914,15 @@ $table = $installer->getConnection()->newTable(
     'value_id',
     $installer->getTable('catalog_product_entity_media_gallery'),
     'value_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_entity_media_gallery_value', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_product_entity_media_gallery_value', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Media Gallery Attribute Value Table'
 );
@@ -1970,61 +1935,61 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_option')
 )->addColumn(
     'option_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true),
     'Option ID'
 )->addColumn(
     'product_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Product ID'
 )->addColumn(
     'type',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     50,
     array('nullable' => true, 'default' => null),
     'Type'
 )->addColumn(
     'is_require',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('nullable' => false, 'default' => '1'),
     'Is Required'
 )->addColumn(
     'sku',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     64,
     array(),
     'SKU'
 )->addColumn(
     'max_characters',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true),
     'Max Characters'
 )->addColumn(
     'file_extension',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     50,
     array(),
     'File Extension'
 )->addColumn(
     'image_size_x',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true),
     'Image Size X'
 )->addColumn(
     'image_size_y',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true),
     'Image Size Y'
 )->addColumn(
     'sort_order',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Sort Order'
@@ -2036,8 +2001,8 @@ $table = $installer->getConnection()->newTable(
     'product_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Option Table'
 );
@@ -2050,31 +2015,31 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_option_price')
 )->addColumn(
     'option_price_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true),
     'Option Price ID'
 )->addColumn(
     'option_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Option ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array('nullable' => false, 'default' => '0.0000'),
     'Price'
 )->addColumn(
     'price_type',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     7,
     array('nullable' => false, 'default' => 'fixed'),
     'Price Type'
@@ -2082,13 +2047,10 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_product_option_price',
         array('option_id', 'store_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('option_id', 'store_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
-)->addIndex(
-    $installer->getIdxName('catalog_product_option_price', array('option_id')),
-    array('option_id')
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_product_option_price', array('store_id')),
     array('store_id')
@@ -2097,15 +2059,15 @@ $table = $installer->getConnection()->newTable(
     'option_id',
     $installer->getTable('catalog_product_option'),
     'option_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_option_price', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_product_option_price', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Option Price Table'
 );
@@ -2118,25 +2080,25 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_option_title')
 )->addColumn(
     'option_title_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true),
     'Option Title ID'
 )->addColumn(
     'option_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Option ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'title',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     255,
     array('nullable' => true, 'default' => null),
     'Title'
@@ -2144,13 +2106,10 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_product_option_title',
         array('option_id', 'store_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('option_id', 'store_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
-)->addIndex(
-    $installer->getIdxName('catalog_product_option_title', array('option_id')),
-    array('option_id')
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_product_option_title', array('store_id')),
     array('store_id')
@@ -2159,15 +2118,15 @@ $table = $installer->getConnection()->newTable(
     'option_id',
     $installer->getTable('catalog_product_option'),
     'option_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_option_title', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_product_option_title', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Option Title Table'
 );
@@ -2180,25 +2139,25 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_option_type_value')
 )->addColumn(
     'option_type_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true),
     'Option Type ID'
 )->addColumn(
     'option_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Option ID'
 )->addColumn(
     'sku',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     64,
     array(),
     'SKU'
 )->addColumn(
     'sort_order',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Sort Order'
@@ -2210,8 +2169,8 @@ $table = $installer->getConnection()->newTable(
     'option_id',
     $installer->getTable('catalog_product_option'),
     'option_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Option Type Value Table'
 );
@@ -2224,31 +2183,31 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_option_type_price')
 )->addColumn(
     'option_type_price_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true),
     'Option Type Price ID'
 )->addColumn(
     'option_type_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Option Type ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array('nullable' => false, 'default' => '0.0000'),
     'Price'
 )->addColumn(
     'price_type',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     7,
     array('nullable' => false, 'default' => 'fixed'),
     'Price Type'
@@ -2256,13 +2215,10 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_product_option_type_price',
         array('option_type_id', 'store_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('option_type_id', 'store_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
-)->addIndex(
-    $installer->getIdxName('catalog_product_option_type_price', array('option_type_id')),
-    array('option_type_id')
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_product_option_type_price', array('store_id')),
     array('store_id')
@@ -2276,15 +2232,15 @@ $table = $installer->getConnection()->newTable(
     'option_type_id',
     $installer->getTable('catalog_product_option_type_value'),
     'option_type_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_option_type_price', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_product_option_type_price', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Option Type Price Table'
 );
@@ -2297,25 +2253,25 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_option_type_title')
 )->addColumn(
     'option_type_title_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true),
     'Option Type Title ID'
 )->addColumn(
     'option_type_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Option Type ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'title',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     255,
     array('nullable' => true, 'default' => null),
     'Title'
@@ -2323,13 +2279,10 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName(
         'catalog_product_option_type_title',
         array('option_type_id', 'store_id'),
-        \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
+        \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE
     ),
     array('option_type_id', 'store_id'),
-    array('type' => \Magento\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
-)->addIndex(
-    $installer->getIdxName('catalog_product_option_type_title', array('option_type_id')),
-    array('option_type_id')
+    array('type' => \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_UNIQUE)
 )->addIndex(
     $installer->getIdxName('catalog_product_option_type_title', array('store_id')),
     array('store_id')
@@ -2343,15 +2296,15 @@ $table = $installer->getConnection()->newTable(
     'option_type_id',
     $installer->getTable('catalog_product_option_type_value'),
     'option_type_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_option_type_title', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_product_option_type_title', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Option Type Title Table'
 );
@@ -2364,109 +2317,109 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_eav_attribute')
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Attribute ID'
 )->addColumn(
     'frontend_input_renderer',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     255,
     array(),
     'Frontend Input Renderer'
 )->addColumn(
     'is_global',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '1'),
     'Is Global'
 )->addColumn(
     'is_visible',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '1'),
     'Is Visible'
 )->addColumn(
     'is_searchable',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Is Searchable'
 )->addColumn(
     'is_filterable',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Is Filterable'
 )->addColumn(
     'is_comparable',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Is Comparable'
 )->addColumn(
     'is_visible_on_front',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Is Visible On Front'
 )->addColumn(
     'is_html_allowed_on_front',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Is HTML Allowed On Front'
 )->addColumn(
     'is_used_for_price_rules',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Is Used For Price Rules'
 )->addColumn(
     'is_filterable_in_search',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Is Filterable In Search'
 )->addColumn(
     'used_in_product_listing',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Is Used In Product Listing'
 )->addColumn(
     'used_for_sort_by',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Is Used For Sorting'
 )->addColumn(
     'apply_to',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     255,
     array('nullable' => true),
     'Apply To'
 )->addColumn(
     'is_visible_in_advanced_search',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Is Visible In Advanced Search'
 )->addColumn(
     'position',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('nullable' => false, 'default' => '0'),
     'Position'
 )->addColumn(
     'is_wysiwyg_enabled',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Is WYSIWYG Enabled'
 )->addColumn(
     'is_used_for_promo_rules',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Is Used For Promo Rules'
@@ -2481,8 +2434,8 @@ $table = $installer->getConnection()->newTable(
     'attribute_id',
     $installer->getTable('eav_attribute'),
     'attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog EAV Attribute Table'
 );
@@ -2495,13 +2448,13 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_relation')
 )->addColumn(
     'parent_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Parent ID'
 )->addColumn(
     'child_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Child ID'
@@ -2513,15 +2466,15 @@ $table = $installer->getConnection()->newTable(
     'child_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_relation', 'parent_id', 'catalog_product_entity', 'entity_id'),
     'parent_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Relation Table'
 );
@@ -2534,31 +2487,28 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_eav')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Store ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Value'
-)->addIndex(
-    $installer->getIdxName('catalog_product_index_eav', array('entity_id')),
-    array('entity_id')
 )->addIndex(
     $installer->getIdxName('catalog_product_index_eav', array('attribute_id')),
     array('attribute_id')
@@ -2573,22 +2523,22 @@ $table = $installer->getConnection()->newTable(
     'attribute_id',
     $installer->getTable('eav_attribute'),
     'attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_index_eav', 'entity_id', 'catalog_product_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_index_eav', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_product_index_eav', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product EAV Index Table'
 );
@@ -2601,31 +2551,28 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_eav_decimal')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Store ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array('nullable' => false, 'primary' => true),
     'Value'
-)->addIndex(
-    $installer->getIdxName('catalog_product_index_eav_decimal', array('entity_id')),
-    array('entity_id')
 )->addIndex(
     $installer->getIdxName('catalog_product_index_eav_decimal', array('attribute_id')),
     array('attribute_id')
@@ -2640,22 +2587,22 @@ $table = $installer->getConnection()->newTable(
     'attribute_id',
     $installer->getTable('eav_attribute'),
     'attribute_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_index_eav_decimal', 'entity_id', 'catalog_product_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_index_eav_decimal', 'store_id', 'core_store', 'store_id'),
+    $installer->getFkName('catalog_product_index_eav_decimal', 'store_id', 'store', 'store_id'),
     'store_id',
-    $installer->getTable('core_store'),
+    $installer->getTable('store'),
     'store_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product EAV Decimal Index Table'
 );
@@ -2668,64 +2615,61 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_price')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'customer_group_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Customer Group ID'
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Website ID'
 )->addColumn(
     'tax_class_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'default' => '0'),
     'Tax Class ID'
 )->addColumn(
     'price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Price'
 )->addColumn(
     'final_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Final Price'
 )->addColumn(
     'min_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Min Price'
 )->addColumn(
     'max_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Max Price'
 )->addColumn(
     'tier_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Tier Price'
 )->addIndex(
     $installer->getIdxName('catalog_product_index_price', array('customer_group_id')),
     array('customer_group_id')
-)->addIndex(
-    $installer->getIdxName('catalog_product_index_price', array('website_id')),
-    array('website_id')
 )->addIndex(
     $installer->getIdxName('catalog_product_index_price', array('min_price')),
     array('min_price')
@@ -2734,22 +2678,22 @@ $table = $installer->getConnection()->newTable(
     'customer_group_id',
     $installer->getTable('customer_group'),
     'customer_group_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_index_price', 'entity_id', 'catalog_product_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_index_price', 'website_id', 'core_website', 'website_id'),
+    $installer->getFkName('catalog_product_index_price', 'website_id', 'store_website', 'website_id'),
     'website_id',
-    $installer->getTable('core_website'),
+    $installer->getTable('store_website'),
     'website_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Price Index Table'
 );
@@ -2762,25 +2706,25 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_tier_price')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'customer_group_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Customer Group ID'
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Website ID'
 )->addColumn(
     'min_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Min Price'
@@ -2800,22 +2744,22 @@ $table = $installer->getConnection()->newTable(
     'customer_group_id',
     $installer->getTable('customer_group'),
     'customer_group_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
     $installer->getFkName('catalog_product_index_tier_price', 'entity_id', 'catalog_product_entity', 'entity_id'),
     'entity_id',
     $installer->getTable('catalog_product_entity'),
     'entity_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->addForeignKey(
-    $installer->getFkName('catalog_product_index_tier_price', 'website_id', 'core_website', 'website_id'),
+    $installer->getFkName('catalog_product_index_tier_price', 'website_id', 'store_website', 'website_id'),
     'website_id',
-    $installer->getTable('core_website'),
+    $installer->getTable('store_website'),
     'website_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Tier Price Index Table'
 );
@@ -2828,19 +2772,19 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_website')
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Website ID'
 )->addColumn(
     'website_date',
-    \Magento\DB\Ddl\Table::TYPE_DATE,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DATE,
     null,
     array(),
     'Website Date'
 )->addColumn(
     'rate',
-    \Magento\DB\Ddl\Table::TYPE_FLOAT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_FLOAT,
     null,
     array('default' => '1.0000'),
     'Rate'
@@ -2848,12 +2792,12 @@ $table = $installer->getConnection()->newTable(
     $installer->getIdxName('catalog_product_index_website', array('website_date')),
     array('website_date')
 )->addForeignKey(
-    $installer->getFkName('catalog_product_index_website', 'website_id', 'core_website', 'website_id'),
+    $installer->getFkName('catalog_product_index_website', 'website_id', 'store_website', 'website_id'),
     'website_id',
-    $installer->getTable('core_website'),
+    $installer->getTable('store_website'),
     'website_id',
-    \Magento\DB\Ddl\Table::ACTION_CASCADE,
-    \Magento\DB\Ddl\Table::ACTION_CASCADE
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE,
+    \Magento\Framework\DB\Ddl\Table::ACTION_CASCADE
 )->setComment(
     'Catalog Product Website Index Table'
 );
@@ -2866,37 +2810,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_price_cfg_opt_agr_idx')
 )->addColumn(
     'parent_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Parent ID'
 )->addColumn(
     'child_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Child ID'
 )->addColumn(
     'customer_group_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Customer Group ID'
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Website ID'
 )->addColumn(
     'price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Price'
 )->addColumn(
     'tier_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Tier Price'
@@ -2912,37 +2856,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_price_cfg_opt_agr_tmp')
 )->addColumn(
     'parent_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Parent ID'
 )->addColumn(
     'child_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Child ID'
 )->addColumn(
     'customer_group_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Customer Group ID'
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Website ID'
 )->addColumn(
     'price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Price'
 )->addColumn(
     'tier_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Tier Price'
@@ -2958,37 +2902,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_price_cfg_opt_idx')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'customer_group_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Customer Group ID'
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Website ID'
 )->addColumn(
     'min_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Min Price'
 )->addColumn(
     'max_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Max Price'
 )->addColumn(
     'tier_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Tier Price'
@@ -3004,37 +2948,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_price_cfg_opt_tmp')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'customer_group_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Customer Group ID'
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Website ID'
 )->addColumn(
     'min_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Min Price'
 )->addColumn(
     'max_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Max Price'
 )->addColumn(
     'tier_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Tier Price'
@@ -3050,61 +2994,61 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_price_final_idx')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'customer_group_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Customer Group ID'
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Website ID'
 )->addColumn(
     'tax_class_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'default' => '0'),
     'Tax Class ID'
 )->addColumn(
     'orig_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Original Price'
 )->addColumn(
     'price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Price'
 )->addColumn(
     'min_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Min Price'
 )->addColumn(
     'max_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Max Price'
 )->addColumn(
     'tier_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Tier Price'
 )->addColumn(
     'base_tier',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Base Tier'
@@ -3120,61 +3064,61 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_price_final_tmp')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'customer_group_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Customer Group ID'
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Website ID'
 )->addColumn(
     'tax_class_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'default' => '0'),
     'Tax Class ID'
 )->addColumn(
     'orig_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Original Price'
 )->addColumn(
     'price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Price'
 )->addColumn(
     'min_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Min Price'
 )->addColumn(
     'max_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Max Price'
 )->addColumn(
     'tier_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Tier Price'
 )->addColumn(
     'base_tier',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Base Tier'
@@ -3190,37 +3134,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_price_opt_idx')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'customer_group_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Customer Group ID'
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Website ID'
 )->addColumn(
     'min_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Min Price'
 )->addColumn(
     'max_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Max Price'
 )->addColumn(
     'tier_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Tier Price'
@@ -3236,37 +3180,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_price_opt_tmp')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'customer_group_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Customer Group ID'
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Website ID'
 )->addColumn(
     'min_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Min Price'
 )->addColumn(
     'max_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Max Price'
 )->addColumn(
     'tier_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Tier Price'
@@ -3282,43 +3226,43 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_price_opt_agr_idx')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'customer_group_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Customer Group ID'
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Website ID'
 )->addColumn(
     'option_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true, 'default' => '0'),
     'Option ID'
 )->addColumn(
     'min_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Min Price'
 )->addColumn(
     'max_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Max Price'
 )->addColumn(
     'tier_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Tier Price'
@@ -3334,43 +3278,43 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_price_opt_agr_tmp')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'customer_group_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Customer Group ID'
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Website ID'
 )->addColumn(
     'option_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true, 'default' => '0'),
     'Option ID'
 )->addColumn(
     'min_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Min Price'
 )->addColumn(
     'max_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Max Price'
 )->addColumn(
     'tier_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Tier Price'
@@ -3386,31 +3330,28 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_eav_idx')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Store ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Value'
-)->addIndex(
-    $installer->getIdxName('catalog_product_index_eav_idx', array('entity_id')),
-    array('entity_id')
 )->addIndex(
     $installer->getIdxName('catalog_product_index_eav_idx', array('attribute_id')),
     array('attribute_id')
@@ -3432,31 +3373,28 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_eav_tmp')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Store ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Value'
-)->addIndex(
-    $installer->getIdxName('catalog_product_index_eav_tmp', array('entity_id')),
-    array('entity_id')
 )->addIndex(
     $installer->getIdxName('catalog_product_index_eav_tmp', array('attribute_id')),
     array('attribute_id')
@@ -3478,31 +3416,28 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_eav_decimal_idx')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Store ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array('nullable' => false, 'primary' => true),
     'Value'
-)->addIndex(
-    $installer->getIdxName('catalog_product_index_eav_decimal_idx', array('entity_id')),
-    array('entity_id')
 )->addIndex(
     $installer->getIdxName('catalog_product_index_eav_decimal_idx', array('attribute_id')),
     array('attribute_id')
@@ -3524,31 +3459,28 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_eav_decimal_tmp')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'attribute_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Attribute ID'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Store ID'
 )->addColumn(
     'value',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array('nullable' => false, 'primary' => true),
     'Value'
-)->addIndex(
-    $installer->getIdxName('catalog_product_index_eav_decimal_tmp', array('entity_id')),
-    array('entity_id')
 )->addIndex(
     $installer->getIdxName('catalog_product_index_eav_decimal_tmp', array('attribute_id')),
     array('attribute_id')
@@ -3570,55 +3502,55 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_price_idx')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'customer_group_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Customer Group ID'
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Website ID'
 )->addColumn(
     'tax_class_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'default' => '0'),
     'Tax Class ID'
 )->addColumn(
     'price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Price'
 )->addColumn(
     'final_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Final Price'
 )->addColumn(
     'min_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Min Price'
 )->addColumn(
     'max_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Max Price'
 )->addColumn(
     'tier_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Tier Price'
@@ -3643,55 +3575,55 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_product_index_price_tmp')
 )->addColumn(
     'entity_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Entity ID'
 )->addColumn(
     'customer_group_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Customer Group ID'
 )->addColumn(
     'website_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'primary' => true),
     'Website ID'
 )->addColumn(
     'tax_class_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'default' => '0'),
     'Tax Class ID'
 )->addColumn(
     'price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Price'
 )->addColumn(
     'final_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Final Price'
 )->addColumn(
     'min_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Min Price'
 )->addColumn(
     'max_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Max Price'
 )->addColumn(
     'tier_price',
-    \Magento\DB\Ddl\Table::TYPE_DECIMAL,
+    \Magento\Framework\DB\Ddl\Table::TYPE_DECIMAL,
     '12,4',
     array(),
     'Tier Price'
@@ -3716,37 +3648,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_category_product_index_idx')
 )->addColumn(
     'category_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Category ID'
 )->addColumn(
     'product_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Product ID'
 )->addColumn(
     'position',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('nullable' => false, 'default' => '0'),
     'Position'
 )->addColumn(
     'is_parent',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Is Parent'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'visibility',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false),
     'Visibility'
@@ -3765,37 +3697,37 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_category_product_index_tmp')
 )->addColumn(
     'category_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Category ID'
 )->addColumn(
     'product_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Product ID'
 )->addColumn(
     'position',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('nullable' => false, 'default' => '0'),
     'Position'
 )->addColumn(
     'is_parent',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Is Parent'
 )->addColumn(
     'store_id',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Store ID'
 )->addColumn(
     'visibility',
-    \Magento\DB\Ddl\Table::TYPE_SMALLINT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_SMALLINT,
     null,
     array('unsigned' => true, 'nullable' => false),
     'Visibility'
@@ -3811,13 +3743,13 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_category_product_index_enbl_idx')
 )->addColumn(
     'product_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Product ID'
 )->addColumn(
     'visibility',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Visibility'
@@ -3836,13 +3768,13 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_category_product_index_enbl_tmp')
 )->addColumn(
     'product_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Product ID'
 )->addColumn(
     'visibility',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Visibility'
@@ -3861,13 +3793,13 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_category_anc_categs_index_idx')
 )->addColumn(
     'category_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Category ID'
 )->addColumn(
     'path',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     255,
     array('nullable' => true, 'default' => null),
     'Path'
@@ -3886,13 +3818,13 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_category_anc_categs_index_tmp')
 )->addColumn(
     'category_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Category ID'
 )->addColumn(
     'path',
-    \Magento\DB\Ddl\Table::TYPE_TEXT,
+    \Magento\Framework\DB\Ddl\Table::TYPE_TEXT,
     255,
     array('nullable' => true, 'default' => null),
     'Path'
@@ -3911,19 +3843,19 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_category_anc_products_index_idx')
 )->addColumn(
     'category_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Category ID'
 )->addColumn(
     'product_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Product ID'
 )->addColumn(
     'position',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true),
     'Position'
@@ -3939,13 +3871,13 @@ $table = $installer->getConnection()->newTable(
     $installer->getTable('catalog_category_anc_products_index_tmp')
 )->addColumn(
     'category_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Category ID'
 )->addColumn(
     'product_id',
-    \Magento\DB\Ddl\Table::TYPE_INTEGER,
+    \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
     null,
     array('unsigned' => true, 'nullable' => false, 'default' => '0'),
     'Product ID'
@@ -3961,7 +3893,7 @@ $installer->getConnection()->addColumn(
     $installer->getTable('core_url_rewrite'),
     'category_id',
     array(
-        'type' => \Magento\DB\Ddl\Table::TYPE_INTEGER,
+        'type' => \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
         'unsigned' => true,
         'nullable' => true,
         'comment' => 'Category Id'
@@ -3971,7 +3903,7 @@ $installer->getConnection()->addColumn(
     $installer->getTable('core_url_rewrite'),
     'product_id',
     array(
-        'type' => \Magento\DB\Ddl\Table::TYPE_INTEGER,
+        'type' => \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER,
         'unsigned' => true,
         'nullable' => true,
         'comment' => 'Product Id'
@@ -3993,5 +3925,3 @@ $installer->getConnection()->addForeignKey(
 );
 
 $installer->endSetup();
-
-$installer->installEntities();

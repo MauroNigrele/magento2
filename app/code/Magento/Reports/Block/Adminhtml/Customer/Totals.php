@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Reports
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -46,6 +44,6 @@ class Totals extends \Magento\Backend\Block\Widget\Grid\Container
         $this->_controller = 'adminhtml_customer_totals';
         $this->_headerText = __('Customers by Orders Total');
         parent::_construct();
-        $this->_removeButton('add');
+        $this->buttonList->remove('add');
     }
 }

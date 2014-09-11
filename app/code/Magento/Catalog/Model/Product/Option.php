@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -27,8 +25,9 @@ namespace Magento\Catalog\Model\Product;
 
 use Magento\Catalog\Model\Product;
 use Magento\Catalog\Model\Resource\Product\Option\Value\Collection;
-use Magento\Model\Exception;
-use Magento\Model\AbstractModel;
+use Magento\Catalog\Pricing\Price\BasePrice;
+use Magento\Framework\Model\Exception;
+use Magento\Framework\Model\AbstractModel;
 
 /**
  * Catalog product option model
@@ -38,6 +37,8 @@ use Magento\Model\AbstractModel;
  * @method \Magento\Catalog\Model\Product\Option setProductId(int $value)
  * @method string getType()
  * @method \Magento\Catalog\Model\Product\Option setType(string $value)
+ * @method string getTitle()
+ * @method \Magento\Catalog\Model\Product\Option seTitle(string $value)
  * @method int getIsRequire()
  * @method \Magento\Catalog\Model\Product\Option setIsRequire(int $value)
  * @method string getSku()
@@ -53,8 +54,6 @@ use Magento\Model\AbstractModel;
  * @method int getSortOrder()
  * @method \Magento\Catalog\Model\Product\Option setSortOrder(int $value)
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 class Option extends AbstractModel
@@ -117,32 +116,40 @@ class Option extends AbstractModel
     protected $_optionFactory;
 
     /**
-     * @var \Magento\Stdlib\String
+     * @var \Magento\Framework\Stdlib\String
      */
     protected $string;
 
     /**
-     * @param \Magento\Model\Context $context
-     * @param \Magento\Registry $registry
+     * @var Option\Validator\Pool
+     */
+    protected $validatorPool;
+
+    /**
+     * @param \Magento\Framework\Model\Context $context
+     * @param \Magento\Framework\Registry $registry
      * @param Option\Value $productOptionValue
-     * @param \Magento\Catalog\Model\Product\Option\Type\Factory $optionFactory
-     * @param \Magento\Stdlib\String $string
-     * @param \Magento\Model\Resource\AbstractResource $resource
-     * @param \Magento\Data\Collection\Db $resourceCollection
+     * @param Option\Type\Factory $optionFactory
+     * @param \Magento\Framework\Stdlib\String $string
+     * @param Option\Validator\Pool $validatorPool
+     * @param \Magento\Framework\Model\Resource\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\Db $resourceCollection
      * @param array $data
      */
     public function __construct(
-        \Magento\Model\Context $context,
-        \Magento\Registry $registry,
+        \Magento\Framework\Model\Context $context,
+        \Magento\Framework\Registry $registry,
         Option\Value $productOptionValue,
         \Magento\Catalog\Model\Product\Option\Type\Factory $optionFactory,
-        \Magento\Stdlib\String $string,
-        \Magento\Model\Resource\AbstractResource $resource = null,
-        \Magento\Data\Collection\Db $resourceCollection = null,
+        \Magento\Framework\Stdlib\String $string,
+        Option\Validator\Pool $validatorPool,
+        \Magento\Framework\Model\Resource\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\Db $resourceCollection = null,
         array $data = array()
     ) {
         $this->_productOptionValue = $productOptionValue;
         $this->_optionFactory = $optionFactory;
+        $this->validatorPool = $validatorPool;
         $this->string = $string;
         parent::__construct($context, $registry, $resource, $resourceCollection, $data);
     }
@@ -150,7 +157,7 @@ class Option extends AbstractModel
     /**
      * Get resource instance
      *
-     * @return \Magento\Model\Resource\Db\AbstractDb
+     * @return \Magento\Framework\Model\Resource\Db\AbstractDb
      */
     protected function _getResource()
     {
@@ -331,6 +338,7 @@ class Option extends AbstractModel
     public function saveOptions()
     {
         foreach ($this->getOptions() as $option) {
+            $this->_validatorBeforeSave = null;
             $this->setData(
                 $option
             )->setData(
@@ -340,6 +348,8 @@ class Option extends AbstractModel
                 'store_id',
                 $this->getProduct()->getStoreId()
             );
+            /** Reset is delete flag from the previous iteration */
+            $this->isDeleted(false);
 
             if ($this->getData('option_id') == '0') {
                 $this->unsetData('option_id');
@@ -402,7 +412,7 @@ class Option extends AbstractModel
 
     /**
      * @return AbstractModel
-     * @throws Exception
+     * @throws \Magento\Framework\Model\Exception
      */
     protected function _afterSave()
     {
@@ -430,7 +440,7 @@ class Option extends AbstractModel
     public function getPrice($flag = false)
     {
         if ($flag && $this->getPriceType() == 'percent') {
-            $basePrice = $this->getProduct()->getFinalPrice();
+            $basePrice = $this->getProduct()->getPriceInfo()->getPrice(BasePrice::PRICE_CODE)->getValue();
             $price = $basePrice * ($this->_getData('price') / 100);
             return $price;
         }
@@ -519,27 +529,6 @@ class Option extends AbstractModel
     }
 
     /**
-     * Prepare array of options for duplicate
-     *
-     * @return array
-     */
-    public function prepareOptionForDuplicate()
-    {
-        $this->setProductId(null);
-        $this->setOptionId(null);
-        $newOption = $this->__toArray();
-        if ($_values = $this->getValues()) {
-            $newValuesArray = array();
-            foreach ($_values as $_value) {
-                $newValuesArray[] = $_value->prepareValueForDuplicate();
-            }
-            $newOption['values'] = $newValuesArray;
-        }
-
-        return $newOption;
-    }
-
-    /**
      * Duplicate options for product
      *
      * @param int $oldProductId
@@ -590,5 +579,13 @@ class Option extends AbstractModel
             }
         }
         return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function _getValidationRulesBeforeSave()
+    {
+        return $this->validatorPool->get($this->getType());
     }
 }

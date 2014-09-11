@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Adminhtml
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -27,8 +25,6 @@
 /**
  * customers defined options
  *
- * @category   Magento
- * @package    Magento_Catalog
  * @author     Magento Core Team <core@magentocommerce.com>
  */
 namespace Magento\Catalog\Block\Adminhtml\Product\Edit\Tab\Options\Type;
@@ -98,9 +94,12 @@ class Select extends \Magento\Catalog\Block\Adminhtml\Product\Edit\Tab\Options\T
     }
 
     /**
+     * Return select input for price type
+     *
+     * @param string $extraParams
      * @return string
      */
-    public function getPriceTypeSelectHtml()
+    public function getPriceTypeSelectHtml($extraParams = '')
     {
         $this->getChildBlock(
             'option_price_type'
@@ -109,7 +108,7 @@ class Select extends \Magento\Catalog\Block\Adminhtml\Product\Edit\Tab\Options\T
             'product_option_${id}_select_${select_id}_price_type'
         )->setName(
             'product[options][${id}][values][${select_id}][price_type]'
-        );
+        )->setExtraParams($extraParams);
 
         return parent::getPriceTypeSelectHtml();
     }

@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Backend
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,8 +26,6 @@ namespace Magento\Backend\Block\System\Store;
 /**
  * Store / store view / website delete form container
  *
- * @category    Magento
- * @package     Magento_Backend
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 class Delete extends \Magento\Backend\Block\Widget\Form\Container
@@ -48,18 +44,18 @@ class Delete extends \Magento\Backend\Block\Widget\Form\Container
 
         parent::_construct();
 
-        $this->_removeButton('save');
-        $this->_removeButton('reset');
+        $this->buttonList->remove('save');
+        $this->buttonList->remove('reset');
 
-        $this->_updateButton('delete', 'region', 'footer');
-        $this->_updateButton('delete', 'onclick', null);
-        $this->_updateButton(
+        $this->buttonList->update('delete', 'region', 'footer');
+        $this->buttonList->update('delete', 'onclick', null);
+        $this->buttonList->update(
             'delete',
             'data_attribute',
             array('mage-init' => array('button' => array('event' => 'save', 'target' => '#edit_form')))
         );
 
-        $this->_addButton(
+        $this->buttonList->add(
             'cancel',
             array('label' => __('Cancel'), 'onclick' => 'setLocation(\'' . $this->getBackUrl() . '\')'),
             2,
@@ -90,7 +86,7 @@ class Delete extends \Magento\Backend\Block\Widget\Form\Container
      */
     public function setStoreTypeTitle($title)
     {
-        $this->_updateButton('delete', 'label', __('Delete %1', $title));
+        $this->buttonList->update('delete', 'label', __('Delete %1', $title));
         return $this->setData('store_type_title', $title);
     }
 
@@ -103,8 +99,8 @@ class Delete extends \Magento\Backend\Block\Widget\Form\Container
     public function setBackUrl($url)
     {
         $this->setData('back_url', $url);
-        $this->_updateButton('cancel', 'onclick', "setLocation('" . $url . "')");
-        $this->_updateButton('back', 'onclick', "setLocation('" . $url . "')");
+        $this->buttonList->update('cancel', 'onclick', "setLocation('" . $url . "')");
+        $this->buttonList->update('back', 'onclick', "setLocation('" . $url . "')");
         return $this;
     }
 }

@@ -32,6 +32,7 @@ use Magento\Customer\Service\V1\Data\CustomerBuilder;
 /**
  * Magento\Customer\Block\Adminhtml\Edit\Tab\View
  *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  * @magentoAppArea adminhtml
  */
 class ViewTest extends \PHPUnit_Framework_TestCase
@@ -39,7 +40,7 @@ class ViewTest extends \PHPUnit_Framework_TestCase
     /** @var  \Magento\Backend\Block\Template\Context */
     private $_context;
 
-    /** @var  \Magento\Registry */
+    /** @var  \Magento\Framework\Registry */
     private $_coreRegistry;
 
     /** @var  CustomerBuilder */
@@ -51,31 +52,39 @@ class ViewTest extends \PHPUnit_Framework_TestCase
     /** @var  CustomerGroupServiceInterface */
     private $_groupService;
 
-    /** @var \Magento\Core\Model\StoreManagerInterface */
+    /** @var \Magento\Store\Model\StoreManagerInterface */
     private $_storeManager;
+
+    /** @var \Magento\Framework\ObjectManager */
+    private $_objectManager;
 
     /** @var  View */
     private $_block;
 
+    /**
+     * @var \Magento\Framework\Stdlib\DateTime
+     */
+    protected $_dateTime;
+
     public function setUp()
     {
-        $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
+        $this->_objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
 
-        $this->_storeManager = $objectManager->get('Magento\Core\Model\StoreManager');
-        $this->_context = $objectManager->get(
+        $this->_storeManager = $this->_objectManager->get('Magento\Store\Model\StoreManager');
+        $this->_context = $this->_objectManager->get(
             'Magento\Backend\Block\Template\Context',
             array('storeManager' => $this->_storeManager)
         );
 
-        $this->_customerBuilder = $objectManager->get('Magento\Customer\Service\V1\Data\CustomerBuilder');
-        $this->_coreRegistry = $objectManager->get('Magento\Registry');
-        $this->_customerAccountService = $objectManager->get(
+        $this->_customerBuilder = $this->_objectManager->get('Magento\Customer\Service\V1\Data\CustomerBuilder');
+        $this->_coreRegistry = $this->_objectManager->get('Magento\Framework\Registry');
+        $this->_customerAccountService = $this->_objectManager->get(
             'Magento\Customer\Service\V1\CustomerAccountServiceInterface'
         );
-        $this->_groupService = $objectManager->get('Magento\Customer\Service\V1\CustomerGroupServiceInterface');
+        $this->_groupService = $this->_objectManager->get('Magento\Customer\Service\V1\CustomerGroupServiceInterface');
 
-        $this->_block = $objectManager->get(
-            'Magento\View\LayoutInterface'
+        $this->_block = $this->_objectManager->get(
+            'Magento\Framework\View\LayoutInterface'
         )->createBlock(
             'Magento\Customer\Block\Adminhtml\Edit\Tab\View',
             '',
@@ -85,6 +94,8 @@ class ViewTest extends \PHPUnit_Framework_TestCase
                 'registry' => $this->_coreRegistry
             )
         );
+
+        $this->_dateTime = $this->_objectManager->get('Magento\Framework\Stdlib\DateTime');
     }
 
     public function tearDown()
@@ -127,7 +138,7 @@ class ViewTest extends \PHPUnit_Framework_TestCase
     {
         $createdAt = $this->_block->formatDate(
             $this->_loadCustomer()->getCreatedAt(),
-            \Magento\Stdlib\DateTime\TimezoneInterface::FORMAT_TYPE_MEDIUM,
+            \Magento\Framework\Stdlib\DateTime\TimezoneInterface::FORMAT_TYPE_MEDIUM,
             true
         );
         $this->assertEquals($createdAt, $this->_block->getCreateDate());
@@ -139,10 +150,11 @@ class ViewTest extends \PHPUnit_Framework_TestCase
     public function testGetStoreCreateDate()
     {
         $customer = $this->_loadCustomer();
-        $date = $this->_context->getLocaleDate()->scopeDate($customer->getStoreId(), $customer->getCreatedAt(), true);
+        $date = $this->_context->getLocaleDate()
+            ->scopeDate($customer->getStoreId(), $this->_dateTime->toTimestamp($customer->getCreatedAt()), true);
         $storeCreateDate = $this->_block->formatDate(
             $date,
-            \Magento\Stdlib\DateTime\TimezoneInterface::FORMAT_TYPE_MEDIUM,
+            \Magento\Framework\Stdlib\DateTime\TimezoneInterface::FORMAT_TYPE_MEDIUM,
             true
         );
         $this->assertEquals($storeCreateDate, $this->_block->getStoreCreateDate());
@@ -154,13 +166,13 @@ class ViewTest extends \PHPUnit_Framework_TestCase
     public function testGetStoreCreateDateTimezone()
     {
         /**
-         * @var \Magento\Stdlib\DateTime\TimezoneInterface $defaultTimeZonePath
+         * @var \Magento\Framework\Stdlib\DateTime\TimezoneInterface $defaultTimeZonePath
          */
-        $defaultTimeZonePath = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
-            'Magento\Stdlib\DateTime\TimezoneInterface'
-        )->getDefaultTimezonePath();
-        $timezone = $this->_context->getStoreConfig()->getConfig(
+        $defaultTimeZonePath = $this->_objectManager->get('Magento\Framework\Stdlib\DateTime\TimezoneInterface')
+            ->getDefaultTimezonePath();
+        $timezone = $this->_context->getScopeConfig()->getValue(
             $defaultTimeZonePath,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
             $this->_loadCustomer()->getStoreId()
         );
         $this->assertEquals($timezone, $this->_block->getStoreCreateDateTimezone());
@@ -190,8 +202,12 @@ class ViewTest extends \PHPUnit_Framework_TestCase
         )->setEmail(
             'email@email.com'
         )->create();
-        $id = $this->_customerAccountService->saveCustomer($customer);
-        $this->_coreRegistry->register(RegistryConstants::CURRENT_CUSTOMER_ID, $id);
+        $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
+        /** @var \Magento\Customer\Service\V1\Data\CustomerDetailsBuilder $customerDetailsBuilder */
+        $customerDetailsBuilder = $objectManager->create('Magento\Customer\Service\V1\Data\CustomerDetailsBuilder');
+        $customerDetails = $customerDetailsBuilder->setCustomer($customer)->create();
+        $customer = $this->_customerAccountService->createCustomer($customerDetails);
+        $this->_coreRegistry->register(RegistryConstants::CURRENT_CUSTOMER_ID, $customer->getId());
         $this->assertEquals('Confirmation Not Required', $this->_block->getIsConfirmedStatus());
     }
 

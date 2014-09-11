@@ -18,9 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Backend
- * @subpackage  integration_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -33,7 +30,7 @@ class IndexTest extends \Magento\Backend\Utility\Controller
 {
     /**
      * Check not logged state
-     * @covers \Magento\Backend\Controller\Adminhtml\Index::indexAction
+     * @covers \Magento\Backend\Controller\Adminhtml\Index\Index::execute
      */
     public function testNotLoggedIndexAction()
     {
@@ -48,7 +45,7 @@ class IndexTest extends \Magento\Backend\Utility\Controller
 
     /**
      * Check logged state
-     * @covers \Magento\Backend\Controller\Adminhtml\Index::indexAction
+     * @covers \Magento\Backend\Controller\Adminhtml\Index\Index::execute
      * @magentoDbIsolation enabled
      */
     public function testLoggedIndexAction()
@@ -58,7 +55,7 @@ class IndexTest extends \Magento\Backend\Utility\Controller
     }
 
     /**
-     * @covers \Magento\Backend\Controller\Adminhtml\Index::globalSearchAction
+     * @covers \Magento\Backend\Controller\Adminhtml\Index\GlobalSearch::execute
      */
     public function testGlobalSearchAction()
     {

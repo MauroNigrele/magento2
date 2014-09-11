@@ -23,17 +23,15 @@
  */
 namespace Magento\Catalog\Block\Product;
 
-class Context extends \Magento\View\Element\Template\Context
+/**
+ * Abstract product block context
+ */
+class Context extends \Magento\Framework\View\Element\Template\Context
 {
     /**
      * @var \Magento\Catalog\Helper\Image
      */
     protected $imageHelper;
-
-    /**
-     * @var \Magento\Theme\Helper\Layout
-     */
-    protected $layoutHelper;
 
     /**
      * @var \Magento\Catalog\Helper\Product\Compare
@@ -56,7 +54,7 @@ class Context extends \Magento\View\Element\Template\Context
     protected $catalogConfig;
 
     /**
-     * @var \Magento\Registry
+     * @var \Magento\Framework\Registry
      */
     protected $registry;
 
@@ -71,7 +69,7 @@ class Context extends \Magento\View\Element\Template\Context
     protected $catalogHelper;
 
     /**
-     * @var \Magento\Math\Random
+     * @var \Magento\Framework\Math\Random
      */
     protected $mathRandom;
 
@@ -81,81 +79,85 @@ class Context extends \Magento\View\Element\Template\Context
     protected $reviewRenderer;
 
     /**
-     * @param \Magento\App\RequestInterface $request
-     * @param \Magento\View\LayoutInterface $layout
-     * @param \Magento\Event\ManagerInterface $eventManager
-     * @param \Magento\UrlInterface $urlBuilder
-     * @param \Magento\TranslateInterface $translator
-     * @param \Magento\App\CacheInterface $cache
-     * @param \Magento\View\DesignInterface $design
-     * @param \Magento\Session\SessionManagerInterface $session
-     * @param \Magento\Session\SidResolverInterface $sidResolver
-     * @param \Magento\Core\Model\Store\Config $storeConfig
-     * @param \Magento\View\Url $viewUrl
-     * @param \Magento\View\ConfigInterface $viewConfig
-     * @param \Magento\App\Cache\StateInterface $cacheState
-     * @param \Magento\Logger $logger
-     * @param \Magento\Escaper $escaper
-     * @param \Magento\Filter\FilterManager $filterManager
-     * @param \Magento\Stdlib\DateTime\TimezoneInterface $localeDate
-     * @param \Magento\Translate\Inline\StateInterface $inlineTranslation
-     * @param \Magento\App\Filesystem $filesystem
-     * @param \Magento\View\FileSystem $viewFileSystem
-     * @param \Magento\View\TemplateEnginePool $enginePool
-     * @param \Magento\App\State $appState
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
+     * @var \Magento\CatalogInventory\Service\V1\StockItemService
+     */
+    protected $stockItemService;
+
+    /**
+     * @param \Magento\Framework\App\RequestInterface $request
+     * @param \Magento\Framework\View\LayoutInterface $layout
+     * @param \Magento\Framework\Event\ManagerInterface $eventManager
+     * @param \Magento\Framework\UrlInterface $urlBuilder
+     * @param \Magento\Framework\TranslateInterface $translator
+     * @param \Magento\Framework\App\CacheInterface $cache
+     * @param \Magento\Framework\View\DesignInterface $design
+     * @param \Magento\Framework\Session\SessionManagerInterface $session
+     * @param \Magento\Framework\Session\SidResolverInterface $sidResolver
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+     * @param \Magento\Framework\View\Asset\Repository $assetRepo
+     * @param \Magento\Framework\View\ConfigInterface $viewConfig
+     * @param \Magento\Framework\App\Cache\StateInterface $cacheState
+     * @param \Magento\Framework\Logger $logger
+     * @param \Magento\Framework\Escaper $escaper
+     * @param \Magento\Framework\Filter\FilterManager $filterManager
+     * @param \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate
+     * @param \Magento\Framework\Translate\Inline\StateInterface $inlineTranslation
+     * @param \Magento\Framework\App\Filesystem $filesystem
+     * @param \Magento\Framework\View\FileSystem $viewFileSystem
+     * @param \Magento\Framework\View\TemplateEnginePool $enginePool
+     * @param \Magento\Framework\App\State $appState
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param \Magento\Catalog\Model\Config $catalogConfig
-     * @param \Magento\Registry $registry
+     * @param \Magento\Framework\Registry $registry
      * @param \Magento\Tax\Helper\Data $taxHelper
      * @param \Magento\Catalog\Helper\Data $catalogHelper
-     * @param \Magento\Math\Random $mathRandom
+     * @param \Magento\Framework\Math\Random $mathRandom
      * @param \Magento\Checkout\Helper\Cart $cartHelper
      * @param \Magento\Wishlist\Helper\Data $wishlistHelper
      * @param \Magento\Catalog\Helper\Product\Compare $compareProduct
-     * @param \Magento\Theme\Helper\Layout $layoutHelper
      * @param \Magento\Catalog\Helper\Image $imageHelper
      * @param ReviewRendererInterface $reviewRenderer
+     * @param \Magento\CatalogInventory\Service\V1\StockItemService $stockItemService
      *
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
-        \Magento\App\RequestInterface $request,
-        \Magento\View\LayoutInterface $layout,
-        \Magento\Event\ManagerInterface $eventManager,
-        \Magento\UrlInterface $urlBuilder,
-        \Magento\TranslateInterface $translator,
-        \Magento\App\CacheInterface $cache,
-        \Magento\View\DesignInterface $design,
-        \Magento\Session\SessionManagerInterface $session,
-        \Magento\Session\SidResolverInterface $sidResolver,
-        \Magento\Core\Model\Store\Config $storeConfig,
-        \Magento\View\Url $viewUrl,
-        \Magento\View\ConfigInterface $viewConfig,
-        \Magento\App\Cache\StateInterface $cacheState,
-        \Magento\Logger $logger,
-        \Magento\Escaper $escaper,
-        \Magento\Filter\FilterManager $filterManager,
-        \Magento\Stdlib\DateTime\TimezoneInterface $localeDate,
-        \Magento\Translate\Inline\StateInterface $inlineTranslation,
-        \Magento\App\Filesystem $filesystem,
-        \Magento\View\FileSystem $viewFileSystem,
-        \Magento\View\TemplateEnginePool $enginePool,
-        \Magento\App\State $appState,
-        \Magento\Core\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\App\RequestInterface $request,
+        \Magento\Framework\View\LayoutInterface $layout,
+        \Magento\Framework\Event\ManagerInterface $eventManager,
+        \Magento\Framework\UrlInterface $urlBuilder,
+        \Magento\Framework\TranslateInterface $translator,
+        \Magento\Framework\App\CacheInterface $cache,
+        \Magento\Framework\View\DesignInterface $design,
+        \Magento\Framework\Session\SessionManagerInterface $session,
+        \Magento\Framework\Session\SidResolverInterface $sidResolver,
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        \Magento\Framework\View\Asset\Repository $assetRepo,
+        \Magento\Framework\View\ConfigInterface $viewConfig,
+        \Magento\Framework\App\Cache\StateInterface $cacheState,
+        \Magento\Framework\Logger $logger,
+        \Magento\Framework\Escaper $escaper,
+        \Magento\Framework\Filter\FilterManager $filterManager,
+        \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate,
+        \Magento\Framework\Translate\Inline\StateInterface $inlineTranslation,
+        \Magento\Framework\App\Filesystem $filesystem,
+        \Magento\Framework\View\FileSystem $viewFileSystem,
+        \Magento\Framework\View\TemplateEnginePool $enginePool,
+        \Magento\Framework\App\State $appState,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Catalog\Model\Config $catalogConfig,
-        \Magento\Registry $registry,
+        \Magento\Framework\Registry $registry,
         \Magento\Tax\Helper\Data $taxHelper,
         \Magento\Catalog\Helper\Data $catalogHelper,
-        \Magento\Math\Random $mathRandom,
+        \Magento\Framework\Math\Random $mathRandom,
         \Magento\Checkout\Helper\Cart $cartHelper,
         \Magento\Wishlist\Helper\Data $wishlistHelper,
         \Magento\Catalog\Helper\Product\Compare $compareProduct,
-        \Magento\Theme\Helper\Layout $layoutHelper,
         \Magento\Catalog\Helper\Image $imageHelper,
-        ReviewRendererInterface $reviewRenderer
+        ReviewRendererInterface $reviewRenderer,
+        \Magento\CatalogInventory\Service\V1\StockItemService $stockItemService
     ) {
         $this->imageHelper = $imageHelper;
-        $this->layoutHelper = $layoutHelper;
         $this->compareProduct = $compareProduct;
         $this->wishlistHelper = $wishlistHelper;
         $this->cartHelper = $cartHelper;
@@ -165,6 +167,7 @@ class Context extends \Magento\View\Element\Template\Context
         $this->catalogHelper = $catalogHelper;
         $this->mathRandom = $mathRandom;
         $this->reviewRenderer = $reviewRenderer;
+        $this->stockItemService = $stockItemService;
         parent::__construct(
             $request,
             $layout,
@@ -175,8 +178,8 @@ class Context extends \Magento\View\Element\Template\Context
             $design,
             $session,
             $sidResolver,
-            $storeConfig,
-            $viewUrl,
+            $scopeConfig,
+            $assetRepo,
             $viewConfig,
             $cacheState,
             $logger,
@@ -190,6 +193,14 @@ class Context extends \Magento\View\Element\Template\Context
             $appState,
             $storeManager
         );
+    }
+
+    /**
+     * @return \Magento\CatalogInventory\Service\V1\StockItemService
+     */
+    public function getStockItemService()
+    {
+        return $this->stockItemService;
     }
 
     /**
@@ -233,15 +244,7 @@ class Context extends \Magento\View\Element\Template\Context
     }
 
     /**
-     * @return \Magento\Theme\Helper\Layout
-     */
-    public function getLayoutHelper()
-    {
-        return $this->layoutHelper;
-    }
-
-    /**
-     * @return \Magento\Math\Random
+     * @return \Magento\Framework\Math\Random
      */
     public function getMathRandom()
     {
@@ -249,7 +252,7 @@ class Context extends \Magento\View\Element\Template\Context
     }
 
     /**
-     * @return \Magento\Registry
+     * @return \Magento\Framework\Registry
      */
     public function getRegistry()
     {

@@ -26,7 +26,7 @@ namespace Magento\Paypal\Helper;
 /**
  * Hosted Sole Solution helper
  */
-class Hss extends \Magento\App\Helper\AbstractHelper
+class Hss extends \Magento\Framework\App\Helper\AbstractHelper
 {
     /**
      * Hosted Sole Solution methods
@@ -45,22 +45,16 @@ class Hss extends \Magento\App\Helper\AbstractHelper
     protected $_checkoutSession;
 
     /**
-     * @var \Magento\View\LayoutInterface
-     */
-    protected $_layout;
-
-    /**
-     * @param \Magento\App\Helper\Context $context
+     * Constructor
+     *
+     * @param \Magento\Framework\App\Helper\Context $context
      * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\View\LayoutInterface $layout
      */
     public function __construct(
-        \Magento\App\Helper\Context $context,
-        \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\View\LayoutInterface $layout
+        \Magento\Framework\App\Helper\Context $context,
+        \Magento\Checkout\Model\Session $checkoutSession
     ) {
         $this->_checkoutSession = $checkoutSession;
-        $this->_layout = $layout;
         parent::__construct($context);
     }
 
@@ -68,10 +62,9 @@ class Hss extends \Magento\App\Helper\AbstractHelper
      * Get template for button in order review page if HSS method was selected
      *
      * @param string $name template name
-     * @param string $block buttons block name
      * @return string
      */
-    public function getReviewButtonTemplate($name, $block)
+    public function getReviewButtonTemplate($name)
     {
         $quote = $this->_checkoutSession->getQuote();
         if ($quote) {
@@ -80,12 +73,6 @@ class Hss extends \Magento\App\Helper\AbstractHelper
                 return $name;
             }
         }
-
-        $blockObject = $this->_layout->getBlock($block);
-        if ($blockObject) {
-            return $blockObject->getTemplate();
-        }
-
         return '';
     }
 

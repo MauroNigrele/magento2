@@ -18,21 +18,15 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_GoogleAnalytics
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 namespace Magento\GoogleAnalytics\Block;
 
 /**
- * GoogleAnalitics Page Block
- *
- * @category   Magento
- * @package    Magento_GoogleAnalytics
- * @author     Magento Core Team <core@magentocommerce.com>
+ * GoogleAnalytics Page Block
  */
-class Ga extends \Magento\View\Element\Template
+class Ga extends \Magento\Framework\View\Element\Template
 {
     /**
      * Google analytics data
@@ -47,13 +41,13 @@ class Ga extends \Magento\View\Element\Template
     protected $_salesOrderCollection;
 
     /**
-     * @param \Magento\View\Element\Template\Context $context
+     * @param \Magento\Framework\View\Element\Template\Context $context
      * @param \Magento\Sales\Model\Resource\Order\CollectionFactory $salesOrderCollection
      * @param \Magento\GoogleAnalytics\Helper\Data $googleAnalyticsData
      * @param array $data
      */
     public function __construct(
-        \Magento\View\Element\Template\Context $context,
+        \Magento\Framework\View\Element\Template\Context $context,
         \Magento\Sales\Model\Resource\Order\CollectionFactory $salesOrderCollection,
         \Magento\GoogleAnalytics\Helper\Data $googleAnalyticsData,
         array $data = array()
@@ -71,7 +65,7 @@ class Ga extends \Magento\View\Element\Template
      */
     public function getConfig($path)
     {
-        return $this->_storeConfig->getConfig($path);
+        return $this->_scopeConfig->getValue($path, \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
     }
 
     /**
@@ -90,8 +84,8 @@ class Ga extends \Magento\View\Element\Template
      *
      * @param string $accountId
      * @return string
-     * @link http://code.google.com/apis/analytics/docs/gaJS/gaJSApiBasicConfiguration.html#_gat.GA_Tracker_._trackPageview
-     * @link http://code.google.com/apis/analytics/docs/gaJS/gaJSApi_gaq.html
+     * @link https://developers.google.com/analytics/devguides/collection/analyticsjs/method-reference#set
+     * @link https://developers.google.com/analytics/devguides/collection/analyticsjs/method-reference#gaObjectMethods
      */
     public function getPageTrackingCode($accountId)
     {
@@ -100,15 +94,19 @@ class Ga extends \Magento\View\Element\Template
         if ($pageName && substr($pageName, 0, 1) == '/' && strlen($pageName) > 1) {
             $optPageURL = ", '{$this->escapeJsQuote($pageName)}'";
         }
-        return "\n_gaq.push(['_setAccount', '{$this->escapeJsQuote(
+
+        return "\nga('create', '{$this->escapeJsQuote(
             $accountId
-        )}']);\n_gaq.push(['_trackPageview'{$optPageURL}]);\n";
+        )}', 'auto');\nga('send', 'pageview'{$optPageURL});\n";
     }
 
     /**
      * Render information about specified orders and their items
      *
-     * @link http://code.google.com/apis/analytics/docs/gaJS/gaJSApiEcommerce.html#_gat.GA_Tracker_._addTrans
+     * @link https://developers.google.com/analytics/devguides/collection/analyticsjs/enhanced-ecommerce#checkout-options
+     * @link https://developers.google.com/analytics/devguides/collection/analyticsjs/enhanced-ecommerce#measuring-transactions
+     * @link https://developers.google.com/analytics/devguides/collection/analyticsjs/enhanced-ecommerce#transaction
+     *
      * @return string|void
      */
     public function getOrdersTrackingCode()
@@ -120,36 +118,47 @@ class Ga extends \Magento\View\Element\Template
 
         $collection = $this->_salesOrderCollection->create();
         $collection->addFieldToFilter('entity_id', array('in' => $orderIds));
-        $result = array();
+        $result = [];
+
+        $result[] = "ga('require', 'ec', 'ec.js');";
         foreach ($collection as $order) {
             if ($order->getIsVirtual()) {
                 $address = $order->getBillingAddress();
             } else {
                 $address = $order->getShippingAddress();
             }
-            $result[] = sprintf(
-                "_gaq.push(['_addTrans', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s']);",
-                $order->getIncrementId(),
-                $this->escapeJsQuote($this->_storeManager->getStore()->getFrontendName()),
-                $order->getBaseGrandTotal(),
-                $order->getBaseTaxAmount(),
-                $order->getBaseShippingAmount(),
-                $this->escapeJsQuote($this->escapeHtml($address->getCity())),
-                $this->escapeJsQuote($this->escapeHtml($address->getRegion())),
-                $this->escapeJsQuote($this->escapeHtml($address->getCountry()))
-            );
+
             foreach ($order->getAllVisibleItems() as $item) {
                 $result[] = sprintf(
-                    "_gaq.push(['_addItem', '%s', '%s', '%s', '%s', '%s', '%s']);",
-                    $order->getIncrementId(),
+                    "ga('ec:addProduct', {
+                        'id': '%s',
+                        'name': '%s',
+                        'price': '%s',
+                        'quantity': %s
+                    });",
                     $this->escapeJsQuote($item->getSku()),
                     $this->escapeJsQuote($item->getName()),
-                    null, // there is no "category" defined for the order item
                     $item->getBasePrice(),
                     $item->getQtyOrdered()
                 );
             }
-            $result[] = "_gaq.push(['_trackTrans']);";
+
+            $result[] = sprintf(
+                "ga('ec:setAction', 'purchase', {
+                    'id': '%s',
+                    'affiliation': '%s',
+                    'revenue': '%s',
+                    'tax': '%s',
+                    'shipping': '%s'
+                });",
+                $order->getIncrementId(),
+                $this->escapeJsQuote($this->_storeManager->getStore()->getFrontendName()),
+                $order->getBaseGrandTotal(),
+                $order->getBaseTaxAmount(),
+                $order->getBaseShippingAmount()
+            );
+
+            $result[] = "ga('send', 'pageview');";
         }
         return implode("\n", $result);
     }

@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Tax
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -34,18 +32,18 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
     /**
      * Core registry
      *
-     * @var \Magento\Registry
+     * @var \Magento\Framework\Registry
      */
     protected $_coreRegistry = null;
 
     /**
-     * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\Registry $registry
+     * @param \Magento\Backend\Block\Widget\Context $context
+     * @param \Magento\Framework\Registry $registry
      * @param array $data
      */
     public function __construct(
-        \Magento\Backend\Block\Template\Context $context,
-        \Magento\Registry $registry,
+        \Magento\Backend\Block\Widget\Context $context,
+        \Magento\Framework\Registry $registry,
         array $data = array()
     ) {
         $this->_coreRegistry = $registry;
@@ -65,10 +63,10 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
 
         parent::_construct();
 
-        $this->_updateButton('save', 'label', __('Save Rule'));
-        $this->_updateButton('delete', 'label', __('Delete Rule'));
+        $this->buttonList->update('save', 'label', __('Save Rule'));
+        $this->buttonList->update('delete', 'label', __('Delete Rule'));
 
-        $this->_addButton(
+        $this->buttonList->add(
             'save_and_continue',
             array(
                 'label' => __('Save and Continue Edit'),
@@ -79,19 +77,5 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
             ),
             10
         );
-    }
-
-    /**
-     * Get Header text
-     *
-     * @return string
-     */
-    public function getHeaderText()
-    {
-        if ($this->_coreRegistry->registry('tax_rule')->getId()) {
-            return __("Edit Rule");
-        } else {
-            return __('New Rule');
-        }
     }
 }

@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Sales
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -43,21 +41,30 @@ class Address extends AbstractOrder
     protected $_salesResourceFactory;
 
     /**
-     * @param \Magento\App\Resource $resource
-     * @param \Magento\Stdlib\DateTime $dateTime
-     * @param \Magento\Event\ManagerInterface $eventManager
+     * @var \Magento\Sales\Model\Order\Address\Validator
+     */
+    protected $_validator;
+
+    /**
+     * @param \Magento\Framework\App\Resource $resource
+     * @param \Magento\Framework\Stdlib\DateTime $dateTime
+     * @param \Magento\Framework\Event\ManagerInterface $eventManager
      * @param \Magento\Eav\Model\Entity\TypeFactory $eavEntityTypeFactory
      * @param \Magento\Sales\Model\Resource\Factory $salesResourceFactory
+     * @param \Magento\Sales\Model\Order\Address\Validator $validator
      */
     public function __construct(
-        \Magento\App\Resource $resource,
-        \Magento\Stdlib\DateTime $dateTime,
-        \Magento\Event\ManagerInterface $eventManager,
+        \Magento\Framework\App\Resource $resource,
+        \Magento\Framework\Stdlib\DateTime $dateTime,
+        \Magento\Framework\Event\ManagerInterface $eventManager,
         \Magento\Eav\Model\Entity\TypeFactory $eavEntityTypeFactory,
-        \Magento\Sales\Model\Resource\Factory $salesResourceFactory
+        \Magento\Sales\Model\Resource\Factory $salesResourceFactory,
+        \Magento\Sales\Model\Order\Address\Validator $validator
     ) {
+        $this->_validator = $validator;
         parent::__construct($resource, $dateTime, $eventManager, $eavEntityTypeFactory);
         $this->_salesResourceFactory = $salesResourceFactory;
+
     }
 
     /**
@@ -94,12 +101,31 @@ class Address extends AbstractOrder
     }
 
     /**
+     * Performs validation before save
+     *
+     * @param \Magento\Framework\Model\AbstractModel $object
+     * @return $this
+     * @throws \Magento\Framework\Model\Exception
+     */
+    protected function _beforeSave(\Magento\Framework\Model\AbstractModel $object)
+    {
+        parent::_beforeSave($object);
+        $warnings = $this->_validator->validate($object);
+        if (!empty($warnings)) {
+            throw new \Magento\Framework\Model\Exception(
+                __("Cannot save address") . ":\n" . implode("\n", $warnings)
+            );
+        }
+        return $this;
+    }
+
+    /**
      * Update related grid table after object save
      *
-     * @param \Magento\Model\AbstractModel|\Magento\Object $object
-     * @return \Magento\Model\Resource\Db\AbstractDb
+     * @param \Magento\Framework\Model\AbstractModel|\Magento\Framework\Object $object
+     * @return \Magento\Framework\Model\Resource\Db\AbstractDb
      */
-    protected function _afterSave(\Magento\Model\AbstractModel $object)
+    protected function _afterSave(\Magento\Framework\Model\AbstractModel $object)
     {
         $resource = parent::_afterSave($object);
         if ($object->hasDataChanges() && $object->getOrder()) {

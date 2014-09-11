@@ -52,7 +52,7 @@ class Plugin
     /**
      * @param \Magento\Catalog\Controller\Adminhtml\Product\Builder $subject
      * @param callable $proceed
-     * @param \Magento\App\RequestInterface $request
+     * @param \Magento\Framework\App\RequestInterface $request
      *
      * @return \Magento\Catalog\Model\Product
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
@@ -61,7 +61,7 @@ class Plugin
     public function aroundBuild(
         \Magento\Catalog\Controller\Adminhtml\Product\Builder $subject,
         \Closure $proceed,
-        \Magento\App\RequestInterface $request
+        \Magento\Framework\App\RequestInterface $request
     ) {
         $product = $proceed($request);
 
@@ -85,16 +85,10 @@ class Plugin
             }
         }
 
-        if ($request->getParam(
-            'popup'
-        ) && $request->getParam(
-            'product'
-        ) && !is_array(
-            $request->getParam('product')
-        ) && $request->getParam(
-            'id',
-            false
-        ) === false
+        if ($request->getParam('popup')
+            && $request->getParam('product')
+            && !is_array($request->getParam('product'))
+            && $request->getParam('id', false) === false
         ) {
             $configProduct = $this->productFactory->create();
             $configProduct->setStoreId(0)->load($request->getParam('product'))->setTypeId($request->getParam('type'));

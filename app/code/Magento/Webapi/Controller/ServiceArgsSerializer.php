@@ -28,9 +28,10 @@ namespace Magento\Webapi\Controller;
 use Zend\Code\Reflection\ClassReflection;
 use Zend\Code\Reflection\MethodReflection;
 use Zend\Code\Reflection\ParameterReflection;
-use Magento\ObjectManager;
+use Magento\Framework\ObjectManager;
 use Magento\Webapi\Model\Config\ClassReflector\TypeProcessor;
 use Magento\Webapi\Model\Soap\Wsdl\ComplexTypeStrategy;
+use \Magento\Webapi\DeserializationException;
 
 class ServiceArgsSerializer
 {
@@ -76,23 +77,23 @@ class ServiceArgsSerializer
         /** @var ParameterReflection[] $params */
         $params = $serviceMethod->getParameters();
 
-        $inputData = array();
+        $inputData = [];
         foreach ($params as $param) {
             $paramName = $param->getName();
-            if (isset($inputArray[$paramName])) {
+            $snakeCaseParamName = strtolower(preg_replace("/(?<=\\w)(?=[A-Z])/", "_$1", $paramName));
+            if (isset($inputArray[$paramName]) || isset($inputArray[$snakeCaseParamName])) {
+                $paramValue = isset($inputArray[$paramName])
+                    ? $inputArray[$paramName]
+                    : $inputArray[$snakeCaseParamName];
+
                 if ($this->_isArrayParam($param)) {
                     $paramType = "{$param->getType()}[]";
-                    /** Eliminate 'item' node if present. It is wrapping all data, declared in WSDL as array */
-                    $paramValue = isset(
-                        $inputArray[$paramName][ComplexTypeStrategy::ARRAY_ITEM_KEY_NAME]
-                    ) ? $inputArray[$paramName][ComplexTypeStrategy::ARRAY_ITEM_KEY_NAME] : $inputArray[$paramName];
                 } else {
                     $paramType = $param->getType();
-                    $paramValue = $inputArray[$paramName];
                 }
                 $inputData[] = $this->_convertValue($paramValue, $paramType);
             } else {
-                $inputData[] = $param->getDefaultValue();                   // not set, so use default
+                $inputData[] = $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null;
             }
         }
 
@@ -114,11 +115,7 @@ class ServiceArgsSerializer
             /** This pattern will help to skip parameters declarations which precede to the current one */
             $precedingParamsPattern = str_repeat('.*\@param.*', $param->getPosition());
             $paramType = str_replace('\\', '\\\\', $param->getType());
-            if (preg_match(
-                "/.*{$precedingParamsPattern}\\@param\\s+({$paramType}\\[\\]).*/is",
-                $docBlock->getContents()
-            )
-            ) {
+            if (preg_match("/.*{$precedingParamsPattern}\@param\s+({$paramType}\[\]).*/is", $docBlock->getContents())) {
                 $isArray = true;
             }
         }
@@ -141,6 +138,7 @@ class ServiceArgsSerializer
         $class = new ClassReflection($className);
         foreach ($data as $propertyName => $value) {
             // Converts snake_case to uppercase CamelCase to help form getter/setter method names
+            // This use case is for REST only. SOAP request data is already camel cased
             $camelCaseProperty = str_replace(' ', '', ucwords(str_replace('_', ' ', $propertyName)));
             $methodName = $this->_processGetterMethod($class, $camelCaseProperty);
             $methodReflection = $class->getMethod($methodName);
@@ -162,17 +160,24 @@ class ServiceArgsSerializer
      */
     protected function _convertValue($value, $type)
     {
-        if ($this->_typeProcessor->isTypeSimple($type)) {
-            $result = $this->_typeProcessor->processSimpleType($value, $type);
-        } elseif ($this->_typeProcessor->isArrayType($type)) {
-            $itemType = $this->_typeProcessor->getArrayItemType($type);
-            // Initializing the result for array type else it will return null for empty array
-            $result = is_array($value) ? array() : null;
-            foreach ($value as $key => $item) {
-                $result[$key] = $this->_createFromArray($itemType, $item);
-            }
+        $isArrayType = $this->_typeProcessor->isArrayType($type);
+        if ($isArrayType && isset($value['item'])) {
+            $value = $this->_removeSoapItemNode($value);
+        }
+        if ($this->_typeProcessor->isTypeSimple($type) || $this->_typeProcessor->isTypeAny($type)) {
+            $result = $this->_typeProcessor->processSimpleAndAnyType($value, $type);
         } else {
-            $result = $this->_createFromArray($type, $value);
+            /** Complex type or array of complex types */
+            if ($isArrayType) {
+                // Initializing the result for array type else it will return null for empty array
+                $result = is_array($value) ? [] : null;
+                $itemType = $this->_typeProcessor->getArrayItemType($type);
+                foreach ($value as $key => $item) {
+                    $result[$key] = $this->_createFromArray($itemType, $item);
+                }
+            } else {
+                $result = $this->_createFromArray($type, $value);
+            }
         }
         return $result;
     }
@@ -203,5 +208,32 @@ class ServiceArgsSerializer
             );
         }
         return $methodName;
+    }
+
+    /**
+     * Remove item node added by the SOAP server for array types
+     *
+     * @param array|mixed $value
+     * @return array
+     * @throws \InvalidArgumentException
+     */
+    protected function _removeSoapItemNode($value)
+    {
+        if (isset($value['item'])) {
+            if (is_array($value['item'])) {
+                $value = $value['item'];
+            } else {
+                return [$value['item']];
+            }
+        } else {
+            throw new \InvalidArgumentException('Value must be an array and must contain "item" field.');
+        }
+        /**
+         * In case when only one Data object value is passed, it will not be wrapped into a subarray
+         * within item node. If several Data object values are passed, they will be wrapped into
+         * an indexed array within item node.
+         */
+        $isAssociative = array_keys($value) !== range(0, count($value) - 1);
+        return $isAssociative ? [$value] : $value;
     }
 }

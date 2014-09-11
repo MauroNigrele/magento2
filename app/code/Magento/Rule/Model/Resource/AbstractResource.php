@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Rule
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -27,13 +25,11 @@
 /**
  * Abstract Rule entity resource model
  *
- * @category Magento
- * @package Magento_Rule
  * @author Magento Core Team <core@magentocommerce.com>
  */
 namespace Magento\Rule\Model\Resource;
 
-abstract class AbstractResource extends \Magento\Model\Resource\Db\AbstractDb
+abstract class AbstractResource extends \Magento\Framework\Model\Resource\Db\AbstractDb
 {
     /**
      * Store associated with rule entities information map
@@ -60,21 +56,21 @@ abstract class AbstractResource extends \Magento\Model\Resource\Db\AbstractDb
     /**
      * Prepare rule's active "from" and "to" dates
      *
-     * @param \Magento\Model\AbstractModel $object
+     * @param \Magento\Framework\Model\AbstractModel $object
      * @return $this
      */
-    public function _beforeSave(\Magento\Model\AbstractModel $object)
+    public function _beforeSave(\Magento\Framework\Model\AbstractModel $object)
     {
         $fromDate = $object->getFromDate();
         if ($fromDate instanceof \Zend_Date) {
-            $object->setFromDate($fromDate->toString(\Magento\Stdlib\DateTime::DATETIME_INTERNAL_FORMAT));
+            $object->setFromDate($fromDate->toString(\Magento\Framework\Stdlib\DateTime::DATETIME_INTERNAL_FORMAT));
         } elseif (!is_string($fromDate) || empty($fromDate)) {
             $object->setFromDate(null);
         }
 
         $toDate = $object->getToDate();
         if ($toDate instanceof \Zend_Date) {
-            $object->setToDate($toDate->toString(\Magento\Stdlib\DateTime::DATETIME_INTERNAL_FORMAT));
+            $object->setToDate($toDate->toString(\Magento\Framework\Stdlib\DateTime::DATETIME_INTERNAL_FORMAT));
         } elseif (!is_string($toDate) || empty($toDate)) {
             $object->setToDate(null);
         }
@@ -94,67 +90,77 @@ abstract class AbstractResource extends \Magento\Model\Resource\Db\AbstractDb
      */
     public function bindRuleToEntity($ruleIds, $entityIds, $entityType)
     {
+        $this->_getWriteAdapter()->beginTransaction();
+
+        try {
+            $this->_multiplyBunchInsert($ruleIds, $entityIds, $entityType);
+        } catch (\Exception $e) {
+            $this->_getWriteAdapter()->rollback();
+            throw $e;
+        }
+
+        $this->_getWriteAdapter()->commit();
+
+        return $this;
+    }
+
+    /**
+     * Multiply rule ids by entity ids and insert
+     *
+     * @param int|[] $ruleIds
+     * @param int|[] $entityIds
+     * @param string $entityType
+     * @return $this
+     */
+    protected function _multiplyBunchInsert($ruleIds, $entityIds, $entityType)
+    {
         if (empty($ruleIds) || empty($entityIds)) {
             return $this;
         }
-        $adapter = $this->_getWriteAdapter();
-        $entityInfo = $this->_getAssociatedEntityInfo($entityType);
-
         if (!is_array($ruleIds)) {
             $ruleIds = array((int)$ruleIds);
         }
         if (!is_array($entityIds)) {
             $entityIds = array((int)$entityIds);
         }
-
         $data = array();
         $count = 0;
-
-        $adapter->beginTransaction();
-
-        try {
-            foreach ($ruleIds as $ruleId) {
-                foreach ($entityIds as $entityId) {
-                    $data[] = array(
-                        $entityInfo['entity_id_field'] => $entityId,
-                        $entityInfo['rule_id_field'] => $ruleId
+        $entityInfo = $this->_getAssociatedEntityInfo($entityType);
+        foreach ($ruleIds as $ruleId) {
+            foreach ($entityIds as $entityId) {
+                $data[] = array(
+                    $entityInfo['entity_id_field'] => $entityId,
+                    $entityInfo['rule_id_field'] => $ruleId
+                );
+                $count++;
+                if ($count % 1000 == 0) {
+                    $this->_getWriteAdapter()->insertOnDuplicate(
+                        $this->getTable($entityInfo['associations_table']),
+                        $data,
+                        array($entityInfo['rule_id_field'])
                     );
-                    $count++;
-                    if ($count % 1000 == 0) {
-                        $adapter->insertOnDuplicate(
-                            $this->getTable($entityInfo['associations_table']),
-                            $data,
-                            array($entityInfo['rule_id_field'])
-                        );
-                        $data = array();
-                    }
+                    $data = array();
                 }
             }
-            if (!empty($data)) {
-                $adapter->insertOnDuplicate(
-                    $this->getTable($entityInfo['associations_table']),
-                    $data,
-                    array($entityInfo['rule_id_field'])
-                );
-            }
-
-            $adapter->delete(
+        }
+        if (!empty($data)) {
+            $this->_getWriteAdapter()->insertOnDuplicate(
                 $this->getTable($entityInfo['associations_table']),
-                $adapter->quoteInto(
-                    $entityInfo['rule_id_field'] . ' IN (?) AND ',
-                    $ruleIds
-                ) . $adapter->quoteInto(
-                    $entityInfo['entity_id_field'] . ' NOT IN (?)',
-                    $entityIds
-                )
+                $data,
+                array($entityInfo['rule_id_field'])
             );
-        } catch (\Exception $e) {
-            $adapter->rollback();
-            throw $e;
         }
 
-        $adapter->commit();
-
+        $this->_getWriteAdapter()->delete(
+            $this->getTable($entityInfo['associations_table']),
+            $this->_getWriteAdapter()->quoteInto(
+                $entityInfo['rule_id_field'] . ' IN (?) AND ',
+                $ruleIds
+            ) . $this->_getWriteAdapter()->quoteInto(
+                $entityInfo['entity_id_field'] . ' NOT IN (?)',
+                $entityIds
+            )
+        );
         return $this;
     }
 
@@ -241,7 +247,7 @@ abstract class AbstractResource extends \Magento\Model\Resource\Db\AbstractDb
      *
      * @param string $entityType
      * @return array
-     * @throws \Magento\Model\Exception
+     * @throws \Magento\Framework\Model\Exception
      */
     protected function _getAssociatedEntityInfo($entityType)
     {
@@ -249,7 +255,7 @@ abstract class AbstractResource extends \Magento\Model\Resource\Db\AbstractDb
             return $this->_associatedEntitiesMap[$entityType];
         }
 
-        throw new \Magento\Model\Exception(
+        throw new \Magento\Framework\Model\Exception(
             __('There is no information about associated entity type "%1".', $entityType),
             0
         );

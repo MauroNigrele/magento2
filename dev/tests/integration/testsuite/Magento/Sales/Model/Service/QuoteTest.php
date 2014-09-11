@@ -101,7 +101,7 @@ class QuoteTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @magentoDataFixture Magento/Sales/_files/quote.php
-     * @expectedException \Magento\Exception\InputException
+     * @expectedException \Magento\Framework\Exception\InputException
      * @expectedExceptionMessage One or more input exceptions have occurred.
      */
     public function testSubmitOrderInvalidCustomerData()
@@ -123,7 +123,7 @@ class QuoteTest extends \PHPUnit_Framework_TestCase
         )->setAddresses(
             $this->getSampleAddressEntity()
         )->create();
-        $customerData = $this->_customerAccountService->createAccount($customerDetails, 'password');
+        $customerData = $this->_customerAccountService->createCustomer($customerDetails, 'password');
 
         $existingCustomerId = $customerData->getId();
         $customerData = $this->_customerBuilder->mergeDataObjectWithArray(
@@ -168,6 +168,7 @@ class QuoteTest extends \PHPUnit_Framework_TestCase
     private function _prepareQuote($customerIsGuest)
     {
         $quoteFixture = $this->_prepareQuoteFixture($customerIsGuest);
+        $quoteFixture->setCustomerEmail('admin@example.com');
         $this->_serviceQuote = Bootstrap::getObjectManager()->create(
             'Magento\Sales\Model\Service\Quote',
             array('quote' => $quoteFixture)
@@ -228,6 +229,7 @@ class QuoteTest extends \PHPUnit_Framework_TestCase
      */
     private function getSampleAddressEntity()
     {
+        $regionBuilder =  Bootstrap::getObjectManager()->create('\Magento\Customer\Service\V1\Data\RegionBuilder');
         $this->_customerAddressBuilder->setCountryId(
             'US'
         )->setDefaultBilling(
@@ -237,7 +239,7 @@ class QuoteTest extends \PHPUnit_Framework_TestCase
         )->setPostcode(
             '75477'
         )->setRegion(
-            (new RegionBuilder())->setRegion('Alabama')->setRegionId(1)->setRegionCode('AL')->create()
+            $regionBuilder->setRegion('Alabama')->setRegionId(1)->setRegionCode('AL')->create()
         )->setStreet(
             array('Green str, 67')
         )->setTelephone(
@@ -260,7 +262,7 @@ class QuoteTest extends \PHPUnit_Framework_TestCase
         )->setPostcode(
             '47676'
         )->setRegion(
-            (new RegionBuilder())->setRegion('Alabama')->setRegionId(1)->setRegionCode('AL')->create()
+            $regionBuilder->setRegion('Alabama')->setRegionId(1)->setRegionCode('AL')->create()
         )->setStreet(
             array('Black str, 48')
         )->setCity(

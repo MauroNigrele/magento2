@@ -38,7 +38,7 @@ class CartTest extends \PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        $this->_eventManagerMock = $this->getMock('Magento\Event\ManagerInterface');
+        $this->_eventManagerMock = $this->getMock('Magento\Framework\Event\ManagerInterface');
         $this->_salesModelMock = $this->getMock('Magento\Payment\Model\Cart\SalesModel\SalesModelInterface');
         $factoryMock = $this->getMock('Magento\Payment\Model\Cart\SalesModel\Factory', array(), array(), '', false);
         $factoryMock->expects($this->once())->method('create')->will($this->returnValue($this->_salesModelMock));
@@ -108,12 +108,12 @@ class CartTest extends \PHPUnit_Framework_TestCase
 
         $customItems = array();
         if ($transferFlags['transfer_shipping']) {
-            $customItems[] = new \Magento\Object(
+            $customItems[] = new \Magento\Framework\Object(
                 array('name' => 'Shipping', 'qty' => 1, 'amount' => $salesModelAmounts['BaseShippingAmount'])
             );
         }
         if ($transferFlags['transfer_discount']) {
-            $customItems[] = new \Magento\Object(
+            $customItems[] = new \Magento\Framework\Object(
                 array('name' => 'Discount', 'qty' => 1, 'amount' => -1.00 * $salesModelAmounts['BaseDiscountAmount'])
             );
         }
@@ -294,11 +294,22 @@ class CartTest extends \PHPUnit_Framework_TestCase
      */
     protected function _getSalesModelItems()
     {
+        $product = new \Magento\Framework\Object(['id' => '1']);
         return array(
-            new \Magento\Object(array('name' => 'name 1', 'qty' => 1, 'price' => 0.1)),
-            new \Magento\Object(array('name' => 'name 2', 'qty' => 2, 'price' => 1.2)),
-            new \Magento\Object(
-                array('parent_item' => 'parent item 3', 'name' => 'name 3', 'qty' => 3, 'price' => 2.3)
+            new \Magento\Framework\Object(
+                ['name' => 'name 1', 'qty' => 1, 'price' => 0.1, 'original_item' => $product]
+            ),
+            new \Magento\Framework\Object(
+                ['name' => 'name 2', 'qty' => 2, 'price' => 1.2, 'original_item' => $product]
+            ),
+            new \Magento\Framework\Object(
+                [
+                    'parent_item' => 'parent item 3',
+                    'name' => 'name 3',
+                    'qty' => 3,
+                    'price' => 2.3,
+                    'original_item' => $product
+                ]
             )
         );
     }
@@ -316,8 +327,13 @@ class CartTest extends \PHPUnit_Framework_TestCase
             if ($item->getParentItem()) {
                 continue;
             }
-            $result[] = new \Magento\Object(
-                array('name' => $item->getName(), 'qty' => $item->getQty(), 'amount' => $item->getPrice())
+            $result[] = new \Magento\Framework\Object(
+                array(
+                    'name' => $item->getName(),
+                    'qty' => $item->getQty(),
+                    'amount' => $item->getPrice(),
+                    'id' => $item->getOriginalItem()->getId()
+                )
             );
         }
         return $result;

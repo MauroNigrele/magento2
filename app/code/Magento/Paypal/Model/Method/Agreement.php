@@ -18,14 +18,12 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Paypal
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 namespace Magento\Paypal\Model\Method;
 
-use Magento\Core\Model\Store;
+use Magento\Store\Model\Store;
 use Magento\Payment\Model\Info;
 use Magento\Sales\Model\Order\Payment;
 
@@ -89,14 +87,14 @@ class Agreement extends \Magento\Paypal\Model\Payment\Method\Billing\AbstractAgr
      *
      * @var bool
      */
-    protected $_canUseCheckout = false;
+    protected $_canUseCheckout = true;
 
     /**
      * Method instance setting
      *
      * @var bool
      */
-    protected $_canUseInternal = false;
+    protected $_canUseInternal = true;
 
     /**
      * Method instance setting
@@ -120,12 +118,12 @@ class Agreement extends \Magento\Paypal\Model\Payment\Method\Billing\AbstractAgr
     protected $_pro;
 
     /**
-     * @var \Magento\Core\Model\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
-     * @var \Magento\UrlInterface
+     * @var \Magento\Framework\UrlInterface
      */
     protected $_urlBuilder;
 
@@ -135,28 +133,28 @@ class Agreement extends \Magento\Paypal\Model\Payment\Method\Billing\AbstractAgr
     protected $_cartFactory;
 
     /**
-     * @param \Magento\Event\ManagerInterface $eventManager
+     * @param \Magento\Framework\Event\ManagerInterface $eventManager
      * @param \Magento\Payment\Helper\Data $paymentData
-     * @param \Magento\Core\Model\Store\ConfigInterface $coreStoreConfig
-     * @param \Magento\Logger\AdapterFactory $logAdapterFactory
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+     * @param \Magento\Framework\Logger\AdapterFactory $logAdapterFactory
      * @param \Magento\Paypal\Model\Billing\AgreementFactory $agreementFactory
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
-     * @param \Magento\Paypal\Model\Method\ProTypeFactory $proTypeFactory
-     * @param \Magento\UrlInterface $urlBuilder
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Paypal\Model\ProFactory $proFactory
+     * @param \Magento\Framework\UrlInterface $urlBuilder
      * @param \Magento\Paypal\Model\CartFactory $cartFactory
      * @param array $data
      *
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
-        \Magento\Event\ManagerInterface $eventManager,
+        \Magento\Framework\Event\ManagerInterface $eventManager,
         \Magento\Payment\Helper\Data $paymentData,
-        \Magento\Core\Model\Store\ConfigInterface $coreStoreConfig,
-        \Magento\Logger\AdapterFactory $logAdapterFactory,
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        \Magento\Framework\Logger\AdapterFactory $logAdapterFactory,
         \Magento\Paypal\Model\Billing\AgreementFactory $agreementFactory,
-        \Magento\Core\Model\StoreManagerInterface $storeManager,
-        \Magento\Paypal\Model\Method\ProTypeFactory $proTypeFactory,
-        \Magento\UrlInterface $urlBuilder,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Paypal\Model\ProFactory $proFactory,
+        \Magento\Framework\UrlInterface $urlBuilder,
         \Magento\Paypal\Model\CartFactory $cartFactory,
         array $data = array()
     ) {
@@ -166,7 +164,7 @@ class Agreement extends \Magento\Paypal\Model\Payment\Method\Billing\AbstractAgr
         parent::__construct(
             $eventManager,
             $paymentData,
-            $coreStoreConfig,
+            $scopeConfig,
             $logAdapterFactory,
             $agreementFactory,
             $data
@@ -175,7 +173,7 @@ class Agreement extends \Magento\Paypal\Model\Payment\Method\Billing\AbstractAgr
         if ($proInstance && $proInstance instanceof \Magento\Paypal\Model\Pro) {
             $this->_pro = $proInstance;
         } else {
-            $this->_pro = $proTypeFactory->create('Magento\Paypal\Model\Pro');
+            $this->_pro = $proFactory->create();
         }
         $this->_pro->setMethod($this->_code);
     }
@@ -257,7 +255,7 @@ class Agreement extends \Magento\Paypal\Model\Payment\Method\Billing\AbstractAgr
      *
      * @param \Magento\Paypal\Model\Billing\AbstractAgreement $agreement
      * @return $this
-     * @throws \Exception|\Magento\Model\Exception
+     * @throws \Exception|\Magento\Framework\Model\Exception
      */
     public function updateBillingAgreementStatus(\Magento\Paypal\Model\Billing\AbstractAgreement $agreement)
     {
@@ -269,7 +267,7 @@ class Agreement extends \Magento\Paypal\Model\Payment\Method\Billing\AbstractAgr
         );
         try {
             $api->callUpdateBillingAgreement();
-        } catch (\Magento\Model\Exception $e) {
+        } catch (\Magento\Framework\Model\Exception $e) {
             // when BA was already canceled, just pretend that the operation succeeded
             if (!(\Magento\Paypal\Model\Billing\Agreement::STATUS_CANCELED == $targetStatus &&
                 $api->getIsBillingAgreementAlreadyCancelled())
@@ -283,11 +281,11 @@ class Agreement extends \Magento\Paypal\Model\Payment\Method\Billing\AbstractAgr
     /**
      * Authorize payment
      *
-     * @param \Magento\Object $payment
+     * @param \Magento\Framework\Object $payment
      * @param float $amount
      * @return $this
      */
-    public function authorize(\Magento\Object $payment, $amount)
+    public function authorize(\Magento\Framework\Object $payment, $amount)
     {
         return $this->_placeOrder($payment, $amount);
     }
@@ -295,10 +293,10 @@ class Agreement extends \Magento\Paypal\Model\Payment\Method\Billing\AbstractAgr
     /**
      * Void payment
      *
-     * @param \Magento\Object|Payment $payment
+     * @param \Magento\Framework\Object|Payment $payment
      * @return $this
      */
-    public function void(\Magento\Object $payment)
+    public function void(\Magento\Framework\Object $payment)
     {
         $this->_pro->void($payment);
         return $this;
@@ -307,11 +305,11 @@ class Agreement extends \Magento\Paypal\Model\Payment\Method\Billing\AbstractAgr
     /**
      * Capture payment
      *
-     * @param \Magento\Object|Payment $payment
+     * @param \Magento\Framework\Object|Payment $payment
      * @param float $amount
      * @return $this
      */
-    public function capture(\Magento\Object $payment, $amount)
+    public function capture(\Magento\Framework\Object $payment, $amount)
     {
         if (false === $this->_pro->capture($payment, $amount)) {
             $this->_placeOrder($payment, $amount);
@@ -322,11 +320,11 @@ class Agreement extends \Magento\Paypal\Model\Payment\Method\Billing\AbstractAgr
     /**
      * Refund capture
      *
-     * @param \Magento\Object|Payment $payment
+     * @param \Magento\Framework\Object|Payment $payment
      * @param float $amount
      * @return $this
      */
-    public function refund(\Magento\Object $payment, $amount)
+    public function refund(\Magento\Framework\Object $payment, $amount)
     {
         $this->_pro->refund($payment, $amount);
         return $this;
@@ -335,10 +333,10 @@ class Agreement extends \Magento\Paypal\Model\Payment\Method\Billing\AbstractAgr
     /**
      * Cancel payment
      *
-     * @param \Magento\Object|Payment $payment
+     * @param \Magento\Framework\Object|Payment $payment
      * @return $this
      */
-    public function cancel(\Magento\Object $payment)
+    public function cancel(\Magento\Framework\Object $payment)
     {
         $this->_pro->cancel($payment);
         return $this;
@@ -414,7 +412,7 @@ class Agreement extends \Magento\Paypal\Model\Payment\Method\Billing\AbstractAgr
         $api = $this->_pro->getApi()->setReferenceId(
             $billingAgreement->getReferenceId()
         )->setPaymentAction(
-            $proConfig->paymentAction
+            $proConfig->getConfigValue('paymentAction')
         )->setAmount(
             $amount
         )->setCurrencyCode(
@@ -424,7 +422,7 @@ class Agreement extends \Magento\Paypal\Model\Payment\Method\Billing\AbstractAgr
         )->setPaypalCart(
             $cart
         )->setIsLineItemsEnabled(
-            $proConfig->lineItemsEnabled
+            $proConfig->getConfigValue('lineItemsEnabled')
         )->setInvNum(
             $order->getIncrementId()
         );

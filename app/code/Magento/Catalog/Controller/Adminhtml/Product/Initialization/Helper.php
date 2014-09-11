@@ -26,17 +26,12 @@ namespace Magento\Catalog\Controller\Adminhtml\Product\Initialization;
 class Helper
 {
     /**
-     * @var \Magento\App\RequestInterface
+     * @var \Magento\Framework\App\RequestInterface
      */
     protected $request;
 
     /**
-     * @var \Magento\Backend\Helper\Js
-     */
-    protected $jsHelper;
-
-    /**
-     * @var \Magento\Core\Model\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $storeManager;
 
@@ -46,29 +41,34 @@ class Helper
     protected $stockFilter;
 
     /**
-     * @var Helper\ProductLinks
+     * @var \Magento\Catalog\Model\Product\Initialization\Helper\ProductLinks
      */
     protected $productLinks;
 
     /**
-     * @param \Magento\App\RequestInterface $request
-     * @param \Magento\Backend\Helper\Js $jsHelper
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
+     * @var \Magento\Backend\Helper\Js
+     */
+    protected $jsHelper;
+
+    /**
+     * @param \Magento\Framework\App\RequestInterface $request
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param StockDataFilter $stockFilter
-     * @param Helper\ProductLinks $productLinks
+     * @param \Magento\Catalog\Model\Product\Initialization\Helper\ProductLinks $productLinks
+     * @param \Magento\Backend\Helper\Js $jsHelper
      */
     public function __construct(
-        \Magento\App\RequestInterface $request,
-        \Magento\Backend\Helper\Js $jsHelper,
-        \Magento\Core\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\App\RequestInterface $request,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         StockDataFilter $stockFilter,
-        Helper\ProductLinks $productLinks
+        \Magento\Catalog\Model\Product\Initialization\Helper\ProductLinks $productLinks,
+        \Magento\Backend\Helper\Js $jsHelper
     ) {
         $this->request = $request;
-        $this->jsHelper = $jsHelper;
         $this->storeManager = $storeManager;
         $this->stockFilter = $stockFilter;
         $this->productLinks = $productLinks;
+        $this->jsHelper = $jsHelper;
     }
 
     /**
@@ -125,13 +125,26 @@ class Helper
             }
         }
 
-        $product = $this->productLinks->initializeLinks($product);
+        $links = $this->request->getPost('links');
+        $links = is_array($links) ? $links : array();
+        $linkTypes = array('related', 'upsell', 'crosssell');
+        foreach ($linkTypes as $type) {
+            if (isset($links[$type])) {
+                $links[$type] = $this->jsHelper->decodeGridSerializedInput($links[$type]);
+            }
+        }
+        $product = $this->productLinks->initializeLinks($product, $links);
 
         /**
          * Initialize product options
          */
         if (isset($productData['options']) && !$product->getOptionsReadonly()) {
-            $product->setProductOptions($productData['options']);
+            // mark custom options that should to fall back to default value
+            $options = $this->mergeProductOptions(
+                $productData['options'],
+                $this->request->getPost('options_use_default')
+            );
+            $product->setProductOptions($options);
         }
 
         $product->setCanSaveCustomOptions(
@@ -139,5 +152,31 @@ class Helper
         );
 
         return $product;
+    }
+
+    /**
+     * Merge product and default options for product
+     *
+     * @param array $productOptions product options
+     * @param array $overwriteOptions default value options
+     * @return array
+     */
+    public function mergeProductOptions($productOptions, $overwriteOptions)
+    {
+        if (!is_array($productOptions)) {
+            $productOptions = [];
+        }
+        if (is_array($overwriteOptions)) {
+            $options = array_replace_recursive($productOptions, $overwriteOptions);
+            array_walk_recursive($options, function (&$item) {
+                if ($item === "") {
+                    $item = null;
+                }
+            });
+        } else {
+            $options = $productOptions;
+        }
+
+        return $options;
     }
 }

@@ -18,19 +18,25 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category   Tools
- * @package    DI
  * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 require __DIR__ . '/../../../bootstrap.php';
 $rootDir = realpath(__DIR__ . '/../../../../../');
+use Magento\Framework\ObjectManager\Code\Generator\Factory;
+use Magento\Framework\ObjectManager\Code\Generator\Repository;
+use Magento\Framework\ObjectManager\Code\Generator\Proxy;
 use Magento\Tools\Di\Compiler\Log\Log;
 use Magento\Tools\Di\Compiler\Log\Writer;
 use Magento\Tools\Di\Compiler\Directory;
 use Magento\Tools\Di\Code\Scanner;
 use Magento\Tools\Di\Definition\Compressor;
 use Magento\Tools\Di\Definition\Serializer;
+use Magento\Framework\Service\Code\Generator\Builder;
+use Magento\Framework\Service\Code\Generator\Mapper;
+use Magento\Framework\ObjectManager\Code\Generator\Converter;
+use Magento\Framework\Service\Code\Generator\SearchResults;
+use Magento\Framework\Service\Code\Generator\SearchResultsBuilder;
 
 $filePatterns = array('php' => '/.*\.php$/', 'di' => '/\/etc\/([a-zA-Z_]*\/di|di)\.xml$/');
 $codeScanDir = realpath($rootDir . '/app');
@@ -47,14 +53,14 @@ try {
     $opt->parse();
 
     $generationDir = $opt->getOption('generation') ? $opt->getOption('generation') : $rootDir . '/var/generation';
-    \Magento\Autoload\IncludePath::addIncludePath($generationDir);
+    (new \Magento\Framework\Autoload\IncludePath())->addIncludePath($generationDir);
 
     $diDir = $opt->getOption('di') ? $opt->getOption('di') : $rootDir . '/var/di';
     $compiledFile = $diDir . '/definitions.php';
     $relationsFile = $diDir . '/relations.php';
     $pluginDefFile = $diDir . '/plugins.php';
 
-    $compilationDirs = array($rootDir . '/app/code', $rootDir . '/lib/Magento');
+    $compilationDirs = array($rootDir . '/app/code', $rootDir . '/lib/internal/Magento');
 
     /** @var Writer\WriterInterface $logWriter Writer model for success messages */
     $logWriter = $opt->getOption('v') ? new Writer\Console() : new Writer\Quiet();
@@ -65,9 +71,9 @@ try {
     $log = new Log($logWriter, $errorWriter);
     $serializer = $opt->getOption('serializer') == 'binary' ? new Serializer\Igbinary() : new Serializer\Standard();
 
-    $validator = new \Magento\Code\Validator();
-    $validator->add(new \Magento\Code\Validator\ConstructorIntegrity());
-    $validator->add(new \Magento\Code\Validator\ContextAggregation());
+    $validator = new \Magento\Framework\Code\Validator();
+    $validator->add(new \Magento\Framework\Code\Validator\ConstructorIntegrity());
+    $validator->add(new \Magento\Framework\Code\Validator\ContextAggregation());
 
     // 1 Code generation
     // 1.1 Code scan
@@ -86,30 +92,42 @@ try {
     $entities['interceptors'] = $interceptorScanner->collectEntities($files['di']);
 
     // 1.2 Generation of Factory and Additional Classes
-    $generatorIo = new \Magento\Code\Generator\Io(new \Magento\Filesystem\Driver\File(), null, $generationDir);
-    $generator = new \Magento\Code\Generator(
+    $generatorIo = new \Magento\Framework\Code\Generator\Io(
+        new \Magento\Framework\Filesystem\Driver\File(),
+        null,
+        $generationDir
+    );
+    $generator = new \Magento\Framework\Code\Generator(
         null,
         $generatorIo,
         array(
-            \Magento\Interception\Code\Generator\Interceptor::ENTITY_TYPE =>
-                'Magento\Interception\Code\Generator\Interceptor',
-            \Magento\ObjectManager\Code\Generator\Proxy::ENTITY_TYPE => 'Magento\ObjectManager\Code\Generator\Proxy',
-            \Magento\ObjectManager\Code\Generator\Factory::ENTITY_TYPE => 'Magento\ObjectManager\Code\Generator\Factory'
+            \Magento\Framework\Interception\Code\Generator\Interceptor::ENTITY_TYPE =>
+                'Magento\Framework\Interception\Code\Generator\Interceptor',
+            SearchResultsBuilder::ENTITY_TYPE => 'Magento\Framework\Service\Code\Generator\SearchResultsBuilder',
+            Proxy::ENTITY_TYPE => 'Magento\Framework\ObjectManager\Code\Generator\Proxy',
+            Factory::ENTITY_TYPE => 'Magento\Framework\ObjectManager\Code\Generator\Factory',
+            Builder::ENTITY_TYPE => 'Magento\Framework\Service\Code\Generator\Builder',
+            Mapper::ENTITY_TYPE => 'Magento\Framework\Service\Code\Generator\Mapper',
+            Repository::ENTITY_TYPE => 'Magento\Framework\ObjectManager\Code\Generator\Repository',
+            Converter::ENTITY_TYPE => 'Magento\Framework\ObjectManager\Code\Generator\Converter',
+            SearchResults::ENTITY_TYPE => 'Magento\Framework\Service\Code\Generator\SearchResults',
         )
     );
+    $autoloader = new \Magento\Framework\Code\Generator\Autoloader($generator);
+    spl_autoload_register(array($autoloader, 'load'));
     foreach (array('php', 'additional') as $type) {
         sort($entities[$type]);
         foreach ($entities[$type] as $entityName) {
             switch ($generator->generateClass($entityName)) {
-                case \Magento\Code\Generator::GENERATION_SUCCESS:
+                case \Magento\Framework\Code\Generator::GENERATION_SUCCESS:
                     $log->add(Log::GENERATION_SUCCESS, $entityName);
                     break;
 
-                case \Magento\Code\Generator::GENERATION_ERROR:
+                case \Magento\Framework\Code\Generator::GENERATION_ERROR:
                     $log->add(Log::GENERATION_ERROR, $entityName);
                     break;
 
-                case \Magento\Code\Generator::GENERATION_SKIP:
+                case \Magento\Framework\Code\Generator::GENERATION_SKIP:
                 default:
                     //no log
                     break;
@@ -136,15 +154,15 @@ try {
     foreach (array('interceptors', 'di') as $type) {
         foreach ($entities[$type] as $entityName) {
             switch ($generator->generateClass($entityName)) {
-                case \Magento\Code\Generator::GENERATION_SUCCESS:
+                case \Magento\Framework\Code\Generator::GENERATION_SUCCESS:
                     $log->add(Log::GENERATION_SUCCESS, $entityName);
                     break;
 
-                case \Magento\Code\Generator::GENERATION_ERROR:
+                case \Magento\Framework\Code\Generator::GENERATION_ERROR:
                     $log->add(Log::GENERATION_ERROR, $entityName);
                     break;
 
-                case \Magento\Code\Generator::GENERATION_SKIP:
+                case \Magento\Framework\Code\Generator::GENERATION_SKIP:
                 default:
                     //no log
                     break;
@@ -173,7 +191,7 @@ try {
     $pluginScanner->addChild(new Scanner\PluginScanner(), 'di');
     $pluginDefinitions = array();
     $pluginList = $pluginScanner->collectEntities($files);
-    $pluginDefinitionList = new \Magento\Interception\Definition\Runtime();
+    $pluginDefinitionList = new \Magento\Framework\Interception\Definition\Runtime();
     foreach ($pluginList as $type => $entityList) {
         foreach ($entityList as $entity) {
             $pluginDefinitions[$entity] = $pluginDefinitionList->getMethodList($entity);

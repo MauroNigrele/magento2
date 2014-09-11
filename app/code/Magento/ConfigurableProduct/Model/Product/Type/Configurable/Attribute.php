@@ -25,6 +25,8 @@
  */
 namespace Magento\ConfigurableProduct\Model\Product\Type\Configurable;
 
+use Magento\Framework\Model\Context;
+
 /**
  * @method Attribute _getResource()
  * @method Attribute getResource()
@@ -37,7 +39,7 @@ namespace Magento\ConfigurableProduct\Model\Product\Type\Configurable;
  * @method Attribute setProductAttribute(\Magento\Eav\Model\Entity\Attribute\AbstractAttribute $value)
  * @method \Magento\Eav\Model\Entity\Attribute\AbstractAttribute getProductAttribute()
  */
-class Attribute extends \Magento\Model\AbstractModel
+class Attribute extends \Magento\Framework\Model\AbstractModel
 {
     /**
      * Initialize resource model

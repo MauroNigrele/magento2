@@ -18,9 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Adminhtml
- * @subpackage  unit_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -34,7 +31,7 @@ class EditTest extends \PHPUnit_Framework_TestCase
     protected $_block;
 
     /**
-     * @var \Magento\Registry|\PHPUnit_Framework_MockObject_MockObject
+     * @var \Magento\Framework\Registry|\PHPUnit_Framework_MockObject_MockObject
      */
     protected $_registryMock;
 
@@ -70,11 +67,15 @@ class EditTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         $objectManager = new \Magento\TestFramework\Helper\ObjectManager($this);
-        $this->_registryMock = $this->getMock('Magento\Registry', array(), array(), '', false, false);
-        $layoutMock = $this->getMock('Magento\Core\Model\Layout', array(), array(), '', false, false);
+        $this->_registryMock = $this->getMock('Magento\Framework\Registry', array(), array(), '', false, false);
+        $layoutMock = $this->getMock('Magento\Framework\View\Layout', array(), array(), '', false, false);
         $helperMock = $this->getMock('Magento\Backend\Helper\Data', array(), array(), '', false, false);
         $menuConfigMock = $this->getMock('Magento\Backend\Model\Menu\Config', array(), array(), '', false, false);
-        $menuMock = $this->getMock('Magento\Backend\Model\Menu', array(), array(), '', false, false);
+        $menuMock = $this->getMock(
+            'Magento\Backend\Model\Menu',
+            [],
+            [$this->getMock('Magento\Framework\Logger', [], [], '', false)]
+        );
         $menuItemMock = $this->getMock('Magento\Backend\Model\Menu\Item', array(), array(), '', false, false);
         $urlBuilder = $this->getMock('Magento\Backend\Model\Url', array(), array(), '', false, false);
         $this->_configStructureMock = $this->getMock(
@@ -88,18 +89,24 @@ class EditTest extends \PHPUnit_Framework_TestCase
         $this->_emailConfigMock = $this->getMock('Magento\Email\Model\Template\Config', array(), array(), '', false);
 
         $this->filesystemMock = $this->getMock(
-            '\Magento\App\Filesystem',
+            '\Magento\Framework\App\Filesystem',
             array('getFilesystem', '__wakeup', 'getPath', 'getDirectoryRead'),
             array(),
             '',
             false
         );
 
-        $viewFilesystem = $this->getMock('\Magento\View\Filesystem', array('getFilename'), array(), '', false);
+        $viewFilesystem = $this->getMock(
+            '\Magento\Framework\View\Filesystem',
+            array('getTemplateFileName'),
+            array(),
+            '',
+            false
+        );
         $viewFilesystem->expects(
             $this->any()
         )->method(
-            'getFilename'
+            'getTemplateFileName'
         )->will(
             $this->returnValue('var/www/magento\rootdir/app\custom/filename.phtml')
         );
@@ -256,12 +263,18 @@ class EditTest extends \PHPUnit_Framework_TestCase
     public function testGetDefaultTemplatesAsOptionsArray()
     {
         $dirValueMap = array(
-            array(\Magento\App\Filesystem::ROOT_DIR, 'var/www/magento\rootdir/'),
-            array(\Magento\App\Filesystem::APP_DIR, 'var/www/magento\rootdir\app/'),
-            array(\Magento\App\Filesystem::THEMES_DIR, 'var\www/magento\rootdir\app/themes/')
+            array(\Magento\Framework\App\Filesystem::ROOT_DIR, 'var/www/magento\rootdir/'),
+            array(\Magento\Framework\App\Filesystem::APP_DIR, 'var/www/magento\rootdir\app/'),
+            array(\Magento\Framework\App\Filesystem::THEMES_DIR, 'var\www/magento\rootdir\app/themes/')
         );
 
-        $this->directoryMock = $this->getMock('\Magento\Filesystem\Directory\Read', array(), array(), '', false);
+        $this->directoryMock = $this->getMock(
+            '\Magento\Framework\Filesystem\Directory\Read',
+            array(),
+            array(),
+            '',
+            false
+        );
         $this->directoryMock->expects($this->any())->method('isFile')->will($this->returnValue(false));
         $this->directoryMock->expects($this->any())->method('getRelativePath')->will($this->returnValue(''));
 
@@ -274,27 +287,19 @@ class EditTest extends \PHPUnit_Framework_TestCase
         );
         $this->filesystemMock->expects($this->any())->method('getPath')->will($this->returnValueMap($dirValueMap));
 
-        $this->_emailConfigMock->expects(
-            $this->once()
-        )->method(
-            'getAvailableTemplates'
-        )->will(
-            $this->returnValue(array('template_b2', 'template_a', 'template_b1'))
-        );
-        $this->_emailConfigMock->expects(
-            $this->exactly(3)
-        )->method(
-            'getTemplateModule'
-        )->will(
-            $this->onConsecutiveCalls('Fixture_ModuleB', 'Fixture_ModuleA', 'Fixture_ModuleB')
-        );
-        $this->_emailConfigMock->expects(
-            $this->exactly(3)
-        )->method(
-            'getTemplateLabel'
-        )->will(
-            $this->onConsecutiveCalls('Template B2', 'Template A', 'Template B1')
-        );
+        $this->_emailConfigMock
+            ->expects($this->once())
+            ->method('getAvailableTemplates')
+            ->will($this->returnValue(array('template_b2', 'template_a', 'template_b1')));
+        $this->_emailConfigMock
+            ->expects($this->exactly(3))
+            ->method('getTemplateModule')
+            ->will($this->onConsecutiveCalls('Fixture_ModuleB', 'Fixture_ModuleA', 'Fixture_ModuleB'));
+        $this->_emailConfigMock
+            ->expects($this->exactly(3))
+            ->method('getTemplateLabel')
+            ->will($this->onConsecutiveCalls('Template B2', 'Template A', 'Template B1'));
+
         $this->assertEmpty($this->_block->getData('template_options'));
         $this->_block->setTemplate('my/custom\template.phtml');
         $this->_block->toHtml();

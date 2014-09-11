@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    tests
- * @package     static
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -143,7 +141,6 @@ class LiveCodeTest extends PHPUnit_Framework_TestCase
     public function testAnnotationStandard()
     {
         $reportFile = self::$reportDir . '/phpcs_annotations_report.xml';
-        $warningSeverity = 5;
         $wrapper = new Wrapper();
         $codeSniffer = new CodeSniffer(
             realpath(__DIR__ . '/../../../../framework/Magento/ruleset.xml'),
@@ -154,14 +151,11 @@ class LiveCodeTest extends PHPUnit_Framework_TestCase
             $this->markTestSkipped('PHP Code Sniffer is not installed.');
         }
         self::setupFileLists('phpcs');
-        // Scan for error amount
-        $result = $codeSniffer->run(self::$whiteList, self::$blackList, array('php'), 0);
-        // Rescan to generate report with warnings.
-        $codeSniffer->run(self::$whiteList, self::$blackList, array('php'), $warningSeverity);
-        // Fail if there are errors in report.
+
+        $severity = 0; // Change to 5 to see the warnings
         $this->assertEquals(
             0,
-            $result,
+            $result = $codeSniffer->run(self::$whiteList, self::$blackList, array('php'), $severity),
             "PHP Code Sniffer has found {$result} error(s): See detailed report in {$reportFile}"
         );
     }

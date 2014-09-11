@@ -18,18 +18,16 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Core
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
+namespace Magento\Core\Model\View;
+
 /**
  * Keeps design settings for current request
  */
-namespace Magento\Core\Model\View;
-
-class Design implements \Magento\View\DesignInterface
+class Design implements \Magento\Framework\View\DesignInterface
 {
     /**
      * Package area
@@ -56,12 +54,12 @@ class Design implements \Magento\View\DesignInterface
     /**
      * Store list manager
      *
-     * @var \Magento\Core\Model\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
-     * @var \Magento\View\Design\Theme\FlyweightFactory
+     * @var \Magento\Framework\View\Design\Theme\FlyweightFactory
      */
     protected $_flyweightFactory;
 
@@ -71,50 +69,42 @@ class Design implements \Magento\View\DesignInterface
     protected $_themeFactory;
 
     /**
-     * @var \Magento\App\ConfigInterface
+     * @var \Magento\Framework\App\Config\ScopeConfigInterface
      */
-    protected $_config;
+    private $_scopeConfig;
 
     /**
-     * @var \Magento\Core\Model\Store\Config
-     */
-    private $_storeConfig;
-
-    /**
-     * @var \Magento\Locale\ResolverInterface
+     * @var \Magento\Framework\Locale\ResolverInterface
      */
     protected $_locale;
 
     /**
-     * @var \Magento\App\State
+     * @var \Magento\Framework\App\State
      */
     protected $_appState;
 
     /**
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
-     * @param \Magento\View\Design\Theme\FlyweightFactory $flyweightFactory
-     * @param \Magento\App\ConfigInterface $config
-     * @param \Magento\Core\Model\Store\ConfigInterface $storeConfig
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\View\Design\Theme\FlyweightFactory $flyweightFactory
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param \Magento\Core\Model\ThemeFactory $themeFactory
-     * @param \Magento\Locale\ResolverInterface $locale
-     * @param \Magento\App\State $appState
+     * @param \Magento\Framework\Locale\ResolverInterface $locale
+     * @param \Magento\Framework\App\State $appState
      * @param array $themes
      */
     public function __construct(
-        \Magento\Core\Model\StoreManagerInterface $storeManager,
-        \Magento\View\Design\Theme\FlyweightFactory $flyweightFactory,
-        \Magento\App\ConfigInterface $config,
-        \Magento\Core\Model\Store\ConfigInterface $storeConfig,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\View\Design\Theme\FlyweightFactory $flyweightFactory,
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Core\Model\ThemeFactory $themeFactory,
-        \Magento\Locale\ResolverInterface $locale,
-        \Magento\App\State $appState,
+        \Magento\Framework\Locale\ResolverInterface $locale,
+        \Magento\Framework\App\State $appState,
         array $themes
     ) {
         $this->_storeManager = $storeManager;
         $this->_flyweightFactory = $flyweightFactory;
         $this->_themeFactory = $themeFactory;
-        $this->_config = $config;
-        $this->_storeConfig = $storeConfig;
+        $this->_scopeConfig = $scopeConfig;
         $this->_appState = $appState;
         $this->_themes = $themes;
         $this->_locale = $locale;
@@ -147,7 +137,7 @@ class Design implements \Magento\View\DesignInterface
     /**
      * Set theme path
      *
-     * @param \Magento\View\Design\ThemeInterface|string $theme
+     * @param \Magento\Framework\View\Design\ThemeInterface|string $theme
      * @param string $area
      * @return $this
      */
@@ -159,7 +149,7 @@ class Design implements \Magento\View\DesignInterface
             $area = $this->getArea();
         }
 
-        if ($theme instanceof \Magento\View\Design\ThemeInterface) {
+        if ($theme instanceof \Magento\Framework\View\Design\ThemeInterface) {
             $this->_theme = $theme;
         } else {
             $this->_theme = $this->_flyweightFactory->create($theme, $area);
@@ -187,13 +177,18 @@ class Design implements \Magento\View\DesignInterface
         $store = isset($params['store']) ? $params['store'] : null;
 
         if ($this->_isThemePerStoveView($area)) {
-            $theme = $this->_storeManager->isSingleStoreMode() ? $this->_config->getValue(
-                self::XML_PATH_THEME_ID,
-                'default'
-            ) : (string)$this->_storeConfig->getConfig(
-                self::XML_PATH_THEME_ID,
-                $store
-            );
+            if ($this->_storeManager->isSingleStoreMode()) {
+                $theme = $this->_scopeConfig->getValue(
+                    self::XML_PATH_THEME_ID,
+                    \Magento\Framework\App\ScopeInterface::SCOPE_DEFAULT
+                );
+            } else {
+                $theme = (string) $this->_scopeConfig->getValue(
+                    self::XML_PATH_THEME_ID,
+                    \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+                    $store
+                );
+            }
         }
 
         if (!$theme && isset($this->_themes[$area])) {
@@ -241,12 +236,39 @@ class Design implements \Magento\View\DesignInterface
     /**
      * {@inheritdoc}
      */
+    public function getThemePath(\Magento\Framework\View\Design\ThemeInterface $theme)
+    {
+        $themePath = $theme->getThemePath();
+        if (!$themePath) {
+            $themeId = $theme->getId();
+            if ($themeId) {
+                $themePath = self::PUBLIC_THEME_DIR . $themeId;
+            } else {
+                $themePath = self::PUBLIC_VIEW_DIR;
+            }
+        }
+        return $themePath;
+    }
+
+    /**
+     * Get locale
+     *
+     * @return string
+     */
+    public function getLocale()
+    {
+        return $this->_locale->getLocaleCode();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getDesignParams()
     {
         $params = array(
             'area' => $this->getArea(),
             'themeModel' => $this->getDesignTheme(),
-            'locale' => $this->_locale->getLocaleCode()
+            'locale'     => $this->getLocale(),
         );
 
         return $params;

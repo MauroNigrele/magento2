@@ -18,48 +18,40 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Reports
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
-
+namespace Magento\Reports\Model\Resource;
 
 /**
  * Report events resource model
- *
- * @category    Magento
- * @package     Magento_Reports
- * @author      Magento Core Team <core@magentocommerce.com>
  */
-namespace Magento\Reports\Model\Resource;
-
-class Event extends \Magento\Model\Resource\Db\AbstractDb
+class Event extends \Magento\Framework\Model\Resource\Db\AbstractDb
 {
     /**
      * Core store config
      *
-     * @var \Magento\Core\Model\Store\Config
+     * @var \Magento\Framework\App\Config\ScopeConfigInterface
      */
-    protected $_coreStoreConfig;
+    protected $_scopeConfig;
 
     /**
-     * @var \Magento\Core\Model\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
-     * @param \Magento\App\Resource $resource
-     * @param \Magento\Core\Model\Store\Config $coreStoreConfig
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\App\Resource $resource
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      */
     public function __construct(
-        \Magento\App\Resource $resource,
-        \Magento\Core\Model\Store\Config $coreStoreConfig,
-        \Magento\Core\Model\StoreManagerInterface $storeManager
+        \Magento\Framework\App\Resource $resource,
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        \Magento\Store\Model\StoreManagerInterface $storeManager
     ) {
         parent::__construct($resource);
-        $this->_coreStoreConfig = $coreStoreConfig;
+        $this->_scopeConfig = $scopeConfig;
         $this->_storeManager = $storeManager;
     }
 
@@ -87,8 +79,8 @@ class Event extends \Magento\Model\Resource\Db\AbstractDb
         if ($types) {
             $this->_getWriteAdapter()->update(
                 $this->getMainTable(),
-                array('subject_id' => (int)$customerId, 'subtype' => 0),
-                array('subject_id = ?' => (int)$visitorId, 'subtype = ?' => 1, 'event_type_id IN(?)' => $types)
+                array('subject_id' => (int) $customerId, 'subtype' => 0),
+                array('subject_id = ?' => (int) $visitorId, 'subtype = ?' => 1, 'event_type_id IN(?)' => $types)
             );
         }
         return $this;
@@ -99,7 +91,7 @@ class Event extends \Magento\Model\Resource\Db\AbstractDb
      * The collection id field is used without corellation, so it must be unique.
      * DESC ordering by event will be added to the collection
      *
-     * @param \Magento\Data\Collection\Db $collection
+     * @param \Magento\Framework\Data\Collection\Db $collection
      * @param int $eventTypeId
      * @param int $eventSubjectId
      * @param int $subtype
@@ -107,7 +99,7 @@ class Event extends \Magento\Model\Resource\Db\AbstractDb
      * @return $this
      */
     public function applyLogToCollection(
-        \Magento\Data\Collection\Db $collection,
+        \Magento\Framework\Data\Collection\Db $collection,
         $eventTypeId,
         $eventSubjectId,
         $subtype,
@@ -115,28 +107,21 @@ class Event extends \Magento\Model\Resource\Db\AbstractDb
     ) {
         $idFieldName = $collection->getResource()->getIdFieldName();
 
-        $derivedSelect = $this->getReadConnection()->select()->from(
-            $this->getTable('report_event'),
-            array('event_id' => new \Zend_Db_Expr('MAX(event_id)'), 'object_id')
-        )->where(
-            'event_type_id = ?',
-            (int)$eventTypeId
-        )->where(
-            'subject_id = ?',
-            (int)$eventSubjectId
-        )->where(
-            'subtype = ?',
-            (int)$subtype
-        )->where(
-            'store_id IN(?)',
-            $this->getCurrentStoreIds()
-        )->group(
-            'object_id'
-        );
+        $derivedSelect = $this->getReadConnection()
+            ->select()
+            ->from(
+                $this->getTable('report_event'),
+                array('event_id' => new \Zend_Db_Expr('MAX(event_id)'), 'object_id')
+            )
+            ->where('event_type_id = ?', (int) $eventTypeId)
+            ->where('subject_id = ?', (int) $eventSubjectId)
+            ->where('subtype = ?', (int) $subtype)
+            ->where('store_id IN(?)', $this->getCurrentStoreIds())
+            ->group('object_id');
 
         if ($skipIds) {
             if (!is_array($skipIds)) {
-                $skipIds = array((int)$skipIds);
+                $skipIds = array((int) $skipIds);
             }
             $derivedSelect->where('object_id NOT IN(?)', $skipIds);
         }
@@ -145,9 +130,7 @@ class Event extends \Magento\Model\Resource\Db\AbstractDb
             array('evt' => new \Zend_Db_Expr("({$derivedSelect})")),
             "{$idFieldName} = evt.object_id",
             array()
-        )->order(
-            'evt.event_id ' . \Magento\DB\Select::SQL_DESC
-        );
+        )->order('evt.event_id ' . \Magento\Framework\DB\Select::SQL_DESC);
 
         return $this;
     }
@@ -172,7 +155,11 @@ class Event extends \Magento\Model\Resource\Db\AbstractDb
             }
         } else {
             // get all stores, required by configuration in current store scope
-            switch ($this->_coreStoreConfig->getConfig('catalog/recently_products/scope')) {
+            $productsScope = $this->_scopeConfig->getValue(
+                'catalog/recently_products/scope',
+                \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+            );
+            switch ($productsScope) {
                 case 'website':
                     $resourceStore = $this->_storeManager->getStore()->getWebsite()->getStores();
                     break;
@@ -189,7 +176,7 @@ class Event extends \Magento\Model\Resource\Db\AbstractDb
             }
         }
         foreach ($stores as $key => $store) {
-            $stores[$key] = (int)$store;
+            $stores[$key] = (int) $store;
         }
 
         return $stores;
@@ -211,14 +198,9 @@ class Event extends \Magento\Model\Resource\Db\AbstractDb
                 array('visitor_table' => $this->getTable('log_visitor')),
                 'event_table.subject_id = visitor_table.visitor_id',
                 array()
-            )->where(
-                'visitor_table.visitor_id IS NULL'
-            )->where(
-                'event_table.subtype = ?',
-                1
-            )->limit(
-                1000
-            );
+            )->where('visitor_table.visitor_id IS NULL')
+                ->where('event_table.subtype = ?', 1)
+                ->limit(1000);
             $eventIds = $this->_getReadAdapter()->fetchCol($select);
 
             if (!$eventIds) {

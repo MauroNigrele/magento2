@@ -45,11 +45,11 @@ class HelloTest extends \PHPUnit_Framework_TestCase
     public function setUp()
     {
         $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
-        $objectManager->get('Magento\App\State')->setAreaCode('frontend');
+        $objectManager->get('Magento\Framework\App\State')->setAreaCode('frontend');
 
         $this->customerSession = $objectManager->get('Magento\Customer\Model\Session');
         $this->block = $objectManager->get(
-            'Magento\View\LayoutInterface'
+            'Magento\Framework\View\LayoutInterface'
         )->createBlock(
             'Magento\Customer\Block\Account\Dashboard\Hello',
             '',
@@ -83,7 +83,7 @@ class HelloTest extends \PHPUnit_Framework_TestCase
     {
         $this->customerSession->setCustomerId(1);
         $html = $this->block->toHtml();
-        $this->assertContains("<div class=\"block dashboard welcome\">", $html);
+        $this->assertContains("<div class=\"block block-dashboard-welcome\">", $html);
         $this->assertContains("<strong>Hello, Firstname Lastname!</strong>", $html);
     }
 }

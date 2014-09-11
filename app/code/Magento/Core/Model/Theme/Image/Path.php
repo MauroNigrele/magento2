@@ -22,12 +22,14 @@
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
+namespace Magento\Core\Model\Theme\Image;
+
+use Magento\Framework\View\Design\ThemeInterface;
+
 /**
  * Theme Image Path
  */
-namespace Magento\Core\Model\Theme\Image;
-
-class Path implements \Magento\View\Design\Theme\Image\PathInterface
+class Path implements \Magento\Framework\View\Design\Theme\Image\PathInterface
 {
     /**
      * Default theme preview image
@@ -35,49 +37,71 @@ class Path implements \Magento\View\Design\Theme\Image\PathInterface
     const DEFAULT_PREVIEW_IMAGE = 'Magento_Core::theme/default_preview.jpg';
 
     /**
-     * Filesystem instance
+     * Media Directory
      *
-     * @var \Magento\App\Filesystem
+     * @var \Magento\Framework\Filesystem\Directory\ReadInterface
      */
-    protected $filesystem;
+    protected $mediaDirectory;
 
     /**
-     * @var \Magento\View\Url
+     * @var \Magento\Framework\View\Asset\Repository
      */
-    protected $viewUrl;
+    protected $assetRepo;
 
     /**
-     * @var \Magento\Core\Model\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
-    protected $_storeManager;
+    protected $storeManager;
 
     /**
      * Initialize dependencies
      * 
-     * @param \Magento\App\Filesystem $filesystem
-     * @param \Magento\View\Url $viewUrl
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\App\Filesystem $filesystem
+     * @param \Magento\Framework\View\Asset\Repository $assetRepo
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      */
     public function __construct(
-        \Magento\App\Filesystem $filesystem,
-        \Magento\View\Url $viewUrl,
-        \Magento\Core\Model\StoreManagerInterface $storeManager
+        \Magento\Framework\App\Filesystem $filesystem,
+        \Magento\Framework\View\Asset\Repository $assetRepo,
+        \Magento\Store\Model\StoreManagerInterface $storeManager
     ) {
-        $this->filesystem = $filesystem;
-        $this->viewUrl = $viewUrl;
-        $this->_storeManager = $storeManager;
+        $this->mediaDirectory = $filesystem->getDirectoryRead(\Magento\Framework\App\Filesystem::MEDIA_DIR);
+        $this->assetRepo = $assetRepo;
+        $this->storeManager = $storeManager;
     }
 
     /**
-     * Get preview image directory url
+     * Get url to preview image
      *
+     * @param \Magento\Core\Model\Theme|ThemeInterface $theme
      * @return string
      */
-    public function getPreviewImageDirectoryUrl()
+    public function getPreviewImageUrl(ThemeInterface $theme)
     {
-        return $this->_storeManager->getStore()->getBaseUrl(
-            \Magento\UrlInterface::URL_TYPE_MEDIA
-        ) . self::PREVIEW_DIRECTORY_PATH . '/';
+        return $theme->isPhysical()
+            ? $this->assetRepo->getUrlWithParams(
+                $theme->getPreviewImage(),
+                ['area' => $theme->getData('area'), 'themeModel' => $theme]
+            )
+            : $this->storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA)
+                . self::PREVIEW_DIRECTORY_PATH . '/' . $theme->getPreviewImage();
+    }
+
+    /**
+     * Get path to preview image
+     *
+     * @param \Magento\Core\Model\Theme|ThemeInterface $theme
+     * @return string
+     */
+    public function getPreviewImagePath(ThemeInterface $theme)
+    {
+        return $theme->isPhysical()
+            ? $this->assetRepo->createAsset(
+                $theme->getPreviewImage(),
+                ['area' => $theme->getData('area'), 'themeModel' => $theme]
+            )
+            ->getSourceFile()
+            : $this->mediaDirectory->getAbsolutePath(self::PREVIEW_DIRECTORY_PATH . '/' . $theme->getPreviewImage());
     }
 
     /**
@@ -87,7 +111,7 @@ class Path implements \Magento\View\Design\Theme\Image\PathInterface
      */
     public function getPreviewImageDefaultUrl()
     {
-        return $this->viewUrl->getViewFileUrl(self::DEFAULT_PREVIEW_IMAGE);
+        return $this->assetRepo->getUrl(self::DEFAULT_PREVIEW_IMAGE);
     }
 
     /**
@@ -97,7 +121,7 @@ class Path implements \Magento\View\Design\Theme\Image\PathInterface
      */
     public function getImagePreviewDirectory()
     {
-        return $this->filesystem->getPath(\Magento\App\Filesystem::MEDIA_DIR) . '/' . self::PREVIEW_DIRECTORY_PATH;
+        return $this->mediaDirectory->getAbsolutePath(self::PREVIEW_DIRECTORY_PATH);
     }
 
     /**
@@ -107,6 +131,6 @@ class Path implements \Magento\View\Design\Theme\Image\PathInterface
      */
     public function getTemporaryDirectory()
     {
-        return $this->filesystem->getPath(\Magento\App\Filesystem::MEDIA_DIR) . '/theme/origin';
+        return $this->mediaDirectory->getRelativePath('/theme/origin');
     }
 }

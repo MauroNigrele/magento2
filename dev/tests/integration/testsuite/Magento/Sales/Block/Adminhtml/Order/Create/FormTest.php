@@ -35,7 +35,7 @@ class FormTest extends \PHPUnit_Framework_TestCase
     /** @var \Magento\Sales\Block\Adminhtml\Order\Create\Form */
     protected $_orderCreateBlock;
 
-    /** @var \Magento\ObjectManager */
+    /** @var \Magento\Framework\ObjectManager */
     protected $_objectManager;
 
     /**
@@ -58,15 +58,15 @@ class FormTest extends \PHPUnit_Framework_TestCase
         $sessionMock->expects($this->any())->method('getStoreId')->will($this->returnValue(1));
 
         $storeMock = $this->getMockBuilder(
-            '\Magento\Core\Model\Store'
+            '\Magento\Store\Model\Store'
         )->disableOriginalConstructor()->setMethods(
             array('getCurrentCurrencyCode')
         )->getMock();
         $storeMock->expects($this->any())->method('getCurrentCurrencyCode')->will($this->returnValue('USD'));
         $sessionMock->expects($this->any())->method('getStore')->will($this->returnValue($storeMock));
 
-        /** @var \Magento\View\LayoutInterface $layout */
-        $layout = $this->_objectManager->get('Magento\View\LayoutInterface');
+        /** @var \Magento\Framework\View\LayoutInterface $layout */
+        $layout = $this->_objectManager->get('Magento\Framework\View\LayoutInterface');
         $this->_orderCreateBlock = $layout->createBlock(
             'Magento\Sales\Block\Adminhtml\Order\Create\Form',
             'order_create_block' . rand(),
@@ -107,6 +107,9 @@ ORDER_DATA_JSON;
 
     private function setUpMockAddress()
     {
+        $regionBuilder1 = $this->_objectManager->create('\Magento\Customer\Service\V1\Data\RegionBuilder');
+        $regionBuilder2 = $this->_objectManager->create('\Magento\Customer\Service\V1\Data\RegionBuilder');
+
         /** @var \Magento\Customer\Service\V1\Data\AddressBuilder $addressBuilder */
         $addressBuilder = $this->_objectManager->create('Magento\Customer\Service\V1\Data\AddressBuilder');
         /** @var \Magento\Customer\Service\V1\CustomerAddressServiceInterface $addressService */
@@ -126,7 +129,7 @@ ORDER_DATA_JSON;
             '75477'
         )->setRegion(
             new V1\Data\Region(
-                (new V1\Data\RegionBuilder())->populateWithArray(
+                $regionBuilder1->populateWithArray(
                     array('region_code' => 'AL', 'region' => 'Alabama', 'region_id' => 1)
                 )
             )
@@ -156,7 +159,7 @@ ORDER_DATA_JSON;
             '47676'
         )->setRegion(
             new V1\Data\Region(
-                (new V1\Data\RegionBuilder())->populateWithArray(
+                $regionBuilder2->populateWithArray(
                     array('region_code' => 'AL', 'region' => 'Alabama', 'region_id' => 1)
                 )
             )

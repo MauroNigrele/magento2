@@ -21,43 +21,34 @@
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
+
 namespace Magento\Customer\Service\V1\Data;
 
+use Magento\Framework\Service\Data\AbstractExtensibleObject as ExtensibleObject;
+use Magento\Framework\Service\Data\AbstractExtensibleObjectBuilder;
+use Magento\Framework\Service\Data\AttributeValueBuilder;
 use Magento\Customer\Service\V1\CustomerMetadataServiceInterface;
 
 /**
  * Builder for the Customer Service Data Object
  *
- * @method \Magento\Customer\Service\V1\Data\Customer create()
+ * @method Customer create()
+ * @method Customer mergeDataObjectWithArray(ExtensibleObject $dataObject, array $data)
+ * @method Customer mergeDataObjects(ExtensibleObject $firstDataObject, ExtensibleObject $secondDataObject)
  */
-class CustomerBuilder extends \Magento\Service\Data\EAV\AbstractObjectBuilder
+class CustomerBuilder extends AbstractExtensibleObjectBuilder
 {
-    /** @var CustomerMetadataServiceInterface */
-    protected $_metadataService;
-
     /**
-     * Initialize dependencies.
-     *
-     * @param \Magento\Customer\Service\V1\CustomerMetadataServiceInterface $metadataService
+     * @param \Magento\Framework\Service\Data\ObjectFactory $objectFactory
+     * @param AttributeValueBuilder $valueBuilder
+     * @param CustomerMetadataServiceInterface $metadataService
      */
-    public function __construct(CustomerMetadataServiceInterface $metadataService)
-    {
-        parent::__construct();
-        $this->_metadataService = $metadataService;
-    }
-
-    /**
-     * Template method used to configure the attribute codes for the custom attributes
-     *
-     * @return string[]
-     */
-    public function getCustomAttributesCodes()
-    {
-        $attributeCodes = array();
-        foreach ($this->_metadataService->getCustomCustomerAttributeMetadata() as $attribute) {
-            $attributeCodes[] = $attribute->getAttributeCode();
-        }
-        return $attributeCodes;
+    public function __construct(
+        \Magento\Framework\Service\Data\ObjectFactory $objectFactory,
+        AttributeValueBuilder $valueBuilder,
+        CustomerMetadataServiceInterface $metadataService
+    ) {
+        parent::__construct($objectFactory, $valueBuilder, $metadataService);
     }
 
     /**
@@ -84,7 +75,7 @@ class CustomerBuilder extends \Magento\Service\Data\EAV\AbstractObjectBuilder
 
     /**
      * Set confirmation
-     * 
+     *
      * @param string $confirmation
      * @return $this
      */

@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Paypal
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -121,6 +119,7 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
         'PAYFLOWCOLOR' => 'payflowcolor',
         'LOCALECODE' => 'locale_code',
         'PAL' => 'pal',
+        'USERSELECTEDFUNDINGSOURCE' => 'funding_source',
 
         // transaction info
         'TRANSACTIONID' => 'transaction_id',
@@ -276,7 +275,8 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
         'ITEMAMT',
         'SHIPPINGAMT',
         'TAXAMT',
-        'REQBILLINGADDRESS'
+        'REQBILLINGADDRESS',
+        'USERSELECTEDFUNDINGSOURCE'
     );
 
     /**
@@ -756,25 +756,56 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
     protected $_countryFactory;
 
     /**
+     * @var \Magento\Paypal\Model\Api\ProcessableExceptionFactory
+     */
+    protected $_processableExceptionFactory;
+
+    /**
+     * @var \Magento\Framework\Model\ExceptionFactory
+     */
+    protected $_frameworkExceptionFactory;
+
+    /**
+     * @var \Magento\Framework\HTTP\Adapter\CurlFactory
+     */
+    protected $_curlFactory;
+
+    /**
+     * API call HTTP headers
+     *
+     * @var array
+     */
+    protected $_headers = array();
+
+    /**
      * @param \Magento\Customer\Helper\Address $customerAddress
-     * @param \Magento\Logger $logger
-     * @param \Magento\Locale\ResolverInterface $localeResolver
+     * @param \Magento\Framework\Logger $logger
+     * @param \Magento\Framework\Locale\ResolverInterface $localeResolver
      * @param \Magento\Directory\Model\RegionFactory $regionFactory
-     * @param \Magento\Logger\AdapterFactory $logAdapterFactory
+     * @param \Magento\Framework\Logger\AdapterFactory $logAdapterFactory
      * @param \Magento\Directory\Model\CountryFactory $countryFactory
+     * @param \Magento\Paypal\Model\Api\ProcessableExceptionFactory $processableExceptionFactory
+     * @param \Magento\Framework\Model\ExceptionFactory $frameworkExceptionFactory
+     * @param \Magento\Framework\HTTP\Adapter\CurlFactory $curlFactory
      * @param array $data
      */
     public function __construct(
         \Magento\Customer\Helper\Address $customerAddress,
-        \Magento\Logger $logger,
-        \Magento\Locale\ResolverInterface $localeResolver,
+        \Magento\Framework\Logger $logger,
+        \Magento\Framework\Locale\ResolverInterface $localeResolver,
         \Magento\Directory\Model\RegionFactory $regionFactory,
-        \Magento\Logger\AdapterFactory $logAdapterFactory,
+        \Magento\Framework\Logger\AdapterFactory $logAdapterFactory,
         \Magento\Directory\Model\CountryFactory $countryFactory,
+        \Magento\Paypal\Model\Api\ProcessableExceptionFactory $processableExceptionFactory,
+        \Magento\Framework\Model\ExceptionFactory $frameworkExceptionFactory,
+        \Magento\Framework\HTTP\Adapter\CurlFactory $curlFactory,
         array $data = array()
     ) {
         parent::__construct($customerAddress, $logger, $localeResolver, $regionFactory, $logAdapterFactory, $data);
         $this->_countryFactory = $countryFactory;
+        $this->_processableExceptionFactory = $processableExceptionFactory;
+        $this->_frameworkExceptionFactory = $frameworkExceptionFactory;
+        $this->_curlFactory = $curlFactory;
     }
 
     /**
@@ -785,7 +816,7 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
     public function getApiEndpoint()
     {
         $url = $this->getUseCertAuthentication() ? 'https://api%s.paypal.com/nvp' : 'https://api-3t%s.paypal.com/nvp';
-        return sprintf($url, $this->_config->sandboxFlag ? '.sandbox' : '');
+        return sprintf($url, $this->_config->getConfigValue('sandboxFlag') ? '.sandbox' : '');
     }
 
     /**
@@ -1080,7 +1111,7 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
         $request = $this->_exportToRequest($this->_updateBillingAgreementRequest);
         try {
             $response = $this->call('BillAgreementUpdate', $request);
-        } catch (\Magento\Model\Exception $e) {
+        } catch (\Magento\Framework\Model\Exception $e) {
             if (in_array(10201, $this->_callErrors)) {
                 $this->setIsBillingAgreementAlreadyCancelled(true);
             }
@@ -1093,12 +1124,12 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
      * Import callback request array into $this public data
      *
      * @param array $request
-     * @return \Magento\Object
+     * @return \Magento\Framework\Object
      */
     public function prepareShippingOptionsCallbackAddress(array $request)
     {
-        $address = new \Magento\Object();
-        \Magento\Object\Mapper::accumulateByMap($request, $address, $this->_callbackRequestMap);
+        $address = new \Magento\Framework\Object();
+        \Magento\Framework\Object\Mapper::accumulateByMap($request, $address, $this->_callbackRequestMap);
         $address->setExportedKeys(array_values($this->_callbackRequestMap));
         $this->_applyStreetAndRegionWorkarounds($address);
         return $address;
@@ -1133,23 +1164,29 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
     }
 
     /**
-     * Retrieve headers for request.
-     *
-     * @return array
-     */
-    protected function _getHeaderListForRequest()
-    {
-        return array();
-    }
-
-    /**
      * Additional response processing.
+     * Hack to cut off length from API type response params.
      *
-     * @param  array $response
+     * @param array $response
      * @return array
      */
     protected function _postProcessResponse($response)
     {
+        foreach ($response as $key => $value) {
+            $pos = strpos($key, '[');
+
+            if ($pos === false) {
+                continue;
+            }
+
+            unset($response[$key]);
+
+            if ($pos !== 0) {
+                $modifiedKey = substr($key, 0, $pos);
+                $response[$modifiedKey] = $value;
+            }
+        }
+
         return $response;
     }
 
@@ -1159,7 +1196,7 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
      * @param string $methodName
      * @param array $request
      * @return array
-     * @throws \Magento\Model\Exception|\Exception
+     * @throws \Magento\Framework\Model\Exception|\Exception
      */
     public function call($methodName, array $request)
     {
@@ -1175,8 +1212,8 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
         $debugData = array('url' => $this->getApiEndpoint(), $methodName => $request);
 
         try {
-            $http = new \Magento\HTTP\Adapter\Curl();
-            $config = array('timeout' => 60, 'verifypeer' => $this->_config->verifyPeer);
+            $http = $this->_curlFactory->create();
+            $config = array('timeout' => 60, 'verifypeer' => $this->_config->getConfigValue('verifyPeer'));
             if ($this->getUseProxy()) {
                 $config['proxy'] = $this->getProxyHost() . ':' . $this->getProxyPort();
             }
@@ -1188,7 +1225,7 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
                 \Zend_Http_Client::POST,
                 $this->getApiEndpoint(),
                 '1.1',
-                $this->_getHeaderListForRequest(),
+                $this->_headers,
                 $this->_buildQuery($request)
             );
             $response = $http->read();
@@ -1216,7 +1253,7 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
             );
             $http->close();
 
-            throw new \Magento\Model\Exception(__('We can\'t contact the PayPal gateway.'));
+            throw new \Magento\Framework\Model\Exception(__('We can\'t contact the PayPal gateway.'));
         }
 
         // cUrl resource must be closed after checking it for errors
@@ -1224,7 +1261,7 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
 
         if (!$this->_validateResponse($methodName, $response)) {
             $this->_logger->logException(new \Exception(__("PayPal response hasn't required fields.")));
-            throw new \Magento\Model\Exception(__('Something went wrong while processing your order.'));
+            throw new \Magento\Framework\Model\Exception(__('Something went wrong while processing your order.'));
         }
 
         $this->_callErrors = array();
@@ -1255,46 +1292,100 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
      *
      * @param array $response
      * @return void
-     * @throws \Magento\Model\Exception
+     * @throws \Magento\Paypal\Model\Api\ProcessableException|\Magento\Framework\Model\Exception
      */
     protected function _handleCallErrors($response)
     {
+        $errors = $this->_extractErrorsFromResponse($response);
+        if (empty($errors)) {
+            return;
+        }
+
+        $errorMessages = array();
+        foreach ($errors as $error) {
+            $errorMessages[] = $error['message'];
+            $this->_callErrors[] = $error['code'];
+        }
+        $errorMessages = implode(' ', $errorMessages);
+
+        $exceptionLogMessage = sprintf(
+            'PayPal NVP gateway errors: %s Correlation ID: %s. Version: %s.',
+            $errorMessages,
+            isset($response['CORRELATIONID']) ? $response['CORRELATIONID'] : '',
+            isset($response['VERSION']) ? $response['VERSION'] : ''
+        );
+
+        $exception = count($errors) == 1 && $this->_isProcessableError($errors[0]['code'])
+            ? $this->_processableExceptionFactory->create(
+                ['message' => $exceptionLogMessage, 'code' => $errors[0]['code']]
+            ) : $this->_frameworkExceptionFactory->create(
+                ['message' => $exceptionLogMessage, 'code' => 0]
+            );
+        $this->_logger->logException($exception);
+
+        $exception->setMessage(__('PayPal gateway has rejected request. %1', $errorMessages));
+
+        throw $exception;
+    }
+
+    /**
+     * Format error message from error code, short error message and long error message
+     *
+     * @param string $errorCode
+     * @param string $shortErrorMessage
+     * @param string $longErrorMessage
+     * @return string
+     */
+    protected function _formatErrorMessage($errorCode, $shortErrorMessage, $longErrorMessage)
+    {
+        $longErrorMessage  = preg_replace('/\.$/', '', $longErrorMessage);
+        $shortErrorMessage = preg_replace('/\.$/', '', $shortErrorMessage);
+
+        return $longErrorMessage ? sprintf('%s (#%s: %s).', $longErrorMessage, $errorCode, $shortErrorMessage)
+            : sprintf('#%s: %s.', $errorCode, $shortErrorMessage);
+    }
+
+    /**
+     * Check whether PayPal error can be processed
+     *
+     * @param int $errorCode
+     * @return bool
+     */
+    protected function _isProcessableError($errorCode)
+    {
+        $processableErrorsList = $this->getProcessableErrors();
+
+        if (!$processableErrorsList || !is_array($processableErrorsList)) {
+            return false;
+        }
+
+        return in_array($errorCode, $processableErrorsList);
+    }
+
+    /**
+     * Extract errors from PayPal's response and return them in array
+     *
+     * @param array $response
+     * @return array
+     */
+    protected function _extractErrorsFromResponse($response)
+    {
         $errors = array();
+
         for ($i = 0; isset($response["L_ERRORCODE{$i}"]); $i++) {
-            $longMessage = isset(
-                $response["L_LONGMESSAGE{$i}"]
-            ) ? preg_replace(
-                '/\.$/',
-                '',
-                $response["L_LONGMESSAGE{$i}"]
-            ) : '';
-            $shortMessage = preg_replace('/\.$/', '', $response["L_SHORTMESSAGE{$i}"]);
-            $errors[] = $longMessage ? sprintf(
-                '%s (#%s: %s).',
-                $longMessage,
-                $response["L_ERRORCODE{$i}"],
-                $shortMessage
-            ) : sprintf(
-                '#%s: %s.',
-                $response["L_ERRORCODE{$i}"],
-                $shortMessage
+            $errorCode = $response["L_ERRORCODE{$i}"];
+            $errorMessage = $this->_formatErrorMessage(
+                $errorCode,
+                $response["L_SHORTMESSAGE{$i}"],
+                isset($response["L_LONGMESSAGE{$i}"]) ? $response["L_LONGMESSAGE{$i}"] : null
             );
-            $this->_callErrors[] = $response["L_ERRORCODE{$i}"];
-        }
-        if ($errors) {
-            $errors = implode(' ', $errors);
-            $e = new \Magento\Model\Exception(
-                sprintf(
-                    'PayPal NVP gateway errors: %s Correlation ID: %s. Version: %s.',
-                    $errors,
-                    isset($response['CORRELATIONID']) ? $response['CORRELATIONID'] : '',
-                    isset($response['VERSION']) ? $response['VERSION'] : ''
-                )
+            $errors[] = array (
+                'code' => $errorCode,
+                'message' => $errorMessage
             );
-            $this->_logger->logException($e);
-            $e->setMessage(__('The PayPal gateway has rejected this request. %1', $errors));
-            throw $e;
         }
+
+        return $errors;
     }
 
     /**
@@ -1394,32 +1485,18 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
      */
     protected function _exportAddressses($data)
     {
-        $address = new \Magento\Object();
-        \Magento\Object\Mapper::accumulateByMap($data, $address, $this->_billingAddressMap);
+        $address = new \Magento\Framework\Object();
+        \Magento\Framework\Object\Mapper::accumulateByMap($data, $address, $this->_billingAddressMap);
         $address->setExportedKeys(array_values($this->_billingAddressMap));
         $this->_applyStreetAndRegionWorkarounds($address);
         $this->setExportedBillingAddress($address);
         // assume there is shipping address if there is at least one field specific to shipping
         if (isset($data['SHIPTONAME'])) {
             $shippingAddress = clone $address;
-            \Magento\Object\Mapper::accumulateByMap($data, $shippingAddress, $this->_shippingAddressMap);
+            \Magento\Framework\Object\Mapper::accumulateByMap($data, $shippingAddress, $this->_shippingAddressMap);
             $this->_applyStreetAndRegionWorkarounds($shippingAddress);
             // PayPal doesn't provide detailed shipping name fields, so the name will be overwritten
-            $firstName = $data['SHIPTONAME'];
-            $lastName = null;
-            if (isset($data['FIRSTNAME']) && $data['LASTNAME']) {
-                $firstName = $data['FIRSTNAME'];
-                $lastName = $data['LASTNAME'];
-            }
-            $shippingAddress->addData(
-                array(
-                    'prefix' => null,
-                    'firstname' => $firstName,
-                    'middlename' => null,
-                    'lastname' => $lastName,
-                    'suffix' => null
-                )
-            );
+            $shippingAddress->addData(['firstname'  => $data['SHIPTONAME']]);
             $this->setExportedShippingAddress($shippingAddress);
         }
     }
@@ -1427,10 +1504,10 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
     /**
      * Adopt specified address object to be compatible with Magento
      *
-     * @param \Magento\Object $address
+     * @param \Magento\Framework\Object $address
      * @return void
      */
-    protected function _applyStreetAndRegionWorkarounds(\Magento\Object $address)
+    protected function _applyStreetAndRegionWorkarounds(\Magento\Framework\Object $address)
     {
         // merge street addresses into 1
         if ($address->hasStreet2()) {
@@ -1455,21 +1532,6 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
     }
 
     /**
-     * Adopt specified request array to be compatible with Paypal
-     * Puerto Rico should be as state of USA and not as a country
-     *
-     * @param array &$request
-     * @return void
-     */
-    protected function _applyCountryWorkarounds(&$request)
-    {
-        if (isset($request['SHIPTOCOUNTRYCODE']) && $request['SHIPTOCOUNTRYCODE'] == 'PR') {
-            $request['SHIPTOCOUNTRYCODE'] = 'US';
-            $request['SHIPTOSTATE'] = 'PR';
-        }
-    }
-
-    /**
      * Prepare request data basing on provided addresses
      *
      * @param array $to
@@ -1480,7 +1542,7 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
         $billingAddress = $this->getBillingAddress() ? $this->getBillingAddress() : $this->getAddress();
         $shippingAddress = $this->getAddress();
 
-        $to = \Magento\Object\Mapper::accumulateByMap(
+        $to = \Magento\Framework\Object\Mapper::accumulateByMap(
             $billingAddress,
             $to,
             array_merge(array_flip($this->_billingAddressMap), $this->_billingAddressMapRequest)
@@ -1490,7 +1552,7 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
             $to['STATE'] = $regionCode;
         }
         if (!$this->getSuppressShipping()) {
-            $to = \Magento\Object\Mapper::accumulateByMap(
+            $to = \Magento\Framework\Object\Mapper::accumulateByMap(
                 $shippingAddress,
                 $to,
                 array_flip($this->_shippingAddressMap)
@@ -1503,7 +1565,6 @@ class Nvp extends \Magento\Paypal\Model\Api\AbstractApi
             $this->_importStreetFromAddress($billingAddress, $to, 'STREET', 'STREET2');
             $to['SHIPTONAME'] = $shippingAddress->getName();
         }
-        $this->_applyCountryWorkarounds($to);
         return $to;
     }
 

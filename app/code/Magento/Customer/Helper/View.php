@@ -26,7 +26,7 @@ namespace Magento\Customer\Helper;
 /**
  * Customer helper for view.
  */
-class View extends \Magento\App\Helper\AbstractHelper
+class View extends \Magento\Framework\App\Helper\AbstractHelper
 {
     /**
      * @var \Magento\Customer\Service\V1\CustomerMetadataServiceInterface
@@ -36,11 +36,11 @@ class View extends \Magento\App\Helper\AbstractHelper
     /**
      * Initialize dependencies.
      *
-     * @param \Magento\App\Helper\Context $context
+     * @param \Magento\Framework\App\Helper\Context $context
      * @param \Magento\Customer\Service\V1\CustomerMetadataServiceInterface $customerMetadataService
      */
     public function __construct(
-        \Magento\App\Helper\Context $context,
+        \Magento\Framework\App\Helper\Context $context,
         \Magento\Customer\Service\V1\CustomerMetadataServiceInterface $customerMetadataService
     ) {
         $this->_customerMetadataService = $customerMetadataService;
@@ -56,21 +56,21 @@ class View extends \Magento\App\Helper\AbstractHelper
     public function getCustomerName(\Magento\Customer\Service\V1\Data\Customer $customerData)
     {
         $name = '';
-        $prefixMetadata = $this->_customerMetadataService->getAttributeMetadata('customer', 'prefix');
+        $prefixMetadata = $this->_customerMetadataService->getAttributeMetadata('prefix');
         if ($prefixMetadata->isVisible() && $customerData->getPrefix()) {
             $name .= $customerData->getPrefix() . ' ';
         }
 
         $name .= $customerData->getFirstname();
 
-        $middleNameMetadata = $this->_customerMetadataService->getAttributeMetadata('customer', 'middlename');
+        $middleNameMetadata = $this->_customerMetadataService->getAttributeMetadata('middlename');
         if ($middleNameMetadata->isVisible() && $customerData->getMiddlename()) {
             $name .= ' ' . $customerData->getMiddlename();
         }
 
         $name .= ' ' . $customerData->getLastname();
 
-        $suffixMetadata = $this->_customerMetadataService->getAttributeMetadata('customer', 'suffix');
+        $suffixMetadata = $this->_customerMetadataService->getAttributeMetadata('suffix');
         if ($suffixMetadata->isVisible() && $customerData->getSuffix()) {
             $name .= ' ' . $customerData->getSuffix();
         }

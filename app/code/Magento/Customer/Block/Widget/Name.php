@@ -18,27 +18,31 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Customer
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 namespace Magento\Customer\Block\Widget;
 
+use Magento\Customer\Service\V1\AddressMetadataServiceInterface;
 use Magento\Customer\Service\V1\CustomerMetadataServiceInterface;
 use Magento\Customer\Service\V1\Data\Customer;
-use Magento\View\Element\Template\Context;
+use Magento\Framework\View\Element\Template\Context;
 use Magento\Customer\Helper\Address as AddressHelper;
 use Magento\Customer\Helper\Data as CustomerHelper;
 
 /**
  * Widget for showing customer name.
  *
- * @method \Magento\Customer\Service\V1\Data\Customer getObject()
- * @method Name setObject(\Magento\Customer\Service\V1\Data\Customer $customer)
+ * @method Customer getObject()
+ * @method Name setObject(Customer $customer)
  */
 class Name extends AbstractWidget
 {
+    /**
+     * @var \Magento\Customer\Service\V1\AddressMetadataServiceInterface
+     */
+    protected $_addressMetadataService;
+
     /**
      * @var CustomerHelper
      */
@@ -47,19 +51,22 @@ class Name extends AbstractWidget
     /**
      * @param Context $context
      * @param AddressHelper $addressHelper
-     * @param CustomerMetadataServiceInterface $attributeMetadata
+     * @param CustomerMetadataServiceInterface $customerMetadataService
+     * @param AddressMetadataServiceInterface $addressMetadataService
      * @param CustomerHelper $customerHelper
      * @param array $data
      */
     public function __construct(
         Context $context,
         AddressHelper $addressHelper,
-        CustomerMetadataServiceInterface $attributeMetadata,
+        CustomerMetadataServiceInterface $customerMetadataService,
+        AddressMetadataServiceInterface $addressMetadataService,
         CustomerHelper $customerHelper,
         array $data = array()
     ) {
         $this->_customerHelper = $customerHelper;
-        parent::__construct($context, $addressHelper, $attributeMetadata, $data);
+        parent::__construct($context, $addressHelper, $customerMetadataService, $data);
+        $this->_addressMetadataService = $addressMetadataService;
         $this->_isScopePrivate = true;
     }
 
@@ -213,16 +220,13 @@ class Name extends AbstractWidget
      */
     protected function _getAttribute($attributeCode)
     {
-        if ($this->getForceUseCustomerAttributes() ||
-            $this->getObject() instanceof \Magento\Customer\Model\Customer ||
-            $this->getObject() instanceof Customer
-        ) {
+        if ($this->getForceUseCustomerAttributes() || $this->getObject() instanceof Customer) {
             return parent::_getAttribute($attributeCode);
         }
 
         try {
-            $attribute = $this->_attributeMetadata->getAddressAttributeMetadata($attributeCode);
-        } catch (\Magento\Exception\NoSuchEntityException $e) {
+            $attribute = $this->_addressMetadataService->getAttributeMetadata($attributeCode);
+        } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
             return null;
         }
 

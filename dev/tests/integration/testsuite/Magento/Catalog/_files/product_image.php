@@ -18,18 +18,23 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Catalog
- * @subpackage  integration_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
 $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
-$mediaPath = $objectManager->get('Magento\App\Filesystem')->getPath(\Magento\App\Filesystem::MEDIA_DIR);
-$additionalPath = $objectManager->get('Magento\Catalog\Model\Product\Media\Config')->getBaseMediaPath();
-$dir = $mediaPath . '/' . $additionalPath . '/m/a';
-if (!is_dir($dir)) {
-    mkdir($dir, 0777, true);
-}
-copy(__DIR__ . '/magento_image.jpg', $dir . '/magento_image.jpg');
+/** @var $mediaConfig \Magento\Catalog\Model\Product\Media\Config */
+$mediaConfig = $objectManager->get('Magento\Catalog\Model\Product\Media\Config');
+
+/** @var $mediaDirectory \Magento\Framework\Filesystem\Directory\WriteInterface */
+$mediaDirectory = $objectManager->get('Magento\Framework\App\Filesystem')
+    ->getDirectoryWrite(\Magento\Framework\App\Filesystem::MEDIA_DIR);
+$targetDirPath = $mediaConfig->getBaseMediaPath() . str_replace('/', DIRECTORY_SEPARATOR, '/m/a/');
+$targetTmpDirPath = $mediaConfig->getBaseTmpMediaPath() . str_replace('/', DIRECTORY_SEPARATOR, '/m/a/');
+$mediaDirectory->create($targetDirPath);
+$mediaDirectory->create($targetTmpDirPath);
+
+$targetTmpFilePath = $mediaDirectory->getAbsolutePath() . DIRECTORY_SEPARATOR . $targetTmpDirPath
+    . DIRECTORY_SEPARATOR . 'magento_image.jpg';
+copy(__DIR__ . '/magento_image.jpg', $targetTmpFilePath);
+// Copying the image to target dir is not necessary because during product save, it will be moved there from tmp dir

@@ -23,7 +23,7 @@
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 -->
-<layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../Core/etc/layout_single.xsd">
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../Core/etc/page.xsd">
     <update handle="multishipping_checkout"/>
     <update handle="checkout_cart_item_renderers" />
     <referenceBlock name="page.main.title">
@@ -36,8 +36,11 @@
             <arguments>
                 <argument name="renderer_template" xsi:type="string">Magento_Multishipping::checkout/item/default.phtml</argument>
             </arguments>
-            <block class="Magento\View\Element\RendererList" name="checkout.cart.item.renderers" as="renderer.list" />
+            <block class="Magento\Framework\View\Element\RendererList" name="checkout.cart.item.renderers" as="renderer.list" />
         </block>
     </referenceContainer>
-    <block class="Magento\View\Element\Template" name="additional.product.info" template="Magento_Core::template.phtml"/>
-</layout>
+    <block class="Magento\Framework\View\Element\Template" name="additional.product.info" template="Magento_Core::template.phtml"/>
+    <referenceBlock name="head.components">
+        <block class="Magento\Framework\View\Element\Template" name="multishipping_checkout_addresses_page_head_components" template="Magento_Multishipping::js/components.phtml"/>
+    </referenceBlock>
+</page>

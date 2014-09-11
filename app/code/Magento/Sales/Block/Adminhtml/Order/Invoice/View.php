@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Sales
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,8 +26,6 @@ namespace Magento\Sales\Block\Adminhtml\Order\Invoice;
 /**
  * Adminhtml invoice create
  *
- * @category   Magento
- * @package    Magento_Sales
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 class View extends \Magento\Backend\Block\Widget\Form\Container
@@ -44,7 +40,7 @@ class View extends \Magento\Backend\Block\Widget\Form\Container
     /**
      * Core registry
      *
-     * @var \Magento\Registry
+     * @var \Magento\Framework\Registry
      */
     protected $_coreRegistry = null;
 
@@ -56,15 +52,15 @@ class View extends \Magento\Backend\Block\Widget\Form\Container
     protected $_backendSession;
 
     /**
-     * @param \Magento\Backend\Block\Template\Context $context
+     * @param \Magento\Backend\Block\Widget\Context $context
      * @param \Magento\Backend\Model\Auth\Session $backendSession
-     * @param \Magento\Registry $registry
+     * @param \Magento\Framework\Registry $registry
      * @param array $data
      */
     public function __construct(
-        \Magento\Backend\Block\Template\Context $context,
+        \Magento\Backend\Block\Widget\Context $context,
         \Magento\Backend\Model\Auth\Session $backendSession,
-        \Magento\Registry $registry,
+        \Magento\Framework\Registry $registry,
         array $data = array()
     ) {
         $this->_backendSession = $backendSession;
@@ -86,9 +82,9 @@ class View extends \Magento\Backend\Block\Widget\Form\Container
 
         parent::_construct();
 
-        $this->_removeButton('save');
-        $this->_removeButton('reset');
-        $this->_removeButton('delete');
+        $this->buttonList->remove('save');
+        $this->buttonList->remove('reset');
+        $this->buttonList->remove('delete');
 
         if (!$this->getInvoice()) {
             return;
@@ -98,7 +94,7 @@ class View extends \Magento\Backend\Block\Widget\Form\Container
             'Magento_Sales::cancel'
         ) && $this->getInvoice()->canCancel() && !$this->_isPaymentReview()
         ) {
-            $this->_addButton(
+            $this->buttonList->add(
                 'cancel',
                 array(
                     'label' => __('Cancel'),
@@ -113,6 +109,7 @@ class View extends \Magento\Backend\Block\Widget\Form\Container
                 'send_notification',
                 array(
                     'label' => __('Send Email'),
+                    'class' => 'send-email',
                     'onclick' => 'confirmSetLocation(\'' . __(
                         'Are you sure you want to send an Invoice email to customer?'
                     ) . '\', \'' . $this->getEmailUrl() . '\')'
@@ -128,11 +125,11 @@ class View extends \Magento\Backend\Block\Widget\Form\Container
                 $orderPayment->getAmountPaid() > $orderPayment->getAmountRefunded() ||
                 $orderPayment->canRefund() && !$this->getInvoice()->getIsUsedForRefund()
             ) {
-                $this->_addButton(
+                $this->buttonList->add(
                     'capture',
                     array( // capture?
                         'label' => __('Credit Memo'),
-                        'class' => 'go',
+                        'class' => 'credit-memo',
                         'onclick' => 'setLocation(\'' . $this->getCreditMemoUrl() . '\')'
                     )
                 );
@@ -143,33 +140,33 @@ class View extends \Magento\Backend\Block\Widget\Form\Container
             'Magento_Sales::capture'
         ) && $this->getInvoice()->canCapture() && !$this->_isPaymentReview()
         ) {
-            $this->_addButton(
+            $this->buttonList->add(
                 'capture',
                 array(
                     'label' => __('Capture'),
-                    'class' => 'save',
+                    'class' => 'capture',
                     'onclick' => 'setLocation(\'' . $this->getCaptureUrl() . '\')'
                 )
             );
         }
 
         if ($this->getInvoice()->canVoid()) {
-            $this->_addButton(
+            $this->buttonList->add(
                 'void',
                 array(
                     'label' => __('Void'),
-                    'class' => 'save',
+                    'class' => 'void',
                     'onclick' => 'setLocation(\'' . $this->getVoidUrl() . '\')'
                 )
             );
         }
 
         if ($this->getInvoice()->getId()) {
-            $this->_addButton(
+            $this->buttonList->add(
                 'print',
                 array(
                     'label' => __('Print'),
-                    'class' => 'save',
+                    'class' => 'print',
                     'onclick' => 'setLocation(\'' . $this->getPrintUrl() . '\')'
                 )
             );
@@ -310,13 +307,13 @@ class View extends \Magento\Backend\Block\Widget\Form\Container
     {
         if ($flag) {
             if ($this->getInvoice()->getBackUrl()) {
-                return $this->_updateButton(
+                return $this->buttonList->update(
                     'back',
                     'onclick',
                     'setLocation(\'' . $this->getInvoice()->getBackUrl() . '\')'
                 );
             }
-            return $this->_updateButton('back', 'onclick', 'setLocation(\'' . $this->getUrl('sales/invoice/') . '\')');
+            return $this->buttonList->update('back', 'onclick', 'setLocation(\'' . $this->getUrl('sales/invoice/') . '\')');
         }
         return $this;
     }

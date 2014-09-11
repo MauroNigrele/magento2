@@ -18,9 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Backend
- * @subpackage  integration_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -79,7 +76,7 @@ class AuthTest extends \Magento\TestFramework\TestCase\AbstractController
 
     /**
      * Check not logged state
-     * @covers \Magento\Backend\Controller\Adminhtml\Auth::loginAction
+     * @covers \Magento\Backend\Controller\Adminhtml\Auth\Login::execute
      */
     public function testNotLoggedLoginAction()
     {
@@ -93,7 +90,7 @@ class AuthTest extends \Magento\TestFramework\TestCase\AbstractController
 
     /**
      * Check logged state
-     * @covers \Magento\Backend\Controller\Adminhtml\Auth::loginAction
+     * @covers \Magento\Backend\Controller\Adminhtml\Auth\Login::execute
      * @magentoDbIsolation enabled
      */
     public function testLoggedLoginAction()
@@ -128,7 +125,8 @@ class AuthTest extends \Magento\TestFramework\TestCase\AbstractController
 
         $this->dispatch('backend/admin/index/index');
 
-        $response = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get('Magento\App\ResponseInterface');
+        $response = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
+            ->get('Magento\Framework\App\ResponseInterface');
         $code = $response->getHttpResponseCode();
         $this->assertTrue($code >= 300 && $code < 400, 'Incorrect response code');
 
@@ -140,7 +138,7 @@ class AuthTest extends \Magento\TestFramework\TestCase\AbstractController
     }
 
     /**
-     * @covers \Magento\Backend\Controller\Adminhtml\Auth::logoutAction
+     * @covers \Magento\Backend\Controller\Adminhtml\Auth\Logout::execute
      * @magentoDbIsolation enabled
      */
     public function testLogoutAction()
@@ -158,8 +156,8 @@ class AuthTest extends \Magento\TestFramework\TestCase\AbstractController
     }
 
     /**
-     * @covers \Magento\Backend\Controller\Adminhtml\Auth::deniedJsonAction
-     * @covers \Magento\Backend\Controller\Adminhtml\Auth::_getDeniedJson
+     * @covers \Magento\Backend\Controller\Adminhtml\Auth\DeniedJson::execute
+     * @covers \Magento\Backend\Controller\Adminhtml\Auth\DeniedJson::_getDeniedJson
      * @magentoDbIsolation enabled
      */
     public function testDeniedJsonAction()
@@ -178,8 +176,8 @@ class AuthTest extends \Magento\TestFramework\TestCase\AbstractController
     }
 
     /**
-     * @covers \Magento\Backend\Controller\Adminhtml\Auth::deniedIframeAction
-     * @covers \Magento\Backend\Controller\Adminhtml\Auth::_getDeniedIframe
+     * @covers \Magento\Backend\Controller\Adminhtml\Auth\DeniedIframe::execute
+     * @covers \Magento\Backend\Controller\Adminhtml\Auth\DeniedIframe::_getDeniedIframe
      * @magentoDbIsolation enabled
      */
     public function testDeniedIframeAction()

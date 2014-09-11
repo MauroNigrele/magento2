@@ -18,52 +18,20 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
-
+namespace Magento\Catalog\Block\Product;
 
 /**
  * Catalog Product Abstract Block
- *
- * @category   Magento
- * @package    Magento_Catalog
- * @author     Magento Core Team <core@magentocommerce.com>
  */
-namespace Magento\Catalog\Block\Product;
-
-use Magento\View\Element\BlockInterface;
-
-abstract class AbstractProduct extends \Magento\View\Element\Template
+abstract class AbstractProduct extends \Magento\Framework\View\Element\Template
 {
     /**
      * @var array
      */
     protected $_priceBlock = array();
-
-    /**
-     * Default price block
-     *
-     * @var string
-     */
-    protected $_block = 'Magento\Catalog\Block\Product\Price';
-
-    /**
-     * @var string
-     */
-    protected $_priceBlockDefaultTemplate = 'product/price.phtml';
-
-    /**
-     * @var string
-     */
-    protected $_tierPriceDefaultTemplate = 'product/view/tierprices.phtml';
-
-    /**
-     * @var array
-     */
-    protected $_priceBlockTypes = array();
 
     /**
      * Flag which allow/disallow to use link for as low as price
@@ -96,23 +64,23 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
     /**
      * Core registry
      *
-     * @var \Magento\Registry
+     * @var \Magento\Framework\Registry
      */
-    protected $_coreRegistry = null;
+    protected $_coreRegistry;
 
     /**
      * Catalog data
      *
      * @var \Magento\Catalog\Helper\Data
      */
-    protected $_catalogData = null;
+    protected $_catalogData;
 
     /**
      * Tax data
      *
      * @var \Magento\Tax\Helper\Data
      */
-    protected $_taxData = null;
+    protected $_taxData;
 
     /**
      * Catalog config
@@ -122,7 +90,7 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
     protected $_catalogConfig;
 
     /**
-     * @var \Magento\Math\Random
+     * @var \Magento\Framework\Math\Random
      */
     protected $_mathRandom;
 
@@ -142,11 +110,6 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
     protected $_compareProduct;
 
     /**
-     * @var \Magento\Theme\Helper\Layout
-     */
-    protected $_layoutHelper;
-
-    /**
      * @var \Magento\Catalog\Helper\Image
      */
     protected $_imageHelper;
@@ -157,17 +120,19 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
     protected $reviewRenderer;
 
     /**
+     * @var \Magento\CatalogInventory\Service\V1\StockItemService
+     */
+    protected $stockItemService;
+
+    /**
      * @param Context $context
      * @param array $data
-     * @param array $priceBlockTypes
      */
     public function __construct(
         \Magento\Catalog\Block\Product\Context $context,
-        array $data = array(),
-        array $priceBlockTypes = array()
+        array $data = array()
     ) {
         $this->_imageHelper = $context->getImageHelper();
-        $this->_layoutHelper = $context->getLayoutHelper();
         $this->_compareProduct = $context->getCompareProduct();
         $this->_wishlistHelper = $context->getWishlistHelper();
         $this->_cartHelper = $context->getCartHelper();
@@ -176,8 +141,8 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
         $this->_taxData = $context->getTaxData();
         $this->_catalogData = $context->getCatalogHelper();
         $this->_mathRandom = $context->getMathRandom();
-        $this->_priceBlockTypes = $priceBlockTypes;
         $this->reviewRenderer = $context->getReviewRenderer();
+        $this->stockItemService = $context->getStockItemService();
         parent::__construct($context, $data);
     }
 
@@ -206,8 +171,9 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
     }
 
     /**
-     * Retrieves url for form submitting:
-     * some objects can use setSubmitRouteData() to set route and params for form submitting,
+     * Retrieves url for form submitting.
+     *
+     * Some objects can use setSubmitRouteData() to set route and params for form submitting,
      * otherwise default url will be used
      *
      * @param \Magento\Catalog\Model\Product $product
@@ -256,113 +222,8 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
      */
     public function getMinimalQty($product)
     {
-        $stockItem = $product->getStockItem();
-        if ($stockItem) {
-            return $stockItem->getMinSaleQty() &&
-                $stockItem->getMinSaleQty() > 0 ? $stockItem->getMinSaleQty() * 1 : null;
-        }
-        return null;
-    }
-
-    /**
-     * @param string $productTypeId
-     * @return BlockInterface
-     */
-    protected function _getPriceBlock($productTypeId)
-    {
-        if (!isset($this->_priceBlock[$productTypeId])) {
-            $block = $this->_block;
-            if (isset($this->_priceBlockTypes[$productTypeId])) {
-                if ($this->_priceBlockTypes[$productTypeId]['block'] != '') {
-                    $block = $this->_priceBlockTypes[$productTypeId]['block'];
-                }
-            }
-            $this->_priceBlock[$productTypeId] = $this->getLayout()->createBlock($block);
-        }
-        return $this->_priceBlock[$productTypeId];
-    }
-
-    /**
-     * @param string $productTypeId
-     * @return string
-     */
-    protected function _getPriceBlockTemplate($productTypeId)
-    {
-        if (isset($this->_priceBlockTypes[$productTypeId])) {
-            if ($this->_priceBlockTypes[$productTypeId]['template'] != '') {
-                return $this->_priceBlockTypes[$productTypeId]['template'];
-            }
-        }
-        return $this->_priceBlockDefaultTemplate;
-    }
-
-    /**
-     * Prepares and returns block to render some product type
-     *
-     * @param string $productType
-     * @return \Magento\View\Element\Template
-     */
-    public function _preparePriceRenderer($productType)
-    {
-        return $this->_getPriceBlock(
-            $productType
-        )->setTemplate(
-            $this->_getPriceBlockTemplate($productType)
-        )->setUseLinkForAsLowAs(
-            $this->_useLinkForAsLowAs
-        );
-    }
-
-    /**
-     * Returns product price block html
-     *
-     * @param \Magento\Catalog\Model\Product $product
-     * @param boolean $displayMinimalPrice
-     * @param string $idSuffix
-     * @return string
-     */
-    public function getPriceHtml($product, $displayMinimalPrice = false, $idSuffix = '')
-    {
-        $type_id = $product->getTypeId();
-        if ($this->_catalogData->canApplyMsrp($product)) {
-            $realPriceHtml = $this->_preparePriceRenderer(
-                $type_id
-            )->setProduct(
-                $product
-            )->setDisplayMinimalPrice(
-                $displayMinimalPrice
-            )->setIdSuffix(
-                $idSuffix
-            )->toHtml();
-            $product->setAddToCartUrl($this->getAddToCartUrl($product));
-            $product->setRealPriceHtml($realPriceHtml);
-            $type_id = $this->_mapRenderer;
-        }
-
-        return $this->_preparePriceRenderer(
-            $type_id
-        )->setProduct(
-            $product
-        )->setDisplayMinimalPrice(
-            $displayMinimalPrice
-        )->setIdSuffix(
-            $idSuffix
-        )->toHtml();
-    }
-
-    /**
-     * Adding customized price template for product type
-     *
-     * @param string $type
-     * @param string $block
-     * @param string $template
-     * @return void
-     */
-    public function addPriceBlockType($type, $block = '', $template = '')
-    {
-        if ($type) {
-            $this->_priceBlockTypes[$type] = array('block' => $block, 'template' => $template);
-        }
+        $minSaleQty = $this->stockItemService->getMinSaleQty($product->getId());
+        return $minSaleQty > 0 ? $minSaleQty : null;
     }
 
     /**
@@ -395,103 +256,6 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
     }
 
     /**
-     * Retrieve tier price template
-     *
-     * @return string
-     */
-    public function getTierPriceTemplate()
-    {
-        if (!$this->hasData('tier_price_template')) {
-            return $this->_tierPriceDefaultTemplate;
-        }
-
-        return $this->getData('tier_price_template');
-    }
-
-    /**
-     * Returns product tier price block html
-     *
-     * @param \Magento\Catalog\Model\Product $product
-     * @return string
-     */
-    public function getTierPriceHtml($product = null)
-    {
-        if (is_null($product)) {
-            $product = $this->getProduct();
-        }
-        return $this->_getPriceBlock(
-            $product->getTypeId()
-        )->setTemplate(
-            $this->getTierPriceTemplate()
-        )->setProduct(
-            $product
-        )->toHtml();
-    }
-
-    /**
-     * Get tier prices (formatted)
-     *
-     * @param \Magento\Catalog\Model\Product $product
-     * @return array
-     */
-    public function getTierPrices($product = null)
-    {
-        if (is_null($product)) {
-            $product = $this->getProduct();
-        }
-        $prices = $product->getFormatedTierPrice();
-
-        $res = array();
-        if (is_array($prices)) {
-            foreach ($prices as $price) {
-                $price['price_qty'] = $price['price_qty'] * 1;
-
-                $_productPrice = $product->getPrice();
-                if ($_productPrice != $product->getFinalPrice()) {
-                    $_productPrice = $product->getFinalPrice();
-                }
-
-                // Group price must be used for percent calculation if it is lower
-                $groupPrice = $product->getGroupPrice();
-                if ($_productPrice > $groupPrice) {
-                    $_productPrice = $groupPrice;
-                }
-
-                if ($price['price'] < $_productPrice) {
-                    $price['savePercent'] = ceil(100 - 100 / $_productPrice * $price['price']);
-
-                    $tierPrice = $this->_storeManager->getStore()->convertPrice(
-                        $this->_taxData->getPrice($product, $price['website_price'])
-                    );
-                    $price['formated_price'] = $this->_storeManager->getStore()->formatPrice($tierPrice);
-                    $price['formated_price_incl_tax'] = $this->_storeManager->getStore()->formatPrice(
-                        $this->_storeManager->getStore()->convertPrice(
-                            $this->_taxData->getPrice($product, $price['website_price'], true)
-                        )
-                    );
-
-                    if ($this->_catalogData->canApplyMsrp($product)) {
-                        $oldPrice = $product->getFinalPrice();
-                        $product->setPriceCalculation(false);
-                        $product->setPrice($tierPrice);
-                        $product->setFinalPrice($tierPrice);
-
-                        $this->getPriceHtml($product);
-                        $product->setPriceCalculation(true);
-
-                        $price['real_price_html'] = $product->getRealPriceHtml();
-                        $product->setFinalPrice($oldPrice);
-                    }
-
-                    $res[] = $price;
-                }
-            }
-        }
-
-        return $res;
-    }
-
-    /**
      * Add all attributes and apply pricing logic to products collection
      * to get correct values in different products lists.
      * E.g. crosssells, upsells, new products, recently viewed
@@ -501,9 +265,12 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
      */
     protected function _addProductAttributesAndPrices(\Magento\Catalog\Model\Resource\Product\Collection $collection)
     {
-        return $collection->addMinimalPrice()->addFinalPrice()->addTaxPercents()->addAttributeToSelect(
-            $this->_catalogConfig->getProductAttributes()
-        )->addUrlRewrite();
+        return $collection
+            ->addMinimalPrice()
+            ->addFinalPrice()
+            ->addTaxPercents()
+            ->addAttributeToSelect($this->_catalogConfig->getProductAttributes())
+            ->addUrlRewrite();
     }
 
     /**
@@ -582,8 +349,7 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
                 $this->setData('column_count', $this->_defaultColumnCount);
             }
         }
-
-        return (int)$this->_getData('column_count');
+        return (int) $this->_getData('column_count');
     }
 
     /**
@@ -632,11 +398,12 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
     /**
      * Retrieve current page layout
      *
-     * @return \Magento\Object
+     * @return string
      */
     public function getPageLayout()
     {
-        return $this->_layoutHelper->getCurrentPageLayout();
+        // TODO: Implement of getting  current page layout
+        return '';
     }
 
     /**
@@ -657,29 +424,9 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
      */
     public function displayProductStockStatus()
     {
-        $statusInfo = new \Magento\Object(array('display_status' => true));
+        $statusInfo = new \Magento\Framework\Object(array('display_status' => true));
         $this->_eventManager->dispatch('catalog_block_product_status_display', array('status' => $statusInfo));
-        return (bool)$statusInfo->getDisplayStatus();
-    }
-
-    /**
-     * If exists price template block, retrieve price blocks from it
-     *
-     * @return \Magento\Catalog\Block\Product\AbstractProduct
-     */
-    protected function _prepareLayout()
-    {
-        parent::_prepareLayout();
-
-        /* @var $block \Magento\Catalog\Block\Product\Price\Template */
-        $block = $this->getLayout()->getBlock('catalog_product_price_template');
-        if ($block) {
-            foreach ($block->getPriceBlockTypes() as $type => $priceBlock) {
-                $this->addPriceBlockType($type, $priceBlock['block'], $priceBlock['template']);
-            }
-        }
-
-        return $this;
+        return (bool) $statusInfo->getDisplayStatus();
     }
 
     /**
@@ -690,7 +437,8 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
      */
     public function getThumbnailUrl($product)
     {
-        return (string)$this->_imageHelper->init($product, 'thumbnail')->resize($this->getThumbnailSize());
+        return (string) $this->_imageHelper->init($product, 'thumbnail')
+            ->resize($this->getThumbnailSize());
     }
 
     /**
@@ -711,7 +459,8 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
      */
     public function getThumbnailSidebarUrl($product)
     {
-        return (string)$this->_imageHelper->init($product, 'thumbnail')->resize($this->getThumbnailSidebarSize());
+        return (string) $this->_imageHelper->init($product, 'thumbnail')
+            ->resize($this->getThumbnailSidebarSize());
     }
 
     /**
@@ -732,7 +481,8 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
      */
     public function getSmallImageUrl($product)
     {
-        return (string)$this->_imageHelper->init($product, 'small_image')->resize($this->getSmallImageSize());
+        return (string) $this->_imageHelper->init($product, 'small_image')
+            ->resize($this->getSmallImageSize());
     }
 
     /**
@@ -753,7 +503,8 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
      */
     public function getSmallImageSidebarUrl($product)
     {
-        return (string)$this->_imageHelper->init($product, 'small_image')->resize($this->getSmallImageSidebarSize());
+        return (string) $this->_imageHelper->init($product, 'small_image')
+            ->resize($this->getSmallImageSidebarSize());
     }
 
     /**
@@ -774,7 +525,8 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
      */
     public function getBaseImageUrl($product)
     {
-        return (string)$this->_imageHelper->init($product, 'image')->resize($this->getBaseImageSize());
+        return (string) $this->_imageHelper->init($product, 'image')
+            ->resize($this->getBaseImageSize());
     }
 
     /**
@@ -795,7 +547,8 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
      */
     public function getBaseImageIconUrl($product)
     {
-        return (string)$this->_imageHelper->init($product, 'image')->resize($this->getBaseImageIconSize());
+        return (string) $this->_imageHelper->init($product, 'image')
+            ->resize($this->getBaseImageIconSize());
     }
 
     /**
@@ -818,5 +571,49 @@ abstract class AbstractProduct extends \Magento\View\Element\Template
     public function getRandomString($length, $chars = null)
     {
         return $this->_mathRandom->getRandomString($length, $chars);
+    }
+
+    /**
+     * Return HTML block with price
+     *
+     * @param \Magento\Catalog\Model\Product $product
+     * @return string
+     */
+    public function getProductPrice(\Magento\Catalog\Model\Product $product)
+    {
+        return $this->getProductPriceHtml(
+            $product,
+            \Magento\Catalog\Pricing\Price\FinalPrice::PRICE_CODE,
+            \Magento\Framework\Pricing\Render::ZONE_ITEM_LIST
+        );
+    }
+
+    /**
+     * Return HTML block with tier price
+     *
+     * @param \Magento\Catalog\Model\Product $product
+     * @param string $priceType
+     * @param string $renderZone
+     * @param array $arguments
+     * @return string
+     */
+    public function getProductPriceHtml(
+        \Magento\Catalog\Model\Product $product,
+        $priceType,
+        $renderZone = \Magento\Framework\Pricing\Render::ZONE_ITEM_LIST,
+        array $arguments = []
+    ) {
+        if (!isset($arguments['zone'])) {
+            $arguments['zone'] = $renderZone;
+        }
+
+        /** @var \Magento\Framework\Pricing\Render $priceRender */
+        $priceRender = $this->getLayout()->getBlock('product.price.render.default');
+        $price = '';
+
+        if ($priceRender) {
+            $price = $priceRender->render($priceType, $product, $arguments);
+        }
+        return $price;
     }
 }

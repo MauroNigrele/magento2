@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Rule
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -32,7 +30,7 @@ class Combine extends AbstractCondition
      *
      * @var array
      */
-    protected static $_conditionModels = array();
+    protected $_conditionModels = array();
 
     /**
      * @var \Magento\Rule\Model\ConditionFactory
@@ -40,7 +38,7 @@ class Combine extends AbstractCondition
     protected $_conditionFactory;
 
     /**
-     * @var \Magento\Logger
+     * @var \Magento\Framework\Logger
      */
     protected $_logger;
 
@@ -92,11 +90,11 @@ class Combine extends AbstractCondition
             return false;
         }
 
-        if (!array_key_exists($modelClass, self::$_conditionModels)) {
+        if (!array_key_exists($modelClass, $this->_conditionModels)) {
             $model = $this->_conditionFactory->create($modelClass);
-            self::$_conditionModels[$modelClass] = $model;
+            $this->_conditionModels[$modelClass] = $model;
         } else {
-            $model = self::$_conditionModels[$modelClass];
+            $model = $this->_conditionModels[$modelClass];
         }
 
         if (!$model) {
@@ -377,10 +375,32 @@ class Combine extends AbstractCondition
     }
 
     /**
-     * @param \Magento\Object $object
+     * @param \Magento\Framework\Object $object
      * @return bool
      */
-    public function validate(\Magento\Object $object)
+    public function validate(\Magento\Framework\Object $object)
+    {
+        return $this->_isValid($object);
+    }
+
+    /**
+     * Validate by entity ID
+     *
+     * @param int $entityId
+     * @return mixed
+     */
+    public function validateByEntityId($entityId)
+    {
+        return $this->_isValid($entityId);
+    }
+
+    /**
+     * Is entity valid
+     *
+     * @param int|\Magento\Framework\Object $entity
+     * @return bool
+     */
+    protected function _isValid($entity)
     {
         if (!$this->getConditions()) {
             return true;
@@ -390,8 +410,11 @@ class Combine extends AbstractCondition
         $true = (bool)$this->getValue();
 
         foreach ($this->getConditions() as $cond) {
-            $validated = $cond->validate($object);
-
+            if ($entity instanceof \Magento\Framework\Object) {
+                $validated = $cond->validate($entity);
+            } else {
+                $validated = $cond->validateByEntityId($entity);
+            }
             if ($all && $validated !== $true) {
                 return false;
             } elseif (!$all && $validated === $true) {
@@ -402,7 +425,7 @@ class Combine extends AbstractCondition
     }
 
     /**
-     * @param \Magento\Data\Form $form
+     * @param \Magento\Framework\Data\Form $form
      * @return $this
      */
     public function setJsFormObject($form)

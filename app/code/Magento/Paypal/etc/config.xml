@@ -19,8 +19,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Paypal
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
@@ -28,6 +26,7 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../Core/etc/config.xsd">
     <default>
         <paypal>
+            <bncode>Magento_Cart_Community</bncode>
             <style>
                 <logo>nowAccepting_150x60</logo>
             </style>
@@ -63,7 +62,13 @@
                 <order_valid_period>29</order_valid_period>
                 <child_authorization_number>1</child_authorization_number>
                 <verify_peer>1</verify_peer>
+                <skip_order_review_step>1</skip_order_review_step>
             </paypal_express>
+            <paypal_express_bml>
+                <model>Magento\Paypal\Model\Bml</model>
+                <title>Bill Me Later</title>
+                <group>paypal</group>
+            </paypal_express_bml>
             <paypal_direct>
                 <model>Magento\Paypal\Model\Direct</model>
                 <title>PayPal Payments Pro</title>
@@ -91,15 +96,11 @@
                 <verify_peer>1</verify_peer>
                 <model>Magento\Paypal\Model\PayflowExpress</model>
             </payflow_express>
-            <payflow_direct>
-                <title>PayPal Direct Payment Payflow Edition</title>
-                <payment_action>Authorization</payment_action>
-                <cctypes>VI,MC,AE</cctypes>
-                <useccv>1</useccv>
+            <payflow_express_bml>
+                <model>Magento\Paypal\Model\Payflow\Bml</model>
+                <title>Bill Me Later</title>
                 <group>paypal</group>
-                <verify_peer>1</verify_peer>
-                <model>Magento\Paypal\Model\PayflowDirect</model>
-            </payflow_direct>
+            </payflow_express_bml>
             <payflowpro>
                 <model>Magento\Paypal\Model\Payflowpro</model>
                 <title>Payflow Pro</title>

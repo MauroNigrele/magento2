@@ -40,7 +40,7 @@ class Context
 
     const CONTEXT_TYPE_THEME = 'theme';
 
-    const CONTEXT_TYPE_PUB = 'pub';
+    const CONTEXT_TYPE_LIB = 'lib';
 
     /**#@-*/
 
@@ -63,9 +63,9 @@ class Context
         } elseif ($value = strstr($path, '/app/design/')) {
             $type = self::CONTEXT_TYPE_THEME;
             $value = explode('/', $value);
-            $value = $value[3] . '/' . $value[4];
-        } elseif ($value = strstr($path, '/pub/lib/')) {
-            $type = self::CONTEXT_TYPE_PUB;
+            $value = $value[3] . '/' . $value[4] . '/' . $value[5];
+        } elseif ($value = strstr($path, '/lib/web/')) {
+            $type = self::CONTEXT_TYPE_LIB;
             $value = ltrim($value, '/');
         } else {
             throw new \InvalidArgumentException(sprintf('Invalid path given: "%s".', $path));
@@ -90,8 +90,8 @@ class Context
             case self::CONTEXT_TYPE_THEME:
                 $path = 'app/design/' . $value;
                 break;
-            case self::CONTEXT_TYPE_PUB:
-                $path = 'pub/lib';
+            case self::CONTEXT_TYPE_LIB:
+                $path = 'lib/web';
                 break;
             default:
                 throw new \InvalidArgumentException(sprintf('Invalid context given: "%s".', $type));

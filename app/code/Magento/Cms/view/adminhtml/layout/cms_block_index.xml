@@ -23,7 +23,7 @@
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 -->
-<layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../Core/etc/layout_single.xsd">
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../Core/etc/page.xsd">
     <referenceContainer name="content">
         <block class="Magento\Cms\Block\Adminhtml\Block" name="cms_block">
             <block class="Magento\Backend\Block\Widget\Grid" name="adminhtml.cms.block.grid" as="grid">
@@ -89,6 +89,8 @@
                             <argument name="header" xsi:type="string" translate="true">Created</argument>
                             <argument name="type" xsi:type="string">datetime</argument>
                             <argument name="index" xsi:type="string">creation_time</argument>
+                            <argument name="column_css_class" xsi:type="string">col-date</argument>
+                            <argument name="header_css_class" xsi:type="string">col-date</argument>
                         </arguments>
                     </block>
                     <block class="Magento\Backend\Block\Widget\Grid\Column" as="update_time">
@@ -96,10 +98,12 @@
                             <argument name="header" xsi:type="string" translate="true">Modified</argument>
                             <argument name="type" xsi:type="string">datetime</argument>
                             <argument name="index" xsi:type="string">update_time</argument>
+                            <argument name="column_css_class" xsi:type="string">col-date</argument>
+                            <argument name="header_css_class" xsi:type="string">col-date</argument>
                         </arguments>
                     </block>
                 </block>
             </block>
         </block>
     </referenceContainer>
-</layout>
+</page>

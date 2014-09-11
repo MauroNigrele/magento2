@@ -18,20 +18,13 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Tax
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 namespace Magento\Tax\Model\System\Config\Source\Tax;
 
-class Region implements \Magento\Option\ArrayInterface
+class Region implements \Magento\Framework\Option\ArrayInterface
 {
-    /**
-     * @var array
-     */
-    protected $_options;
-
     /**
      * @var \Magento\Directory\Model\Resource\Region\CollectionFactory
      */
@@ -46,6 +39,8 @@ class Region implements \Magento\Option\ArrayInterface
     }
 
     /**
+     * Return list of country's regions as array
+     *
      * @param bool $noEmpty
      * @param string|array|null $country
      * @return array
@@ -60,9 +55,9 @@ class Region implements \Magento\Option\ArrayInterface
             unset($options[0]);
         } else {
             if ($options) {
-                $options[0]['label'] = '*';
+                $options[0] = array('value' => '0', 'label' => '*');
             } else {
-                $options = array(array('value' => '', 'label' => '*'));
+                $options = array(array('value' => '0', 'label' => '*'));
             }
         }
 

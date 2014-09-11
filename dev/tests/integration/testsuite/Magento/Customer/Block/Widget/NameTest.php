@@ -36,14 +36,17 @@ class NameTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         $objectManager = Bootstrap::getObjectManager();
-        $objectManager->get('Magento\App\State')->setAreaCode('frontend');
+        $objectManager->get('Magento\Framework\App\State')->setAreaCode('frontend');
         $this->_block = $objectManager->get(
-            'Magento\View\LayoutInterface'
+            'Magento\Framework\View\LayoutInterface'
         )->createBlock(
             'Magento\Customer\Block\Widget\Name'
         );
     }
 
+    /**
+     * @magentoAppIsolation enabled
+     */
     public function testToHtmlSimpleName()
     {
         /** @var \Magento\Customer\Service\V1\Data\CustomerBuilder $customerBuilder */
@@ -64,6 +67,7 @@ class NameTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @magentoAppIsolation enabled
      * @magentoDataFixture Magento/Customer/_files/attribute_user_fullname.php
      */
     public function testToHtmlFancyName()

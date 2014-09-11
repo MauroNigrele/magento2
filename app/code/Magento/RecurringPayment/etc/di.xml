@@ -23,9 +23,9 @@
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 -->
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../../lib/Magento/ObjectManager/etc/config.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../../lib/internal/Magento/Framework/ObjectManager/etc/config.xsd">
     <preference for="Magento\Checkout\Model\Session\SuccessValidator" type="Magento\RecurringPayment\Model\SuccessValidator" />
-    <type name="Magento\Module\Updater\SetupFactory">
+    <type name="Magento\Framework\Module\Updater\SetupFactory">
         <arguments>
             <argument name="resourceTypes" xsi:type="array">
                 <item name="recurringpayment_setup" xsi:type="string">Magento\RecurringPayment\Model\Resource\Setup</item>
@@ -47,5 +47,7 @@
     <type name="Magento\Payment\Model\Checks\ZeroTotal">
         <plugin name="recurringpayment" type="Magento\RecurringPayment\Model\Plugin\ZeroTotal" />
     </type>
-
+    <type name="Magento\Catalog\Block\Adminhtml\Product\Edit\Tabs">
+        <plugin name="recurringpayment_product_tab" type="Magento\RecurringPayment\Model\Plugin\Tabs" />
+    </type>
 </config>

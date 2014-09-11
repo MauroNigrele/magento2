@@ -21,40 +21,21 @@
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
+
 namespace Magento\Customer\Service\V1\Data;
 
 /**
  * SearchResults Service Data Object used for the search service requests
  */
-class SearchResults extends \Magento\Service\Data\AbstractObject
+class SearchResults extends \Magento\Framework\Service\V1\Data\SearchResults
 {
     /**
      * Get items
      *
-     * @return \Magento\Service\Data\AbstractObject[]
+     * @return \Magento\Customer\Service\V1\Data\CustomerDetails[]
      */
     public function getItems()
     {
-        return is_null($this->_get('items')) ? array() : $this->_get('items');
-    }
-
-    /**
-     * Get search criteria
-     *
-     * @return \Magento\Customer\Service\V1\Data\SearchCriteria
-     */
-    public function getSearchCriteria()
-    {
-        return $this->_get('search_criteria');
-    }
-
-    /**
-     * Get total count
-     *
-     * @return int
-     */
-    public function getTotalCount()
-    {
-        return $this->_get('total_count');
+        return parent::getItems();
     }
 }

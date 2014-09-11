@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_CatalogSearch
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,20 +26,19 @@
 /**
  * Catalog Search change Search Type backend model
  *
- * @category   Magento
- * @package    Magento_CatalogSearch
  * @author     Magento Core Team <core@magentocommerce.com>
  */
 namespace Magento\CatalogSearch\Model\Config\Backend\Search;
 
-use Magento\App\ConfigInterface;
+use Magento\CatalogSearch\Model\Indexer\Fulltext as FulltextIndexer;
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\CatalogSearch\Model\Fulltext;
-use Magento\Core\Model\Config\Value;
-use Magento\Model\Context;
-use Magento\Registry;
-use Magento\Model\Resource\AbstractResource;
-use Magento\Core\Model\StoreManagerInterface;
-use Magento\Data\Collection\Db;
+use Magento\Framework\App\Config\Value;
+use Magento\Framework\Model\Context;
+use Magento\Framework\Registry;
+use Magento\Framework\Model\Resource\AbstractResource;
+use Magento\Framework\Data\Collection\Db;
+use Magento\Indexer\Model\IndexerFactory;
 
 class Type extends Value
 {
@@ -53,11 +50,16 @@ class Type extends Value
     protected $_catalogSearchFulltext;
 
     /**
+     * @var \Magento\Indexer\Model\IndexerFactory
+     */
+    protected $indexerFactory;
+
+    /**
      * @param Context $context
      * @param Registry $registry
-     * @param StoreManagerInterface $storeManager
-     * @param ConfigInterface $config
+     * @param ScopeConfigInterface $config
      * @param Fulltext $catalogSearchFulltext
+     * @param IndexerFactory $indexerFactory
      * @param AbstractResource $resource
      * @param Db $resourceCollection
      * @param array $data
@@ -65,15 +67,16 @@ class Type extends Value
     public function __construct(
         Context $context,
         Registry $registry,
-        StoreManagerInterface $storeManager,
-        ConfigInterface $config,
+        ScopeConfigInterface $config,
         Fulltext $catalogSearchFulltext,
+        IndexerFactory $indexerFactory,
         AbstractResource $resource = null,
         Db $resourceCollection = null,
         array $data = array()
     ) {
         $this->_catalogSearchFulltext = $catalogSearchFulltext;
-        parent::__construct($context, $registry, $storeManager, $config, $resource, $resourceCollection, $data);
+        $this->indexerFactory = $indexerFactory;
+        parent::__construct($context, $registry, $config, $resource, $resourceCollection, $data);
     }
 
     /**
@@ -91,6 +94,10 @@ class Type extends Value
         );
         if ($newValue != $oldValue) {
             $this->_catalogSearchFulltext->resetSearchResults();
+
+            $indexer = $this->indexerFactory->create();
+            $indexer->load(FulltextIndexer::INDEXER_ID);
+            $indexer->invalidate();
         }
 
         return $this;

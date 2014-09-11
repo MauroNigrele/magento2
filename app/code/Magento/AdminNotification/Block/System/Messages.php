@@ -17,7 +17,7 @@
  * Do not edit or add to this file if you wish to upgrade Magento to newer
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
- * 
+ *
  * @copyright Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -70,14 +70,14 @@ class Messages extends \Magento\Backend\Block\Template
     /**
      * Retrieve message list
      *
-     * @return \Magento\AdminNotification\Model\System\MessageInterface[]
+     * @return \Magento\Framework\Notification\MessageInterface[]
      */
     public function getLastCritical()
     {
         $items = array_values($this->_messages->getItems());
         if (isset(
             $items[0]
-        ) && $items[0]->getSeverity() == \Magento\AdminNotification\Model\System\MessageInterface::SEVERITY_CRITICAL
+        ) && $items[0]->getSeverity() == \Magento\Framework\Notification\MessageInterface::SEVERITY_CRITICAL
         ) {
             return $items[0];
         }
@@ -92,7 +92,7 @@ class Messages extends \Magento\Backend\Block\Template
     public function getCriticalCount()
     {
         return $this->_messages->getCountBySeverity(
-            \Magento\AdminNotification\Model\System\MessageInterface::SEVERITY_CRITICAL
+            \Magento\Framework\Notification\MessageInterface::SEVERITY_CRITICAL
         );
     }
 
@@ -104,7 +104,7 @@ class Messages extends \Magento\Backend\Block\Template
     public function getMajorCount()
     {
         return $this->_messages->getCountBySeverity(
-            \Magento\AdminNotification\Model\System\MessageInterface::SEVERITY_MAJOR
+            \Magento\Framework\Notification\MessageInterface::SEVERITY_MAJOR
         );
     }
 
@@ -129,7 +129,7 @@ class Messages extends \Magento\Backend\Block\Template
     }
 
     /**
-     * Initialize Syste,Message dialog widget
+     * Initialize system message dialog widget
      *
      * @return string
      */

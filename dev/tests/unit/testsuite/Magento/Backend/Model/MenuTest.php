@@ -18,9 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Backend
- * @subpackage  unit_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -34,7 +31,7 @@ class MenuTest extends \PHPUnit_Framework_TestCase
     protected $_model;
 
     /**
-     * @var \Magento\Logger
+     * @var \Magento\Framework\Logger
      */
     protected $_logger;
 
@@ -54,7 +51,7 @@ class MenuTest extends \PHPUnit_Framework_TestCase
         $this->_items['item3'] = $this->getMock('Magento\Backend\Model\Menu\Item', array(), array(), '', false);
         $this->_items['item3']->expects($this->any())->method('getId')->will($this->returnValue('item3'));
 
-        $this->_logger = $this->getMock('Magento\Logger', array('log'), array(), '', false);
+        $this->_logger = $this->getMock('Magento\Framework\Logger', array('log'), array(), '', false);
 
         $this->_model = new \Magento\Backend\Model\Menu($this->_logger);
     }
@@ -82,7 +79,7 @@ class MenuTest extends \PHPUnit_Framework_TestCase
 
     public function testAddToItem()
     {
-        $subMenu = $this->getMock("Magento\Backend\Model\Menu", array(), array($this->_logger));
+        $subMenu = $this->getMock('Magento\Backend\Model\Menu', array(), array($this->_logger));
         $subMenu->expects($this->once())->method("add")->with($this->_items['item2']);
 
         $this->_items['item1']->expects($this->once())->method("getChildren")->will($this->returnValue($subMenu));
@@ -155,7 +152,11 @@ class MenuTest extends \PHPUnit_Framework_TestCase
         $this->_model->add($this->_items['item2']);
         $this->_model->add($this->_items['item3']);
 
-        $subMenu = $this->getMock("Magento\Backend\Model\Menu", array(), array(), '', false);
+        $subMenu = $this->getMock(
+            'Magento\Backend\Model\Menu',
+            [],
+            [$this->getMock('Magento\Framework\Logger', [], [], '', false)]
+        );
         $subMenu->expects($this->once())->method("add")->with($this->_items['item3']);
 
         $this->_items['item1']->expects($this->once())->method("getChildren")->will($this->returnValue($subMenu));
@@ -204,7 +205,11 @@ class MenuTest extends \PHPUnit_Framework_TestCase
 
     public function testRemoveRemovesMenuItemRecursively()
     {
-        $menuMock = $this->getMock('Magento\Backend\Model\Menu', array(), array(), '', false);
+        $menuMock = $this->getMock(
+            'Magento\Backend\Model\Menu',
+            [],
+            [$this->getMock('Magento\Framework\Logger', [], [], '', false)]
+        );
         $menuMock->expects($this->once())->method('remove')->with($this->equalTo('item2'));
 
         $this->_items['item1']->expects($this->any())->method('hasChildren')->will($this->returnValue(true));

@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Sales
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -45,25 +43,17 @@ class Payment extends AbstractOrder
     protected $_eventPrefix = 'sales_order_payment_resource';
 
     /**
-     * @var \Magento\Sales\Model\Payment\Method\Converter
-     */
-    protected $_paymentConverter;
-
-    /**
-     * @param \Magento\App\Resource $resource
-     * @param \Magento\Stdlib\DateTime $dateTime
-     * @param \Magento\Event\ManagerInterface $eventManager
+     * @param \Magento\Framework\App\Resource $resource
+     * @param \Magento\Framework\Stdlib\DateTime $dateTime
+     * @param \Magento\Framework\Event\ManagerInterface $eventManager
      * @param \Magento\Eav\Model\Entity\TypeFactory $eavEntityTypeFactory
-     * @param \Magento\Sales\Model\Payment\Method\Converter $paymentConverter
      */
     public function __construct(
-        \Magento\App\Resource $resource,
-        \Magento\Stdlib\DateTime $dateTime,
-        \Magento\Event\ManagerInterface $eventManager,
-        \Magento\Eav\Model\Entity\TypeFactory $eavEntityTypeFactory,
-        \Magento\Sales\Model\Payment\Method\Converter $paymentConverter
+        \Magento\Framework\App\Resource $resource,
+        \Magento\Framework\Stdlib\DateTime $dateTime,
+        \Magento\Framework\Event\ManagerInterface $eventManager,
+        \Magento\Eav\Model\Entity\TypeFactory $eavEntityTypeFactory
     ) {
-        $this->_paymentConverter = $paymentConverter;
         parent::__construct($resource, $dateTime, $eventManager, $eavEntityTypeFactory);
     }
 
@@ -74,7 +64,6 @@ class Payment extends AbstractOrder
      */
     protected function _construct()
     {
-        $this->_converter = $this->_paymentConverter;
         $this->_init('sales_flat_order_payment', 'entity_id');
     }
 }

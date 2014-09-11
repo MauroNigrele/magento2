@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Paypal
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,11 +26,9 @@ namespace Magento\Paypal\Model\Hostedpro;
 /**
  *  Website Payments Pro Hosted Solution request model to get token.
  *
- * @category    Magento
- * @package     Magento_Paypal
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-class Request extends \Magento\Object
+class Request extends \Magento\Framework\Object
 {
     /**
      * Request's order model
@@ -207,16 +203,17 @@ class Request extends \Magento\Object
     /**
      * Get shipping address request data
      *
-     * @param \Magento\Object $address
+     * @param \Magento\Framework\Object $address
      * @return array
      */
-    protected function _getShippingAddress(\Magento\Object $address)
+    protected function _getShippingAddress(\Magento\Framework\Object $address)
     {
+        $region = $address->getRegionCode() ? $address->getRegionCode() : $address->getRegion();
         $request = array(
             'first_name' => $address->getFirstname(),
             'last_name' => $address->getLastname(),
             'city' => $address->getCity(),
-            'state' => $address->getRegionCode() ? $address->getRegionCode() : $address->getCity(),
+            'state' => $region ? $region : $address->getCity(),
             'zip' => $address->getPostcode(),
             'country' => $address->getCountry()
         );
@@ -233,16 +230,17 @@ class Request extends \Magento\Object
     /**
      * Get billing address request data
      *
-     * @param \Magento\Object $address
+     * @param \Magento\Framework\Object $address
      * @return array
      */
-    protected function _getBillingAddress(\Magento\Object $address)
+    protected function _getBillingAddress(\Magento\Framework\Object $address)
     {
+        $region = $address->getRegionCode() ? $address->getRegionCode() : $address->getRegion();
         $request = array(
             'billing_first_name' => $address->getFirstname(),
             'billing_last_name' => $address->getLastname(),
             'billing_city' => $address->getCity(),
-            'billing_state' => $address->getRegionCode() ? $address->getRegionCode() : $address->getCity(),
+            'billing_state' => $region ? $region : $address->getCity(),
             'billing_zip' => $address->getPostcode(),
             'billing_country' => $address->getCountry()
         );

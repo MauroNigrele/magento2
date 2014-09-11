@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -84,7 +82,6 @@ $attributesOrder = array(
     'name' => array($newGeneralTabName => 10),
     'sku' => array($newGeneralTabName => 20),
     'price' => array($newGeneralTabName => 30),
-    'tax_class_id' => array($newGeneralTabName => 40, 'is_required' => 0, 'default_value' => 2),
     'image' => array($newGeneralTabName => 50),
     'weight' => array($newGeneralTabName => 70, 'is_required' => 0),
     'category_ids' => array($newGeneralTabName => 80),
@@ -93,7 +90,7 @@ $attributesOrder = array(
         $newGeneralTabName => 100,
         'is_required' => 0,
         'default_value' => 1,
-        'frontend_input_renderer' => 'Magento\Data\Form\Element\Hidden'
+        'frontend_input_renderer' => 'Magento\Framework\Data\Form\Element\Hidden'
     ),
     //Autosettings tab
     'short_description' => array($autosettingsTabName => 0, 'is_required' => 0),

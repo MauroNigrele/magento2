@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Backend
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -30,7 +28,7 @@ namespace Magento\Backend\App;
  *
  * @SuppressWarnings(PHPMD.NumberOfChildren)
  */
-abstract class AbstractAction extends \Magento\App\Action\Action
+abstract class AbstractAction extends \Magento\Framework\App\Action\Action
 {
     /**
      * Name of "is URLs checked" flag
@@ -67,7 +65,7 @@ abstract class AbstractAction extends \Magento\App\Action\Action
     protected $_session;
 
     /**
-     * @var \Magento\AuthorizationInterface
+     * @var \Magento\Framework\AuthorizationInterface
      */
     protected $_authorization;
 
@@ -82,7 +80,7 @@ abstract class AbstractAction extends \Magento\App\Action\Action
     protected $_backendUrl;
 
     /**
-     * @var \Magento\Locale\ResolverInterface
+     * @var \Magento\Framework\Locale\ResolverInterface
      */
     protected $_localeResolver;
 
@@ -97,7 +95,7 @@ abstract class AbstractAction extends \Magento\App\Action\Action
     protected $_formKeyValidator;
 
     /**
-     * @var \Magento\App\Action\Title
+     * @var \Magento\Framework\App\Action\Title
      */
     protected $_title;
 
@@ -137,7 +135,7 @@ abstract class AbstractAction extends \Magento\App\Action\Action
     }
 
     /**
-     * @return \Magento\Message\ManagerInterface
+     * @return \Magento\Framework\Message\ManagerInterface
      */
     protected function getMessageManager()
     {
@@ -177,28 +175,28 @@ abstract class AbstractAction extends \Magento\App\Action\Action
     }
 
     /**
-     * @param \Magento\View\Element\AbstractBlock $block
+     * @param \Magento\Framework\View\Element\AbstractBlock $block
      * @return $this
      */
-    protected function _addContent(\Magento\View\Element\AbstractBlock $block)
+    protected function _addContent(\Magento\Framework\View\Element\AbstractBlock $block)
     {
         return $this->_moveBlockToContainer($block, 'content');
     }
 
     /**
-     * @param \Magento\View\Element\AbstractBlock $block
+     * @param \Magento\Framework\View\Element\AbstractBlock $block
      * @return $this
      */
-    protected function _addLeft(\Magento\View\Element\AbstractBlock $block)
+    protected function _addLeft(\Magento\Framework\View\Element\AbstractBlock $block)
     {
         return $this->_moveBlockToContainer($block, 'left');
     }
 
     /**
-     * @param \Magento\View\Element\AbstractBlock $block
+     * @param \Magento\Framework\View\Element\AbstractBlock $block
      * @return $this
      */
-    protected function _addJs(\Magento\View\Element\AbstractBlock $block)
+    protected function _addJs(\Magento\Framework\View\Element\AbstractBlock $block)
     {
         return $this->_moveBlockToContainer($block, 'js');
     }
@@ -208,28 +206,35 @@ abstract class AbstractAction extends \Magento\App\Action\Action
      *
      * The block will be moved to the container from previous parent after all other elements
      *
-     * @param \Magento\View\Element\AbstractBlock $block
+     * @param \Magento\Framework\View\Element\AbstractBlock $block
      * @param string $containerName
      * @return $this
      */
-    private function _moveBlockToContainer(\Magento\View\Element\AbstractBlock $block, $containerName)
+    private function _moveBlockToContainer(\Magento\Framework\View\Element\AbstractBlock $block, $containerName)
     {
         $this->_view->getLayout()->setChild($containerName, $block->getNameInLayout(), '');
         return $this;
     }
 
     /**
-     * @param \Magento\App\RequestInterface $request
-     * @return \Magento\App\ResponseInterface
+     * @param \Magento\Framework\App\RequestInterface $request
+     * @return \Magento\Framework\App\ResponseInterface
      */
-    public function dispatch(\Magento\App\RequestInterface $request)
+    public function dispatch(\Magento\Framework\App\RequestInterface $request)
     {
         if (!$this->_processUrlKeys()) {
             return parent::dispatch($request);
         }
 
         if ($request->isDispatched() && $request->getActionName() !== 'denied' && !$this->_isAllowed()) {
-            $this->_forward('denied');
+            $this->_response->setHeader('HTTP/1.1', '403 Forbidden');
+            $this->_response->setHttpResponseCode(403);
+            if (!$this->_auth->isLoggedIn()) {
+                return $this->_redirect('*/auth/login');
+            }
+            $this->_view->loadLayout(array('default', 'adminhtml_denied'), true, true, false);
+            $this->_view->renderLayout();
+            $this->_request->setDispatched(true);
             return $this->_response;
         }
 
@@ -282,7 +287,7 @@ abstract class AbstractAction extends \Magento\App\Action\Action
             $this->_actionFlag->set('', self::FLAG_NO_DISPATCH, true);
             $this->_actionFlag->set('', self::FLAG_NO_POST_DISPATCH, true);
             if ($this->getRequest()->getQuery('isAjax', false) || $this->getRequest()->getQuery('ajax', false)) {
-                $this->getResponse()->setBody(
+                $this->getResponse()->representJson(
                     $this->_objectManager->get(
                         'Magento\Core\Helper\Data'
                     )->jsonEncode(
@@ -306,7 +311,7 @@ abstract class AbstractAction extends \Magento\App\Action\Action
     protected function _processLocaleSettings()
     {
         $forceLocale = $this->getRequest()->getParam('locale', null);
-        if ($this->_objectManager->get('Magento\Locale\Validator')->isValid($forceLocale)) {
+        if ($this->_objectManager->get('Magento\Framework\Locale\Validator')->isValid($forceLocale)) {
             $this->_getSession()->setSessionLocale($forceLocale);
         }
 
@@ -318,40 +323,11 @@ abstract class AbstractAction extends \Magento\App\Action\Action
     }
 
     /**
-     * @return void
-     */
-    public function deniedAction()
-    {
-        $this->getResponse()->setHeader('HTTP/1.1', '403 Forbidden');
-        if (!$this->_auth->isLoggedIn()) {
-            $this->_redirect('*/auth/login');
-            return;
-        }
-        $this->_view->loadLayout(array('default', 'adminhtml_denied'));
-        $this->_view->renderLayout();
-    }
-
-    /**
-     * No route action
-     *
-     * @param null $coreRoute
-     * @return void
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
-     */
-    public function norouteAction($coreRoute = null)
-    {
-        $this->getResponse()->setHeader('HTTP/1.1', '404 Not Found');
-        $this->getResponse()->setHeader('Status', '404 File not found');
-        $this->_view->loadLayout(array('default', 'adminhtml_noroute'));
-        $this->_view->renderLayout();
-    }
-
-    /**
      * Set redirect into response
      *
      * @param   string $path
      * @param   array $arguments
-     * @return \Magento\App\ResponseInterface
+     * @return \Magento\Framework\App\ResponseInterface
      */
     protected function _redirect($path, $arguments = array())
     {

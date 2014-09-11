@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Reports
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,13 +26,11 @@
 /**
  * Report collection abstract model
  *
- * @category    Magento
- * @package     Magento_Reports
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 namespace Magento\Reports\Model\Resource\Report\Collection;
 
-class AbstractCollection extends \Magento\Model\Resource\Db\Collection\AbstractCollection
+class AbstractCollection extends \Magento\Framework\Model\Resource\Db\Collection\AbstractCollection
 {
     /**
      * From date
@@ -130,6 +126,16 @@ class AbstractCollection extends \Magento\Model\Resource\Db\Collection\AbstractC
     public function setPeriod($period)
     {
         $this->_period = $period;
+        return $this;
+    }
+
+    /**
+     * Apply needed aggregated table
+     *
+     * @return $this
+     */
+    protected function _applyAggregatedTable()
+    {
         return $this;
     }
 
@@ -261,6 +267,7 @@ class AbstractCollection extends \Magento\Model\Resource\Db\Collection\AbstractC
     {
         parent::_beforeLoad();
 
+        $this->_applyAggregatedTable();
         $this->_applyDateRangeFilter();
         $this->_applyStoresFilter();
         $this->_applyCustomFilter();

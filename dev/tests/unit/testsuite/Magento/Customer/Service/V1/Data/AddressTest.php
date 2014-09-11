@@ -26,6 +26,8 @@ namespace Magento\Customer\Service\V1\Data;
 use Magento\Customer\Service\V1\Data\Address;
 use Magento\Customer\Service\V1\Data\AddressBuilder;
 use Magento\Customer\Service\V1\Data\RegionBuilder;
+use Magento\Framework\Service\Data\AttributeValue;
+use Magento\Framework\Service\Data\AttributeValueBuilder;
 
 class AddressTest extends \PHPUnit_Framework_TestCase
 {
@@ -92,29 +94,46 @@ class AddressTest extends \PHPUnit_Framework_TestCase
     /** @var \Magento\Customer\Service\V1\CustomerMetadataService */
     private $_customerMetadataService;
 
+    /** @var \Magento\Framework\Service\Data\AttributeValueBuilder */
+    private $_valueBuilder;
+
+    /**
+     * @var \Magento\TestFramework\Helper\ObjectManager
+     */
+    protected $objectManagerHelper;
+
     protected function setUp()
     {
-        $objectManagerHelper = new \Magento\TestFramework\Helper\ObjectManager($this);
-        $regionBuilder = $objectManagerHelper->getObject('Magento\Customer\Service\V1\Data\RegionBuilder');
+        $this->objectManagerHelper = new \Magento\TestFramework\Helper\ObjectManager($this);
+        $regionBuilder = $this->objectManagerHelper->getObject('Magento\Customer\Service\V1\Data\RegionBuilder');
         /** @var \Magento\Customer\Service\V1\CustomerMetadataService $customerMetadataService */
         $this->_customerMetadataService = $this->getMockBuilder(
-            'Magento\Customer\Service\V1\CustomerMetadataService'
+            'Magento\Customer\Service\V1\AddressMetadataService'
         )->setMethods(
-            array('getCustomAddressAttributeMetadata')
+            array('getCustomAttributesMetadata')
         )->disableOriginalConstructor()->getMock();
         $this->_customerMetadataService->expects(
             $this->any()
         )->method(
-            'getCustomAddressAttributeMetadata'
+            'getCustomAttributesMetadata'
         )->will(
             $this->returnValue(
                 array(
-                    new \Magento\Object(array('attribute_code' => 'warehouse_zip')),
-                    new \Magento\Object(array('attribute_code' => 'warehouse_alternate'))
+                    new \Magento\Framework\Object(array('attribute_code' => 'warehouse_zip')),
+                    new \Magento\Framework\Object(array('attribute_code' => 'warehouse_alternate'))
                 )
             )
         );
-        $this->_addressBuilder = new AddressBuilder($regionBuilder, $this->_customerMetadataService);
+        $this->_valueBuilder = $this->objectManagerHelper
+            ->getObject('Magento\Framework\Service\Data\AttributeValueBuilder');
+        $this->_addressBuilder = $this->objectManagerHelper->getObject(
+            'Magento\Customer\Service\V1\Data\AddressBuilder',
+            [
+                'valueBuilder' => $this->_valueBuilder,
+                'regionBuilder' => $regionBuilder,
+                'metadataService' => $this->_customerMetadataService
+            ]
+        );
     }
 
     public function testMinimalAddress()
@@ -137,7 +156,8 @@ class AddressTest extends \PHPUnit_Framework_TestCase
                 'getStreet' => $this->_expectedValues['street'],
                 'getCity' => $this->_expectedValues['city'],
                 'getCountryId' => $this->_expectedValues['country_id'],
-                'getRegion' => (new RegionBuilder())->setRegionId(0)->setRegion('Texas')->create(),
+                'getRegion' => $this->objectManagerHelper->getObject('\Magento\Customer\Service\V1\Data\RegionBuilder')
+                        ->setRegionId(0)->setRegion('Texas')->create(),
                 'getPostcode' => $this->_expectedValues['postcode'],
                 'getTelephone' => $this->_expectedValues['telephone']
             )
@@ -206,7 +226,7 @@ class AddressTest extends \PHPUnit_Framework_TestCase
         $addressBuilder->setCity($this->_expectedValues['city']);
         $addressBuilder->setCountryId($this->_expectedValues['country_id']);
         $addressBuilder->setRegion(
-            (new RegionBuilder())->setRegionId(
+            $this->objectManagerHelper->getObject('\Magento\Customer\Service\V1\Data\RegionBuilder')->setRegionId(
                 $this->_expectedValues['region']['region_id']
             )->setRegion(
                 $this->_expectedValues['region']['region']
@@ -245,7 +265,7 @@ class AddressTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($this->_expectedValues['city'], $address->getCity());
         $this->assertEquals($this->_expectedValues['country_id'], $address->getCountryId());
         $this->assertEquals(
-            (new RegionBuilder())->setRegionId(
+            $this->objectManagerHelper->getObject('\Magento\Customer\Service\V1\Data\RegionBuilder')->setRegionId(
                 $this->_expectedValues['region']['region_id']
             )->setRegion(
                 $this->_expectedValues['region']['region']
@@ -266,35 +286,45 @@ class AddressTest extends \PHPUnit_Framework_TestCase
             'warehouse_alternate',
             '90051'
         )->create();
-        $this->assertEquals('78777', $address->getCustomAttribute('warehouse_zip'));
-        $this->assertEquals('90051', $address->getCustomAttribute('warehouse_alternate'));
+        $this->assertEquals('78777', $address->getCustomAttribute('warehouse_zip')->getValue());
+        $this->assertEquals('90051', $address->getCustomAttribute('warehouse_alternate')->getValue());
 
-        $attributes = array(
-            Address::CUSTOM_ATTRIBUTES_KEY => array('warehouse_zip' => '78777', 'warehouse_alternate' => '90051')
-        );
-        $this->assertEquals($attributes[Customer::CUSTOM_ATTRIBUTES_KEY], $address->getCustomAttributes());
+        foreach ($address->getCustomAttributes() as $customAttribute) {
+                $attributes[Customer::CUSTOM_ATTRIBUTES_KEY][$customAttribute->getAttributeCode()] = [
+                    AttributeValue::ATTRIBUTE_CODE => $customAttribute->getAttributeCode(),
+                    AttributeValue::VALUE => $customAttribute->getValue()
+                ];
+        }
         $this->assertEquals($attributes, $address->__toArray());
     }
 
     public function testSetCustomAttributes()
     {
-        $addressData = array(
-            'email' => 'test@example.com',
-            'firstname' => 'John',
-            'lastname' => 'Doe',
-            'unknown_key' => 'Golden Necklace',
-            'warehouse_zip' => '78777',
-            'warehouse_alternate' => '90051'
-        );
-        $expectedData = array(
-            Address::CUSTOM_ATTRIBUTES_KEY => array('warehouse_zip' => '78777', 'warehouse_alternate' => '90051')
-        );
-        $this->_addressBuilder->populateWithArray(array());
-        $address = $this->_addressBuilder->setCustomAttributes($addressData)->create();
 
-        $this->assertEquals('78777', $address->getCustomAttribute('warehouse_zip'));
-        $this->assertEquals('90051', $address->getCustomAttribute('warehouse_alternate'));
-        $this->assertEquals($expectedData[Address::CUSTOM_ATTRIBUTES_KEY], $address->getCustomAttributes());
-        $this->assertEquals($expectedData, $address->__toArray());
+        $customerAttributes = [
+            'warehouse_zip' => [
+                AttributeValue::ATTRIBUTE_CODE => 'warehouse_zip',
+                AttributeValue::VALUE => '78777'
+            ],
+            'warehouse_alternate' => [
+                AttributeValue::ATTRIBUTE_CODE => 'warehouse_alternate',
+                AttributeValue::VALUE => '90051'
+            ]
+        ];
+
+        $attributeValue1 = $this->_valueBuilder
+            ->populateWithArray($customerAttributes['warehouse_zip'])
+            ->create();
+        $attributeValue2 = $this->_valueBuilder
+            ->populateWithArray($customerAttributes['warehouse_alternate'])
+            ->create();
+
+        $address = $this->_addressBuilder
+            ->setCustomAttributes([$attributeValue1, $attributeValue2])
+            ->create();
+
+        $this->assertEquals('78777', $address->getCustomAttribute('warehouse_zip')->getValue());
+        $this->assertEquals('90051', $address->getCustomAttribute('warehouse_alternate')->getValue());
+        $this->assertEquals($customerAttributes, $address->__toArray()[Customer::CUSTOM_ATTRIBUTES_KEY]);
     }
 }

@@ -47,7 +47,7 @@ class ConfigurableTest extends \PHPUnit_Framework_TestCase
         );
         $this->_product->load(1);
         $this->_block = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
-            'Magento\View\LayoutInterface'
+            'Magento\Framework\View\LayoutInterface'
         )->createBlock(
             'Magento\ConfigurableProduct\Block\Product\View\Type\Configurable'
         );
@@ -86,6 +86,7 @@ class ConfigurableTest extends \PHPUnit_Framework_TestCase
         $this->assertArrayHasKey('template', $config);
         $this->assertArrayHasKey('basePrice', $config);
         $this->assertArrayHasKey('productId', $config);
+        $this->assertArrayHasKey('baseImage', $config);
         $this->assertEquals(1, $config['productId']);
     }
 }

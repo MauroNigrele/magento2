@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Cms
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,17 +26,10 @@ namespace Magento\Cms\Block\Adminhtml\Page\Widget;
 /**
  * CMS page chooser for Wysiwyg CMS widget
  *
- * @category   Magento
- * @package    Magento_Cms
  * @author     Magento Core Team <core@magentocommerce.com>
  */
 class Chooser extends \Magento\Backend\Block\Widget\Grid\Extended
 {
-    /**
-     * @var \Magento\Theme\Model\Layout\Source\Layout
-     */
-    protected $_pageLayout;
-
     /**
      * @var \Magento\Cms\Model\Page
      */
@@ -55,24 +46,29 @@ class Chooser extends \Magento\Backend\Block\Widget\Grid\Extended
     protected $_collectionFactory;
 
     /**
+     * @var \Magento\Core\Model\PageLayout\Config\Builder
+     */
+    protected $pageLayoutBuilder;
+
+    /**
      * @param \Magento\Backend\Block\Template\Context $context
      * @param \Magento\Backend\Helper\Data $backendHelper
-     * @param \Magento\Theme\Model\Layout\Source\Layout $pageLayout
      * @param \Magento\Cms\Model\Page $cmsPage
      * @param \Magento\Cms\Model\PageFactory $pageFactory
      * @param \Magento\Cms\Model\Resource\Page\CollectionFactory $collectionFactory
+     * @param \Magento\Core\Model\PageLayout\Config\Builder $pageLayoutBuilder
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
         \Magento\Backend\Helper\Data $backendHelper,
-        \Magento\Theme\Model\Layout\Source\Layout $pageLayout,
         \Magento\Cms\Model\Page $cmsPage,
         \Magento\Cms\Model\PageFactory $pageFactory,
         \Magento\Cms\Model\Resource\Page\CollectionFactory $collectionFactory,
+        \Magento\Core\Model\PageLayout\Config\Builder $pageLayoutBuilder,
         array $data = array()
     ) {
-        $this->_pageLayout = $pageLayout;
+        $this->pageLayoutBuilder = $pageLayoutBuilder;
         $this->_cmsPage = $cmsPage;
         $this->_pageFactory = $pageFactory;
         $this->_collectionFactory = $collectionFactory;
@@ -95,10 +91,10 @@ class Chooser extends \Magento\Backend\Block\Widget\Grid\Extended
     /**
      * Prepare chooser element HTML
      *
-     * @param \Magento\Data\Form\Element\AbstractElement $element Form Element
-     * @return \Magento\Data\Form\Element\AbstractElement
+     * @param \Magento\Framework\Data\Form\Element\AbstractElement $element Form Element
+     * @return \Magento\Framework\Data\Form\Element\AbstractElement
      */
-    public function prepareElementHtml(\Magento\Data\Form\Element\AbstractElement $element)
+    public function prepareElementHtml(\Magento\Framework\Data\Form\Element\AbstractElement $element)
     {
         $uniqId = $this->mathRandom->getUniqueHash($element->getId());
         $sourceUrl = $this->getUrl('cms/page_widget/chooser', array('uniq_id' => $uniqId));
@@ -209,12 +205,12 @@ class Chooser extends \Magento\Backend\Block\Widget\Grid\Extended
         );
 
         $this->addColumn(
-            'chooser_root_template',
+            'chooser_page_layout',
             array(
                 'header' => __('Layout'),
-                'index' => 'root_template',
+                'index' => 'page_layout',
                 'type' => 'options',
-                'options' => $this->_pageLayout->getOptions(),
+                'options' => $this->pageLayoutBuilder->getPageLayoutsConfig()->getOptions(),
                 'header_css_class' => 'col-layout',
                 'column_css_class' => 'col-layout'
             )

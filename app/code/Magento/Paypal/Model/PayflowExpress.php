@@ -21,14 +21,17 @@
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
+
 namespace Magento\Paypal\Model;
+
+use Magento\Sales\Model\Order\Payment\Transaction;
 
 class PayflowExpress extends \Magento\Paypal\Model\Express
 {
     /**
      * @var string
      */
-    protected $_code = \Magento\Paypal\Model\Config::METHOD_WPP_PE_EXPRESS;
+    protected $_code = Config::METHOD_WPP_PE_EXPRESS;
 
     /**
      * @var string
@@ -36,57 +39,56 @@ class PayflowExpress extends \Magento\Paypal\Model\Express
     protected $_formBlockType = 'Magento\Paypal\Block\PayflowExpress\Form';
 
     /**
-     * Website Payments Pro instance type
-     *
-     * @var $_proType string
-     */
-    protected $_proType = 'Magento\Paypal\Model\Payflow\Pro';
-
-    /**
      * Express Checkout payment method instance
      *
-     * @var \Magento\Paypal\Model\Express
+     * @var Express
      */
     protected $_ecInstance = null;
 
     /**
-     * @var \Magento\Paypal\Model\InfoFactory
+     * @var InfoFactory
      */
     protected $_paypalInfoFactory;
 
     /**
-     * @param \Magento\Event\ManagerInterface $eventManager
+     * @param \Magento\Framework\Event\ManagerInterface $eventManager
      * @param \Magento\Payment\Helper\Data $paymentData
-     * @param \Magento\Core\Model\Store\Config $coreStoreConfig
-     * @param \Magento\Logger\AdapterFactory $logAdapterFactory
-     * @param \Magento\Paypal\Model\Method\ProTypeFactory $proTypeFactory
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
-     * @param \Magento\UrlInterface $urlBuilder
-     * @param \Magento\Paypal\Model\CartFactory $cartFactory
-     * @param \Magento\Paypal\Model\InfoFactory $paypalInfoFactory
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+     * @param \Magento\Framework\Logger\AdapterFactory $logAdapterFactory
+     * @param ProFactory $proFactory
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\UrlInterface $urlBuilder
+     * @param CartFactory $cartFactory
+     * @param \Magento\Checkout\Model\Session $checkoutSession
+     * @param \Magento\Framework\Model\ExceptionFactory $exception
+     * @param InfoFactory $paypalInfoFactory
      * @param array $data
      */
     public function __construct(
-        \Magento\Event\ManagerInterface $eventManager,
+        \Magento\Framework\Event\ManagerInterface $eventManager,
         \Magento\Payment\Helper\Data $paymentData,
-        \Magento\Core\Model\Store\Config $coreStoreConfig,
-        \Magento\Logger\AdapterFactory $logAdapterFactory,
-        \Magento\Paypal\Model\Method\ProTypeFactory $proTypeFactory,
-        \Magento\Core\Model\StoreManagerInterface $storeManager,
-        \Magento\UrlInterface $urlBuilder,
-        \Magento\Paypal\Model\CartFactory $cartFactory,
-        \Magento\Paypal\Model\InfoFactory $paypalInfoFactory,
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        \Magento\Framework\Logger\AdapterFactory $logAdapterFactory,
+        ProFactory $proFactory,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\UrlInterface $urlBuilder,
+        CartFactory $cartFactory,
+        \Magento\Checkout\Model\Session $checkoutSession,
+        \Magento\Framework\Model\ExceptionFactory $exception,
+        InfoFactory $paypalInfoFactory,
         array $data = array()
     ) {
         parent::__construct(
             $eventManager,
             $paymentData,
-            $coreStoreConfig,
+            $scopeConfig,
             $logAdapterFactory,
-            $proTypeFactory,
+            $proFactory,
             $storeManager,
             $urlBuilder,
             $cartFactory,
+            $checkoutSession,
+            $exception,
             $data
         );
         $this->_paypalInfoFactory = $paypalInfoFactory;
@@ -105,7 +107,7 @@ class PayflowExpress extends \Magento\Paypal\Model\Express
         }
         if (!$this->_ecInstance) {
             $this->_ecInstance = $this->_paymentData->getMethodInstance(
-                \Magento\Paypal\Model\Config::METHOD_WPP_EXPRESS
+                Config::METHOD_WPP_EXPRESS
             );
         }
         if ($quote && $this->_ecInstance) {
@@ -117,7 +119,7 @@ class PayflowExpress extends \Magento\Paypal\Model\Express
     /**
      * Import payment info to payment
      *
-     * @param \Magento\Paypal\Model\Api\Nvp $api
+     * @param Api\Nvp $api
      * @param \Magento\Sales\Model\Order\Payment $payment
      * @return void
      */
@@ -128,12 +130,12 @@ class PayflowExpress extends \Magento\Paypal\Model\Express
         )->setIsTransactionClosed(
             0
         )->setAdditionalInformation(
-            \Magento\Paypal\Model\Express\Checkout::PAYMENT_INFO_TRANSPORT_REDIRECT,
+            Express\Checkout::PAYMENT_INFO_TRANSPORT_REDIRECT,
             $api->getRedirectRequired() || $api->getRedirectRequested()
         )->setIsTransactionPending(
             $api->getIsPaymentPending()
         )->setTransactionAdditionalInfo(
-            \Magento\Paypal\Model\Payflow\Pro::TRANSPORT_PAYFLOW_TXN_ID,
+            Payflow\Pro::TRANSPORT_PAYFLOW_TXN_ID,
             $api->getTransactionId()
         );
         $payment->setPreparedMessage(__('Payflow PNREF: #%1.', $api->getTransactionId()));
@@ -150,5 +152,23 @@ class PayflowExpress extends \Magento\Paypal\Model\Express
     public function getCheckoutRedirectUrl()
     {
         return $this->_urlBuilder->getUrl('paypal/payflowexpress/start');
+    }
+
+    /**
+     * Check refund availability.
+     * The main factor is that the last capture transaction exists and has an Payflow\Pro::TRANSPORT_PAYFLOW_TXN_ID in
+     * additional information(needed to perform online refund. Requirement of the Payflow gateway)
+     *
+     * @return bool
+     */
+    public function canRefund()
+    {
+        /** @var \Magento\Sales\Model\Order\Payment $payment */
+        $payment = $this->getInfoInstance();
+        // we need the last capture transaction was made
+        $captureTransaction = $payment->lookupTransaction('', Transaction::TYPE_CAPTURE);
+        return $captureTransaction && $captureTransaction->getAdditionalInformation(
+            Payflow\Pro::TRANSPORT_PAYFLOW_TXN_ID
+        ) && $this->_canRefund;
     }
 }

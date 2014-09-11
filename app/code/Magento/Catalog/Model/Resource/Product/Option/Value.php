@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,16 +26,14 @@ namespace Magento\Catalog\Model\Resource\Product\Option;
 /**
  * Catalog product custom option resource model
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-class Value extends \Magento\Model\Resource\Db\AbstractDb
+class Value extends \Magento\Framework\Model\Resource\Db\AbstractDb
 {
     /**
      * Store manager
      *
-     * @var \Magento\Core\Model\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
@@ -51,23 +47,23 @@ class Value extends \Magento\Model\Resource\Db\AbstractDb
     /**
      * Core config model
      *
-     * @var \Magento\App\ConfigInterface
+     * @var \Magento\Framework\App\Config\ScopeConfigInterface
      */
     protected $_config;
 
     /**
      * Class constructor
      *
-     * @param \Magento\App\Resource $resource
+     * @param \Magento\Framework\App\Resource $resource
      * @param \Magento\Directory\Model\CurrencyFactory $currencyFactory
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
-     * @param \Magento\App\ConfigInterface $config
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $config
      */
     public function __construct(
-        \Magento\App\Resource $resource,
+        \Magento\Framework\App\Resource $resource,
         \Magento\Directory\Model\CurrencyFactory $currencyFactory,
-        \Magento\Core\Model\StoreManagerInterface $storeManager,
-        \Magento\App\ConfigInterface $config
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\App\Config\ScopeConfigInterface $config
     ) {
         $this->_currencyFactory = $currencyFactory;
         $this->_storeManager = $storeManager;
@@ -89,10 +85,10 @@ class Value extends \Magento\Model\Resource\Db\AbstractDb
      * Proceed operations after object is saved
      * Save options store data
      *
-     * @param \Magento\Model\AbstractModel $object
-     * @return \Magento\Model\Resource\Db\AbstractDb
+     * @param \Magento\Framework\Model\AbstractModel $object
+     * @return \Magento\Framework\Model\Resource\Db\AbstractDb
      */
-    protected function _afterSave(\Magento\Model\AbstractModel $object)
+    protected function _afterSave(\Magento\Framework\Model\AbstractModel $object)
     {
         $this->_saveValuePrices($object);
         $this->_saveValueTitles($object);
@@ -103,17 +99,17 @@ class Value extends \Magento\Model\Resource\Db\AbstractDb
     /**
      * Save option value price data
      *
-     * @param \Magento\Model\AbstractModel $object
+     * @param \Magento\Framework\Model\AbstractModel $object
      * @return void
      */
-    protected function _saveValuePrices(\Magento\Model\AbstractModel $object)
+    protected function _saveValuePrices(\Magento\Framework\Model\AbstractModel $object)
     {
         $priceTable = $this->getTable('catalog_product_option_type_price');
 
         $price = (double)sprintf('%F', $object->getPrice());
         $priceType = $object->getPriceType();
 
-        if (!$object->getData('scope', 'price')) {
+        if ($object->getPrice() && $priceType) {
             //save for store_id = 0
             $select = $this->_getReadAdapter()->select()->from(
                 $priceTable,
@@ -123,7 +119,7 @@ class Value extends \Magento\Model\Resource\Db\AbstractDb
                 (int)$object->getId()
             )->where(
                 'store_id = ?',
-                \Magento\Core\Model\Store::DEFAULT_STORE_ID
+                \Magento\Store\Model\Store::DEFAULT_STORE_ID
             );
             $optionTypeId = $this->_getReadAdapter()->fetchOne($select);
 
@@ -132,7 +128,7 @@ class Value extends \Magento\Model\Resource\Db\AbstractDb
                     $bind = array('price' => $price, 'price_type' => $priceType);
                     $where = array(
                         'option_type_id = ?' => $optionTypeId,
-                        'store_id = ?' => \Magento\Core\Model\Store::DEFAULT_STORE_ID
+                        'store_id = ?' => \Magento\Store\Model\Store::DEFAULT_STORE_ID
                     );
 
                     $this->_getWriteAdapter()->update($priceTable, $bind, $where);
@@ -140,7 +136,7 @@ class Value extends \Magento\Model\Resource\Db\AbstractDb
             } else {
                 $bind = array(
                     'option_type_id' => (int)$object->getId(),
-                    'store_id' => \Magento\Core\Model\Store::DEFAULT_STORE_ID,
+                    'store_id' => \Magento\Store\Model\Store::DEFAULT_STORE_ID,
                     'price' => $price,
                     'price_type' => $priceType
                 );
@@ -148,9 +144,16 @@ class Value extends \Magento\Model\Resource\Db\AbstractDb
             }
         }
 
-        $scope = (int)$this->_storeManager->getStore()->getConfig(\Magento\Core\Model\Store::XML_PATH_PRICE_SCOPE);
+        $scope = (int)$this->_config->getValue(
+            \Magento\Store\Model\Store::XML_PATH_PRICE_SCOPE,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+        );
 
-        if ($object->getStoreId() != '0' && $scope == \Magento\Core\Model\Store::PRICE_SCOPE_WEBSITE) {
+        if ($scope == \Magento\Store\Model\Store::PRICE_SCOPE_WEBSITE
+            && $priceType
+            && $object->getPrice()
+            && $object->getStoreId() != \Magento\Store\Model\Store::DEFAULT_STORE_ID
+        ) {
 
             $baseCurrency = $this->_config->getValue(
                 \Magento\Directory\Model\Currency::XML_PATH_CURRENCY_BASE,
@@ -203,26 +206,33 @@ class Value extends \Magento\Model\Resource\Db\AbstractDb
                     }
                 }
             }
-        } else if ($scope == \Magento\Core\Model\Store::PRICE_SCOPE_WEBSITE && $object->getData('scope', 'price')) {
-            $where = array(
-                'option_type_id = ?' => (int)$object->getId(),
-                'store_id = ?' => (int)$object->getStoreId()
-            );
-            $this->_getWriteAdapter()->delete($priceTable, $where);
+        } else {
+            if ($scope == \Magento\Store\Model\Store::PRICE_SCOPE_WEBSITE
+                && !$object->getPrice()
+                && !$priceType
+            ) {
+                $storeIds = $this->_storeManager->getStore($object->getStoreId())->getWebsite()->getStoreIds();
+                foreach ($storeIds as $storeId) {
+                    $where = array(
+                        'option_type_id = ?' => (int)$object->getId(),
+                        'store_id = ?' => $storeId,
+                    );
+                    $this->_getWriteAdapter()->delete($priceTable, $where);
+                }
+            }
         }
     }
 
     /**
      * Save option value title data
      *
-     * @param \Magento\Model\AbstractModel $object
+     * @param \Magento\Framework\Model\AbstractModel $object
      * @return void
      */
-    protected function _saveValueTitles(\Magento\Model\AbstractModel $object)
+    protected function _saveValueTitles(\Magento\Framework\Model\AbstractModel $object)
     {
-        $titleTable = $this->getTable('catalog_product_option_type_title');
-
-        if (!$object->getData('scope', 'title')) {
+        foreach ([\Magento\Store\Model\Store::DEFAULT_STORE_ID, $object->getStoreId()] as $storeId) {
+            $titleTable = $this->getTable('catalog_product_option_type_title');
             $select = $this->_getReadAdapter()->select()->from(
                 $titleTable,
                 array('option_type_id')
@@ -231,65 +241,77 @@ class Value extends \Magento\Model\Resource\Db\AbstractDb
                 (int)$object->getId()
             )->where(
                 'store_id = ?',
-                \Magento\Core\Model\Store::DEFAULT_STORE_ID
+                (int)$storeId
             );
             $optionTypeId = $this->_getReadAdapter()->fetchOne($select);
-
-            if ($optionTypeId) {
-                if ($object->getStoreId() == '0') {
-                    $where = array(
-                        'option_type_id = ?' => (int)$optionTypeId,
-                        'store_id = ?' => \Magento\Core\Model\Store::DEFAULT_STORE_ID
+            $existInCurrentStore = $this->getOptionIdFromOptionTable($titleTable, (int)$object->getId(), (int)$storeId);
+            if ($object->getTitle()) {
+                if ($existInCurrentStore) {
+                    if ($storeId == $object->getStoreId()) {
+                        $where = array(
+                            'option_type_id = ?' => (int)$optionTypeId,
+                            'store_id = ?' => $storeId,
+                        );
+                        $bind = array('title' => $object->getTitle());
+                        $this->_getWriteAdapter()->update($titleTable, $bind, $where);
+                    }
+                } else {
+                    $existInDefaultStore = $this->getOptionIdFromOptionTable(
+                        $titleTable,
+                        (int)$object->getId(),
+                        \Magento\Store\Model\Store::DEFAULT_STORE_ID
                     );
-                    $bind = array('title' => $object->getTitle());
-                    $this->_getWriteAdapter()->update($titleTable, $bind, $where);
+                    // we should insert record into not default store only of if it does not exist in default store
+                    if (($storeId == \Magento\Store\Model\Store::DEFAULT_STORE_ID && !$existInDefaultStore)
+                        || ($storeId != \Magento\Store\Model\Store::DEFAULT_STORE_ID && !$existInCurrentStore)
+                    ) {
+                        $bind = array(
+                            'option_type_id' => (int)$object->getId(),
+                            'store_id' => $storeId,
+                            'title' => $object->getTitle()
+                        );
+                        $this->_getWriteAdapter()->insert($titleTable, $bind);
+                    }
                 }
             } else {
-                $bind = array(
-                    'option_type_id' => (int)$object->getId(),
-                    'store_id' => \Magento\Core\Model\Store::DEFAULT_STORE_ID,
-                    'title' => $object->getTitle()
-                );
-                $this->_getWriteAdapter()->insert($titleTable, $bind);
+                if ($storeId
+                    && $optionTypeId
+                    && $object->getStoreId() > \Magento\Store\Model\Store::DEFAULT_STORE_ID
+                ) {
+                    $where = array(
+                        'option_type_id = ?' => (int)$optionTypeId,
+                        'store_id = ?' => $storeId,
+                    );
+                    $this->_getWriteAdapter()->delete($titleTable, $where);
+                }
             }
-        }
-
-        if ($object->getStoreId() != '0' && !$object->getData('scope', 'title')) {
-            $select = $this->_getReadAdapter()->select()->from(
-                $titleTable,
-                array('option_type_id')
-            )->where(
-                'option_type_id = ?',
-                (int)$object->getId()
-            )->where(
-                'store_id = ?',
-                (int)$object->getStoreId()
-            );
-            $optionTypeId = $this->_getReadAdapter()->fetchOne($select);
-
-            if ($optionTypeId) {
-                $bind = array('title' => $object->getTitle());
-                $where = array(
-                    'option_type_id = ?' => (int)$optionTypeId,
-                    'store_id = ?' => (int)$object->getStoreId()
-                );
-                $this->_getWriteAdapter()->update($titleTable, $bind, $where);
-            } else {
-                $bind = array(
-                    'option_type_id' => (int)$object->getId(),
-                    'store_id' => (int)$object->getStoreId(),
-                    'title' => $object->getTitle()
-                );
-                $this->_getWriteAdapter()->insert($titleTable, $bind);
-            }
-        } else if ($object->getData('scope', 'title')) {
-            $where = array(
-                'option_type_id = ?' => (int)$object->getId(),
-                'store_id = ?' => (int)$object->getStoreId()
-            );
-            $this->_getWriteAdapter()->delete($titleTable, $where);
         }
     }
+
+    /**
+     * Get first col from from first row for option table
+     *
+     * @param string $tableName
+     * @param int $optionId
+     * @param int $storeId
+     * @return string
+     */
+    protected function getOptionIdFromOptionTable($tableName, $optionId, $storeId)
+    {
+        $readAdapter = $this->_getReadAdapter();
+        $select = $readAdapter->select()->from(
+            $tableName,
+            array('option_type_id')
+        )->where(
+            'option_type_id = ?',
+            $optionId
+        )->where(
+            'store_id = ?',
+            (int)$storeId
+        );
+        return $readAdapter->fetchOne($select);
+    }
+
 
     /**
      * Delete values by option id

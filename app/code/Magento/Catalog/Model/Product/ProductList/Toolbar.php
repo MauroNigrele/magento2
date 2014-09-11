@@ -23,9 +23,10 @@
  */
 namespace Magento\Catalog\Model\Product\ProductList;
 
+use Magento\Framework\Stdlib\CookieManager;
+
 /**
  * Class Toolbar
- * @package Magento\Catalog\Model\Product\ProductList
  */
 class Toolbar
 {
@@ -55,28 +56,28 @@ class Toolbar
     const LIMIT_COOKIE_NAME = 'product_list_limit';
 
     /**
-     * Cookie
+     * Cookie manager
      *
-     * @var \Magento\Stdlib\Cookie
+     * @var CookieManager
      */
-    protected $cookie;
+    protected $cookieManager;
 
     /**
      * Request
      *
-     * @var \Magento\App\Request\Http
+     * @var \Magento\Framework\App\Request\Http
      */
     protected $request;
 
     /**
-     * @param \Magento\Stdlib\Cookie $cookie
-     * @param \Magento\App\Request\Http $request
+     * @param CookieManager $cookieManager
+     * @param \Magento\Framework\App\Request\Http $request
      */
     public function __construct(
-        \Magento\Stdlib\Cookie $cookie,
-        \Magento\App\Request\Http $request
+        CookieManager $cookieManager,
+        \Magento\Framework\App\Request\Http $request
     ) {
-        $this->cookie = $cookie;
+        $this->cookieManager = $cookieManager;
         $this->request = $request;
     }
 
@@ -87,7 +88,7 @@ class Toolbar
      */
     public function getOrder()
     {
-        return $this->cookie->get(self::ORDER_COOKIE_NAME);
+        return $this->cookieManager->getCookie(self::ORDER_COOKIE_NAME);
     }
 
     /**
@@ -97,7 +98,7 @@ class Toolbar
      */
     public function getDirection()
     {
-        return $this->cookie->get(self::DIRECTION_COOKIE_NAME);
+        return $this->cookieManager->getCookie(self::DIRECTION_COOKIE_NAME);
     }
 
     /**
@@ -107,7 +108,7 @@ class Toolbar
      */
     public function getMode()
     {
-        return $this->cookie->get(self::MODE_COOKIE_NAME);
+        return $this->cookieManager->getCookie(self::MODE_COOKIE_NAME);
     }
 
     /**
@@ -117,7 +118,7 @@ class Toolbar
      */
     public function getLimit()
     {
-        return $this->cookie->get(self::LIMIT_COOKIE_NAME);
+        return $this->cookieManager->getCookie(self::LIMIT_COOKIE_NAME);
     }
     /**
      * Return current page from request

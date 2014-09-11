@@ -18,21 +18,21 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Sales
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 namespace Magento\Sales\Block\Order\Email\Items;
 
+use Magento\Sales\Model\Order\Item as OrderItem;
+use Magento\Sales\Model\Order\Invoice\Item as InvoiceItem;
+use Magento\Sales\Model\Order\Creditmemo\Item as CreditmemoItem;
+
 /**
  * Sales Order Email items default renderer
  *
- * @category   Magento
- * @package    Magento_Sales
  * @author     Magento Core Team <core@magentocommerce.com>
  */
-class DefaultItems extends \Magento\View\Element\Template
+class DefaultItems extends \Magento\Framework\View\Element\Template
 {
     /**
      * Retrieve current order model instance
@@ -101,10 +101,23 @@ class DefaultItems extends \Magento\View\Element\Template
     /**
      * Return product additional information block
      *
-     * @return \Magento\View\Element\AbstractBlock
+     * @return \Magento\Framework\View\Element\AbstractBlock
      */
     public function getProductAdditionalInformationBlock()
     {
         return $this->getLayout()->getBlock('additional.product.info');
+    }
+
+    /**
+     * Get the html for item price
+     *
+     * @param OrderItem|InvoiceItem|CreditmemoItem $item
+     * @return string
+     */
+    public function getItemPrice($item)
+    {
+        $block = $this->getLayout()->getBlock('item_price');
+        $block->setItem($item);
+        return $block->toHtml();
     }
 }

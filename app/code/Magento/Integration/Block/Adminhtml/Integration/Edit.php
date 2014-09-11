@@ -33,7 +33,7 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
     /**
      * Core registry
      *
-     * @var \Magento\Registry
+     * @var \Magento\Framework\Registry
      */
     protected $_registry = null;
 
@@ -43,14 +43,14 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
     /**
      * Initialize dependencies.
      *
-     * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\Registry $registry
+     * @param \Magento\Backend\Block\Widget\Context $context
+     * @param \Magento\Framework\Registry $registry
      * @param \Magento\Integration\Helper\Data $integrationHelper
      * @param array $data
      */
     public function __construct(
-        \Magento\Backend\Block\Template\Context $context,
-        \Magento\Registry $registry,
+        \Magento\Backend\Block\Widget\Context $context,
+        \Magento\Framework\Registry $registry,
         \Magento\Integration\Helper\Data $integrationHelper,
         array $data = array()
     ) {
@@ -69,14 +69,14 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
         $this->_controller = 'adminhtml_integration';
         $this->_blockGroup = 'Magento_Integration';
         parent::_construct();
-        $this->_removeButton('reset');
-        $this->_removeButton('delete');
+        $this->buttonList->remove('reset');
+        $this->buttonList->remove('delete');
 
         if ($this->_integrationHelper->isConfigType(
             $this->_registry->registry(Integration::REGISTRY_KEY_CURRENT_INTEGRATION)
         )
         ) {
-            $this->_removeButton('save');
+            $this->buttonList->remove('save');
         }
 
         if ($this->_isNewIntegration()) {
@@ -88,7 +88,7 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
                     'id' => 'save-split-button',
                     'label' => __('Save'),
                     'class_name' => 'Magento\Backend\Block\Widget\Button\SplitButton',
-                    'button_class' => 'PrimarySplitButton',
+                    'button_class' => '',
                     'data_attribute' => array(
                         'mage-init' => array('button' => array('event' => 'save', 'target' => '#edit_form'))
                     ),

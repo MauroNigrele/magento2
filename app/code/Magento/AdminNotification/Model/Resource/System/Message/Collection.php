@@ -17,18 +17,18 @@
  * Do not edit or add to this file if you wish to upgrade Magento to newer
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
- * 
+ *
  * @copyright Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 namespace Magento\AdminNotification\Model\Resource\System\Message;
 
-class Collection extends \Magento\Model\Resource\Db\Collection\AbstractCollection
+class Collection extends \Magento\Framework\Model\Resource\Db\Collection\AbstractCollection
 {
     /**
      * System message list
      *
-     * @var \Magento\AdminNotification\Model\System\MessageList
+     * @var \Magento\Framework\Notification\MessageList
      */
     protected $_messageList;
 
@@ -41,21 +41,21 @@ class Collection extends \Magento\Model\Resource\Db\Collection\AbstractCollectio
 
     /**
      * @param \Magento\Core\Model\EntityFactory $entityFactory
-     * @param \Magento\Logger $logger
-     * @param \Magento\Data\Collection\Db\FetchStrategyInterface $fetchStrategy
-     * @param \Magento\Event\ManagerInterface $eventManager
-     * @param \Magento\AdminNotification\Model\System\MessageList $messageList
+     * @param \Magento\Framework\Logger $logger
+     * @param \Magento\Framework\Data\Collection\Db\FetchStrategyInterface $fetchStrategy
+     * @param \Magento\Framework\Event\ManagerInterface $eventManager
+     * @param \Magento\Framework\Notification\MessageList $messageList
      * @param mixed $connection
-     * @param \Magento\Model\Resource\Db\AbstractDb $resource
+     * @param \Magento\Framework\Model\Resource\Db\AbstractDb $resource
      */
     public function __construct(
         \Magento\Core\Model\EntityFactory $entityFactory,
-        \Magento\Logger $logger,
-        \Magento\Data\Collection\Db\FetchStrategyInterface $fetchStrategy,
-        \Magento\Event\ManagerInterface $eventManager,
-        \Magento\AdminNotification\Model\System\MessageList $messageList,
+        \Magento\Framework\Logger $logger,
+        \Magento\Framework\Data\Collection\Db\FetchStrategyInterface $fetchStrategy,
+        \Magento\Framework\Event\ManagerInterface $eventManager,
+        \Magento\Framework\Notification\MessageList $messageList,
         $connection = null,
-        \Magento\Model\Resource\Db\AbstractDb $resource = null
+        \Magento\Framework\Model\Resource\Db\AbstractDb $resource = null
     ) {
         $this->_messageList = $messageList;
         parent::__construct($entityFactory, $logger, $fetchStrategy, $eventManager, $connection, $resource);

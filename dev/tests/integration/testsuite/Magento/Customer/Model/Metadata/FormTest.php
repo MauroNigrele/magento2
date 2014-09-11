@@ -35,7 +35,7 @@ class FormTest extends \PHPUnit_Framework_TestCase
     /** @var array */
     protected $_attributes;
 
-    /** @var \Magento\App\RequestInterface */
+    /** @var \Magento\Framework\App\RequestInterface */
     protected $_request;
 
     /** @var array */
@@ -90,7 +90,7 @@ class FormTest extends \PHPUnit_Framework_TestCase
             'region_id' => 12,
             'region' => 'California'
         );
-        $this->_request = $objectManager->get('Magento\App\RequestInterface');
+        $this->_request = $objectManager->get('Magento\Framework\App\RequestInterface');
         $this->_request->setParams($requestData);
 
         $this->_expected = array_merge($this->_attributes, $requestData);
@@ -103,12 +103,18 @@ class FormTest extends \PHPUnit_Framework_TestCase
         unset($this->_expected['suffix']);
     }
 
+    /**
+     * @magentoAppIsolation enabled
+     */
     public function testCompactData()
     {
         $attributeValues = $this->_form->compactData($this->_form->extractData($this->_request));
         $this->assertEquals($this->_expected, $attributeValues);
     }
 
+    /**
+     * @magentoAppIsolation enabled
+     */
     public function testGetAttributes()
     {
         $expectedAttributes = array(
@@ -131,12 +137,16 @@ class FormTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($expectedAttributes, array_keys($this->_form->getAttributes()));
     }
 
+    /**
+     * @magentoAppIsolation enabled
+     */
     public function testGetSystemAttributes()
     {
         $this->assertCount(15, $this->_form->getSystemAttributes());
     }
 
     /**
+     * @magentoAppIsolation enabled
      * @magentoDataFixture Magento/Customer/_files/attribute_user_defined_address.php
      */
     public function testGetUserAttributes()
@@ -145,6 +155,9 @@ class FormTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($expectedAttributes, array_keys($this->_form->getUserAttributes()));
     }
 
+    /**
+     * @magentoAppIsolation enabled
+     */
     public function testRestoreData()
     {
         $attributeValues = $this->_form->restoreData($this->_form->extractData($this->_request));

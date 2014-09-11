@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -27,8 +25,6 @@
 /**
  * Layer category filter
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 namespace Magento\Catalog\Model\Layer\Filter;
@@ -52,14 +48,14 @@ class Category extends \Magento\Catalog\Model\Layer\Filter\AbstractFilter
     /**
      * Core data
      *
-     * @var \Magento\Escaper
+     * @var \Magento\Framework\Escaper
      */
     protected $_escaper;
 
     /**
      * Core registry
      *
-     * @var \Magento\Registry
+     * @var \Magento\Framework\Registry
      */
     protected $_coreRegistry;
 
@@ -74,20 +70,20 @@ class Category extends \Magento\Catalog\Model\Layer\Filter\AbstractFilter
      * Construct
      *
      * @param \Magento\Catalog\Model\Layer\Filter\ItemFactory $filterItemFactory
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param \Magento\Catalog\Model\Layer $layer
      * @param \Magento\Catalog\Model\CategoryFactory $categoryFactory
-     * @param \Magento\Escaper $escaper
-     * @param \Magento\Registry $coreRegistry
+     * @param \Magento\Framework\Escaper $escaper
+     * @param \Magento\Framework\Registry $coreRegistry
      * @param array $data
      */
     public function __construct(
         \Magento\Catalog\Model\Layer\Filter\ItemFactory $filterItemFactory,
-        \Magento\Core\Model\StoreManagerInterface $storeManager,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Catalog\Model\Layer $layer,
         \Magento\Catalog\Model\CategoryFactory $categoryFactory,
-        \Magento\Escaper $escaper,
-        \Magento\Registry $coreRegistry,
+        \Magento\Framework\Escaper $escaper,
+        \Magento\Framework\Registry $coreRegistry,
         array $data = array()
     ) {
         $this->_categoryFactory = $categoryFactory;
@@ -155,7 +151,16 @@ class Category extends \Magento\Catalog\Model\Layer\Filter\AbstractFilter
      */
     protected function _isValidCategory($category)
     {
-        return $category->getId();
+        if ($category->getId()) {
+            while ($category->getLevel() != 0) {
+                if (!$category->getIsActive()) {
+                    return false;
+                }
+                $category = $category->getParentCategory();
+            }
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -198,13 +203,15 @@ class Category extends \Magento\Catalog\Model\Layer\Filter\AbstractFilter
         $this->getLayer()->getProductCollection()->addCountToCategories($categories);
 
         $data = array();
-        foreach ($categories as $category) {
-            if ($category->getIsActive() && $category->getProductCount()) {
-                $data[] = array(
-                    'label' => $this->_escaper->escapeHtml($category->getName()),
-                    'value' => $category->getId(),
-                    'count' => $category->getProductCount()
-                );
+        if ($category->getIsActive()) {
+            foreach ($categories as $category) {
+                if ($category->getIsActive() && $category->getProductCount()) {
+                    $data[] = array(
+                        'label' => $this->_escaper->escapeHtml($category->getName()),
+                        'value' => $category->getId(),
+                        'count' => $category->getProductCount()
+                    );
+                }
             }
         }
         return $data;

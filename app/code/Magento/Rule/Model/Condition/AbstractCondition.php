@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Rule
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -32,10 +30,10 @@
  */
 namespace Magento\Rule\Model\Condition;
 
-use Magento\Data\Form;
-use Magento\Data\Form\Element\AbstractElement;
+use Magento\Framework\Data\Form;
+use Magento\Framework\Data\Form\Element\AbstractElement;
 
-abstract class AbstractCondition extends \Magento\Object implements ConditionInterface
+abstract class AbstractCondition extends \Magento\Framework\Object implements ConditionInterface
 {
     /**
      * Defines which operators will be available for this condition
@@ -63,17 +61,17 @@ abstract class AbstractCondition extends \Magento\Object implements ConditionInt
     protected $_arrayInputTypes = array();
 
     /**
-     * @var \Magento\View\Url
+     * @var \Magento\Framework\View\Asset\Repository
      */
-    protected $_viewUrl;
+    protected $_assetRepo;
 
     /**
-     * @var \Magento\Stdlib\DateTime\TimezoneInterface
+     * @var \Magento\Framework\Stdlib\DateTime\TimezoneInterface
      */
     protected $_localeDate;
 
     /**
-     * @var \Magento\View\LayoutInterface
+     * @var \Magento\Framework\View\LayoutInterface
      */
     protected $_layout;
 
@@ -83,7 +81,7 @@ abstract class AbstractCondition extends \Magento\Object implements ConditionInt
      */
     public function __construct(Context $context, array $data = array())
     {
-        $this->_viewUrl = $context->getViewUrl();
+        $this->_assetRepo = $context->getAssetRepository();
         $this->_localeDate = $context->getLocaleDate();
         $this->_layout = $context->getLayout();
 
@@ -177,6 +175,36 @@ abstract class AbstractCondition extends \Magento\Object implements ConditionInt
             'is_value_processed' => $this->getIsValueParsed()
         );
         return $out;
+    }
+
+    /**
+     * Get tables to join
+     *
+     * @return array
+     */
+    public function getTablesToJoin()
+    {
+        return [];
+    }
+
+    /**
+     * Get value to bind
+     *
+     * @return array|float|int|mixed|string
+     */
+    public function getBindArgumentValue()
+    {
+        return $this->getValueParsed();
+    }
+
+    /**
+     * Get field by attribute
+     *
+     * @return string
+     */
+    public function getMappedSqlField()
+    {
+        return $this->getAttribute();
     }
 
     /**
@@ -376,11 +404,11 @@ abstract class AbstractCondition extends \Magento\Object implements ConditionInt
             $this->setValue(
                 $this->_localeDate->date(
                     $this->getData('value'),
-                    \Magento\Stdlib\DateTime::DATE_INTERNAL_FORMAT,
+                    \Magento\Framework\Stdlib\DateTime::DATE_INTERNAL_FORMAT,
                     null,
                     false
                 )->toString(
-                    \Magento\Stdlib\DateTime::DATE_INTERNAL_FORMAT
+                    \Magento\Framework\Stdlib\DateTime::DATE_INTERNAL_FORMAT
                 )
             );
             $this->setIsValueParsed(true);
@@ -406,7 +434,7 @@ abstract class AbstractCondition extends \Magento\Object implements ConditionInt
                     if (in_array($option['value'], $value)) {
                         $valueArr[] = $option['label'];
                     }
-                } else {
+                } elseif (isset($option['value'])) {
                     if (is_array($option['value'])) {
                         foreach ($option['value'] as $optionValue) {
                             if ($optionValue['value'] == $value) {
@@ -529,7 +557,7 @@ abstract class AbstractCondition extends \Magento\Object implements ConditionInt
      * Retrieve Condition Operator element Instance
      * If the operator value is empty - define first available operator value as default
      *
-     * @return \Magento\Data\Form\Element\Select
+     * @return \Magento\Framework\Data\Form\Element\Select
      */
     public function getOperatorElement()
     {
@@ -569,7 +597,7 @@ abstract class AbstractCondition extends \Magento\Object implements ConditionInt
     /**
      * Value element type will define renderer for condition value element
      *
-     * @see \Magento\Data\Form\Element
+     * @see \Magento\Framework\Data\Form\Element
      * @return string
      */
     public function getValueElementType()
@@ -603,8 +631,8 @@ abstract class AbstractCondition extends \Magento\Object implements ConditionInt
         );
         if ($this->getInputType() == 'date') {
             // date format intentionally hard-coded
-            $elementParams['input_format'] = \Magento\Stdlib\DateTime::DATE_INTERNAL_FORMAT;
-            $elementParams['date_format'] = \Magento\Stdlib\DateTime::DATE_INTERNAL_FORMAT;
+            $elementParams['input_format'] = \Magento\Framework\Stdlib\DateTime::DATE_INTERNAL_FORMAT;
+            $elementParams['date_format'] = \Magento\Framework\Stdlib\DateTime::DATE_INTERNAL_FORMAT;
         }
         return $this->getForm()->addField(
             $this->getPrefix() . '__' . $this->getId() . '__value',
@@ -628,7 +656,7 @@ abstract class AbstractCondition extends \Magento\Object implements ConditionInt
      */
     public function getAddLinkHtml()
     {
-        $src = $this->_viewUrl->getViewFileUrl('images/rule_component_add.gif');
+        $src = $this->_assetRepo->getUrl('images/rule_component_add.gif');
         $html = '<img src="' . $src . '" class="rule-param-add v-middle" alt="" title="' . __('Add') . '"/>';
         return $html;
     }
@@ -638,7 +666,7 @@ abstract class AbstractCondition extends \Magento\Object implements ConditionInt
      */
     public function getRemoveLinkHtml()
     {
-        $src = $this->_viewUrl->getViewFileUrl('images/rule_component_remove.gif');
+        $src = $this->_assetRepo->getUrl('images/rule_component_remove.gif');
         $html = ' <span class="rule-param"><a href="javascript:void(0)" class="rule-param-remove" title="' . __(
             'Remove'
         ) . '"><img src="' . $src . '"  alt="" class="v-middle" /></a></span>';
@@ -815,10 +843,10 @@ abstract class AbstractCondition extends \Magento\Object implements ConditionInt
     }
 
     /**
-     * @param \Magento\Object $object
+     * @param \Magento\Framework\Object $object
      * @return bool
      */
-    public function validate(\Magento\Object $object)
+    public function validate(\Magento\Framework\Object $object)
     {
         return $this->validateAttribute($object->getData($this->getAttribute()));
     }

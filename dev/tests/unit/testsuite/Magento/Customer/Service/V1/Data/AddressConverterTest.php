@@ -23,37 +23,50 @@
  */
 namespace Magento\Customer\Service\V1\Data;
 
-use Magento\Customer\Service\V1\CustomerMetadataService;
+use Magento\Customer\Service\V1\AddressMetadataService;
+use Magento\Framework\Service\Data\AttributeValue;
 
 class AddressConverterTest extends \PHPUnit_Framework_TestCase
 {
     /** @var \Magento\TestFramework\Helper\ObjectManager */
     protected $_objectManager;
 
-    /** @var CustomerMetadataService */
-    protected $_customerMetadataService;
+    /** @var AddressMetadataService */
+    protected $addressMetadataService;
 
     protected function setUp()
     {
         $this->_objectManager = new \Magento\TestFramework\Helper\ObjectManager($this);
-        /** @var CustomerMetadataService $customerMetadataService */
-        $this->_customerMetadataService = $this->getMockBuilder(
-            'Magento\Customer\Service\V1\CustomerMetadataService'
-        )->setMethods(
-            array('getCustomAddressAttributeMetadata')
-        )->disableOriginalConstructor()->getMock();
-        $this->_customerMetadataService->expects(
-            $this->any()
-        )->method(
-            'getCustomAddressAttributeMetadata'
-        )->will(
-            $this->returnValue(
-                array(
-                    new \Magento\Object(array('attribute_code' => 'warehouse_zip')),
-                    new \Magento\Object(array('attribute_code' => 'warehouse_alternate'))
-                )
-            )
-        );
+        $this->addressMetadataService = $this->getMockBuilder('Magento\Customer\Service\V1\AddressMetadataService')
+            ->setMethods(array('getAttributeMetadata', 'getCustomAttributesMetadata'))
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $customAttributeMetadata1 = $this->getMockBuilder('Magento\Customer\Service\V1\Data\Eav\AttributeMetadata')
+            ->disableOriginalConstructor()
+            ->getMock();
+        $customAttributeMetadata1
+            ->expects($this->any())
+            ->method('getAttributeCode')
+            ->will($this->returnValue('warehouse_zip'));
+
+        $customAttributeMetadata2 = $this->getMockBuilder('Magento\Customer\Service\V1\Data\Eav\AttributeMetadata')
+            ->disableOriginalConstructor()
+            ->getMock();
+        $customAttributeMetadata2
+            ->expects($this->any())
+            ->method('getAttributeCode')
+            ->will($this->returnValue('warehouse_alternate'));
+
+        $attributesMetadata = array($customAttributeMetadata1, $customAttributeMetadata2);
+        $this->addressMetadataService
+            ->expects($this->any())
+            ->method('getAttributeMetadata')
+            ->will($this->returnValue($attributesMetadata));
+        $this->addressMetadataService
+            ->expects($this->any())
+            ->method('getCustomAttributesMetadata')
+            ->will($this->returnValue($attributesMetadata));
     }
 
     public function testToFlatArray()
@@ -85,8 +98,16 @@ class AddressConverterTest extends \PHPUnit_Framework_TestCase
             'firstname' => 'John',
             'lastname' => 'Doe',
             'unknown_key' => 'Golden Necklace',
-            'warehouse_zip' => '78777',
-            'warehouse_alternate' => '90051'
+            'custom_attributes' => [
+                'warehouse_zip' => [
+                    AttributeValue::ATTRIBUTE_CODE => 'warehouse_zip',
+                    AttributeValue::VALUE => '78777'
+                ],
+                'warehouse_alternate' => [
+                    AttributeValue::ATTRIBUTE_CODE => 'warehouse_alternate',
+                    AttributeValue::VALUE => '90051'
+                ]
+            ]
         );
 
         $expected = array(
@@ -106,13 +127,17 @@ class AddressConverterTest extends \PHPUnit_Framework_TestCase
         );
 
         $addressData = $this->_sampleAddressDataObject();
-        $addressData = (new AddressBuilder(
-            new RegionBuilder(),
-            $this->_customerMetadataService
-        ))->mergeDataObjectWithArray(
-            $addressData,
-            $updatedAddressData
+        $valueBuilder = $this->_objectManager->getObject('Magento\Framework\Service\Data\AttributeValueBuilder');
+        /** @var \Magento\Customer\Service\V1\Data\AddressBuilder $addressDataBuilder */
+        $addressDataBuilder = $this->_objectManager->getObject(
+            'Magento\Customer\Service\V1\Data\AddressBuilder',
+            [
+                'valueBuilder' => $valueBuilder,
+                'regionBuilder' => $this->_objectManager->getObject('\Magento\Customer\Service\V1\Data\RegionBuilder'),
+                'metadataService' => $this->addressMetadataService
+            ]
         );
+        $addressData = $addressDataBuilder->mergeDataObjectWithArray($addressData, $updatedAddressData);
 
         $result = AddressConverter::toFlatArray($addressData);
         $this->assertEquals($expected, $result);
@@ -123,27 +148,34 @@ class AddressConverterTest extends \PHPUnit_Framework_TestCase
      */
     protected function _sampleAddressDataObject()
     {
-        $regionData = (new RegionBuilder())->setRegion('Texas')->setRegionId(1)->setRegionCode('TX');
-        $addressData = (new AddressBuilder(
-            $regionData,
-            $this->_customerMetadataService
-        ))->setId(
-            '1'
-        )->setDefaultBilling(
-            true
-        )->setDefaultShipping(
-            false
-        )->setCity(
-            'Austin'
-        )->setFirstname(
-            'John'
-        )->setLastname(
-            'Doe'
-        )->setCountryId(
-            'US'
-        )->setStreet(
-            array('7700 W Parmer Ln')
-        );
+        $regionBuilder = $this->_objectManager->getObject('\Magento\Customer\Service\V1\Data\RegionBuilder')
+            ->setRegion('Texas')->setRegionId(1)->setRegionCode('TX');
+        $valueBuilder = $this->_objectManager->getObject('Magento\Framework\Service\Data\AttributeValueBuilder');
+        /** @var \Magento\Customer\Service\V1\Data\AddressBuilder $addressData */
+        $addressData = $this->_objectManager->getObject(
+            'Magento\Customer\Service\V1\Data\AddressBuilder',
+            [
+                'valueBuilder' => $valueBuilder,
+                'regionBuilder' => $regionBuilder,
+                'metadataService' => $this->addressMetadataService
+            ]
+        )->setId(
+                '1'
+            )->setDefaultBilling(
+                true
+            )->setDefaultShipping(
+                false
+            )->setCity(
+                'Austin'
+            )->setFirstname(
+                'John'
+            )->setLastname(
+                'Doe'
+            )->setCountryId(
+                'US'
+            )->setStreet(
+                array('7700 W Parmer Ln')
+            );
 
         return $addressData->create();
     }

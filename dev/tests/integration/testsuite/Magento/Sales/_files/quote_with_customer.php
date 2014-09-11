@@ -18,9 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Sales
- * @subpackage  integration_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,5 +25,10 @@
 include __DIR__ . '/quote.php';
 include __DIR__ . '/../../../Magento/Customer/_files/customer.php';
 
-$customerIdFromFixture = 1;
-$quote->setCustomerId($customerIdFromFixture)->setCustomerIsGuest(false)->save();
+/** @var $quote \Magento\Sales\Model\Quote */
+$quote = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create('Magento\Sales\Model\Quote');
+$quote->load('test01', 'reserved_order_id');
+/** @var $customer \Magento\Customer\Model\Customer */
+$customer = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create('Magento\Customer\Model\Customer');
+$customer->load(1);
+$quote->setCustomer($customer)->setCustomerIsGuest(false)->save();

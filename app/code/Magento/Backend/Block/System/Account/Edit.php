@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Backend
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,8 +26,6 @@ namespace Magento\Backend\Block\System\Account;
 /**
  * Adminhtml edit admin user account
  *
- * @category   Magento
- * @package    Magento_Backend
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 class Edit extends \Magento\Backend\Block\Widget\Form\Container
@@ -43,9 +39,9 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
 
         $this->_blockGroup = 'Magento_Backend';
         $this->_controller = 'system_account';
-        $this->_updateButton('save', 'label', __('Save Account'));
-        $this->_removeButton('delete');
-        $this->_removeButton('back');
+        $this->buttonList->update('save', 'label', __('Save Account'));
+        $this->buttonList->remove('delete');
+        $this->buttonList->remove('back');
     }
 
     /**

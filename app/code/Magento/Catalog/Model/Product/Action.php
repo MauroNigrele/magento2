@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,11 +26,9 @@ namespace Magento\Catalog\Model\Product;
 /**
  * Catalog Product Mass Action processing model
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-class Action extends \Magento\Model\AbstractModel
+class Action extends \Magento\Framework\Model\AbstractModel
 {
     /**
      * Index indexer
@@ -54,28 +50,44 @@ class Action extends \Magento\Model\AbstractModel
     protected $categoryIndexer;
 
     /**
-     * @param \Magento\Model\Context $context
-     * @param \Magento\Registry $registry
+     * @var \Magento\Eav\Model\Config
+     */
+    protected $_eavConfig;
+
+    /**
+     * @var \Magento\Catalog\Model\Indexer\Product\Eav\Processor
+     */
+    protected $_productEavIndexerProcessor;
+
+    /**
+     * @param \Magento\Framework\Model\Context $context
+     * @param \Magento\Framework\Registry $registry
      * @param \Magento\Catalog\Model\Product\WebsiteFactory $productWebsiteFactory
      * @param \Magento\Index\Model\Indexer $indexIndexer
      * @param \Magento\Indexer\Model\IndexerInterface $categoryIndexer
-     * @param \Magento\Model\Resource\AbstractResource $resource
-     * @param \Magento\Data\Collection\Db $resourceCollection
+     * @param \Magento\Eav\Model\Config $eavConfig
+     * @param \Magento\Catalog\Model\Indexer\Product\Eav\Processor $productEavIndexerProcessor
+     * @param \Magento\Framework\Model\Resource\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\Db $resourceCollection
      * @param array $data
      */
     public function __construct(
-        \Magento\Model\Context $context,
-        \Magento\Registry $registry,
+        \Magento\Framework\Model\Context $context,
+        \Magento\Framework\Registry $registry,
         \Magento\Catalog\Model\Product\WebsiteFactory $productWebsiteFactory,
         \Magento\Index\Model\Indexer $indexIndexer,
         \Magento\Indexer\Model\IndexerInterface $categoryIndexer,
-        \Magento\Model\Resource\AbstractResource $resource = null,
-        \Magento\Data\Collection\Db $resourceCollection = null,
+        \Magento\Eav\Model\Config $eavConfig,
+        \Magento\Catalog\Model\Indexer\Product\Eav\Processor $productEavIndexerProcessor,
+        \Magento\Framework\Model\Resource\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\Db $resourceCollection = null,
         array $data = array()
     ) {
         $this->_productWebsiteFactory = $productWebsiteFactory;
         $this->_indexIndexer = $indexIndexer;
         $this->categoryIndexer = $categoryIndexer;
+        $this->_eavConfig = $eavConfig;
+        $this->_productEavIndexerProcessor = $productEavIndexerProcessor;
         parent::__construct($context, $registry, $resource, $resourceCollection, $data);
     }
 
@@ -132,6 +144,10 @@ class Action extends \Magento\Model\AbstractModel
             array('product_ids' => array_unique($productIds), 'attributes_data' => $attrData, 'store_id' => $storeId)
         );
 
+        if ($this->_hasIndexableAttributes($attrData)) {
+            $this->_productEavIndexerProcessor->reindexList(array_unique($productIds));
+        }
+
         // register mass action indexer event
         $this->_indexIndexer->processEntityAction(
             $this,
@@ -142,6 +158,37 @@ class Action extends \Magento\Model\AbstractModel
             $this->getCategoryIndexer()->reindexList(array_unique($productIds));
         }
         return $this;
+    }
+
+    /**
+     * Attributes array has indexable attributes
+     *
+     * @param array $attributesData
+     * @return bool
+     */
+    protected function _hasIndexableAttributes($attributesData)
+    {
+        foreach ($attributesData as $code => $value) {
+            if ($this->_attributeIsIndexable($code)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check is attribute indexable in EAV
+     *
+     * @param \Magento\Catalog\Model\Resource\Eav\Attribute|string $attribute
+     * @return bool
+     */
+    protected function _attributeIsIndexable($attribute)
+    {
+        if (!$attribute instanceof \Magento\Catalog\Model\Resource\Eav\Attribute) {
+            $attribute = $this->_eavConfig->getAttribute(\Magento\Catalog\Model\Product::ENTITY, $attribute);
+        }
+
+        return $attribute->isIndexable();
     }
 
     /**

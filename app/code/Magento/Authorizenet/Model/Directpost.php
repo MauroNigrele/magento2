@@ -23,6 +23,8 @@
  */
 namespace Magento\Authorizenet\Model;
 
+use Magento\Sales\Model\Order\Email\Sender\OrderSender;
+
 /**
  * Authorize.net DirectPost payment method model.
  */
@@ -71,7 +73,7 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
     /**#@-*/
 
     /**
-     * @var \Magento\Core\Model\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
@@ -91,55 +93,62 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
     protected $_helper;
 
     /**
-     * @param \Magento\Event\ManagerInterface $eventManager
+     * @var OrderSender
+     */
+    protected $orderSender;
+
+    /**
+     * @param \Magento\Framework\Event\ManagerInterface $eventManager
      * @param \Magento\Payment\Helper\Data $paymentData
-     * @param \Magento\Core\Model\Store\Config $coreStoreConfig
-     * @param \Magento\Logger\AdapterFactory $logAdapterFactory
-     * @param \Magento\Logger $logger
-     * @param \Magento\Module\ModuleListInterface $moduleList
-     * @param \Magento\Stdlib\DateTime\TimezoneInterface $localeDate
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+     * @param \Magento\Framework\Logger\AdapterFactory $logAdapterFactory
+     * @param \Magento\Framework\Logger $logger
+     * @param \Magento\Framework\Module\ModuleListInterface $moduleList
+     * @param \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate
      * @param \Magento\Centinel\Model\Service $centinelService
      * @param \Magento\Authorizenet\Model\Authorizenet\CardsFactory $cardsFactory
      * @param \Magento\Authorizenet\Model\Authorizenet\RequestFactory $requestFactory
      * @param \Magento\Authorizenet\Model\Authorizenet\ResultFactory $resultFactory
      * @param \Magento\Sales\Model\OrderFactory $orderFactory
-     * @param \Magento\Session\SessionManagerInterface $session
+     * @param \Magento\Framework\Session\SessionManagerInterface $session
      * @param \Magento\Authorizenet\Helper\Data $authorizenetData
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param \Magento\Sales\Model\QuoteFactory $quoteFactory
      * @param \Magento\Authorizenet\Model\Directpost\RequestFactory $directRequestFactory
      * @param \Magento\Authorizenet\Model\Directpost\Response $response
      * @param \Magento\Authorizenet\Helper\HelperInterface $helper
+     * @param OrderSender $orderSender
      * @param array $data
      *
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
-        \Magento\Event\ManagerInterface $eventManager,
+        \Magento\Framework\Event\ManagerInterface $eventManager,
         \Magento\Payment\Helper\Data $paymentData,
-        \Magento\Core\Model\Store\Config $coreStoreConfig,
-        \Magento\Logger\AdapterFactory $logAdapterFactory,
-        \Magento\Logger $logger,
-        \Magento\Module\ModuleListInterface $moduleList,
-        \Magento\Stdlib\DateTime\TimezoneInterface $localeDate,
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        \Magento\Framework\Logger\AdapterFactory $logAdapterFactory,
+        \Magento\Framework\Logger $logger,
+        \Magento\Framework\Module\ModuleListInterface $moduleList,
+        \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate,
         \Magento\Centinel\Model\Service $centinelService,
         \Magento\Authorizenet\Model\Authorizenet\CardsFactory $cardsFactory,
         \Magento\Authorizenet\Model\Authorizenet\RequestFactory $requestFactory,
         \Magento\Authorizenet\Model\Authorizenet\ResultFactory $resultFactory,
         \Magento\Sales\Model\OrderFactory $orderFactory,
-        \Magento\Session\SessionManagerInterface $session,
+        \Magento\Framework\Session\SessionManagerInterface $session,
         \Magento\Authorizenet\Helper\Data $authorizenetData,
-        \Magento\Core\Model\StoreManagerInterface $storeManager,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Sales\Model\QuoteFactory $quoteFactory,
         \Magento\Authorizenet\Model\Directpost\RequestFactory $directRequestFactory,
         \Magento\Authorizenet\Model\Directpost\Response $response,
         \Magento\Authorizenet\Helper\HelperInterface $helper,
+        OrderSender $orderSender,
         array $data = array()
     ) {
         parent::__construct(
             $eventManager,
             $paymentData,
-            $coreStoreConfig,
+            $scopeConfig,
             $logAdapterFactory,
             $logger,
             $moduleList,
@@ -158,6 +167,7 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
         $this->_requestFactory = $directRequestFactory;
         $this->_response = $response;
         $this->_helper = $helper;
+        $this->orderSender = $orderSender;
     }
 
     /**
@@ -173,11 +183,11 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
     /**
      * Send authorize request to gateway
      *
-     * @param  \Magento\Object $payment
+     * @param  \Magento\Framework\Object $payment
      * @param  float $amount
      * @return void
      */
-    public function authorize(\Magento\Object $payment, $amount)
+    public function authorize(\Magento\Framework\Object $payment, $amount)
     {
         $payment->setAdditionalInformation('payment_type', $this->getConfigData('payment_action'));
     }
@@ -185,15 +195,15 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
     /**
      * Send capture request to gateway
      *
-     * @param \Magento\Object $payment
+     * @param \Magento\Framework\Object $payment
      * @param float $amount
      * @return $this
-     * @throws \Magento\Model\Exception
+     * @throws \Magento\Framework\Model\Exception
      */
-    public function capture(\Magento\Object $payment, $amount)
+    public function capture(\Magento\Framework\Object $payment, $amount)
     {
         if ($amount <= 0) {
-            throw new \Magento\Model\Exception(__('Invalid amount for capture.'));
+            throw new \Magento\Framework\Model\Exception(__('Invalid amount for capture.'));
         }
 
         $payment->setAmount($amount);
@@ -224,12 +234,12 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
                     );
                     return $this;
                 }
-                throw new \Magento\Model\Exception($this->_wrapGatewayError($result->getResponseReasonText()));
+                throw new \Magento\Framework\Model\Exception($this->_wrapGatewayError($result->getResponseReasonText()));
             case self::RESPONSE_CODE_DECLINED:
             case self::RESPONSE_CODE_ERROR:
-                throw new \Magento\Model\Exception($this->_wrapGatewayError($result->getResponseReasonText()));
+                throw new \Magento\Framework\Model\Exception($this->_wrapGatewayError($result->getResponseReasonText()));
             default:
-                throw new \Magento\Model\Exception(__('Payment capturing error.'));
+                throw new \Magento\Framework\Model\Exception(__('Payment capturing error.'));
         }
     }
 
@@ -246,10 +256,10 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
     /**
      * Check void availability
      *
-     * @param   \Magento\Object $payment
+     * @param   \Magento\Framework\Object $payment
      * @return  bool
      */
-    public function canVoid(\Magento\Object $payment)
+    public function canVoid(\Magento\Framework\Object $payment)
     {
         return $this->_canVoid;
     }
@@ -257,14 +267,14 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
     /**
      * Void the payment through gateway
      *
-     * @param \Magento\Object $payment
+     * @param \Magento\Framework\Object $payment
      * @return $this
-     * @throws \Magento\Model\Exception
+     * @throws \Magento\Framework\Model\Exception
      */
-    public function void(\Magento\Object $payment)
+    public function void(\Magento\Framework\Object $payment)
     {
         if (!$payment->getParentTransactionId()) {
-            throw new \Magento\Model\Exception(__('Invalid transaction ID.'));
+            throw new \Magento\Framework\Model\Exception(__('Invalid transaction ID.'));
         }
 
         $payment->setAnetTransType(self::REQUEST_TYPE_VOID);
@@ -289,12 +299,12 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
                     );
                     return $this;
                 }
-                throw new \Magento\Model\Exception($this->_wrapGatewayError($result->getResponseReasonText()));
+                throw new \Magento\Framework\Model\Exception($this->_wrapGatewayError($result->getResponseReasonText()));
             case self::RESPONSE_CODE_DECLINED:
             case self::RESPONSE_CODE_ERROR:
-                throw new \Magento\Model\Exception($this->_wrapGatewayError($result->getResponseReasonText()));
+                throw new \Magento\Framework\Model\Exception($this->_wrapGatewayError($result->getResponseReasonText()));
             default:
-                throw new \Magento\Model\Exception(__('Payment voiding error.'));
+                throw new \Magento\Framework\Model\Exception(__('Payment voiding error.'));
         }
     }
 
@@ -324,12 +334,12 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
      * Refund the amount
      * Need to decode last 4 digits for request.
      *
-     * @param \Magento\Object $payment
+     * @param \Magento\Framework\Object $payment
      * @param float $amount
      * @return $this
      * @throws \Exception
      */
-    public function refund(\Magento\Object $payment, $amount)
+    public function refund(\Magento\Framework\Object $payment, $amount)
     {
         $last4 = $payment->getCcLast4();
         $payment->setCcLast4($payment->decrypt($last4));
@@ -346,19 +356,19 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
     /**
      * Refund the amount with transaction id
      *
-     * @param \Magento\Object $payment
+     * @param \Magento\Framework\Object $payment
      * @param float $amount
      * @return $this
-     * @throws \Magento\Model\Exception
+     * @throws \Magento\Framework\Model\Exception
      */
-    protected function _refund(\Magento\Object $payment, $amount)
+    protected function _refund(\Magento\Framework\Object $payment, $amount)
     {
         if ($amount <= 0) {
-            throw new \Magento\Model\Exception(__('Invalid amount for refund.'));
+            throw new \Magento\Framework\Model\Exception(__('Invalid amount for refund.'));
         }
 
         if (!$payment->getParentTransactionId()) {
-            throw new \Magento\Model\Exception(__('Invalid transaction ID.'));
+            throw new \Magento\Framework\Model\Exception(__('Invalid transaction ID.'));
         }
 
         $payment->setAnetTransType(self::REQUEST_TYPE_CREDIT);
@@ -385,12 +395,12 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
                     );
                     return $this;
                 }
-                throw new \Magento\Model\Exception($this->_wrapGatewayError($result->getResponseReasonText()));
+                throw new \Magento\Framework\Model\Exception($this->_wrapGatewayError($result->getResponseReasonText()));
             case self::RESPONSE_CODE_DECLINED:
             case self::RESPONSE_CODE_ERROR:
-                throw new \Magento\Model\Exception($this->_wrapGatewayError($result->getResponseReasonText()));
+                throw new \Magento\Framework\Model\Exception($this->_wrapGatewayError($result->getResponseReasonText()));
             default:
-                throw new \Magento\Model\Exception(__('Payment refunding error.'));
+                throw new \Magento\Framework\Model\Exception(__('Payment refunding error.'));
         }
     }
 
@@ -433,7 +443,7 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
      * Instantiate state and set it to state object
      *
      * @param string $paymentAction
-     * @param \Magento\Object $stateObject
+     * @param \Magento\Framework\Object $stateObject
      * @return void
      */
     public function initialize($paymentAction, $stateObject)
@@ -495,7 +505,7 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
      * Validate response data. Needed in controllers.
      *
      * @return bool true in case of validation success.
-     * @throws \Magento\Model\Exception In case of validation error
+     * @throws \Magento\Framework\Model\Exception In case of validation error
      */
     public function validateResponse()
     {
@@ -510,7 +520,7 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
             $this->getConfigData('login')
         )
         ) {
-            throw new \Magento\Model\Exception(
+            throw new \Magento\Framework\Model\Exception(
                 __('The transaction was declined because the response hash validation failed.')
             );
         }
@@ -522,7 +532,7 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
      *
      * @param array $responseData data from Authorize.net from $_POST
      * @return void
-     * @throws \Magento\Model\Exception In case of validation error or order creation error
+     * @throws \Magento\Framework\Model\Exception In case of validation error or order creation error
      */
     public function process(array $responseData)
     {
@@ -546,7 +556,7 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
             //check payment method
             $payment = $order->getPayment();
             if (!$payment || $payment->getMethod() != $this->getCode()) {
-                throw new \Magento\Model\Exception(
+                throw new \Magento\Framework\Model\Exception(
                     __('This payment didn\'t work out because we can\'t find this order.')
                 );
             }
@@ -561,7 +571,7 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
         }
 
         if ($isError) {
-            throw new \Magento\Model\Exception(
+            throw new \Magento\Framework\Model\Exception(
                 $responseText && !$response->isApproved() ? $responseText : __(
                     'This payment didn\'t work out because we can\'t find this order.'
                 )
@@ -572,10 +582,10 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
     /**
      * Fill payment with credit card data from response from Authorize.net.
      *
-     * @param \Magento\Object $payment
+     * @param \Magento\Framework\Object $payment
      * @return void
      */
-    protected function _fillPaymentByResponse(\Magento\Object $payment)
+    protected function _fillPaymentByResponse(\Magento\Framework\Object $payment)
     {
         $response = $this->getResponse();
         $payment->setTransactionId(
@@ -602,7 +612,7 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
      * Check response code came from Authorize.net.
      *
      * @return true in case of Approved response
-     * @throws \Magento\Model\Exception In case of Declined or Error response from Authorize.net
+     * @throws \Magento\Framework\Model\Exception In case of Declined or Error response from Authorize.net
      */
     public function checkResponseCode()
     {
@@ -611,11 +621,11 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
                 return true;
             case self::RESPONSE_CODE_DECLINED:
             case self::RESPONSE_CODE_ERROR:
-                throw new \Magento\Model\Exception(
+                throw new \Magento\Framework\Model\Exception(
                     $this->_wrapGatewayError($this->getResponse()->getXResponseReasonText())
                 );
             default:
-                throw new \Magento\Model\Exception(__('There was a payment authorization error.'));
+                throw new \Magento\Framework\Model\Exception(__('There was a payment authorization error.'));
         }
     }
 
@@ -623,12 +633,12 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
      * Check transaction id came from Authorize.net
      *
      * @return true in case of right transaction id
-     * @throws \Magento\Model\Exception In case of bad transaction id.
+     * @throws \Magento\Framework\Model\Exception In case of bad transaction id.
      */
     public function checkTransId()
     {
         if (!$this->getResponse()->getXTransId()) {
-            throw new \Magento\Model\Exception(
+            throw new \Magento\Framework\Model\Exception(
                 __('This payment was not authorized because the transaction ID field is empty.')
             );
         }
@@ -652,7 +662,7 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
      *
      * @param \Magento\Sales\Model\Order $order
      * @return void
-     * @throws \Magento\Model\Exception
+     * @throws \Magento\Framework\Model\Exception
      * @throws \Exception
      */
     protected function _authOrder(\Magento\Sales\Model\Order $order)
@@ -697,7 +707,7 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
                 'Something went wrong: the paid amount doesn\'t match the order amount. Please correct this and try again.'
             );
             $this->_declineOrder($order, $message, true);
-            throw new \Magento\Model\Exception($message);
+            throw new \Magento\Framework\Model\Exception($message);
         }
 
         //capture order using AIM if needed
@@ -705,7 +715,7 @@ class Directpost extends \Magento\Authorizenet\Model\Authorizenet
 
         try {
             if (!$response->hasOrderSendConfirmation() || $response->getOrderSendConfirmation()) {
-                $order->sendNewOrderEmail();
+                $this->orderSender->send($order);
             }
 
             $this->_quoteFactory->create()->load($order->getQuoteId())->setIsActive(false)->save();

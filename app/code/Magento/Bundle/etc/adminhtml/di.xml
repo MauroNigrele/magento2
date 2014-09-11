@@ -23,7 +23,7 @@
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 -->
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../../../lib/Magento/ObjectManager/etc/config.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../../../lib/internal/Magento/Framework/ObjectManager/etc/config.xsd">
     <type name="Magento\Sales\Model\Convert\Quote">
         <plugin name="append_bundle_data_to_order" type="Magento\Bundle\Model\Plugin\QuoteItem"/>
     </type>
@@ -36,5 +36,8 @@
                 <item name="bundle" xsi:type="string">Magento\Bundle\Model\Product\CopyConstructor\Bundle</item>
             </argument>
         </arguments>
+    </type>
+    <type name="Magento\Catalog\Model\Product\Attribute\Backend\Price">
+        <plugin name="bundle" type="Magento\Bundle\Model\Plugin\PriceBackend" sortOrder="100" />
     </type>
 </config>

@@ -21,8 +21,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    tests
- * @package     static
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
@@ -43,5 +41,7 @@
         <ini name="date.timezone" value="America/Los_Angeles"/>
         <!-- TESTS_JSHINT_PATH specify the path to wsh.js on Windows and jshint-rhino.js on Linux -->
         <const name="TESTS_JSHINT_PATH" value=""/>
+        <!-- TESTS_COMPOSER_PATH - specify the path to composer binary, if a relative reference cannot be resolved -->
+        <!--<const name="TESTS_COMPOSER_PATH" value="/usr/local/bin/composer"/>-->
     </php>
 </phpunit>

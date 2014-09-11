@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Sales
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -37,16 +35,18 @@ class Transactions extends \Magento\Backend\App\Action
     /**
      * Core registry
      *
-     * @var \Magento\Registry
+     * @var \Magento\Framework\Registry
      */
     protected $_coreRegistry = null;
 
     /**
      * @param \Magento\Backend\App\Action\Context $context
-     * @param \Magento\Registry $coreRegistry
+     * @param \Magento\Framework\Registry $coreRegistry
      */
-    public function __construct(\Magento\Backend\App\Action\Context $context, \Magento\Registry $coreRegistry)
-    {
+    public function __construct(
+        \Magento\Backend\App\Action\Context $context,
+        \Magento\Framework\Registry $coreRegistry
+    ) {
         $this->_coreRegistry = $coreRegistry;
         parent::__construct($context);
     }
@@ -77,72 +77,6 @@ class Transactions extends \Magento\Backend\App\Action
 
         $this->_coreRegistry->register('current_transaction', $txn);
         return $txn;
-    }
-
-    /**
-     * @return void
-     */
-    public function indexAction()
-    {
-        $this->_title->add(__('Transactions'));
-
-        $this->_view->loadLayout();
-        $this->_setActiveMenu('Magento_Sales::sales_transactions');
-        $this->_view->renderLayout();
-    }
-
-    /**
-     * Ajax grid action
-     *
-     * @return void
-     */
-    public function gridAction()
-    {
-        $this->_view->loadLayout(false);
-        $this->_view->renderLayout();
-    }
-
-    /**
-     * View Transaction Details action
-     *
-     * @return void
-     */
-    public function viewAction()
-    {
-        $txn = $this->_initTransaction();
-        if (!$txn) {
-            return;
-        }
-        $this->_title->add(__('Transactions'));
-        $this->_title->add(sprintf("#%s", $txn->getTxnId()));
-
-        $this->_view->loadLayout();
-        $this->_setActiveMenu('Magento_Sales::sales_transactions');
-        $this->_view->renderLayout();
-    }
-
-    /**
-     * Fetch transaction details action
-     *
-     * @return void
-     */
-    public function fetchAction()
-    {
-        $txn = $this->_initTransaction();
-        if (!$txn) {
-            return;
-        }
-        try {
-            $txn->getOrderPaymentObject()->setOrder($txn->getOrder())->importTransactionInfo($txn);
-            $txn->save();
-            $this->messageManager->addSuccess(__('The transaction details have been updated.'));
-        } catch (\Magento\Model\Exception $e) {
-            $this->messageManager->addError($e->getMessage());
-        } catch (\Exception $e) {
-            $this->messageManager->addError(__('We can\'t update the transaction details.'));
-            $this->_objectManager->get('Magento\Logger')->logException($e);
-        }
-        $this->_redirect('sales/transactions/view', array('_current' => true));
     }
 
     /**

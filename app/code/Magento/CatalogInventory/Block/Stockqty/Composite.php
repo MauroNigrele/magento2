@@ -18,24 +18,17 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_CatalogInventory
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 
-
-/**
- * Product stock qty block for abstract composite product
- *
- * @category   Magento
- * @package    Magento_CatalogInventory
- * @author      Magento Core Team <core@magentocommerce.com>
- */
 namespace Magento\CatalogInventory\Block\Stockqty;
 
 use Magento\Catalog\Model\Product;
 
+/**
+ * Product stock qty block for abstract composite product
+ */
 abstract class Composite extends DefaultStockqty
 {
     /**
@@ -63,17 +56,6 @@ abstract class Composite extends DefaultStockqty
             $this->_childProducts = $this->_getChildProducts();
         }
         return $this->_childProducts;
-    }
-
-    /**
-     * Retrieve product stock qty
-     *
-     * @param Product $product
-     * @return float
-     */
-    public function getProductStockQty($product)
-    {
-        return $product->getStockItem()->getStockQty();
     }
 
     /**

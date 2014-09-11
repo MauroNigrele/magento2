@@ -32,18 +32,18 @@ class Taxvat extends AbstractWidget
     /**
      * Constructor.
      *
-     * @param \Magento\View\Element\Template\Context                        $context
+     * @param \Magento\Framework\View\Element\Template\Context                        $context
      * @param \Magento\Customer\Helper\Address                              $addressHelper
-     * @param \Magento\Customer\Service\V1\CustomerMetadataServiceInterface $attributeMetadata
+     * @param \Magento\Customer\Service\V1\CustomerMetadataServiceInterface $customerMetadataService
      * @param array                                                         $data
      */
     public function __construct(
-        \Magento\View\Element\Template\Context $context,
+        \Magento\Framework\View\Element\Template\Context $context,
         \Magento\Customer\Helper\Address $addressHelper,
-        \Magento\Customer\Service\V1\CustomerMetadataServiceInterface $attributeMetadata,
+        \Magento\Customer\Service\V1\CustomerMetadataServiceInterface $customerMetadataService,
         array $data = array()
     ) {
-        parent::__construct($context, $addressHelper, $attributeMetadata, $data);
+        parent::__construct($context, $addressHelper, $customerMetadataService, $data);
         $this->_isScopePrivate = true;
     }
 

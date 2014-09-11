@@ -23,7 +23,7 @@
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 -->
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../../../lib/Magento/ObjectManager/etc/config.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../../../lib/internal/Magento/Framework/ObjectManager/etc/config.xsd">
     <virtualType name="Magento\LayeredNavigation\Block\Navigation\Category" type="Magento\LayeredNavigation\Block\Navigation">
         <arguments>
             <argument name="catalogLayer" xsi:type="object">Magento\Catalog\Model\Layer\Category</argument>
@@ -38,6 +38,13 @@
             <argument name="filterList" xsi:type="object">searchFilterList</argument>
         </arguments>
     </virtualType>
+    <virtualType name="Magento\LayeredNavigation\Block\Navigation\AdvancedSearch" type="Magento\LayeredNavigation\Block\Navigation">
+        <arguments>
+            <argument name="catalogLayer" xsi:type="object">Magento\CatalogSearch\Model\Layer\Advanced</argument>
+            <argument name="visibilityFlag" xsi:type="object">Magento\Catalog\Model\Layer\Search\AvailabilityFlag</argument>
+            <argument name="filterList" xsi:type="object">advancedSearchFilterList</argument>
+        </arguments>
+    </virtualType>
     <virtualType name="Magento\LayeredNavigation\Block\Navigation\State\Category" type="Magento\LayeredNavigation\Block\Navigation\State">
         <arguments>
             <argument name="catalogLayer" xsi:type="object">Magento\Catalog\Model\Layer\Category</argument>
@@ -46,6 +53,11 @@
     <virtualType name="Magento\LayeredNavigation\Block\Navigation\State\Search" type="Magento\LayeredNavigation\Block\Navigation\State">
         <arguments>
             <argument name="catalogLayer" xsi:type="object">Magento\Catalog\Model\Layer\Search</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Magento\LayeredNavigation\Block\Navigation\State\AdvancedSearch" type="Magento\LayeredNavigation\Block\Navigation\State">
+        <arguments>
+            <argument name="catalogLayer" xsi:type="object">Magento\CatalogSearch\Model\Layer\Advanced</argument>
         </arguments>
     </virtualType>
 </config>

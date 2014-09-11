@@ -33,16 +33,12 @@ use Magento\Integration\Controller\Adminhtml\Integration as IntegrationControlle
 class Tokens extends \Magento\Backend\Block\Widget\Form\Generic
 {
     /**#@+
-     * Form elements names.
+     * Form element name.
      */
     const DATA_TOKEN = 'token';
-
     const DATA_TOKEN_SECRET = 'token_secret';
-
     const DATA_CONSUMER_KEY = 'consumer_key';
-
     const DATA_CONSUMER_SECRET = 'consumer_secret';
-
     /**#@-*/
 
     /**
@@ -52,7 +48,7 @@ class Tokens extends \Magento\Backend\Block\Widget\Form\Generic
      */
     protected function _prepareForm()
     {
-        /** @var \Magento\Data\Form $form */
+        /** @var \Magento\Framework\Data\Form $form */
         $form = $this->_formFactory->create();
         $htmlIdPrefix = 'integration_token_';
         $form->setHtmlIdPrefix($htmlIdPrefix);

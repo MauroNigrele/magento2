@@ -21,18 +21,22 @@
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
+
 namespace Magento\Customer\Service\V1\Data;
 
-use Magento\Service\Data\EAV\AbstractObjectBuilder;
-use Magento\Customer\Service\V1\CustomerMetadataServiceInterface;
+use Magento\Customer\Service\V1\AddressMetadataServiceInterface;
+use Magento\Framework\Service\Data\AbstractExtensibleObject as ExtensibleObject;
+use Magento\Framework\Service\Data\AbstractExtensibleObjectBuilder;
+use Magento\Framework\Service\Data\AttributeValueBuilder;
 
 /**
  * Builder for the Address Service Data Object
  *
  * @method Address create()
- * @method Address mergeDataObjectWithArray(AbstractObjectBuilder $dataObject, array $data)
+ * @method Address mergeDataObjectWithArray(ExtensibleObject $dataObject, array $data)
+ * @method Address mergeDataObjects(ExtensibleObject $firstDataObject, ExtensibleObject $secondDataObject)
  */
-class AddressBuilder extends AbstractObjectBuilder
+class AddressBuilder extends AbstractExtensibleObjectBuilder
 {
     /**
      * Region builder
@@ -41,21 +45,31 @@ class AddressBuilder extends AbstractObjectBuilder
      */
     protected $_regionBuilder;
 
-    /** @var CustomerMetadataServiceInterface */
-    protected $_metadataService;
-
     /**
-     * Initialize dependencies.
-     *
+     * @param \Magento\Framework\Service\Data\ObjectFactory $objectFactory
+     * @param AttributeValueBuilder $valueBuilder
+     * @param AddressMetadataServiceInterface $metadataService
      * @param RegionBuilder $regionBuilder
-     * @param CustomerMetadataServiceInterface $metadataService
      */
-    public function __construct(RegionBuilder $regionBuilder, CustomerMetadataServiceInterface $metadataService)
-    {
-        parent::__construct();
-        $this->_metadataService = $metadataService;
+    public function __construct(
+        \Magento\Framework\Service\Data\ObjectFactory $objectFactory,
+        AttributeValueBuilder $valueBuilder,
+        AddressMetadataServiceInterface $metadataService,
+        RegionBuilder $regionBuilder
+    ) {
+        parent::__construct($objectFactory, $valueBuilder, $metadataService);
         $this->_regionBuilder = $regionBuilder;
         $this->_data[Address::KEY_REGION] = $regionBuilder->create();
+    }
+
+    /**
+     * Convenience method to return region builder
+     *
+     * @return RegionBuilder
+     */
+    public function getRegionBuilder()
+    {
+        return $this->_regionBuilder;
     }
 
     /**
@@ -111,18 +125,6 @@ class AddressBuilder extends AbstractObjectBuilder
             $data[Address::KEY_REGION] = $this->_regionBuilder->populateWithArray($regionData)->create();
         }
         return parent::_setDataValues($data);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getCustomAttributesCodes()
-    {
-        $attributeCodes = array();
-        foreach ($this->_metadataService->getCustomAddressAttributeMetadata() as $attribute) {
-            $attributeCodes[] = $attribute->getAttributeCode();
-        }
-        return $attributeCodes;
     }
 
     /**

@@ -19,9 +19,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento
- * @subpackage  unit_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
@@ -39,7 +36,7 @@
     <filter>
         <whitelist addUncoveredFilesFromWhiteList="true">
             <directory suffix=".php">../../../app/code/Magento</directory>
-            <directory suffix=".php">../../../lib/Magento</directory>
+            <directory suffix=".php">../../../lib/internal/Magento</directory>
             <exclude>
                 <directory suffix=".php">../../../app/code/Magento/*/sql</directory>
                 <directory suffix=".php">../../../app/code/Magento/*/data</directory>

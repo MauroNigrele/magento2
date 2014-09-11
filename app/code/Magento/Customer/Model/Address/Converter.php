@@ -25,13 +25,12 @@
 namespace Magento\Customer\Model\Address;
 
 use Magento\Customer\Model\AddressFactory;
+use Magento\Customer\Service\V1\AddressMetadataServiceInterface;
 use Magento\Customer\Service\V1\Data\Address;
 use Magento\Customer\Service\V1\Data\AddressBuilder;
 use Magento\Customer\Model\Address as AddressModel;
 use Magento\Customer\Model\Address\AbstractAddress;
 use Magento\Customer\Service\V1\Data\Region;
-use Magento\Customer\Service\V1\Data\RegionBuilder;
-use Magento\Customer\Service\V1\CustomerMetadataServiceInterface;
 use Magento\Customer\Service\V1\Data\AddressConverter;
 
 /**
@@ -55,33 +54,25 @@ class Converter
     protected $_addressFactory;
 
     /**
-     * @var RegionBuilder
-     */
-    private $_regionBuilder;
-
-    /**
      * Customer metadata service
      *
-     * @var \Magento\Customer\Service\V1\CustomerMetadataServiceInterface
+     * @var AddressMetadataServiceInterface
      */
-    private $_metadataService;
+    protected $_addressMetadataService;
 
     /**
      * @param AddressBuilder $addressBuilder
      * @param AddressFactory $addressFactory
-     * @param RegionBuilder $regionBuilder
-     * @param CustomerMetadataServiceInterface $metadataService
+     * @param AddressMetadataServiceInterface $addressMetadataService
      */
     public function __construct(
         AddressBuilder $addressBuilder,
         AddressFactory $addressFactory,
-        RegionBuilder $regionBuilder,
-        CustomerMetadataServiceInterface $metadataService
+        AddressMetadataServiceInterface $addressMetadataService
     ) {
         $this->_addressBuilder = $addressBuilder;
         $this->_addressFactory = $addressFactory;
-        $this->_regionBuilder = $regionBuilder;
-        $this->_metadataService = $metadataService;
+        $this->_addressMetadataService = $addressMetadataService;
     }
 
     /**
@@ -110,7 +101,7 @@ class Converter
         // Set all attributes
         $attributes = AddressConverter::toFlatArray($address);
         foreach ($attributes as $attributeCode => $attributeData) {
-            if (Address::KEY_REGION == $attributeCode && $address->getRegion() instanceof Region) {
+            if (Address::KEY_REGION === $attributeCode && $address->getRegion() instanceof Region) {
                 $addressModel->setDataUsingMethod(Region::KEY_REGION, $address->getRegion()->getRegion());
                 $addressModel->setDataUsingMethod(Region::KEY_REGION_CODE, $address->getRegion()->getRegionCode());
                 $addressModel->setDataUsingMethod(Region::KEY_REGION_ID, $address->getRegion()->getRegionId());
@@ -124,7 +115,7 @@ class Converter
         $addressModel->setIsDefaultShipping($address->isDefaultShipping());
         // Need to use attribute set or future updates can cause data loss
         if (!$addressModel->getAttributeSetId()) {
-            $addressModel->setAttributeSetId(CustomerMetadataServiceInterface::ATTRIBUTE_SET_ID_ADDRESS);
+            $addressModel->setAttributeSetId(AddressMetadataServiceInterface::ATTRIBUTE_SET_ID_ADDRESS);
         }
     }
 
@@ -140,7 +131,7 @@ class Converter
     {
         $addressId = $addressModel->getId();
 
-        $attributes = $this->_metadataService->getAllAddressAttributeMetadata();
+        $attributes = $this->_addressMetadataService->getAllAttributesMetadata();
         $addressData = array();
         foreach ($attributes as $attribute) {
             $code = $attribute->getAttributeCode();
@@ -149,13 +140,21 @@ class Converter
             }
         }
 
+        $isDefaultBilling = $addressModel->getData('is_default_billing') === null && intval($addressId)
+            ? $addressId === $defaultBillingId
+            : $addressModel->getData('is_default_billing');
+
+        $isDefaultShipping = $addressModel->getData('is_default_shipping') === null && intval($addressId)
+            ? $addressId === $defaultShippingId
+            : $addressModel->getData('is_default_shipping');
+
         $this->_addressBuilder->populateWithArray(
             array_merge(
                 $addressData,
                 array(
                     Address::KEY_STREET => $addressModel->getStreet(),
-                    Address::KEY_DEFAULT_BILLING => $addressId === $defaultBillingId,
-                    Address::KEY_DEFAULT_SHIPPING => $addressId === $defaultShippingId,
+                    Address::KEY_DEFAULT_BILLING => $isDefaultBilling,
+                    Address::KEY_DEFAULT_SHIPPING => $isDefaultShipping,
                     Address::KEY_REGION => array(
                         Region::KEY_REGION => $addressModel->getRegion(),
                         Region::KEY_REGION_ID => $addressModel->getRegionId(),
@@ -170,9 +169,7 @@ class Converter
         }
 
         if ($addressModel->getCustomerId() || $addressModel->getParentId()) {
-            $customerId = $addressModel->getCustomerId() ? $addressModel
-                ->getCustomerId() : $addressModel
-                ->getParentId();
+            $customerId = $addressModel->getCustomerId() ?: $addressModel->getParentId();
             $this->_addressBuilder->setCustomerId($customerId);
         }
 

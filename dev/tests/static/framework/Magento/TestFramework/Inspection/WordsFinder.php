@@ -18,9 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento
- * @subpackage  static_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -70,7 +67,7 @@ class WordsFinder
         if (!is_dir($baseDir)) {
             throw new \Magento\TestFramework\Inspection\Exception("Base directory {$baseDir} does not exist");
         }
-        $this->_baseDir = realpath($baseDir);
+        $this->_baseDir = str_replace('\\', '/', realpath($baseDir));
 
         // Load config files
         if (!is_array($configFiles)) {
@@ -84,7 +81,7 @@ class WordsFinder
         $basePath = $this->_baseDir . '/';
         $basePathLen = strlen($basePath);
         foreach ($configFiles as $configFile) {
-            $configFile = realpath($configFile);
+            $configFile = str_replace('\\', '/', realpath($configFile));
             if (strncmp($basePath, $configFile, $basePathLen) === 0) {
                 // File is inside base dir
                 $this->_whitelist[$this->_getRelPath($configFile)] = array();

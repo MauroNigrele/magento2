@@ -25,7 +25,7 @@ namespace Magento\Customer\Block\Address\Renderer;
 
 use Magento\Customer\Model\Address\AbstractAddress;
 use Magento\Customer\Model\Metadata\ElementFactory;
-use Magento\View\Element\AbstractBlock;
+use Magento\Framework\View\Element\AbstractBlock;
 
 /**
  * Address format renderer default
@@ -35,7 +35,7 @@ class DefaultRenderer extends AbstractBlock implements RendererInterface
     /**
      * Format type object
      *
-     * @var \Magento\Object
+     * @var \Magento\Framework\Object
      */
     protected $_type;
 
@@ -50,9 +50,9 @@ class DefaultRenderer extends AbstractBlock implements RendererInterface
     protected $_countryFactory;
 
     /**
-     * @var \Magento\Customer\Service\V1\CustomerMetadataServiceInterface
+     * @var \Magento\Customer\Service\V1\AddressMetadataServiceInterface
      */
-    protected $_metadataService;
+    protected $_addressMetadataService;
 
     /**
      * Address converter
@@ -64,25 +64,25 @@ class DefaultRenderer extends AbstractBlock implements RendererInterface
     /**
      * Constructor
      *
-     * @param \Magento\View\Element\Context $context
+     * @param \Magento\Framework\View\Element\Context $context
      * @param ElementFactory $elementFactory
      * @param \Magento\Directory\Model\CountryFactory $countryFactory ,
      * @param \Magento\Customer\Model\Address\Converter $addressConverter
-     * @param \Magento\Customer\Service\V1\CustomerMetadataServiceInterface $metadataService
+     * @param \Magento\Customer\Service\V1\AddressMetadataServiceInterface $metadataService
      * @param array $data
      */
     public function __construct(
-        \Magento\View\Element\Context $context,
+        \Magento\Framework\View\Element\Context $context,
         ElementFactory $elementFactory,
         \Magento\Directory\Model\CountryFactory $countryFactory,
         \Magento\Customer\Model\Address\Converter $addressConverter,
-        \Magento\Customer\Service\V1\CustomerMetadataServiceInterface $metadataService,
+        \Magento\Customer\Service\V1\AddressMetadataServiceInterface $metadataService,
         array $data = array()
     ) {
         $this->_elementFactory = $elementFactory;
         $this->_addressConverter = $addressConverter;
         $this->_countryFactory = $countryFactory;
-        $this->_metadataService = $metadataService;
+        $this->_addressMetadataService = $metadataService;
         parent::__construct($context, $data);
         $this->_isScopePrivate = true;
     }
@@ -90,7 +90,7 @@ class DefaultRenderer extends AbstractBlock implements RendererInterface
     /**
      * Retrieve format type object
      *
-     * @return \Magento\Object
+     * @return \Magento\Framework\Object
      */
     public function getType()
     {
@@ -100,10 +100,10 @@ class DefaultRenderer extends AbstractBlock implements RendererInterface
     /**
      * Retrieve format type object
      *
-     * @param  \Magento\Object $type
+     * @param  \Magento\Framework\Object $type
      * @return $this
      */
-    public function setType(\Magento\Object $type)
+    public function setType(\Magento\Framework\Object $type)
     {
         $this->_type = $type;
         return $this;
@@ -175,7 +175,7 @@ class DefaultRenderer extends AbstractBlock implements RendererInterface
                 break;
         }
 
-        $attributesMetadata = $this->_metadataService->getAllAddressAttributeMetadata();
+        $attributesMetadata = $this->_addressMetadataService->getAllAttributesMetadata();
         $data = array();
         foreach ($attributesMetadata as $attributeMetadata) {
             if (!$attributeMetadata->isVisible()) {

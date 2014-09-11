@@ -18,21 +18,26 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 namespace Magento\Catalog\Model\Product;
 
-use Magento\DB\Adapter\AdapterInterface;
-use Magento\DB\Select;
 use Magento\Eav\Model\Entity\Collection\AbstractCollection;
+use Magento\Framework\DB\Adapter\AdapterInterface;
+use Magento\Framework\DB\Select;
 
-class Condition extends \Magento\Object implements \Magento\Catalog\Model\Product\Condition\ConditionInterface
+/**
+ * @method string getPkFieldName()
+ * @method Condition setPkFieldName(string $fieldName)
+ * @method string|array getTable()
+ * @method Condition setTable($table)
+ */
+class Condition extends \Magento\Framework\Object implements \Magento\Catalog\Model\Product\Condition\ConditionInterface
 {
     /**
      * @param AbstractCollection $collection
+     *
      * @return $this
      */
     public function applyToCollection($collection)
@@ -49,6 +54,7 @@ class Condition extends \Magento\Object implements \Magento\Catalog\Model\Produc
 
     /**
      * @param AdapterInterface $dbAdapter
+     *
      * @return Select|string
      */
     public function getIdsSelect($dbAdapter)

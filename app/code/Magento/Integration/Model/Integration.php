@@ -43,8 +43,9 @@ namespace Magento\Integration\Model;
  * @method Integration setCreatedAt(\string $createdAt)
  * @method \string getUpdatedAt()
  * @method Integration setUpdatedAt(\string $createdAt)
+ * @method \Magento\Integration\Model\Resource\Integration getResource()
  */
-class Integration extends \Magento\Model\AbstractModel
+class Integration extends \Magento\Framework\Model\AbstractModel
 {
     /**#@+
      * Integration Status values
@@ -86,24 +87,24 @@ class Integration extends \Magento\Model\AbstractModel
     /**#@-*/
 
     /**
-     * @var \Magento\Stdlib\DateTime
+     * @var \Magento\Framework\Stdlib\DateTime
      */
     protected $_dateTime;
 
     /**
-     * @param \Magento\Model\Context $context
-     * @param \Magento\Registry $registry
-     * @param \Magento\Stdlib\DateTime $dateTime
-     * @param \Magento\Model\Resource\AbstractResource $resource
-     * @param \Magento\Data\Collection\Db $resourceCollection
+     * @param \Magento\Framework\Model\Context $context
+     * @param \Magento\Framework\Registry $registry
+     * @param \Magento\Framework\Stdlib\DateTime $dateTime
+     * @param \Magento\Framework\Model\Resource\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\Db $resourceCollection
      * @param array $data
      */
     public function __construct(
-        \Magento\Model\Context $context,
-        \Magento\Registry $registry,
-        \Magento\Stdlib\DateTime $dateTime,
-        \Magento\Model\Resource\AbstractResource $resource = null,
-        \Magento\Data\Collection\Db $resourceCollection = null,
+        \Magento\Framework\Model\Context $context,
+        \Magento\Framework\Registry $registry,
+        \Magento\Framework\Stdlib\DateTime $dateTime,
+        \Magento\Framework\Model\Resource\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\Db $resourceCollection = null,
         array $data = array()
     ) {
         $this->_dateTime = $dateTime;
@@ -145,6 +146,19 @@ class Integration extends \Magento\Model\AbstractModel
     public function loadByConsumerId($consumerId)
     {
         return $this->load($consumerId, self::CONSUMER_ID);
+    }
+
+    /**
+     * Load active integration by oAuth consumer ID.
+     *
+     * @param int $consumerId
+     * @return $this
+     */
+    public function loadActiveIntegrationByConsumerId($consumerId)
+    {
+        $integrationData = $this->getResource()->selectActiveIntegrationByConsumerId($consumerId);
+        $this->setData($integrationData ? $integrationData : []);
+        return $this;
     }
 
     /**

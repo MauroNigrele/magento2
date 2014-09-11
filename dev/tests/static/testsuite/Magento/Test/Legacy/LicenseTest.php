@@ -18,9 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    tests
- * @package     static
- * @subpackage  Legacy
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -69,8 +66,7 @@ class LicenseTest extends \PHPUnit_Framework_TestCase
             $rootFolderName . '/[^/]+\.' . $extensions,
             $rootFolderName . '/app/.+\.' . $extensions,
             $rootFolderName . '/dev/(?!tests/integration/tmp|tests/functional).+\.' . $extensions,
-            $rootFolderName . '/downloader/.+\.' . $extensions,
-            $rootFolderName . '/lib/(Mage|Magento|Varien)/.+\.' . $extensions,
+            $rootFolderName . '/lib/internal/(Mage|Magento|Varien)/.+\.' . $extensions,
             $rootFolderName . '/pub/.+\.' . $extensions
         );
         $regexIterator = new \RegexIterator($recursiveIterator, '#(' . implode(' | ', $paths) . ')$#x');

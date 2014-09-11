@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_CatalogSearch
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,6 +26,8 @@
  * Catalog Search engine provider
  */
 namespace Magento\CatalogSearch\Model\Resource;
+
+use Magento\Store\Model\ScopeInterface;
 
 class EngineProvider
 {
@@ -42,20 +42,20 @@ class EngineProvider
     protected $_engineFactory;
 
     /**
-     * @var \Magento\Core\Model\Store\ConfigInterface
+     * @var \Magento\Framework\App\Config\ScopeConfigInterface
      */
-    protected $_storeConfig;
+    protected $_scopeConfig;
 
     /**
      * @param \Magento\CatalogSearch\Model\Resource\EngineFactory $engineFactory
-     * @param \Magento\Core\Model\Store\ConfigInterface $storeConfig
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      */
     public function __construct(
         \Magento\CatalogSearch\Model\Resource\EngineFactory $engineFactory,
-        \Magento\Core\Model\Store\ConfigInterface $storeConfig
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
     ) {
         $this->_engineFactory = $engineFactory;
-        $this->_storeConfig = $storeConfig;
+        $this->_scopeConfig = $scopeConfig;
     }
 
     /**
@@ -66,7 +66,7 @@ class EngineProvider
     public function get()
     {
         if (!$this->_engine) {
-            $engineClassName = $this->_storeConfig->getConfig('catalog/search/engine');
+            $engineClassName = $this->_scopeConfig->getValue('catalog/search/engine', ScopeInterface::SCOPE_STORE);
 
             /**
              * This needed if there already was saved in configuration some none-default engine

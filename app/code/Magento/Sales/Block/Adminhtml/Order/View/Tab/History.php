@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Sales
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,8 +26,6 @@ namespace Magento\Sales\Block\Adminhtml\Order\View\Tab;
 /**
  * Order history tab
  *
- * @category   Magento
- * @package    Magento_Sales
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 class History extends \Magento\Backend\Block\Template implements \Magento\Backend\Block\Widget\Tab\TabInterface
@@ -44,18 +40,18 @@ class History extends \Magento\Backend\Block\Template implements \Magento\Backen
     /**
      * Core registry
      *
-     * @var \Magento\Registry
+     * @var \Magento\Framework\Registry
      */
     protected $_coreRegistry = null;
 
     /**
      * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\Registry $registry
+     * @param \Magento\Framework\Registry $registry
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
-        \Magento\Registry $registry,
+        \Magento\Framework\Registry $registry,
         array $data = array()
     ) {
         $this->_coreRegistry = $registry;
@@ -75,6 +71,9 @@ class History extends \Magento\Backend\Block\Template implements \Magento\Backen
     /**
      * Compose and get order full history.
      * Consists of the status history comments as well as of invoices, shipments and creditmemos creations
+     *
+     * @TODO This method requires refactoring. Need to create separate model for comment history handling
+     * and avoid generating it dynamically
      *
      * @return array
      */
@@ -151,7 +150,7 @@ class History extends \Magento\Backend\Block\Template implements \Magento\Backen
             );
         }
 
-        usort($history, array(__CLASS__, "_sortHistoryByTimestamp"));
+        usort($history, array(__CLASS__, 'sortHistoryByTimestamp'));
         return $history;
     }
 
@@ -217,7 +216,7 @@ class History extends \Magento\Backend\Block\Template implements \Magento\Backen
      *
      * @param string $label
      * @param bool $notified
-     * @param \Magento\Stdlib\DateTime\DateInterface $created
+     * @param \Magento\Framework\Stdlib\DateTime\DateInterface $created
      * @param string $comment
      * @return array
      */
@@ -307,12 +306,12 @@ class History extends \Magento\Backend\Block\Template implements \Magento\Backen
      * @param mixed $b
      * @return int
      */
-    private static function _sortHistoryByTimestamp($a, $b)
+    public static function sortHistoryByTimestamp($a, $b)
     {
         $createdAtA = $a['created_at'];
         $createdAtB = $b['created_at'];
 
-        /** @var $createdAta \Magento\Stdlib\DateTime\DateInterface */
+        /** @var $createdAta \Magento\Framework\Stdlib\DateTime\DateInterface */
         if ($createdAtA->getTimestamp() == $createdAtB->getTimestamp()) {
             return 0;
         }

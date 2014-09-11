@@ -24,11 +24,12 @@
 namespace Magento\Customer\Model\Resource\Group\Grid;
 
 use Magento\Core\Model\EntityFactory;
-use Magento\Customer\Model\Resource\AbstractServiceCollection;
+use Magento\Framework\Service\AbstractServiceCollection;
 use Magento\Customer\Service\V1\CustomerGroupServiceInterface;
 use Magento\Customer\Service\V1\Data\CustomerGroup;
-use Magento\Customer\Service\V1\Data\FilterBuilder;
-use Magento\Customer\Service\V1\Data\SearchCriteriaBuilder;
+use Magento\Framework\Service\V1\Data\FilterBuilder;
+use Magento\Framework\Service\V1\Data\SearchCriteriaBuilder;
+use Magento\Framework\Service\V1\Data\SortOrderBuilder;
 
 /**
  * Customer group collection backed by services
@@ -45,14 +46,16 @@ class ServiceCollection extends AbstractServiceCollection
      * @param FilterBuilder $filterBuilder
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param CustomerGroupServiceInterface $groupService
+     * @param SortOrderBuilder $sortOrderBuilder
      */
     public function __construct(
         EntityFactory $entityFactory,
         FilterBuilder $filterBuilder,
         SearchCriteriaBuilder $searchCriteriaBuilder,
+        SortOrderBuilder $sortOrderBuilder,
         CustomerGroupServiceInterface $groupService
     ) {
-        parent::__construct($entityFactory, $filterBuilder, $searchCriteriaBuilder);
+        parent::__construct($entityFactory, $filterBuilder, $searchCriteriaBuilder, $sortOrderBuilder);
         $this->groupService = $groupService;
     }
 
@@ -72,8 +75,8 @@ class ServiceCollection extends AbstractServiceCollection
             /** @var CustomerGroup[] $groups */
             $groups = $searchResults->getItems();
             foreach ($groups as $group) {
-                $groupItem = new \Magento\Object();
-                $groupItem->addData(\Magento\Service\DataObjectConverter::toFlatArray($group));
+                $groupItem = new \Magento\Framework\Object();
+                $groupItem->addData(\Magento\Framework\Service\SimpleDataObjectConverter::toFlatArray($group));
                 $this->_addItem($groupItem);
             }
             $this->_setIsLoaded();

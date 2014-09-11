@@ -23,9 +23,10 @@
  */
 namespace Magento\Integration\Model\Oauth;
 
-use Magento\Oauth\Helper\Oauth as OauthHelper;
+use Magento\Authorization\Model\UserContextInterface;
+use Magento\Framework\Oauth\Helper\Oauth as OauthHelper;
 use Magento\Integration\Model\Resource\Oauth\Token\Collection as TokenCollection;
-use Magento\Oauth\Exception as OauthException;
+use Magento\Framework\Oauth\Exception as OauthException;
 
 /**
  * oAuth token model
@@ -41,6 +42,8 @@ use Magento\Oauth\Exception as OauthException;
  * @method Token setAdminId() setAdminId(int $adminId)
  * @method int getCustomerId()
  * @method Token setCustomerId() setCustomerId(int $customerId)
+ * @method int getUserType()
+ * @method Token setUserType() setUserType(int $userType)
  * @method string getType()
  * @method Token setType() setType(string $type)
  * @method string getCallbackUrl()
@@ -57,7 +60,7 @@ use Magento\Oauth\Exception as OauthException;
  * @method Token setAuthorized() setAuthorized(int $authorized)
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-class Token extends \Magento\Model\AbstractModel
+class Token extends \Magento\Framework\Model\AbstractModel
 {
     /**#@+
      * Token types
@@ -67,15 +70,6 @@ class Token extends \Magento\Model\AbstractModel
     const TYPE_ACCESS = 'access';
 
     const TYPE_VERIFIER = 'verifier';
-
-    /**#@- */
-
-    /**#@+
-     * Customer types
-     */
-    const USER_TYPE_ADMIN = 'admin';
-
-    const USER_TYPE_CUSTOMER = 'customer';
 
     /**#@- */
 
@@ -95,7 +89,7 @@ class Token extends \Magento\Model\AbstractModel
     protected $_consumerFactory;
 
     /**
-     * @var \Magento\Url\Validator
+     * @var \Magento\Framework\Url\Validator
      */
     protected $_urlValidator;
 
@@ -105,37 +99,37 @@ class Token extends \Magento\Model\AbstractModel
     protected $_keyLengthFactory;
 
     /**
-     * @var \Magento\Stdlib\DateTime
+     * @var \Magento\Framework\Stdlib\DateTime
      */
     protected $_dateTime;
 
     /**
      * Initialize dependencies.
      *
-     * @param \Magento\Model\Context $context
-     * @param \Magento\Registry $registry
+     * @param \Magento\Framework\Model\Context $context
+     * @param \Magento\Framework\Registry $registry
      * @param \Magento\Integration\Model\Oauth\Consumer\Validator\KeyLengthFactory $keyLengthFactory
-     * @param \Magento\Url\Validator $urlValidator
-     * @param \Magento\Stdlib\DateTime $dateTime
+     * @param \Magento\Framework\Url\Validator $urlValidator
+     * @param \Magento\Framework\Stdlib\DateTime $dateTime
      * @param \Magento\Integration\Model\Oauth\Consumer\Factory $consumerFactory
      * @param \Magento\Integration\Helper\Oauth\Data $oauthData
      * @param OauthHelper $oauthHelper
-     * @param \Magento\Model\Resource\AbstractResource $resource
-     * @param \Magento\Data\Collection\Db $resourceCollection
+     * @param \Magento\Framework\Model\Resource\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\Db $resourceCollection
      * @param array $data
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
-        \Magento\Model\Context $context,
-        \Magento\Registry $registry,
+        \Magento\Framework\Model\Context $context,
+        \Magento\Framework\Registry $registry,
         \Magento\Integration\Model\Oauth\Consumer\Validator\KeyLengthFactory $keyLengthFactory,
-        \Magento\Url\Validator $urlValidator,
-        \Magento\Stdlib\DateTime $dateTime,
+        \Magento\Framework\Url\Validator $urlValidator,
+        \Magento\Framework\Stdlib\DateTime $dateTime,
         \Magento\Integration\Model\Oauth\Consumer\Factory $consumerFactory,
         \Magento\Integration\Helper\Oauth\Data $oauthData,
         OauthHelper $oauthHelper,
-        \Magento\Model\Resource\AbstractResource $resource = null,
-        \Magento\Data\Collection\Db $resourceCollection = null,
+        \Magento\Framework\Model\Resource\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\Db $resourceCollection = null,
         array $data = array()
     ) {
         parent::__construct($context, $registry, $resource, $resourceCollection, $data);
@@ -191,44 +185,13 @@ class Token extends \Magento\Model\AbstractModel
                     'token' => $this->_oauthHelper->generateToken(),
                     'secret' => $this->_oauthHelper->generateTokenSecret(),
                     'verifier' => $this->_oauthHelper->generateVerifier(),
-                    'callback_url' => OauthHelper::CALLBACK_ESTABLISHED
+                    'callback_url' => OauthHelper::CALLBACK_ESTABLISHED,
+                    'user_type' => UserContextInterface::USER_TYPE_INTEGRATION //As of now only integrations use Oauth
                 )
             );
+            $this->validate();
             $this->save();
         }
-        return $this;
-    }
-
-    /**
-     * Authorize token
-     *
-     * @param int $userId Authorization user identifier
-     * @param string $userType Authorization user type
-     * @return $this
-     * @throws OauthException
-     */
-    public function authorize($userId, $userType)
-    {
-        if (!$this->getId() || !$this->getConsumerId()) {
-            throw new OauthException(__('Token is not ready to be authorized'));
-        }
-        if ($this->getAuthorized()) {
-            throw new OauthException(__('Token is already authorized'));
-        }
-        if (self::USER_TYPE_ADMIN == $userType) {
-            $this->setAdminId($userId);
-        } elseif (self::USER_TYPE_CUSTOMER == $userType) {
-            $this->setCustomerId($userId);
-        } else {
-            throw new OauthException(__('User type is unknown'));
-        }
-
-        $this->setVerifier($this->_oauthHelper->generateVerifier());
-        $this->setAuthorized(1);
-        $this->save();
-
-        $this->getResource()->cleanOldAuthorizedTokensExcept($this);
-
         return $this;
     }
 
@@ -241,15 +204,33 @@ class Token extends \Magento\Model\AbstractModel
     public function convertToAccess()
     {
         if (self::TYPE_REQUEST != $this->getType()) {
-            throw new OauthException(__('Cannot convert to access token due to token is not request type'));
+            throw new OauthException('Cannot convert to access token due to token is not request type');
         }
+        return $this->saveAccessToken(UserContextInterface::USER_TYPE_INTEGRATION);
+    }
 
-        $this->setType(self::TYPE_ACCESS);
-        $this->setToken($this->_oauthHelper->generateToken());
-        $this->setSecret($this->_oauthHelper->generateTokenSecret());
-        $this->save();
+    /**
+     * Create access token for a admin
+     *
+     * @param int $userId
+     * @return $this
+     */
+    public function createAdminToken($userId)
+    {
+        $this->setAdminId($userId);
+        return $this->saveAccessToken(UserContextInterface::USER_TYPE_ADMIN);
+    }
 
-        return $this;
+    /**
+     * Create access token for a customer
+     *
+     * @param int $userId
+     * @return $this
+     */
+    public function createCustomerToken($userId)
+    {
+        $this->setCustomerId($userId);
+        return $this->saveAccessToken(UserContextInterface::USER_TYPE_CUSTOMER, $userId);
     }
 
     /**
@@ -271,26 +252,10 @@ class Token extends \Magento\Model\AbstractModel
                 'callback_url' => $callbackUrl
             )
         );
+        $this->validate();
         $this->save();
 
         return $this;
-    }
-
-    /**
-     * Get OAuth user type
-     *
-     * @return string
-     * @throws OauthException
-     */
-    public function getUserType()
-    {
-        if ($this->getAdminId()) {
-            return self::USER_TYPE_ADMIN;
-        } elseif ($this->getCustomerId()) {
-            return self::USER_TYPE_CUSTOMER;
-        } else {
-            throw new OauthException(__('User type is unknown'));
-        }
     }
 
     /**
@@ -312,8 +277,6 @@ class Token extends \Magento\Model\AbstractModel
      */
     protected function _beforeSave()
     {
-        $this->validate();
-
         if ($this->isObjectNew() && null === $this->getCreatedAt()) {
             $this->setCreatedAt($this->_dateTime->now());
         }
@@ -365,21 +328,6 @@ class Token extends \Magento\Model\AbstractModel
     }
 
     /**
-     * Get Token Consumer
-     *
-     * @return \Magento\Integration\Model\Oauth\Consumer
-     */
-    public function getConsumer()
-    {
-        if (!$this->getData('consumer')) {
-            $consumer = $this->_consumerFactory->create()->load($this->getConsumerId());
-            $this->setData('consumer', $consumer);
-        }
-
-        return $this->getData('consumer');
-    }
-
-    /**
      * Return the token's verifier.
      *
      * @return string
@@ -390,14 +338,68 @@ class Token extends \Magento\Model\AbstractModel
     }
 
     /**
-     * Set the token's verifier.
+     * Generate and save access token for a given user type
      *
-     * @param string $verifier
+     * @param int $userType
      * @return $this
      */
-    public function setVerifier($verifier)
+    protected function saveAccessToken($userType)
     {
-        $this->setData('verifier', $verifier);
+        $this->setUserType($userType);
+        $this->setType(self::TYPE_ACCESS);
+        $this->setToken($this->_oauthHelper->generateToken());
+        $this->setSecret($this->_oauthHelper->generateTokenSecret());
+        return $this->save();
+    }
+
+    /**
+     * Get token by consumer and user type
+     *
+     * @param int $consumerId
+     * @param int $userType
+     * @return $this
+     */
+    public function loadByConsumerIdAndUserType($consumerId, $userType)
+    {
+        $tokenData = $this->getResource()->selectTokenByConsumerIdAndUserType($consumerId, $userType);
+        $this->setData($tokenData ? $tokenData : []);
         return $this;
+    }
+
+    /**
+     * Get token by admin id
+     *
+     * @param int $adminId
+     * @return $this
+     */
+    public function loadByAdminId($adminId)
+    {
+        $tokenData = $this->getResource()->selectTokenByAdminId($adminId);
+        $this->setData($tokenData ? $tokenData : []);
+        return $this;
+    }
+
+    /**
+     * Get token by customer id
+     *
+     * @param int $customerId
+     * @return $this
+     */
+    public function loadByCustomerId($customerId)
+    {
+        $tokenData = $this->getResource()->selectTokenByCustomerId($customerId);
+        $this->setData($tokenData ? $tokenData : []);
+        return $this;
+    }
+
+    /**
+     * Load token data by token.
+     *
+     * @param string $token
+     * @return $this
+     */
+    public function loadByToken($token)
+    {
+        return $this->load($token, 'token');
     }
 }

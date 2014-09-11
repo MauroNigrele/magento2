@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Sales
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -30,6 +28,9 @@ class Tax extends AbstractTotal
     /**
      * @param \Magento\Sales\Model\Order\Creditmemo $creditmemo
      * @return $this
+     *
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      */
     public function collect(\Magento\Sales\Model\Order\Creditmemo $creditmemo)
     {
@@ -103,11 +104,8 @@ class Tax extends AbstractTotal
         } else {
             $orderShippingAmount = $order->getShippingAmount();
             $baseOrderShippingAmount = $order->getBaseShippingAmount();
-            $orderShippingHiddenTaxAmount = $order->getShippingHiddenTaxAmount();
-            $baseOrderShippingHiddenTaxAmount = $order->getBaseShippingHiddenTaxAmnt();
 
             $baseOrderShippingRefundedAmount = $order->getBaseShippingRefunded();
-            $baseOrderShippingHiddenTaxRefunded = $order->getBaseShippingHiddenTaxRefunded();
 
             $shippingTaxAmount = 0;
             $baseShippingTaxAmount = 0;
@@ -158,11 +156,10 @@ class Tax extends AbstractTotal
         $totalHiddenTax = min($allowedHiddenTax, $totalHiddenTax);
         $baseTotalHiddenTax = min($allowedBaseHiddenTax, $baseTotalHiddenTax);
 
-        $creditmemo->setTaxAmount($totalTax);
-        $creditmemo->setBaseTaxAmount($baseTotalTax);
+        $creditmemo->setTaxAmount($creditmemo->getTaxAmount() + $totalTax);
+        $creditmemo->setBaseTaxAmount($creditmemo->getBaseTaxAmount() + $baseTotalTax);
         $creditmemo->setHiddenTaxAmount($totalHiddenTax);
         $creditmemo->setBaseHiddenTaxAmount($baseTotalHiddenTax);
-
 
         $creditmemo->setShippingTaxAmount($shippingTaxAmount);
         $creditmemo->setBaseShippingTaxAmount($baseShippingTaxAmount);

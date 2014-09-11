@@ -18,9 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Core
- * @subpackage  integration_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -39,7 +36,7 @@ class SchemaTest extends \PHPUnit_Framework_TestCase
         $xmlFile = file_get_contents($filename);
         $dom->loadXML($xmlFile);
         $errors = libxml_get_errors();
-        $this->assertTrue(empty($errors), print_r($errors, true));
+        $this->assertEmpty($errors, print_r($errors, true));
 
         $schemaLocations = [];
         preg_match('/xsi:noNamespaceSchemaLocation=\s*"([^"]+)"/s', $xmlFile, $schemaLocations);
@@ -48,7 +45,7 @@ class SchemaTest extends \PHPUnit_Framework_TestCase
             count($schemaLocations),
             'The XML file at ' . $filename . ' does not have a schema properly defined.  It should
 have a xsi:noNamespaceSchemaLocation attribute defined with a relative path.  E.g.
-xsi:noNamespaceSchemaLocation="../../../lib/Magento/Framework/etc/something.xsd"
+xsi:noNamespaceSchemaLocation="../../../lib/internal/Magento/Framework/etc/something.xsd"
             '
         );
 
@@ -56,9 +53,8 @@ xsi:noNamespaceSchemaLocation="../../../lib/Magento/Framework/etc/something.xsd"
 
         $this->assertTrue(file_exists($schemaFile), "$filename refers to an invalid schema $schemaFile.");
 
-        $this->assertTrue($dom->schemaValidate($schemaFile), "$filename doesn't validate against $schemaFile");
-        $errors = libxml_get_errors();
-        $this->assertTrue(empty($errors), "Error validating $filename against $schemaFile\n" . print_r($errors, true));
+        $errors = \Magento\TestFramework\Utility\Validator::validateXml($dom, $schemaFile);
+        $this->assertEmpty($errors, "Error validating $filename against $schemaFile\n" . print_r($errors, true));
     }
 
 
@@ -71,13 +67,8 @@ xsi:noNamespaceSchemaLocation="../../../lib/Magento/Framework/etc/something.xsd"
 
     public function getXmlFiles()
     {
-        $codeXml = $this->_getFiles(BP . '/app/code/Magento', '*.xml');
-        $codeXml = array_filter(
-            $codeXml,
-            function ($item) {
-                return strpos($item, "Dhl/etc/countries.xml") == false;
-            }
-        );
+        $codeXml = $this->_getFiles(BP . '/app', '*.xml');
+        $this->_filterSpecialCases($codeXml);
         $designXml = $this->_getFiles(BP . '/app/design', '*.xml');
         $libXml = $this->_getFiles(BP . '/lib/Magento', '*.xml');
         return $this->_dataSet(array_merge($codeXml, $designXml, $libXml));
@@ -92,21 +83,33 @@ xsi:noNamespaceSchemaLocation="../../../lib/Magento/Framework/etc/something.xsd"
         return $files;
     }
 
-    protected function _dataSet($files)
+    /**
+     * Files that are exempt from validation
+     *
+     * @param array &$files
+     */
+    private function _filterSpecialCases(&$files)
     {
-        $arrayWrap = function ($item) {
-            return [$item];
-        };
-        return array_combine($files, array_map($arrayWrap, $files));
+        $list = [
+            '#Dhl/etc/countries.xml$#',
+            '#app/etc/local.xml$#',
+            '#app/etc/[a-z]+/module.xml$#'
+        ];
+        foreach ($list as $pattern) {
+            foreach ($files as $key => $value) {
+                if (preg_match($pattern, $value)) {
+                    unset($files[$key]);
+                }
+            }
+        }
     }
 
-    public function _getSchemaKey($schemaFilename)
+    protected function _dataSet($files)
     {
-        $key = $schemaFilename;
-        $index = strpos($schemaFilename, "Magento");
-        if ($index) {
-            $key = substr($schemaFilename, $index);
+        $data = [];
+        foreach ($files as $file) {
+            $data[substr($file, strlen(BP))] = [$file];
         }
-        return $key;
+        return $data;
     }
 }

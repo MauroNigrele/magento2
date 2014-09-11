@@ -26,8 +26,6 @@
 /**
  * Shopping Cart Rule data model
  *
- * @category    Magento
- * @package     Magento_OfflineShipping
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 namespace Magento\OfflineShipping\Model\SalesRule;
@@ -49,7 +47,7 @@ class Calculator extends \Magento\SalesRule\Model\Validator
 
         foreach ($this->_getRules() as $rule) {
             /* @var $rule \Magento\SalesRule\Model\Rule */
-            if (!$this->_canProcessRule($rule, $address)) {
+            if (!$this->validatorUtility->canProcessRule($rule, $address)) {
                 continue;
             }
 

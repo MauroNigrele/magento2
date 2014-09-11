@@ -20,8 +20,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_GroupedProduct
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -32,6 +30,7 @@ class Grouped extends \Magento\Catalog\Model\Resource\Product\Indexer\Price\Defa
     /**
      * Reindex temporary (price result data) for all products
      *
+     * @throws \Exception
      * @return \Magento\GroupedProduct\Model\Resource\Product\Indexer\Price\Grouped
      */
     public function reindexAll()
@@ -70,6 +69,9 @@ class Grouped extends \Magento\Catalog\Model\Resource\Product\Indexer\Price\Defa
      */
     protected function _prepareGroupedProductPriceData($entityIds = null)
     {
+        if (!$this->hasEntity() && empty($entityIds)) {
+            return $this;
+        }
         $write = $this->_getWriteAdapter();
         $table = $this->getIdxTable();
 

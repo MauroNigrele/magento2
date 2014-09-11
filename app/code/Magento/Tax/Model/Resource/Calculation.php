@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Tax
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -30,8 +28,13 @@
  */
 namespace Magento\Tax\Model\Resource;
 
-class Calculation extends \Magento\Model\Resource\Db\AbstractDb
+class Calculation extends \Magento\Framework\Model\Resource\Db\AbstractDb
 {
+    /**
+     * Store ISO 3166-1 alpha-2 USA country code
+     */
+    const USA_COUNTRY_CODE = 'US';
+
     /**
      * Rates cache
      *
@@ -54,19 +57,19 @@ class Calculation extends \Magento\Model\Resource\Db\AbstractDb
     protected $_taxData;
 
     /**
-     * @var \Magento\Core\Model\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
-     * @param \Magento\App\Resource $resource
+     * @param \Magento\Framework\App\Resource $resource
      * @param \Magento\Tax\Helper\Data $taxData
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      */
     public function __construct(
-        \Magento\App\Resource $resource,
+        \Magento\Framework\App\Resource $resource,
         \Magento\Tax\Helper\Data $taxData,
-        \Magento\Core\Model\StoreManagerInterface $storeManager
+        \Magento\Store\Model\StoreManagerInterface $storeManager
     ) {
         $this->_taxData = $taxData;
         $this->_storeManager = $storeManager;
@@ -116,7 +119,7 @@ class Calculation extends \Magento\Model\Resource\Db\AbstractDb
     /**
      * Get tax rate information: calculation process data and tax rate
      *
-     * @param \Magento\Object $request
+     * @param \Magento\Framework\Object $request
      * @return array
      */
     public function getRateInfo($request)
@@ -131,7 +134,7 @@ class Calculation extends \Magento\Model\Resource\Db\AbstractDb
     /**
      * Get tax rate for specific tax rate request
      *
-     * @param \Magento\Object $request
+     * @param \Magento\Framework\Object $request
      * @return int
      */
     public function getRate($request)
@@ -142,7 +145,7 @@ class Calculation extends \Magento\Model\Resource\Db\AbstractDb
     /**
      * Retrieve Calculation Process
      *
-     * @param \Magento\Object $request
+     * @param \Magento\Framework\Object $request
      * @param array|null $rates
      * @return array
      */
@@ -189,14 +192,15 @@ class Calculation extends \Magento\Model\Resource\Db\AbstractDb
             }
             $row['rates'][] = $oneRate;
 
+            $ruleId = null;
             if (isset($rates[$i + 1]['tax_calculation_rule_id'])) {
-                $rule = $rate['tax_calculation_rule_id'];
+                $ruleId = $rate['tax_calculation_rule_id'];
             }
             $priority = $rate['priority'];
             $ids[] = $rate['code'];
 
             if (isset($rates[$i + 1]['tax_calculation_rule_id'])) {
-                while (isset($rates[$i + 1]) && $rates[$i + 1]['tax_calculation_rule_id'] == $rule) {
+                while (isset($rates[$i + 1]) && $rates[$i + 1]['tax_calculation_rule_id'] == $ruleId) {
                     $i++;
                 }
             }
@@ -209,13 +213,18 @@ class Calculation extends \Magento\Model\Resource\Db\AbstractDb
                 $rates[$i + 1]['process']
             ) && $rates[$i + 1]['process'] != $rate['process']
             ) {
-                $row['percent'] = (100 + $totalPercent) * ($currentRate / 100);
-                $row['id'] = implode($ids);
+                if (!empty($rates[$i]['calculate_subtotal'])) {
+                    $row['percent'] = $currentRate;
+                    $totalPercent += $currentRate;
+                } else {
+                    $row['percent'] = $this->_collectPercent($totalPercent, $currentRate);
+                    $totalPercent += $row['percent'];
+                }
+                $row['id'] = implode('', $ids);
                 $result[] = $row;
                 $row = array();
                 $ids = array();
 
-                $totalPercent += (100 + $totalPercent) * ($currentRate / 100);
                 $currentRate = 0;
             }
         }
@@ -224,25 +233,43 @@ class Calculation extends \Magento\Model\Resource\Db\AbstractDb
     }
 
     /**
+     * Return combined percent value
+     *
+     * @param float|int $percent
+     * @param float|int $rate
+     * @return float
+     */
+    protected function _collectPercent($percent, $rate)
+    {
+        return (100 + $percent) * ($rate / 100);
+    }
+
+    /**
      * Create search templates for postcode
      *
      * @param string $postcode
+     * @param string|null $exactPostcode
      * @return string[]
      */
-    protected function _createSearchPostCodeTemplates($postcode)
+    protected function _createSearchPostCodeTemplates($postcode, $exactPostcode = null)
     {
+        // as needed, reduce the postcode to the correct length
         $len = $this->_taxData->getPostCodeSubStringLength();
-        $strlen = strlen($postcode);
-        if ($strlen > $len) {
-            $postcode = substr($postcode, 0, $len);
-            $strlen = $len;
+        $postcode = substr($postcode, 0, $len);
+
+        // begin creating the search template array
+        $strArr = [$postcode, $postcode . '*'];
+
+        // if supplied, use the exact postcode as the basis for the search templates
+        if ($exactPostcode) {
+            $postcode = substr($exactPostcode, 0, $len);
+            $strArr[] = $postcode;
         }
 
-        $strArr = array($postcode, $postcode . '*');
-        if ($strlen > 1) {
-            for ($i = 1; $i < $strlen; $i++) {
-                $strArr[] = sprintf('%s*', substr($postcode, 0, -$i));
-            }
+        // finish building out the search template array
+        $strlen = strlen($postcode);
+        for ($i = 1; $i < $strlen; $i++) {
+            $strArr[] = sprintf('%s*', substr($postcode, 0, -$i));
         }
 
         return $strArr;
@@ -252,7 +279,7 @@ class Calculation extends \Magento\Model\Resource\Db\AbstractDb
      * Returns tax rates for request - either pereforms SELECT from DB, or returns already cached result
      * Notice that productClassId due to optimization can be array of ids
      *
-     * @param \Magento\Object $request
+     * @param \Magento\Framework\Object $request
      * @return array
      */
     protected function _getRates($request)
@@ -307,7 +334,7 @@ class Calculation extends \Magento\Model\Resource\Db\AbstractDb
             $select->join(
                 array('rule' => $this->getTable('tax_calculation_rule')),
                 $ruleTableAliasName . ' = main_table.tax_calculation_rule_id',
-                array('rule.priority', 'rule.position')
+                array('rule.priority', 'rule.position', 'rule.calculate_subtotal')
             )->join(
                 array('rate' => $this->getTable('tax_calculation_rate')),
                 'rate.tax_calculation_rate_id = main_table.tax_calculation_rate_id',
@@ -332,10 +359,18 @@ class Calculation extends \Magento\Model\Resource\Db\AbstractDb
                 array(0, (int)$regionId)
             );
             $postcodeIsNumeric = is_numeric($postcode);
-            $postcodeIsRange = is_string($postcode) && preg_match('/^(.+)-(.+)$/', $postcode, $matches);
-            if ($postcodeIsRange) {
-                $zipFrom = $matches[1];
-                $zipTo = $matches[2];
+            $postcodeIsRange = false;
+            $originalPostcode = null;
+            if (is_string($postcode) && preg_match('/^(.+)-(.+)$/', $postcode, $matches)) {
+                if ($countryId == self::USA_COUNTRY_CODE && is_numeric($matches[2]) && strlen($matches[2]) == 4) {
+                    $postcodeIsNumeric = true;
+                    $originalPostcode = $postcode;
+                    $postcode = $matches[1];
+                } else {
+                    $postcodeIsRange = true;
+                    $zipFrom = $matches[1];
+                    $zipTo = $matches[2];
+                }
             }
 
             if ($postcodeIsNumeric || $postcodeIsRange) {
@@ -347,7 +382,7 @@ class Calculation extends \Magento\Model\Resource\Db\AbstractDb
             if ($postcode != '*' || $postcodeIsRange) {
                 $select->where(
                     "rate.tax_postcode IS NULL OR rate.tax_postcode IN('*', '', ?)",
-                    $postcodeIsRange ? $postcode : $this->_createSearchPostCodeTemplates($postcode)
+                    $postcodeIsRange ? $postcode : $this->_createSearchPostCodeTemplates($postcode, $originalPostcode)
                 );
                 if ($postcodeIsNumeric) {
                     $selectClone->where('? BETWEEN rate.zip_from AND rate.zip_to', $postcode);
@@ -367,17 +402,17 @@ class Calculation extends \Magento\Model\Resource\Db\AbstractDb
             }
 
             $select->order(
-                'priority ' . \Magento\DB\Select::SQL_ASC
+                'priority ' . \Magento\Framework\DB\Select::SQL_ASC
             )->order(
-                'tax_calculation_rule_id ' . \Magento\DB\Select::SQL_ASC
+                'tax_calculation_rule_id ' . \Magento\Framework\DB\Select::SQL_ASC
             )->order(
-                'tax_country_id ' . \Magento\DB\Select::SQL_DESC
+                'tax_country_id ' . \Magento\Framework\DB\Select::SQL_DESC
             )->order(
-                'tax_region_id ' . \Magento\DB\Select::SQL_DESC
+                'tax_region_id ' . \Magento\Framework\DB\Select::SQL_DESC
             )->order(
-                'tax_postcode ' . \Magento\DB\Select::SQL_DESC
+                'tax_postcode ' . \Magento\Framework\DB\Select::SQL_DESC
             )->order(
-                'value ' . \Magento\DB\Select::SQL_DESC
+                'value ' . \Magento\Framework\DB\Select::SQL_DESC
             );
 
             $fetchResult = $this->_getReadAdapter()->fetchAll($select);
@@ -419,7 +454,11 @@ class Calculation extends \Magento\Model\Resource\Db\AbstractDb
             $currentRate += $value;
 
             if (!isset($rates[$i + 1]) || $rates[$i + 1]['priority'] != $priority) {
-                $result += (100 + $result) * ($currentRate / 100);
+                if (!empty($rates[$i]['calculate_subtotal'])) {
+                    $result += $currentRate;
+                } else {
+                    $result += $this->_collectPercent($result, $currentRate);
+                }
                 $currentRate = 0;
             }
         }
@@ -430,7 +469,7 @@ class Calculation extends \Magento\Model\Resource\Db\AbstractDb
     /**
      * Retrieve rate ids
      *
-     * @param \Magento\Object $request
+     * @param \Magento\Framework\Object $request
      * @return array
      */
     public function getRateIds($request)
@@ -490,7 +529,7 @@ class Calculation extends \Magento\Model\Resource\Db\AbstractDb
 
         $result = array();
         foreach ($CSP as $one) {
-            $request = new \Magento\Object();
+            $request = new \Magento\Framework\Object();
             $request->setCountryId(
                 $one['country']
             )->setRegionId(

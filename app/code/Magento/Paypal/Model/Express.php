@@ -25,6 +25,7 @@ namespace Magento\Paypal\Model;
 
 use Magento\Paypal\Model\Express\Checkout as ExpressCheckout;
 use Magento\Paypal\Model\Api\Nvp;
+use Magento\Paypal\Model\Api\ProcessableException as ApiProcessableException;
 use Magento\Sales\Model\Order\Payment;
 use Magento\Sales\Model\Order\Payment\Transaction;
 use Magento\Sales\Model\Quote;
@@ -48,13 +49,6 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
      * @var string
      */
     protected $_infoBlockType = 'Magento\Paypal\Block\Payment\Info';
-
-    /**
-     * Website Payments Pro instance type
-     *
-     * @var $_proType string
-     */
-    protected $_proType = 'Magento\Paypal\Model\Pro';
 
     /**
      * Availability option
@@ -162,17 +156,12 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
     protected $_authorizationCountKey = 'authorization_count';
 
     /**
-     * @var \Magento\Paypal\Model\Method\ProTypeFactory
-     */
-    protected $_proTypeFactory;
-
-    /**
-     * @var \Magento\Core\Model\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
-     * @var \Magento\UrlInterface
+     * @var \Magento\Framework\UrlInterface
      */
     protected $_urlBuilder;
 
@@ -182,47 +171,85 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
     protected $_cartFactory;
 
     /**
-     * @param \Magento\Event\ManagerInterface $eventManager
+     * @var \Magento\Checkout\Model\Session
+     */
+    protected $_checkoutSession;
+
+    /**
+     * @var \Magento\Framework\Model\ExceptionFactory
+     */
+    protected $_exception;
+
+    /**
+     * @param \Magento\Framework\Event\ManagerInterface $eventManager
      * @param \Magento\Payment\Helper\Data $paymentData
-     * @param \Magento\Core\Model\Store\Config $coreStoreConfig
-     * @param \Magento\Logger\AdapterFactory $logAdapterFactory
-     * @param \Magento\Paypal\Model\Method\ProTypeFactory $proTypeFactory
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
-     * @param \Magento\UrlInterface $urlBuilder
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+     * @param \Magento\Framework\Logger\AdapterFactory $logAdapterFactory
+     * @param ProFactory $proFactory
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\UrlInterface $urlBuilder
      * @param \Magento\Paypal\Model\CartFactory $cartFactory
+     * @param \Magento\Checkout\Model\Session $checkoutSession
+     * @param \Magento\Framework\Model\ExceptionFactory $exception
      * @param array $data
      */
     public function __construct(
-        \Magento\Event\ManagerInterface $eventManager,
+        \Magento\Framework\Event\ManagerInterface $eventManager,
         \Magento\Payment\Helper\Data $paymentData,
-        \Magento\Core\Model\Store\Config $coreStoreConfig,
-        \Magento\Logger\AdapterFactory $logAdapterFactory,
-        \Magento\Paypal\Model\Method\ProTypeFactory $proTypeFactory,
-        \Magento\Core\Model\StoreManagerInterface $storeManager,
-        \Magento\UrlInterface $urlBuilder,
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        \Magento\Framework\Logger\AdapterFactory $logAdapterFactory,
+        ProFactory $proFactory,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\UrlInterface $urlBuilder,
         \Magento\Paypal\Model\CartFactory $cartFactory,
+        \Magento\Checkout\Model\Session $checkoutSession,
+        \Magento\Framework\Model\ExceptionFactory $exception,
         array $data = array()
     ) {
-        parent::__construct($eventManager, $paymentData, $coreStoreConfig, $logAdapterFactory, $data);
-        $this->_proTypeFactory = $proTypeFactory;
+        parent::__construct($eventManager, $paymentData, $scopeConfig, $logAdapterFactory, $data);
         $this->_storeManager = $storeManager;
         $this->_urlBuilder = $urlBuilder;
         $this->_cartFactory = $cartFactory;
+        $this->_checkoutSession = $checkoutSession;
+        $this->_exception = $exception;
 
         $proInstance = array_shift($data);
         if ($proInstance && $proInstance instanceof \Magento\Paypal\Model\Pro) {
             $this->_pro = $proInstance;
         } else {
-            $this->_pro = $this->_proTypeFactory->create($this->_proType);
+            $this->_pro = $proFactory->create();
         }
         $this->_pro->setMethod($this->_code);
+        $this->_setApiProcessableErrors();
+    }
+
+    /**
+     * Set processable error codes to API model
+     *
+     * @return \Magento\Paypal\Model\Api\Nvp
+     */
+    protected function _setApiProcessableErrors()
+    {
+        return $this->_pro->getApi()->setProcessableErrors(
+            [
+                ApiProcessableException::API_INTERNAL_ERROR,
+                ApiProcessableException::API_UNABLE_PROCESS_PAYMENT_ERROR_CODE,
+                ApiProcessableException::API_DO_EXPRESS_CHECKOUT_FAIL,
+                ApiProcessableException::API_UNABLE_TRANSACTION_COMPLETE,
+                ApiProcessableException::API_TRANSACTION_EXPIRED,
+                ApiProcessableException::API_MAX_PAYMENT_ATTEMPTS_EXCEEDED,
+                ApiProcessableException::API_COUNTRY_FILTER_DECLINE,
+                ApiProcessableException::API_MAXIMUM_AMOUNT_FILTER_DECLINE,
+                ApiProcessableException::API_OTHER_FILTER_DECLINE
+            ]
+        );
     }
 
     /**
      * Store setter
      * Also updates store ID in config object
      *
-     * @param \Magento\Core\Model\Store|int $store
+     * @param \Magento\Store\Model\Store|int $store
      * @return $this
      */
     public function setStore($store)
@@ -242,10 +269,12 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
      */
     public function canUseCheckout()
     {
-        if ($this->_coreStoreConfig->getConfigFlag(
-            'payment/hosted_pro/active'
-        ) && !$this->_coreStoreConfig->getConfigFlag(
-            'payment/hosted_pro/display_ec'
+        if ($this->_scopeConfig->isSetFlag(
+            'payment/hosted_pro/active',
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+        ) && !$this->_scopeConfig->isSetFlag(
+            'payment/hosted_pro/display_ec',
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
         )
         ) {
             return false;
@@ -297,19 +326,24 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
      */
     public function getConfigData($field, $storeId = null)
     {
-        return $this->_pro->getConfig()->{$field};
+        return $this->_pro->getConfig()->getConfigValue($field);
     }
 
     /**
      * Order payment
      *
-     * @param \Magento\Object|Payment $payment
+     * @param \Magento\Framework\Object|Payment $payment
      * @param float $amount
      * @return $this
      */
-    public function order(\Magento\Object $payment, $amount)
+    public function order(\Magento\Framework\Object $payment, $amount)
     {
-        $this->_placeOrder($payment, $amount);
+        $paypalTransactionData = $this->_checkoutSession->getPaypalTransactionData();
+        if (!is_array($paypalTransactionData)) {
+            $this->_placeOrder($payment, $amount);
+        } else {
+            $this->_importToPayment($this->_pro->getApi()->setData($paypalTransactionData), $payment);
+        }
 
         $payment->setAdditionalInformation($this->_isOrderPaymentActionKey, true);
 
@@ -320,7 +354,7 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
         $order = $payment->getOrder();
         $orderTransactionId = $payment->getTransactionId();
 
-        $api = $this->_callDoAuthorize($amount, $payment, $payment->getTransactionId());
+        $api = $this->_callDoAuthorize($amount, $payment, $orderTransactionId);
 
         $state = \Magento\Sales\Model\Order::STATE_PROCESSING;
         $status = true;
@@ -366,11 +400,11 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * Authorize payment
      *
-     * @param \Magento\Object|Payment $payment
+     * @param \Magento\Framework\Object|Payment $payment
      * @param float $amount
      * @return $this
      */
-    public function authorize(\Magento\Object $payment, $amount)
+    public function authorize(\Magento\Framework\Object $payment, $amount)
     {
         return $this->_placeOrder($payment, $amount);
     }
@@ -378,10 +412,10 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * Void payment
      *
-     * @param \Magento\Object|Payment $payment
+     * @param \Magento\Framework\Object|Payment $payment
      * @return $this
      */
-    public function void(\Magento\Object $payment)
+    public function void(\Magento\Framework\Object $payment)
     {
         //Switching to order transaction if needed
         if ($payment->getAdditionalInformation(
@@ -401,12 +435,12 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * Capture payment
      *
-     * @param \Magento\Object|Payment $payment
+     * @param \Magento\Framework\Object|Payment $payment
      * @param float $amount
-     * @throws \Magento\Model\Exception
+     * @throws \Magento\Framework\Model\Exception
      * @return $this
      */
-    public function capture(\Magento\Object $payment, $amount)
+    public function capture(\Magento\Framework\Object $payment, $amount)
     {
         $authorizationTransaction = $payment->getAuthorizationTransaction();
         $authorizationPeriod = abs(intval($this->getConfigData('authorization_honor_period')));
@@ -427,7 +461,7 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
                 $payment->setParentTransactionId($authorizationTransaction->getTxnId());
                 $payment->unsTransactionId();
                 $payment->setVoidOnlyAuthorization(true);
-                $payment->void(new \Magento\Object());
+                $payment->void(new \Magento\Framework\Object());
 
                 //Revert payment state after voiding
                 $payment->unsAuthorizationTransaction();
@@ -438,7 +472,9 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
 
             if ($authorizationTransaction->getIsClosed() || $voided) {
                 if ($payment->getAdditionalInformation($this->_authorizationCountKey) > $maxAuthorizationNumber - 1) {
-                    throw new \Magento\Model\Exception(__('The maximum number of child authorizations is reached.'));
+                    $this->_exception->create(
+                        ['message' => __('The maximum number of child authorizations is reached.')]
+                    );
                 }
                 $api = $this->_callDoAuthorize($amount, $payment, $authorizationTransaction->getParentTxnId());
 
@@ -489,11 +525,11 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * Refund capture
      *
-     * @param \Magento\Object|Payment $payment
+     * @param \Magento\Framework\Object|Payment $payment
      * @param float $amount
      * @return $this
      */
-    public function refund(\Magento\Object $payment, $amount)
+    public function refund(\Magento\Framework\Object $payment, $amount)
     {
         $this->_pro->refund($payment, $amount);
         return $this;
@@ -502,10 +538,10 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * Cancel payment
      *
-     * @param \Magento\Object|Payment $payment
+     * @param \Magento\Framework\Object|Payment $payment
      * @return $this
      */
-    public function cancel(\Magento\Object $payment)
+    public function cancel(\Magento\Framework\Object $payment)
     {
         $this->void($payment);
 
@@ -582,7 +618,7 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * Assign data to info model instance
      *
-     * @param array|\Magento\Object $data
+     * @param array|\Magento\Framework\Object $data
      * @return \Magento\Payment\Model\Info
      */
     public function assignData($data)
@@ -591,7 +627,7 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
         $key = ExpressCheckout::PAYMENT_INFO_TRANSPORT_BILLING_AGREEMENT;
         if (is_array($data)) {
             $this->getInfoInstance()->setAdditionalInformation($key, isset($data[$key]) ? $data[$key] : null);
-        } elseif ($data instanceof \Magento\Object) {
+        } elseif ($data instanceof \Magento\Framework\Object) {
             $this->getInfoInstance()->setAdditionalInformation($key, $data->getData($key));
         }
         return $result;
@@ -620,7 +656,7 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
         )->setAmount(
             $amount
         )->setPaymentAction(
-            $this->_pro->getConfig()->paymentAction
+            $this->_pro->getConfig()->getConfigValue('paymentAction')
         )->setNotifyUrl(
             $this->_urlBuilder->getUrl('paypal/ipn/')
         )->setInvNum(
@@ -630,7 +666,7 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
         )->setPaypalCart(
             $cart
         )->setIsLineItemsEnabled(
-            $this->_pro->getConfig()->lineItemsEnabled
+            $this->_pro->getConfig()->getConfigValue('lineItemsEnabled')
         );
         if ($order->getIsVirtual()) {
             $api->setAddress($order->getBillingAddress())->setSuppressShipping(true);
@@ -679,10 +715,10 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * Check void availability
      *
-     * @param \Magento\Object $payment
+     * @param \Magento\Framework\Object $payment
      * @return bool
      */
-    public function canVoid(\Magento\Object $payment)
+    public function canVoid(\Magento\Framework\Object $payment)
     {
         if ($payment instanceof \Magento\Sales\Model\Order\Invoice ||
             $payment instanceof \Magento\Sales\Model\Order\Creditmemo
@@ -733,19 +769,25 @@ class Express extends \Magento\Payment\Model\Method\AbstractMethod
      * Call DoAuthorize
      *
      * @param int $amount
-     * @param \Magento\Object $payment
+     * @param \Magento\Framework\Object $payment
      * @param string $parentTransactionId
      * @return \Magento\Paypal\Model\Api\AbstractApi
      */
     protected function _callDoAuthorize($amount, $payment, $parentTransactionId)
     {
-        $api = $this->_pro->resetApi()->getApi()->setAmount(
-            $amount
-        )->setCurrencyCode(
-            $payment->getOrder()->getBaseCurrencyCode()
-        )->setTransactionId(
-            $parentTransactionId
-        )->callDoAuthorization();
+        $apiData = $this->_pro->getApi()->getData();
+        foreach ($apiData as $k => $v) {
+            if (is_object($v)) {
+                unset($apiData[$k]);
+            }
+        }
+        $this->_checkoutSession->setPaypalTransactionData($apiData);
+        $this->_pro->resetApi();
+        $api = $this->_setApiProcessableErrors()
+            ->setAmount($amount)
+            ->setCurrencyCode($payment->getOrder()->getBaseCurrencyCode())
+            ->setTransactionId($parentTransactionId)
+            ->callDoAuthorization();
 
         $payment->setAdditionalInformation(
             $this->_authorizationCountKey,

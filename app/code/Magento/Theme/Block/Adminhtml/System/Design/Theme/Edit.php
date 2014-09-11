@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Theme
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -34,18 +32,18 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
     /**
      * Core registry
      *
-     * @var \Magento\Registry
+     * @var \Magento\Framework\Registry
      */
     protected $_coreRegistry = null;
 
     /**
-     * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\Registry $registry
+     * @param \Magento\Backend\Block\Widget\Context $context
+     * @param \Magento\Framework\Registry $registry
      * @param array $data
      */
     public function __construct(
-        \Magento\Backend\Block\Template\Context $context,
-        \Magento\Registry $registry,
+        \Magento\Backend\Block\Widget\Context $context,
+        \Magento\Framework\Registry $registry,
         array $data = array()
     ) {
         $this->_coreRegistry = $registry;
@@ -55,7 +53,7 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
     /**
      * Prepare layout
      *
-     * @return \Magento\View\Element\AbstractBlock
+     * @return \Magento\Framework\View\Element\AbstractBlock
      */
     protected function _prepareLayout()
     {
@@ -67,11 +65,11 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
             $this->getLayout()->getBlock('page-title')->setPageTitle($this->getHeaderText());
         }
 
-        /** @var $theme \Magento\View\Design\ThemeInterface */
+        /** @var $theme \Magento\Framework\View\Design\ThemeInterface */
         $theme = $this->_getCurrentTheme();
         if ($theme) {
             if ($theme->isEditable()) {
-                $this->_addButton(
+                $this->buttonList->add(
                     'save_and_continue',
                     array(
                         'label' => __('Save and Continue Edit'),
@@ -85,8 +83,8 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
                     1
                 );
             } else {
-                $this->_removeButton('save');
-                $this->_removeButton('reset');
+                $this->buttonList->remove('save');
+                $this->buttonList->remove('reset');
             }
 
             if ($theme->isDeletable()) {
@@ -97,10 +95,10 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
                         $message,
                         $this->getUrl('adminhtml/*/delete', array('id' => $theme->getId()))
                     );
-                    $this->_updateButton('delete', 'onclick', $onClick);
+                    $this->buttonList->update('delete', 'onclick', $onClick);
                 }
             } else {
-                $this->_removeButton('delete');
+                $this->buttonList->remove('delete');
             }
         }
 
@@ -114,7 +112,7 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
      */
     public function getHeaderText()
     {
-        /** @var $theme \Magento\View\Design\ThemeInterface */
+        /** @var $theme \Magento\Framework\View\Design\ThemeInterface */
         $theme = $this->_getCurrentTheme();
         if ($theme->getId()) {
             $header = __('Theme: %1', $theme->getThemeTitle());

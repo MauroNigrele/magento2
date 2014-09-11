@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Rss
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -36,7 +34,7 @@ class Review extends \Magento\Backend\Block\AbstractBlock
     protected $_rssFactory;
 
     /**
-     * @var \Magento\Model\Resource\Iterator
+     * @var \Magento\Framework\Model\Resource\Iterator
      */
     protected $_resourceIterator;
 
@@ -46,24 +44,24 @@ class Review extends \Magento\Backend\Block\AbstractBlock
     protected $_reviewFactory;
 
     /**
-     * @var \Magento\Core\Model\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
      * @param \Magento\Backend\Block\Context $context
      * @param \Magento\Rss\Model\RssFactory $rssFactory
-     * @param \Magento\Model\Resource\Iterator $resourceIterator
+     * @param \Magento\Framework\Model\Resource\Iterator $resourceIterator
      * @param \Magento\Review\Model\ReviewFactory $reviewFactory
-     * @param \Magento\Core\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Context $context,
         \Magento\Rss\Model\RssFactory $rssFactory,
-        \Magento\Model\Resource\Iterator $resourceIterator,
+        \Magento\Framework\Model\Resource\Iterator $resourceIterator,
         \Magento\Review\Model\ReviewFactory $reviewFactory,
-        \Magento\Core\Model\StoreManagerInterface $storeManager,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         array $data = array()
     ) {
         $this->_rssFactory = $rssFactory;
@@ -91,12 +89,10 @@ class Review extends \Magento\Backend\Block\AbstractBlock
 
         /** @var $reviewModel \Magento\Review\Model\Review */
         $reviewModel = $this->_reviewFactory->create();
-        $collection = $reviewModel->getProductCollection()->addStatusFilter(
-            $reviewModel->getPendingStatus()
-        )->addAttributeToSelect(
-            'name',
-            'inner'
-        )->setDateOrder();
+        $collection = $reviewModel->getProductCollection()
+            ->addStatusFilter($reviewModel->getPendingStatus())
+            ->addAttributeToSelect('name', 'inner')
+            ->setDateOrder();
 
         $this->_eventManager->dispatch('rss_catalog_review_collection_select', array('collection' => $collection));
 
@@ -119,38 +115,22 @@ class Review extends \Magento\Backend\Block\AbstractBlock
         /** @var $rssObj \Magento\Rss\Model\Rss */
         $rssObj = $args['rssObj'];
         $row = $args['row'];
-
-        $productUrl = $this->_urlBuilder->setScope(
-            $row['store_id']
-        )->getUrl(
-            'catalog/product/view',
-            array('id' => $row['entity_id'])
-        );
+        /** @var \Magento\Review\Model\Review $reviewModel */
+        $reviewModel = $args['reviewModel'];
+        $productUrl = $reviewModel->getProductUrl($row['entity_id'], $row['store_id']);
         $reviewUrl = $this->getUrl(
             'review/product/edit/',
             array('id' => $row['review_id'], '_secure' => true, '_nosecret' => true)
         );
         $storeName = $this->_storeManager->getStore($row['store_id'])->getName();
-        $description = '<p>' . __(
-            'Product: <a href="%1">%2</a> <br/>',
-            $productUrl,
-            $row['name']
-        ) . __(
-            'Summary of review: %1 <br/>',
-            $row['title']
-        ) . __(
-            'Review: %1 <br/>',
-            $row['detail']
-        ) . __(
-            'Store: %1 <br/>',
-            $storeName
-        ) . __(
-            'Click <a href="%1">here</a> to view the review.',
-            $reviewUrl
-        ) . '</p>';
+        $description = '<p>' . __('Product: <a href="%1" target="_blank">%2</a> <br/>', $productUrl, $row['name'])
+            . __('Summary of review: %1 <br/>', $row['title']) . __('Review: %1 <br/>', $row['detail'])
+            . __('Store: %1 <br/>', $storeName)
+            . __('Click <a href="%1">here</a> to view the review.', $reviewUrl)
+            . '</p>';
         $rssObj->_addEntry(
             array(
-                'title' => __('Product: "%1" review By: %2', $row['name'], $row['nickname']),
+                'title' => __('Product: "%1" reviewed by: %2', $row['name'], $row['nickname']),
                 'link' => 'test',
                 'description' => $description
             )

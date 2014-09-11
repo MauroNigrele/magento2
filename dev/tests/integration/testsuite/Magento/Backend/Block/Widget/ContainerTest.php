@@ -28,11 +28,14 @@ namespace Magento\Backend\Block\Widget;
  */
 class ContainerTest extends \PHPUnit_Framework_TestCase
 {
+    /**
+     * @magentoAppIsolation enabled
+     */
     public function testPseudoConstruct()
     {
         /** @var $block \Magento\Backend\Block\Widget\Container */
         $block = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
-            'Magento\View\LayoutInterface'
+            'Magento\Framework\View\LayoutInterface'
         )->createBlock(
             'Magento\Backend\Block\Widget\Container',
             '',
@@ -47,11 +50,14 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
         $this->assertContains('two', $block->getHeaderText());
     }
 
+    /**
+     * @magentoAppIsolation enabled
+     */
     public function testGetButtonsHtml()
     {
         $titles = array(1 => 'Title 1', 'Title 2', 'Title 3');
         $block = $this->_buildBlock($titles);
-        $html = $block->getButtonsHtml();
+        $html = $block->getButtonsHtml('header');
 
         $this->assertContains('<button', $html);
         foreach ($titles as $title) {
@@ -59,23 +65,19 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
         }
     }
 
+    /**
+     * @magentoAppIsolation enabled
+     */
     public function testUpdateButton()
     {
         $originalTitles = array(1 => 'Title 1', 'Title 2', 'Title 3');
         $newTitles = array(1 => 'Button A', 'Button B', 'Button C');
 
         $block = $this->_buildBlock($originalTitles);
-        $html = $block->getButtonsHtml();
-        foreach ($newTitles as $newTitle) {
-            $this->assertNotContains($newTitle, $html);
-        }
-
-        $block = $this->_buildBlock($originalTitles);
-        // Layout caches html, thus recreate block for further testing
         foreach ($newTitles as $id => $newTitle) {
             $block->updateButton($id, 'title', $newTitle);
         }
-        $html = $block->getButtonsHtml();
+        $html = $block->getButtonsHtml('header');
         foreach ($newTitles as $newTitle) {
             $this->assertContains($newTitle, $html);
         }
@@ -85,20 +87,21 @@ class ContainerTest extends \PHPUnit_Framework_TestCase
      * Composes a container with several buttons in it
      *
      * @param array $titles
+     * @param string $blockName
      * @return \Magento\Backend\Block\Widget\Container
      */
-    protected function _buildBlock($titles)
+    protected function _buildBlock($titles, $blockName = 'block')
     {
-        /** @var $layout \Magento\View\LayoutInterface */
-        $layout = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
-            'Magento\Core\Model\Layout',
-            array('area' => \Magento\Backend\App\Area\FrontNameResolver::AREA_CODE)
+        /** @var $layout \Magento\Framework\View\LayoutInterface */
+        $layout = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
+            'Magento\Framework\View\LayoutInterface'
         );
         /** @var $block \Magento\Backend\Block\Widget\Container */
-        $block = $layout->createBlock('Magento\Backend\Block\Widget\Container', 'block');
+        $block = $layout->createBlock('Magento\Backend\Block\Widget\Container', $blockName);
         foreach ($titles as $id => $title) {
-            $block->addButton($id, array('title' => $title));
+            $block->addButton($id, array('title' => $title), 0, 0, 'header');
         }
+        $block->setLayout($layout);
         return $block;
     }
 }

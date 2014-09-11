@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_ImportExport
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -63,7 +61,7 @@ abstract class AbstractEntity
     /**
      * DB connection
      *
-     * @var \Magento\DB\Adapter\AdapterInterface
+     * @var \Magento\Framework\DB\Adapter\AdapterInterface
      */
     protected $_connection;
 
@@ -140,7 +138,7 @@ abstract class AbstractEntity
     /**
      * Magento string lib
      *
-     * @var \Magento\Stdlib\String
+     * @var \Magento\Framework\Stdlib\String
      */
     protected $string;
 
@@ -244,31 +242,38 @@ abstract class AbstractEntity
     protected $_bunchSize;
 
     /**
+     * Code of a primary attribute which identifies the entity group if import contains of multiple rows
+     *
+     * @var string
+     */
+    protected $masterAttributeCode;
+
+    /**
      * Core store config
      *
-     * @var \Magento\Core\Model\Store\Config
+     * @var \Magento\Framework\App\Config\ScopeConfigInterface
      */
-    protected $_coreStoreConfig;
+    protected $_scopeConfig;
 
     /**
      * @param \Magento\Core\Helper\Data $coreData
-     * @param \Magento\Stdlib\String $string
-     * @param \Magento\Core\Model\Store\Config $coreStoreConfig
+     * @param \Magento\Framework\Stdlib\String $string
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param \Magento\ImportExport\Model\ImportFactory $importFactory
      * @param \Magento\ImportExport\Model\Resource\Helper $resourceHelper
-     * @param \Magento\App\Resource $resource
+     * @param \Magento\Framework\App\Resource $resource
      * @param array $data
      */
     public function __construct(
         \Magento\Core\Helper\Data $coreData,
-        \Magento\Stdlib\String $string,
-        \Magento\Core\Model\Store\Config $coreStoreConfig,
+        \Magento\Framework\Stdlib\String $string,
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\ImportExport\Model\ImportFactory $importFactory,
         \Magento\ImportExport\Model\Resource\Helper $resourceHelper,
-        \Magento\App\Resource $resource,
+        \Magento\Framework\App\Resource $resource,
         array $data = array()
     ) {
-        $this->_coreStoreConfig = $coreStoreConfig;
+        $this->_scopeConfig = $scopeConfig;
         $this->_dataSourceModel = isset(
             $data['data_source_model']
         ) ? $data['data_source_model'] : $importFactory->create()->getDataSourceModel();
@@ -277,16 +282,18 @@ abstract class AbstractEntity
         $this->string = $string;
         $this->_pageSize = isset(
             $data['page_size']
-        ) ? $data['page_size'] : (static::XML_PATH_PAGE_SIZE ? (int)$this->_coreStoreConfig->getConfig(
-            static::XML_PATH_PAGE_SIZE
+        ) ? $data['page_size'] : (static::XML_PATH_PAGE_SIZE ? (int)$this->_scopeConfig->getValue(
+            static::XML_PATH_PAGE_SIZE,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
         ) : 0);
         $this->_maxDataSize = isset(
             $data['max_data_size']
         ) ? $data['max_data_size'] : $resourceHelper->getMaxDataSize();
         $this->_bunchSize = isset(
             $data['bunch_size']
-        ) ? $data['bunch_size'] : (static::XML_PATH_BUNCH_SIZE ? (int)$this->_coreStoreConfig->getConfig(
-            static::XML_PATH_BUNCH_SIZE
+        ) ? $data['bunch_size'] : (static::XML_PATH_BUNCH_SIZE ? (int)$this->_scopeConfig->getValue(
+            static::XML_PATH_BUNCH_SIZE,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
         ) : 0);
     }
 
@@ -335,22 +342,26 @@ abstract class AbstractEntity
     protected function _saveValidatedBunches()
     {
         $source = $this->getSource();
-        $processedDataSize = 0;
         $bunchRows = array();
         $startNewBunch = false;
-        $nextRowBackup = array();
 
         $source->rewind();
         $this->_dataSourceModel->cleanBunches();
+        $masterAttributeCode = $this->getMasterAttributeCode();
 
-        while ($source->valid() || $bunchRows) {
+        while ($source->valid() || count($bunchRows) || isset($entityGroup)) {
             if ($startNewBunch || !$source->valid()) {
+                /* If the end approached add last validated entity group to the bunch */
+                if (!$source->valid() && isset($entityGroup)) {
+                    foreach ($entityGroup as $key => $value) {
+                        $bunchRows[$key] = $value;
+                    }
+                    unset($entityGroup);
+                }
                 $this->_dataSourceModel->saveBunch($this->getEntityTypeCode(), $this->getBehavior(), $bunchRows);
 
-                $bunchRows = $nextRowBackup;
-                $processedDataSize = strlen(serialize($bunchRows));
+                $bunchRows = array();
                 $startNewBunch = false;
-                $nextRowBackup = array();
             }
             if ($source->valid()) {
                 // errors limit check
@@ -358,21 +369,32 @@ abstract class AbstractEntity
                     return $this;
                 }
                 $rowData = $source->current();
-                // add row to bunch for save
-                if ($this->validateRow($rowData, $source->key())) {
-                    $rowData = $this->_prepareRowForDb($rowData);
-                    $rowSize = strlen($this->_jsonHelper->jsonEncode($rowData));
 
-                    $isBunchSizeExceeded = $this->_bunchSize > 0 && count($bunchRows) >= $this->_bunchSize;
+                if (isset($rowData[$masterAttributeCode]) && trim($rowData[$masterAttributeCode])) {
+                    /* Add entity group that passed validation to bunch */
+                    if (isset($entityGroup)) {
+                        foreach ($entityGroup as $key => $value) {
+                            $bunchRows[$key] = $value;
+                        }
+                        $productDataSize = strlen(serialize($bunchRows));
 
-                    if ($processedDataSize + $rowSize >= $this->_maxDataSize || $isBunchSizeExceeded) {
-                        $startNewBunch = true;
-                        $nextRowBackup = array($source->key() => $rowData);
-                    } else {
-                        $bunchRows[$source->key()] = $rowData;
-                        $processedDataSize += $rowSize;
+                        /* Check if the new bunch should be started */
+                        $isBunchSizeExceeded = ($this->_bunchSize > 0 && count($bunchRows) >= $this->_bunchSize);
+                        $startNewBunch = $productDataSize >= $this->_maxDataSize || $isBunchSizeExceeded;
                     }
+
+                    /* And start a new one */
+                    $entityGroup = array();
                 }
+
+                if (isset($entityGroup) && $this->validateRow($rowData, $source->key())) {
+                    /* Add row to entity group */
+                    $entityGroup[$source->key()] = $this->_prepareRowForDb($rowData);
+                } elseif (isset($entityGroup)) {
+                    /* In case validation of one line of the group fails kill the entire group */
+                    unset($entityGroup);
+                }
+
                 $this->_processedRowsCount++;
                 $source->next();
             }
@@ -546,12 +568,12 @@ abstract class AbstractEntity
      * Source object getter
      *
      * @return AbstractSource
-     * @throws \Magento\Model\Exception
+     * @throws \Magento\Framework\Model\Exception
      */
     public function getSource()
     {
         if (!$this->_source) {
-            throw new \Magento\Model\Exception(__('Source is not set'));
+            throw new \Magento\Framework\Model\Exception(__('Source is not set'));
         }
         return $this->_source;
     }
@@ -575,6 +597,14 @@ abstract class AbstractEntity
     public function isAttributeParticular($attributeCode)
     {
         return in_array($attributeCode, $this->_specialAttributes);
+    }
+
+    /**
+     * @return string the master attribute code to use in an import
+     */
+    public function getMasterAttributeCode()
+    {
+        return $this->masterAttributeCode;
     }
 
     /**
@@ -702,7 +732,7 @@ abstract class AbstractEntity
      * Validate data
      *
      * @return $this
-     * @throws \Magento\Model\Exception
+     * @throws \Magento\Framework\Model\Exception
      */
     public function validateData()
     {
@@ -710,7 +740,7 @@ abstract class AbstractEntity
             // do all permanent columns exist?
             $absentColumns = array_diff($this->_permanentAttributes, $this->getSource()->getColNames());
             if ($absentColumns) {
-                throw new \Magento\Model\Exception(
+                throw new \Magento\Framework\Model\Exception(
                     __('Cannot find required columns: %1', implode(', ', $absentColumns))
                 );
             }
@@ -731,12 +761,12 @@ abstract class AbstractEntity
             }
 
             if ($emptyHeaderColumns) {
-                throw new \Magento\Model\Exception(
+                throw new \Magento\Framework\Model\Exception(
                     __('Columns number: "%1" have empty headers', implode('", "', $emptyHeaderColumns))
                 );
             }
             if ($invalidColumns) {
-                throw new \Magento\Model\Exception(
+                throw new \Magento\Framework\Model\Exception(
                     __('Column names: "%1" are invalid', implode('", "', $invalidColumns))
                 );
             }

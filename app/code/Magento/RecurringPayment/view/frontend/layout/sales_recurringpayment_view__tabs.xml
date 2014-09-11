@@ -23,18 +23,13 @@
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 -->
-<layout xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../Core/etc/layout_single.xsd" label="Recurring Profile View Tabs" design_abstraction="custom">
-    <referenceBlock name="root">
-        <action method="setTemplate">
-            <argument name="template" xsi:type="string">2columns-left.phtml</argument>
-        </action>
-    </referenceBlock>
+<page layout="2columns-left" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../Core/etc/page.xsd" label="Recurring Profile View Tabs" design_abstraction="custom">
     <referenceContainer name="content">
         <block class="Magento\RecurringPayment\Block\Payment\View\Data" name="sales.recurring.payment.view" template="recurring/payment/view.phtml">
             <action method="setShouldPrepareInfoTabs">
                 <argument name="value" xsi:type="string">1</argument>
             </action>
-            <block class="Magento\View\Element\Text" as="payment_info" name="sales.recurring.payment.view.tab.payment" group="info_tabs">
+            <block class="Magento\Framework\View\Element\Text" as="payment_info" name="sales.recurring.payment.view.tab.payment" group="info_tabs">
                 <action method="setViewLabel">
                     <argument translate="true" name="value" xsi:type="string">Payment Information</argument>
                 </action>
@@ -42,7 +37,7 @@
                     <argument name="value" xsi:type="string">view</argument>
                 </action>
             </block>
-            <block class="Magento\View\Element\Text" as="related_orders" name="sales.recurring.payment.view.tab.orders" group="info_tabs">
+            <block class="Magento\Framework\View\Element\Text" as="related_orders" name="sales.recurring.payment.view.tab.orders" group="info_tabs">
                 <action method="setViewLabel">
                     <argument translate="true" name="value" xsi:type="string">Related Orders</argument>
                 </action>
@@ -52,4 +47,4 @@
             </block>
         </block>
     </referenceContainer>
-</layout>
+</page>

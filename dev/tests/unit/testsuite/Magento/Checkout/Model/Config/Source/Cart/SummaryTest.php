@@ -23,30 +23,24 @@
  */
 namespace Magento\Checkout\Model\Config\Source\Cart;
 
-use Magento\TestFramework\Helper\ObjectManager;
-
 class SummaryTest extends \PHPUnit_Framework_TestCase
 {
-    /** @var \Magento\Checkout\Model\Config\Source\Cart\Summary */
-    protected $object;
-
-    /** @var ObjectManager */
-    protected $objectManager;
+    /**
+     * @var Summary
+     */
+    private $model;
 
     protected function setUp()
     {
-        $this->objectManager = new ObjectManager($this);
-        $this->object = $this->objectManager->getObject('Magento\Checkout\Model\Config\Source\Cart\Summary');
+        $this->model = new Summary();
     }
 
     public function testToOptionArray()
     {
-        $this->assertEquals(
-            [
-                ['value' => 0, 'label' => 'Display number of items in cart'],
-                ['value' => 1, 'label' => 'Display item quantities'],
-            ],
-            $this->object->toOptionArray()
+        $expectedResult = array(
+            array('value' => 0, 'label' => __('Display number of items in cart')),
+            array('value' => 1, 'label' => __('Display item quantities'))
         );
+        $this->assertEquals($expectedResult, $this->model->toOptionArray());
     }
 }

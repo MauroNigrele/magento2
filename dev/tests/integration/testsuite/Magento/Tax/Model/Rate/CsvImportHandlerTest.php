@@ -18,9 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Tax
- * @subpackage  integration_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -62,6 +59,7 @@ class CsvImportHandlerTest extends \PHPUnit_Framework_TestCase
         $this->assertNotEmpty($importedRuleCA->getId());
         $this->assertEquals(8.25, (double)$importedRuleCA->getRate());
         $this->assertEquals('US', $importedRuleCA->getTaxCountryId());
+        $this->assertEquals('*', $importedRuleCA->getTaxPostcode());
 
         $importedRuleFL = $objectManager->create(
             'Magento\Tax\Model\Calculation\Rate'
@@ -71,11 +69,12 @@ class CsvImportHandlerTest extends \PHPUnit_Framework_TestCase
         $this->assertNotEmpty($importedRuleFL->getId());
         $this->assertEquals(15, (double)$importedRuleFL->getRate());
         $this->assertEquals('US', $importedRuleFL->getTaxCountryId());
+        $this->assertNull($importedRuleFL->getTaxPostcode());
     }
 
     /**
      * @magentoDbIsolation enabled
-     * @expectedException \Magento\Model\Exception
+     * @expectedException \Magento\Framework\Model\Exception
      * @expectedExceptionMessage One of the countries has invalid code.
      */
     public function testImportFromCsvFileThrowsExceptionWhenCountryCodeIsInvalid()

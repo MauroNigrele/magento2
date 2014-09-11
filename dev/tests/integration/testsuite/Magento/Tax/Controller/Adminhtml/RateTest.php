@@ -18,9 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Tax
- * @subpackage  integration_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -33,6 +30,7 @@ class RateTest extends \Magento\Backend\Utility\Controller
 {
     /**
      * @dataProvider ajaxSaveActionDataProvider
+     * @magentoDbIsolation enabled
      */
     public function testAjaxSaveAction($postData, $expectedData)
     {
@@ -66,7 +64,7 @@ class RateTest extends \Magento\Backend\Utility\Controller
 
     public function ajaxSaveActionDataProvider()
     {
-        $postData = array('rate' => '10', 'tax_country_id' => 'US', 'tax_region_id' => '0');
+        $postData = array('rate' => '10', 'tax_country_id' => 'US', 'tax_region_id' => '1');
         return array(
             array(
                 $postData + array(
@@ -95,6 +93,7 @@ class RateTest extends \Magento\Backend\Utility\Controller
      * Test wrong data conditions
      *
      * @dataProvider ajaxSaveActionDataInvalidDataProvider
+     * @magentoDbIsolation enabled
      */
     public function testAjaxSaveActionInvalidData($postData, $expectedData)
     {

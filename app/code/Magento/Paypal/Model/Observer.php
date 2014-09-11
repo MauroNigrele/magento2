@@ -18,14 +18,12 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Paypal
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 namespace Magento\Paypal\Model;
 
-use Magento\Event\Observer as EventObserver;
+use Magento\Framework\Event\Observer as EventObserver;
 
 /**
  * PayPal module observer
@@ -35,7 +33,7 @@ class Observer
     /**
      * Core registry
      *
-     * @var \Magento\Registry
+     * @var \Magento\Framework\Registry
      */
     protected $_coreRegistry;
 
@@ -54,7 +52,7 @@ class Observer
     protected $_coreData;
 
     /**
-     * @var \Magento\Logger
+     * @var \Magento\Framework\Logger
      */
     protected $_logger;
 
@@ -64,12 +62,12 @@ class Observer
     protected $_settlementFactory;
 
     /**
-     * @var \Magento\App\ViewInterface
+     * @var \Magento\Framework\App\ViewInterface
      */
     protected $_view;
 
     /**
-     * @var \Magento\AuthorizationInterface
+     * @var \Magento\Framework\AuthorizationInterface
      */
     protected $_authorization;
 
@@ -84,26 +82,38 @@ class Observer
     protected $_checkoutSession;
 
     /**
+     * @var \Magento\Paypal\Helper\Shortcut\Factory
+     */
+    protected $_shortcutFactory;
+
+    /**
+     * Shortcut template path
+     */
+    const SHORTCUT_TEMPLATE = 'express/shortcut.phtml';
+
+    /**
      * @param \Magento\Core\Helper\Data $coreData
      * @param \Magento\Paypal\Helper\Hss $paypalHss
-     * @param \Magento\Registry $coreRegistry
-     * @param \Magento\Logger $logger
+     * @param \Magento\Framework\Registry $coreRegistry
+     * @param \Magento\Framework\Logger $logger
      * @param Report\SettlementFactory $settlementFactory
-     * @param \Magento\App\ViewInterface $view
-     * @param \Magento\AuthorizationInterface $authorization
+     * @param \Magento\Framework\App\ViewInterface $view
+     * @param \Magento\Framework\AuthorizationInterface $authorization
      * @param \Magento\Paypal\Model\Billing\AgreementFactory $agreementFactory
      * @param \Magento\Checkout\Model\Session $checkoutSession
+     * @param \Magento\Paypal\Helper\Shortcut\Factory $shortcutFactory
      */
     public function __construct(
         \Magento\Core\Helper\Data $coreData,
         \Magento\Paypal\Helper\Hss $paypalHss,
-        \Magento\Registry $coreRegistry,
-        \Magento\Logger $logger,
+        \Magento\Framework\Registry $coreRegistry,
+        \Magento\Framework\Logger $logger,
         \Magento\Paypal\Model\Report\SettlementFactory $settlementFactory,
-        \Magento\App\ViewInterface $view,
-        \Magento\AuthorizationInterface $authorization,
+        \Magento\Framework\App\ViewInterface $view,
+        \Magento\Framework\AuthorizationInterface $authorization,
         \Magento\Paypal\Model\Billing\AgreementFactory $agreementFactory,
-        \Magento\Checkout\Model\Session $checkoutSession
+        \Magento\Checkout\Model\Session $checkoutSession,
+        \Magento\Paypal\Helper\Shortcut\Factory $shortcutFactory
     ) {
         $this->_coreData = $coreData;
         $this->_paypalHss = $paypalHss;
@@ -114,6 +124,7 @@ class Observer
         $this->_authorization = $authorization;
         $this->_agreementFactory = $agreementFactory;
         $this->_checkoutSession = $checkoutSession;
+        $this->_shortcutFactory = $shortcutFactory;
     }
 
     /**
@@ -180,7 +191,7 @@ class Observer
         if ($order && $order->getId()) {
             $payment = $order->getPayment();
             if ($payment && in_array($payment->getMethod(), $this->_paypalHss->getHssMethods())) {
-                /* @var $controller \Magento\App\Action\Action */
+                /* @var $controller \Magento\Framework\App\Action\Action */
                 $controller = $observer->getEvent()->getData('controller_action');
                 $result = $this->_coreData->jsonDecode($controller->getResponse()->getBody('default'));
 
@@ -191,7 +202,7 @@ class Observer
                     $result['redirect'] = false;
                     $result['success'] = false;
                     $controller->getResponse()->clearHeader('Location');
-                    $controller->getResponse()->setBody($this->_coreData->jsonEncode($result));
+                    $controller->getResponse()->representJson($this->_coreData->jsonEncode($result));
                 }
             }
         }
@@ -257,33 +268,34 @@ class Observer
     {
         /** @var \Magento\Catalog\Block\ShortcutButtons $shortcutButtons */
         $shortcutButtons = $observer->getEvent()->getContainer();
-        // PayPal Express Checkout
-        $shortcut = $shortcutButtons->getLayout()->createBlock(
+        $blocks = [
             'Magento\Paypal\Block\Express\Shortcut',
-            '',
-            array('checkoutSession' => $observer->getEvent()->getCheckoutSession())
-        );
-        $shortcut->setIsInCatalogProduct(
-            $observer->getEvent()->getIsCatalogProduct()
-        )->setShowOrPosition(
-            $observer->getEvent()->getOrPosition()
-        )->setTemplate(
-            'express/shortcut.phtml'
-        );
-        $shortcutButtons->addShortcut($shortcut);
-        // PayPal Express Checkout Payflow Edition
-        $shortcut = $shortcutButtons->getLayout()->createBlock(
             'Magento\Paypal\Block\PayflowExpress\Shortcut',
-            '',
-            array('checkoutSession' => $observer->getEvent()->getCheckoutSession())
-        );
-        $shortcut->setIsInCatalogProduct(
-            $observer->getEvent()->getIsCatalogProduct()
-        )->setShowOrPosition(
-            $observer->getEvent()->getOrPosition()
-        )->setTemplate(
-            'express/shortcut.phtml'
-        );
-        $shortcutButtons->addShortcut($shortcut);
+            'Magento\Paypal\Block\Bml\Shortcut',
+            'Magento\Paypal\Block\Payflow\Bml\Shortcut'
+        ];
+        foreach ($blocks as $blockInstanceName) {
+            $params = [
+                'shortcutValidator' => $this->_shortcutFactory->create($observer->getEvent()->getCheckoutSession())
+            ];
+            if (!in_array('Bml', explode('/', $blockInstanceName))) {
+                $params['checkoutSession'] = $observer->getEvent()->getCheckoutSession();
+            }
+
+            // we believe it's \Magento\Framework\View\Element\Template
+            $shortcut = $shortcutButtons->getLayout()->createBlock(
+                $blockInstanceName,
+                '',
+                $params
+            );
+            $shortcut->setIsInCatalogProduct(
+                $observer->getEvent()->getIsCatalogProduct()
+            )->setShowOrPosition(
+                $observer->getEvent()->getOrPosition()
+            )->setTemplate(
+                self::SHORTCUT_TEMPLATE
+            );
+            $shortcutButtons->addShortcut($shortcut);
+        }
     }
 }

@@ -18,9 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_DesignEditor
- * @subpackage  integration_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -34,14 +31,9 @@ class QuickStylesTest extends \PHPUnit_Framework_TestCase
     protected $_model;
 
     /**
-     * @var \Magento\View\DesignInterface
+     * @var \Magento\Framework\View\DesignInterface
      */
     protected $_design;
-
-    /**
-     * @var \Magento\View\FileSystem
-     */
-    protected $_viewFileSystem;
 
     /**
      * Initialize dependencies
@@ -49,15 +41,17 @@ class QuickStylesTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
-        /** @var \Magento\App\Filesystem\DirectoryList $directoryList */
-        $directoryList = $objectManager->get('Magento\App\Filesystem\DirectoryList');
+        /** @var \Magento\Framework\App\Filesystem\DirectoryList $directoryList */
+        $directoryList = $objectManager->get('Magento\Framework\App\Filesystem\DirectoryList');
         $path = str_replace($directoryList->getRoot(), '', str_replace('\\', '/', __DIR__) . '/../_files/design');
-        $directoryList->addDirectory(\Magento\App\Filesystem::THEMES_DIR, array('path' => ltrim($path, '/')));
-        $this->_design = $objectManager->get('Magento\View\DesignInterface');
-        $objectManager->get('Magento\App\State')->setAreaCode(\Magento\View\DesignInterface::DEFAULT_AREA);
+        $directoryList->addDirectory(\Magento\Framework\App\Filesystem::THEMES_DIR, array('path' => ltrim($path, '/')));
+        $this->_design = $objectManager->get('Magento\Framework\View\DesignInterface');
+        $objectManager->get('Magento\Framework\App\State')
+            ->setAreaCode(\Magento\Framework\View\DesignInterface::DEFAULT_AREA);
         $this->_design->setDesignTheme('vendor_test');
-        $this->_viewFileSystem = $objectManager->get('Magento\View\FileSystem');
-        $quickStylesPath = $this->_viewFileSystem->getFilename('Magento_DesignEditor::controls/quick_styles.xml');
+        /** @var \Magento\Framework\View\Asset\Repository $assetRepo */
+        $assetRepo = $objectManager->get('Magento\Framework\View\Asset\Repository');
+        $quickStylesPath = $assetRepo->createAsset('Magento_DesignEditor::controls/quick_styles.xml')->getSourceFile();
         $this->assertFileExists($quickStylesPath);
         $this->_model = $objectManager->create(
             'Magento\DesignEditor\Model\Config\Control\QuickStyles',

@@ -18,11 +18,10 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Tax
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
+namespace Magento\Tax\Model\Calculation;
 
 /**
  * Tax Rule Model
@@ -36,53 +35,14 @@
  * @method int getPosition()
  * @method \Magento\Tax\Model\Calculation\Rule setPosition(int $value)
  */
-namespace Magento\Tax\Model\Calculation;
-
-class Rule extends \Magento\Model\AbstractModel
+class Rule extends \Magento\Framework\Model\AbstractModel
 {
-    /**
-     * @var mixed
-     */
-    protected $_ctcs = null;
-
-    /**
-     * @var mixed
-     */
-    protected $_ptcs = null;
-
-    /**
-     * @var mixed
-     */
-    protected $_rates = null;
-
-    /**
-     * @var mixed
-     */
-    protected $_ctcModel = null;
-
-    /**
-     * @var mixed
-     */
-    protected $_ptcModel = null;
-
-    /**
-     * @var mixed
-     */
-    protected $_rateModel = null;
-
     /**
      * Prefix of model events names
      *
      * @var string
      */
     protected $_eventPrefix = 'tax_rule';
-
-    /**
-     * Helper
-     *
-     * @var \Magento\Tax\Helper\Data
-     */
-    protected $_helper;
 
     /**
      * Tax Model Class
@@ -97,23 +57,21 @@ class Rule extends \Magento\Model\AbstractModel
     protected $_calculation;
 
     /**
-     * @param \Magento\Model\Context $context
-     * @param \Magento\Registry $registry
-     * @param \Magento\Tax\Helper\Data $taxHelper
+     * @param \Magento\Framework\Model\Context $context
+     * @param \Magento\Framework\Registry $registry
      * @param \Magento\Tax\Model\ClassModel $taxClass
      * @param \Magento\Tax\Model\Calculation $calculation
-     * @param \Magento\Model\Resource\AbstractResource $resource
-     * @param \Magento\Data\Collection\Db $resourceCollection
+     * @param \Magento\Framework\Model\Resource\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\Db $resourceCollection
      * @param array $data
      */
     public function __construct(
-        \Magento\Model\Context $context,
-        \Magento\Registry $registry,
-        \Magento\Tax\Helper\Data $taxHelper,
+        \Magento\Framework\Model\Context $context,
+        \Magento\Framework\Registry $registry,
         \Magento\Tax\Model\ClassModel $taxClass,
         \Magento\Tax\Model\Calculation $calculation,
-        \Magento\Model\Resource\AbstractResource $resource = null,
-        \Magento\Data\Collection\Db $resourceCollection = null,
+        \Magento\Framework\Model\Resource\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\Db $resourceCollection = null,
         array $data = array()
     ) {
         $this->_calculation = $calculation;
@@ -121,13 +79,12 @@ class Rule extends \Magento\Model\AbstractModel
 
         $this->_init('Magento\Tax\Model\Resource\Calculation\Rule');
 
-        $this->_helper = $taxHelper;
         $this->_taxClass = $taxClass;
     }
 
     /**
      * After save rule
-     * Redeclared for populate rate calculations
+     * Re-declared for populate rate calculations
      *
      * @return $this
      */
@@ -141,7 +98,7 @@ class Rule extends \Magento\Model\AbstractModel
 
     /**
      * After rule delete
-     * re-declared for dispatch tax_settings_change_after event
+     * Re-declared for dispatch tax_settings_change_after event
      *
      * @return $this
      */
@@ -209,57 +166,16 @@ class Rule extends \Magento\Model\AbstractModel
     }
 
     /**
-     * Check Customer Tax Class and if it is empty - use defaults
+     * Fetches rules by rate, customer tax class and product tax class
+     * and product tax class combination
      *
-     * @return int|array|null
-     */
-    public function getCustomerTaxClassWithDefault()
-    {
-        $customerClasses = $this->getAllOptionsForClass(\Magento\Tax\Model\ClassModel::TAX_CLASS_TYPE_CUSTOMER);
-        if (empty($customerClasses)) {
-            return null;
-        }
-
-        $configValue = $this->_helper->getDefaultCustomerTaxClass();
-        if (!empty($configValue)) {
-            return $configValue;
-        }
-
-        $firstClass = array_shift($customerClasses);
-        return isset($firstClass['value']) ? $firstClass['value'] : null;
-    }
-
-    /**
-     * Check Product Tax Class and if it is empty - use defaults
-     *
-     * @return int|array|null
-     */
-    public function getProductTaxClassWithDefault()
-    {
-        $productClasses = $this->getAllOptionsForClass(\Magento\Tax\Model\ClassModel::TAX_CLASS_TYPE_PRODUCT);
-        if (empty($productClasses)) {
-            return null;
-        }
-
-        $configValue = $this->_helper->getDefaultProductTaxClass();
-        if (!empty($configValue)) {
-            return $configValue;
-        }
-
-        $firstClass = array_shift($productClasses);
-        return isset($firstClass['value']) ? $firstClass['value'] : null;
-    }
-
-    /**
-     * Get all possible options for specified class name (customer|product)
-     *
-     * @param string $classFilter
+     * @param array $rateId
+     * @param array $customerTaxClassIds
+     * @param array $productTaxClassIds
      * @return array
      */
-    public function getAllOptionsForClass($classFilter)
+    public function fetchRuleCodes($rateId, $customerTaxClassIds, $productTaxClassIds)
     {
-        $classes = $this->_taxClass->getCollection()->setClassTypeFilter($classFilter)->toOptionArray();
-
-        return $classes;
+        return $this->getResource()->fetchRuleCodes($rateId, $customerTaxClassIds, $productTaxClassIds);
     }
 }

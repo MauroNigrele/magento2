@@ -35,10 +35,10 @@ class SidebarTest extends \PHPUnit_Framework_TestCase
 
     public function testDeserializeRenders()
     {
-        $childBlock = $this->getMock('Magento\View\Element\AbstractBlock', array(), array(), '', false);
-        /** @var $layout \Magento\View\LayoutInterface */
+        $childBlock = $this->getMock('Magento\Framework\View\Element\AbstractBlock', array(), array(), '', false);
+        /** @var $layout \Magento\Framework\View\LayoutInterface */
         $layout = $this->getMock(
-            'Magento\Core\Model\Layout',
+            'Magento\Framework\View\Layout',
             array('createBlock', 'getChildName', 'setChild'),
             array(),
             '',
@@ -59,7 +59,7 @@ class SidebarTest extends \PHPUnit_Framework_TestCase
         )->method(
             'createBlock'
         )->with(
-            'Magento\View\Element\RendererList'
+            'Magento\Framework\View\Element\RendererList'
         )->will(
             $this->returnValue($rendererList)
         );
@@ -109,7 +109,9 @@ class SidebarTest extends \PHPUnit_Framework_TestCase
         $product = $this->getMock(
             'Magento\Catalog\Model\Product',
             array('__wakeup', 'getIdentities'),
-            array(), '', false
+            array(),
+            '',
+            false
         );
         $identities = [0 => 1, 1 => 2, 2 => 3];
         $product->expects($this->exactly(2))
@@ -126,5 +128,44 @@ class SidebarTest extends \PHPUnit_Framework_TestCase
 
         $block->setData('custom_quote', $quote);
         $this->assertEquals($product->getIdentities(), $block->getIdentities());
+    }
+
+    public function testGetTotalsHtml()
+    {
+        $totalsHtml = "$134.36";
+        $totalsBlockMock = $this->getMockBuilder('\Magento\Checkout\Block\Shipping\Price')
+            ->disableOriginalConstructor()
+            ->setMethods(['toHtml'])
+            ->getMock();
+
+        $totalsBlockMock->expects($this->once())
+            ->method('toHtml')
+            ->will($this->returnValue($totalsHtml));
+
+        $layoutMock = $this->getMockBuilder('\Magento\Framework\View\Layout')
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $layoutMock->expects($this->once())
+            ->method('getBlock')
+            ->with('checkout.cart.minicart.totals')
+            ->will($this->returnValue($totalsBlockMock));
+
+        $contextMock = $this->getMockBuilder('\Magento\Framework\View\Element\Template\Context')
+            ->disableOriginalConstructor()
+            ->setMethods(['getLayout'])
+            ->getMock();
+
+        $contextMock->expects($this->once())
+            ->method('getLayout')
+            ->will($this->returnValue($layoutMock));
+
+        /** @var \Magento\Checkout\Block\Cart\SideBar $sidebarBlock */
+        $sidebarBlock = $this->_objectManager->getObject(
+            '\Magento\Checkout\Block\Cart\SideBar',
+            ['context' => $contextMock]
+        );
+
+        $this->assertEquals($totalsHtml, $sidebarBlock->getTotalsHtml());
     }
 }

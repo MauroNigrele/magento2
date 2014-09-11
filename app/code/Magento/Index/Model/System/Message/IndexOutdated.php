@@ -17,13 +17,13 @@
  * Do not edit or add to this file if you wish to upgrade Magento to newer
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
- * 
+ *
  * @copyright Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 namespace Magento\Index\Model\System\Message;
 
-class IndexOutdated implements \Magento\AdminNotification\Model\System\MessageInterface
+class IndexOutdated implements \Magento\Framework\Notification\MessageInterface
 {
     /**
      * @var \Magento\Index\Model\Indexer
@@ -31,12 +31,12 @@ class IndexOutdated implements \Magento\AdminNotification\Model\System\MessageIn
     protected $_indexer;
 
     /**
-     * @var \Magento\UrlInterface
+     * @var \Magento\Framework\UrlInterface
      */
     protected $_urlBuilder;
 
     /**
-     * @var \Magento\AuthorizationInterface
+     * @var \Magento\Framework\AuthorizationInterface
      */
     protected $_authorization;
 
@@ -47,13 +47,13 @@ class IndexOutdated implements \Magento\AdminNotification\Model\System\MessageIn
 
     /**
      * @param \Magento\Index\Model\Indexer $indexer
-     * @param \Magento\UrlInterface $urlBuilder
-     * @param \Magento\AuthorizationInterface $authorization
+     * @param \Magento\Framework\UrlInterface $urlBuilder
+     * @param \Magento\Framework\AuthorizationInterface $authorization
      */
     public function __construct(
         \Magento\Index\Model\Indexer $indexer,
-        \Magento\UrlInterface $urlBuilder,
-        \Magento\AuthorizationInterface $authorization
+        \Magento\Framework\UrlInterface $urlBuilder,
+        \Magento\Framework\AuthorizationInterface $authorization
     ) {
         $this->_indexer = $indexer;
         $this->_urlBuilder = $urlBuilder;

@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Adminhtml
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -31,12 +29,15 @@ namespace Magento\ConfigurableProduct\Block\Adminhtml\Product\Edit\Tab\Super\Con
 
 use Magento\Catalog\Model\Product;
 
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 class Matrix extends \Magento\Backend\Block\Template
 {
     /**
      * Core registry
      *
-     * @var \Magento\Registry
+     * @var \Magento\Framework\Registry
      */
     protected $_coreRegistry = null;
 
@@ -51,28 +52,34 @@ class Matrix extends \Magento\Backend\Block\Template
     protected $_productFactory;
 
     /**
-     * @var \Magento\Catalog\Model\Config
-     */
-    protected $_config;
-
-    /**
-     * @var \Magento\App\ConfigInterface
+     * @var \Magento\Framework\App\Config\ScopeConfigInterface
      */
     protected $_applicationConfig;
 
     /**
-     * @var \Magento\Locale\CurrencyInterface
+     * @var \Magento\Framework\Locale\CurrencyInterface
      */
     protected $_localeCurrency;
+
+    /**
+     * @var \Magento\CatalogInventory\Service\V1\StockItemServiceInterface
+     */
+    protected $stockItemService;
+
+    /**
+     * @var \Magento\ConfigurableProduct\Model\Product\Type\VariationMatrix
+     */
+    protected $variationMatrix;
 
     /**
      * @param \Magento\Backend\Block\Template\Context $context
      * @param \Magento\ConfigurableProduct\Model\Product\Type\Configurable $configurableType
      * @param \Magento\Catalog\Model\Config $config
      * @param \Magento\Catalog\Model\ProductFactory $productFactory
-     * @param \Magento\Registry $coreRegistry
-     * @param \Magento\App\ConfigInterface $applicationConfig
-     * @param \Magento\Locale\CurrencyInterface $localeCurrency
+     * @param \Magento\Framework\Registry $coreRegistry
+     * @param \Magento\Framework\Locale\CurrencyInterface $localeCurrency
+     * @param \Magento\CatalogInventory\Service\V1\StockItemServiceInterface $stockItemService
+     * @param \Magento\ConfigurableProduct\Model\Product\Type\VariationMatrix $variationMatrix
      * @param array $data
      */
     public function __construct(
@@ -80,18 +87,21 @@ class Matrix extends \Magento\Backend\Block\Template
         \Magento\ConfigurableProduct\Model\Product\Type\Configurable $configurableType,
         \Magento\Catalog\Model\Config $config,
         \Magento\Catalog\Model\ProductFactory $productFactory,
-        \Magento\Registry $coreRegistry,
-        \Magento\App\ConfigInterface $applicationConfig,
-        \Magento\Locale\CurrencyInterface $localeCurrency,
+        \Magento\Framework\Registry $coreRegistry,
+        \Magento\Framework\Locale\CurrencyInterface $localeCurrency,
+        \Magento\CatalogInventory\Service\V1\StockItemServiceInterface $stockItemService,
+        \Magento\ConfigurableProduct\Model\Product\Type\VariationMatrix $variationMatrix,
         array $data = array()
     ) {
+        parent::__construct($context, $data);
         $this->_configurableType = $configurableType;
         $this->_productFactory = $productFactory;
         $this->_config = $config;
         $this->_coreRegistry = $coreRegistry;
-        $this->_applicationConfig = $applicationConfig;
         $this->_localeCurrency = $localeCurrency;
+        $this->stockItemService = $stockItemService;
         parent::__construct($context, $data);
+        $this->variationMatrix = $variationMatrix;
     }
 
     /**
@@ -103,7 +113,7 @@ class Matrix extends \Magento\Backend\Block\Template
     public function renderPrice($price)
     {
         return $this->_localeCurrency->getCurrency(
-            $this->_applicationConfig->getValue(\Magento\Directory\Model\Currency::XML_PATH_CURRENCY_BASE, 'default')
+            $this->_scopeConfig->getValue(\Magento\Directory\Model\Currency::XML_PATH_CURRENCY_BASE, 'default')
         )->toCurrency(
             sprintf('%f', $price)
         );
@@ -123,60 +133,10 @@ class Matrix extends \Magento\Backend\Block\Template
      * Retrieve all possible attribute values combinations
      *
      * @return array
-     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function getVariations()
     {
-        $variationalAttributes = array();
-        $usedProductAttributes = $this->getAttributes();
-        foreach ($usedProductAttributes as $attribute) {
-            $options = array();
-            foreach ($attribute['options'] as $valueInfo) {
-                foreach ($attribute['values'] as $priceData) {
-                    if ($priceData['value_index'] == $valueInfo['value'] && (!isset(
-                        $priceData['include']
-                    ) || $priceData['include'])
-                    ) {
-                        $valueInfo['price'] = $priceData;
-                        $options[] = $valueInfo;
-                    }
-                }
-            }
-            /** @var $attribute \Magento\Catalog\Model\Resource\Eav\Attribute */
-            $variationalAttributes[] = array('id' => $attribute['attribute_id'], 'values' => $options);
-        }
-
-        $attributesCount = count($variationalAttributes);
-        if ($attributesCount === 0) {
-            return array();
-        }
-
-        $variations = array();
-        $currentVariation = array_fill(0, $attributesCount, 0);
-        $variationalAttributes = array_reverse($variationalAttributes);
-        $lastAttribute = $attributesCount - 1;
-        do {
-            for ($attributeIndex = 0; $attributeIndex < $attributesCount - 1; ++$attributeIndex) {
-                if ($currentVariation[$attributeIndex] >= count($variationalAttributes[$attributeIndex]['values'])) {
-                    $currentVariation[$attributeIndex] = 0;
-                    ++$currentVariation[$attributeIndex + 1];
-                }
-            }
-            if ($currentVariation[$lastAttribute] >= count($variationalAttributes[$lastAttribute]['values'])) {
-                break;
-            }
-
-            $filledVariation = array();
-            for ($attributeIndex = $attributesCount; $attributeIndex--;) {
-                $currentAttribute = $variationalAttributes[$attributeIndex];
-                $filledVariation[$currentAttribute['id']] =
-                    $currentAttribute['values'][$currentVariation[$attributeIndex]];
-            }
-
-            $variations[] = $filledVariation;
-            $currentVariation[0]++;
-        } while (1);
-        return $variations;
+        return $this->variationMatrix->getVariations($this->getAttributes());
     }
 
     /**
@@ -202,15 +162,14 @@ class Matrix extends \Magento\Backend\Block\Template
             $productData = (array)$this->getRequest()->getParam('product');
             if (isset($productData['configurable_attributes_data'])) {
                 $configurableData = $productData['configurable_attributes_data'];
-                foreach ($attributes as $key => &$attribute) {
+                foreach ($attributes as $key => $attribute) {
                     if (isset($configurableData[$key])) {
-                        $attribute['values'] = array_merge(
+                        $attributes[$key] = array_replace_recursive($attribute, $configurableData[$key]);
+                        $attributes[$key]['values'] = array_merge(
                             isset($attribute['values']) ? $attribute['values'] : array(),
-                            isset(
-                                $configurableData[$key]['values']
-                            ) ? array_filter(
-                                $configurableData[$key]['values']
-                            ) : array()
+                            isset($configurableData[$key]['values'])
+                            ? array_filter($configurableData[$key]['values'])
+                            : array()
                         );
                     }
                 }
@@ -296,5 +255,14 @@ class Matrix extends \Magento\Backend\Block\Template
     public function getImageUploadUrl()
     {
         return $this->getUrl('catalog/product_gallery/upload');
+    }
+
+    /**
+     * @param int $productId
+     * @return float
+     */
+    public function getProductStockQty($productId)
+    {
+        return $this->stockItemService->getStockItem($productId)->getQty();
     }
 }

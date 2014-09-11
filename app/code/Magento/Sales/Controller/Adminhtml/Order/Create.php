@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Sales
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -30,8 +28,6 @@ use Magento\Backend\App\Action;
 /**
  * Adminhtml sales orders creation process controller
  *
- * @category   Magento
- * @package    Magento_Sales
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 class Create extends \Magento\Backend\App\Action
@@ -194,7 +190,6 @@ class Create extends \Magento\Backend\App\Action
             $this->_getOrderCreateModel()->collectShippingRates();
         }
 
-
         /**
          * Apply mass changes from sidebar
          */
@@ -299,7 +294,7 @@ class Create extends \Magento\Backend\App\Action
                 $this->messageManager->addError(
                     __(
                         '"%1" coupon code is not valid.',
-                        $this->_objectManager->get('Magento\Escaper')->escapeHtml($couponCode)
+                        $this->_objectManager->get('Magento\Framework\Escaper')->escapeHtml($couponCode)
                     )
                 );
             } else {
@@ -321,7 +316,7 @@ class Create extends \Magento\Backend\App\Action
         /* @var $productHelper \Magento\Catalog\Helper\Product */
         $productHelper = $this->_objectManager->get('Magento\Catalog\Helper\Product');
         foreach ($items as $id => $item) {
-            $buyRequest = new \Magento\Object($item);
+            $buyRequest = new \Magento\Framework\Object($item);
             $params = array('files_prefix' => 'item_' . $id . '_');
             $buyRequest = $productHelper->addParamsToBuyRequest($buyRequest, $params);
             if ($buyRequest->hasData()) {
@@ -332,46 +327,6 @@ class Create extends \Magento\Backend\App\Action
     }
 
     /**
-     * Index page
-     *
-     * @return void
-     */
-    public function indexAction()
-    {
-        $this->_title->add(__('Orders'));
-        $this->_title->add(__('New Order'));
-        $this->_initSession();
-        $this->_view->loadLayout();
-
-        $this->_setActiveMenu('Magento_Sales::sales_order');
-        $this->_view->renderLayout();
-    }
-
-    /**
-     * @return void
-     */
-    public function reorderAction()
-    {
-        $this->_getSession()->clearStorage();
-        $orderId = $this->getRequest()->getParam('order_id');
-        $order = $this->_objectManager->create('Magento\Sales\Model\Order')->load($orderId);
-        if (!$this->_objectManager->get('Magento\Sales\Helper\Reorder')->canReorder($order)) {
-            $this->_forward('noroute');
-            return;
-        }
-
-        if ($order->getId()) {
-            $order->setReordered(true);
-            $this->_getSession()->setUseOldShippingMethod(true);
-            $this->_getOrderCreateModel()->initFromOrder($order);
-
-            $this->_redirect('sales/*');
-        } else {
-            $this->_redirect('sales/order/');
-        }
-    }
-
-    /**
      * @return $this
      */
     protected function _reloadQuote()
@@ -379,167 +334,6 @@ class Create extends \Magento\Backend\App\Action
         $id = $this->_getQuote()->getId();
         $this->_getQuote()->load($id);
         return $this;
-    }
-
-    /**
-     * Loading page block
-     *
-     * @return void
-     */
-    public function loadBlockAction()
-    {
-        $request = $this->getRequest();
-        try {
-            $this->_initSession()->_processData();
-        } catch (\Magento\Model\Exception $e) {
-            $this->_reloadQuote();
-            $this->messageManager->addError($e->getMessage());
-        } catch (\Exception $e) {
-            $this->_reloadQuote();
-            $this->messageManager->addException($e, $e->getMessage());
-        }
-
-
-        $asJson = $request->getParam('json');
-        $block = $request->getParam('block');
-
-        $update = $this->_view->getLayout()->getUpdate();
-        if ($asJson) {
-            $update->addHandle('sales_order_create_load_block_json');
-        } else {
-            $update->addHandle('sales_order_create_load_block_plain');
-        }
-
-        if ($block) {
-            $blocks = explode(',', $block);
-            if ($asJson && !in_array('message', $blocks)) {
-                $blocks[] = 'message';
-            }
-
-            foreach ($blocks as $block) {
-                $update->addHandle('sales_order_create_load_block_' . $block);
-            }
-        }
-        $this->_view->loadLayoutUpdates();
-        $this->_view->generateLayoutXml();
-        $this->_view->generateLayoutBlocks();
-        $result = $this->_view->getLayout()->renderElement('content');
-        if ($request->getParam('as_js_varname')) {
-            $this->_objectManager->get('Magento\Backend\Model\Session')->setUpdateResult($result);
-            $this->_redirect('sales/*/showUpdateResult');
-        } else {
-            $this->getResponse()->setBody($result);
-        }
-    }
-
-    /**
-     * Adds configured product to quote
-     *
-     * @return void
-     */
-    public function addConfiguredAction()
-    {
-        $errorMessage = null;
-        try {
-            $this->_initSession()->_processData();
-        } catch (\Exception $e) {
-            $this->_reloadQuote();
-            $errorMessage = $e->getMessage();
-        }
-
-        // Form result for client javascript
-        $updateResult = new \Magento\Object();
-        if ($errorMessage) {
-            $updateResult->setError(true);
-            $updateResult->setMessage($errorMessage);
-        } else {
-            $updateResult->setOk(true);
-        }
-
-        $updateResult->setJsVarName($this->getRequest()->getParam('as_js_varname'));
-        $this->_objectManager->get('Magento\Backend\Model\Session')->setCompositeProductResult($updateResult);
-        $this->_redirect('catalog/product/showUpdateResult');
-    }
-
-    /**
-     * Start order create action
-     *
-     * @return void
-     */
-    public function startAction()
-    {
-        $this->_getSession()->clearStorage();
-        $this->_redirect('sales/*', array('customer_id' => $this->getRequest()->getParam('customer_id')));
-    }
-
-    /**
-     * Cancel order create
-     *
-     * @return void
-     */
-    public function cancelAction()
-    {
-        if ($orderId = $this->_getSession()->getReordered()) {
-            $this->_getSession()->clearStorage();
-            $this->_redirect('sales/order/view', array('order_id' => $orderId));
-        } else {
-            $this->_getSession()->clearStorage();
-            $this->_redirect('sales/*');
-        }
-    }
-
-    /**
-     * Saving quote and create order
-     *
-     * @return void
-     */
-    public function saveAction()
-    {
-        try {
-            $this->_processActionData('save');
-            $paymentData = $this->getRequest()->getPost('payment');
-            if ($paymentData) {
-                $paymentData['checks'] = array(
-                    \Magento\Payment\Model\Method\AbstractMethod::CHECK_USE_INTERNAL,
-                    \Magento\Payment\Model\Method\AbstractMethod::CHECK_USE_FOR_COUNTRY,
-                    \Magento\Payment\Model\Method\AbstractMethod::CHECK_USE_FOR_CURRENCY,
-                    \Magento\Payment\Model\Method\AbstractMethod::CHECK_ORDER_TOTAL_MIN_MAX,
-                    \Magento\Payment\Model\Method\AbstractMethod::CHECK_ZERO_TOTAL
-                );
-                $this->_getOrderCreateModel()->setPaymentData($paymentData);
-                $this->_getOrderCreateModel()->getQuote()->getPayment()->addData($paymentData);
-            }
-
-            $order = $this->_getOrderCreateModel()->setIsValidate(
-                true
-            )->importPostData(
-                $this->getRequest()->getPost('order')
-            )->createOrder();
-
-            $this->_getSession()->clearStorage();
-            $this->messageManager->addSuccess(__('You created the order.'));
-            if ($this->_authorization->isAllowed('Magento_Sales::actions_view')) {
-                $this->_redirect('sales/order/view', array('order_id' => $order->getId()));
-            } else {
-                $this->_redirect('sales/order/index');
-            }
-        } catch (\Magento\Payment\Model\Info\Exception $e) {
-            $this->_getOrderCreateModel()->saveQuote();
-            $message = $e->getMessage();
-            if (!empty($message)) {
-                $this->messageManager->addError($message);
-            }
-            $this->_redirect('sales/*/');
-        } catch (\Magento\Model\Exception $e) {
-            $message = $e->getMessage();
-            if (!empty($message)) {
-                $this->messageManager->addError($message);
-            }
-            $this->_redirect('sales/*/');
-        } catch (\Exception $e) {
-            $this->messageManager->addException($e, __('Order saving error: %1', $e->getMessage()));
-            $this->_redirect('sales/*/');
-        }
     }
 
     /**
@@ -579,106 +373,5 @@ class Create extends \Magento\Backend\App\Action
                 break;
         }
         return $aclResource;
-    }
-
-    /**
-     * Ajax handler to response configuration fieldset of composite product in order
-     *
-     * @return void
-     */
-    public function configureProductToAddAction()
-    {
-        // Prepare data
-        $productId = (int)$this->getRequest()->getParam('id');
-
-        $configureResult = new \Magento\Object();
-        $configureResult->setOk(true);
-        $configureResult->setProductId($productId);
-        $sessionQuote = $this->_objectManager->get('Magento\Backend\Model\Session\Quote');
-        $configureResult->setCurrentStoreId($sessionQuote->getStore()->getId());
-        $configureResult->setCurrentCustomerId($sessionQuote->getCustomerId());
-
-        // Render page
-        $this->_objectManager->get(
-            'Magento\Catalog\Helper\Product\Composite'
-        )->renderConfigureResult(
-            $configureResult
-        );
-    }
-
-    /**
-     * Ajax handler to response configuration fieldset of composite product in quote items
-     *
-     * @return void
-     */
-    public function configureQuoteItemsAction()
-    {
-        // Prepare data
-        $configureResult = new \Magento\Object();
-        try {
-            $quoteItemId = (int)$this->getRequest()->getParam('id');
-            if (!$quoteItemId) {
-                throw new \Magento\Model\Exception(__('Quote item id is not received.'));
-            }
-
-            $quoteItem = $this->_objectManager->create('Magento\Sales\Model\Quote\Item')->load($quoteItemId);
-            if (!$quoteItem->getId()) {
-                throw new \Magento\Model\Exception(__('Quote item is not loaded.'));
-            }
-
-            $configureResult->setOk(true);
-            $optionCollection = $this->_objectManager->create(
-                'Magento\Sales\Model\Quote\Item\Option'
-            )->getCollection()->addItemFilter(
-                array($quoteItemId)
-            );
-            $quoteItem->setOptions($optionCollection->getOptionsByItem($quoteItem));
-
-            $configureResult->setBuyRequest($quoteItem->getBuyRequest());
-            $configureResult->setCurrentStoreId($quoteItem->getStoreId());
-            $configureResult->setProductId($quoteItem->getProductId());
-            $sessionQuote = $this->_objectManager->get('Magento\Backend\Model\Session\Quote');
-            $configureResult->setCurrentCustomerId($sessionQuote->getCustomerId());
-        } catch (\Exception $e) {
-            $configureResult->setError(true);
-            $configureResult->setMessage($e->getMessage());
-        }
-
-        // Render page
-        $this->_objectManager->get(
-            'Magento\Catalog\Helper\Product\Composite'
-        )->renderConfigureResult(
-            $configureResult
-        );
-    }
-
-    /**
-     * Show item update result from loadBlockAction
-     * to prevent popup alert with resend data question
-     *
-     * @return void|false
-     */
-    public function showUpdateResultAction()
-    {
-        $session = $this->_objectManager->get('Magento\Backend\Model\Session');
-        if ($session->hasUpdateResult() && is_scalar($session->getUpdateResult())) {
-            $this->getResponse()->setBody($session->getUpdateResult());
-            $session->unsUpdateResult();
-        } else {
-            $session->unsUpdateResult();
-            return false;
-        }
-    }
-
-    /**
-     * Process data and display index page
-     *
-     * @return void
-     */
-    public function processDataAction()
-    {
-        $this->_initSession();
-        $this->_processData();
-        $this->_forward('index');
     }
 }

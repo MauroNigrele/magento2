@@ -18,9 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Core
- * @subpackage  unit_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -35,60 +32,109 @@ class PathTest extends \PHPUnit_Framework_TestCase
     /**
      * @var \Magento\Core\Model\Theme\Image\Path|\PHPUnit_Framework_MockObject_MockObject
      */
-    protected $_model;
+    protected $model;
 
     /**
      * @var \PHPUnit_Framework_MockObject_MockObject
      */
-    protected $_filesystem;
+    protected $filesystem;
 
     /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\View\Url
+     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Framework\View\Asset\Repository
      */
-    protected $_viewUrlMock;
+    protected $_assetRepo;
 
     /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Core\Model\StoreManager
+     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Store\Model\StoreManager
      */
-    protected $_storeManagerMock;
+    protected $_storeManager;
+
+    /**
+     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Framework\Filesystem\Directory\ReadInterface
+     */
+    protected $mediaDirectory;
 
     protected function setUp()
     {
-        $this->_filesystem = $this->getMock('Magento\App\Filesystem', array(), array(), '', false);
-        $this->_viewUrlMock = $this->getMock('Magento\View\Url', array(), array(), '', false);
-        $this->_storeManagerMock = $this->getMock('Magento\Core\Model\StoreManager', array(), array(), '', false);
+        $this->filesystem = $this->getMock('Magento\Framework\App\Filesystem', array(), array(), '', false);
+        $this->mediaDirectory = $this->getMock(
+            'Magento\Framework\Filesystem\Directory\ReadInterface', array(), array(), '', false
+        );
+        $this->_assetRepo = $this->getMock('Magento\Framework\View\Asset\Repository', array(), array(), '', false);
+        $this->_storeManager = $this->getMock('Magento\Store\Model\StoreManager', array(), array(), '', false);
 
-        $this->_filesystem->expects(
-            $this->any()
-        )->method(
-            'getPath'
-        )->with(
-            \Magento\App\Filesystem::MEDIA_DIR
-        )->will(
-            $this->returnValue('/media')
+
+        $this->mediaDirectory->expects($this->any())
+            ->method('getAbsolutePath')
+            ->with(\Magento\Framework\View\Design\Theme\Image\PathInterface::PREVIEW_DIRECTORY_PATH)
+            ->will($this->returnValue('/theme/preview'));
+
+        $this->mediaDirectory->expects($this->any())
+            ->method('getRelativePath')
+            ->with('/theme/origin')
+            ->will($this->returnValue('/theme/origin'));
+
+        $this->filesystem->expects($this->any())->method('getDirectoryRead')
+            ->with(\Magento\Framework\App\Filesystem::MEDIA_DIR)
+            ->will($this->returnValue($this->mediaDirectory));
+
+        $this->model = new Path(
+            $this->filesystem,
+            $this->_assetRepo,
+            $this->_storeManager
         );
 
-        $this->_model = new Path($this->_filesystem, $this->_viewUrlMock, $this->_storeManagerMock);
+        $this->_model = new Path($this->filesystem, $this->_assetRepo, $this->_storeManager);
     }
 
-    protected function tearDown()
+    public function testGetPreviewImageUrlPhysicalTheme()
     {
-        $this->_model = null;
-        $this->_filesystem = null;
-        $this->_viewUrlMock = null;
-        $this->_storeManagerMock = null;
+        $theme = $this->getGetTheme(true);
+
+        $this->_assetRepo->expects($this->any())
+            ->method('getUrlWithParams')
+            ->with($theme->getPreviewImage(), ['area' => $theme->getData('area'), 'themeModel' => $theme])
+            ->will($this->returnValue('http://localhost/theme/preview/image.png'));
+
+        $this->assertEquals('http://localhost/theme/preview/image.png', $this->model->getPreviewImageUrl($theme));
+    }
+
+    public function testGetPreviewImageUrlVirtualTheme()
+    {
+        $theme = $this->getGetTheme(false);
+
+        $store = $this->getMock('Magento\Store\Model\Store', array(), array(), '', false);
+        $store->expects($this->any())->method('getBaseUrl')->will($this->returnValue('http://localhost/'));
+        $this->_storeManager->expects($this->any())->method('getStore')->will($this->returnValue($store));
+        $this->assertEquals('http://localhost/theme/preview/image.png', $this->model->getPreviewImageUrl($theme));
     }
 
     /**
-     * @covers \Magento\Core\Model\Theme\Image\Path::__construct
-     * @covers \Magento\Core\Model\Theme\Image\Path::getPreviewImageDirectoryUrl
+     * @param bool $isPhysical
+     * @return \Magento\Core\Model\Theme|\PHPUnit_Framework_MockObject_MockObject
      */
-    public function testPreviewImageDirectoryUrlGetter()
+    protected function getGetTheme($isPhysical)
     {
-        $store = $this->getMock('Magento\Core\Model\Store', array(), array(), '', false);
-        $store->expects($this->any())->method('getBaseUrl')->will($this->returnValue('http://localhost/'));
-        $this->_storeManagerMock->expects($this->any())->method('getStore')->will($this->returnValue($store));
-        $this->assertEquals('http://localhost/theme/preview/', $this->_model->getPreviewImageDirectoryUrl());
+        /** @var $theme \Magento\Core\Model\Theme|\PHPUnit_Framework_MockObject_MockObject */
+        $theme = $this->getMock(
+            'Magento\Core\Model\Theme',
+            array('getPreviewImage', 'isPhysical','__wakeup'),
+            array(),
+            '',
+            false
+        );
+
+        $theme->setData('area', 'frontend');
+
+        $theme->expects($this->any())
+            ->method('isPhysical')
+            ->will($this->returnValue($isPhysical));
+
+        $theme->expects($this->any())
+            ->method('getPreviewImage')
+            ->will($this->returnValue('image.png'));
+
+        return $theme;
     }
 
     /**
@@ -96,14 +142,9 @@ class PathTest extends \PHPUnit_Framework_TestCase
      */
     public function testDefaultPreviewImageUrlGetter()
     {
-        $this->_viewUrlMock->expects(
-            $this->once()
-        )->method(
-            'getViewFileUrl'
-        )->with(
-            \Magento\Core\Model\Theme\Image\Path::DEFAULT_PREVIEW_IMAGE
-        );
-        $this->_model->getPreviewImageDefaultUrl();
+        $this->_assetRepo->expects($this->once())->method('getUrl')
+            ->with(\Magento\Core\Model\Theme\Image\Path::DEFAULT_PREVIEW_IMAGE);
+        $this->model->getPreviewImageDefaultUrl();
     }
 
     /**
@@ -111,7 +152,10 @@ class PathTest extends \PHPUnit_Framework_TestCase
      */
     public function testImagePreviewDirectoryGetter()
     {
-        $this->assertEquals('/media/theme/preview', $this->_model->getImagePreviewDirectory());
+        $this->assertEquals(
+            '/theme/preview',
+            $this->model->getImagePreviewDirectory()
+        );
     }
 
     /**
@@ -119,6 +163,9 @@ class PathTest extends \PHPUnit_Framework_TestCase
      */
     public function testTemporaryDirectoryGetter()
     {
-        $this->assertEquals('/media/theme/origin', $this->_model->getTemporaryDirectory());
+        $this->assertEquals(
+            '/theme/origin',
+            $this->model->getTemporaryDirectory()
+        );
     }
 }

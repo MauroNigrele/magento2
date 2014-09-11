@@ -23,12 +23,14 @@
  */
 namespace Magento\Core\Model\File\Storage;
 
-use Magento\App\Response\Http;
+use Magento\Framework\Stdlib\CookieManager;
+use Magento\Framework\Stdlib\Cookie\CookieMetadataFactory;
+use Magento\Framework\App\Response\Http;
 
-class Response extends Http
+class Response extends Http implements \Magento\Framework\App\Response\FileInterface
 {
     /**
-     * @var \Magento\File\Transfer\Adapter\Http
+     * @var \Magento\Framework\File\Transfer\Adapter\Http
      */
     protected $_transferAdapter;
 
@@ -42,16 +44,18 @@ class Response extends Http
     /**
      * Constructor
      *
-     * @param \Magento\Stdlib\Cookie              $cookie
-     * @param \Magento\App\Http\Context           $context
-     * @param \Magento\File\Transfer\Adapter\Http $transferAdapter
+     * @param \Magento\Framework\Stdlib\CookieManager $cookieManager
+     * @param \Magento\Framework\Stdlib\Cookie\CookieMetadataFactory $cookieMetadataFactory
+     * @param \Magento\Framework\App\Http\Context $context
+     * @param \Magento\Framework\File\Transfer\Adapter\Http $transferAdapter
      */
     public function __construct(
-        \Magento\Stdlib\Cookie $cookie,
-        \Magento\App\Http\Context $context,
-        \Magento\File\Transfer\Adapter\Http $transferAdapter
+        CookieManager $cookieManager,
+        CookieMetadataFactory $cookieMetadataFactory,
+        \Magento\Framework\App\Http\Context $context,
+        \Magento\Framework\File\Transfer\Adapter\Http $transferAdapter
     ) {
-        parent::__construct($cookie, $context);
+        parent::__construct($cookieManager, $cookieMetadataFactory, $context);
         $this->_transferAdapter = $transferAdapter;
     }
 

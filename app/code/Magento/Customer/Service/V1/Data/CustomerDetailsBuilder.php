@@ -25,12 +25,14 @@
  */
 namespace Magento\Customer\Service\V1\Data;
 
-use Magento\Service\Data\AbstractObjectBuilder;
+use Magento\Framework\Service\Data\AbstractExtensibleObjectBuilder;
+use Magento\Framework\Service\Data\AttributeValueBuilder;
+use Magento\Framework\Service\Data\MetadataServiceInterface;
 
 /**
  * Class CustomerDetailsBuilder
  */
-class CustomerDetailsBuilder extends AbstractObjectBuilder
+class CustomerDetailsBuilder extends AbstractExtensibleObjectBuilder
 {
     /**
      * Customer builder
@@ -47,16 +49,20 @@ class CustomerDetailsBuilder extends AbstractObjectBuilder
     protected $_addressBuilder;
 
     /**
-     * Constructor
-     *
-     * @param \Magento\Customer\Service\V1\Data\CustomerBuilder $customerBuilder
-     * @param \Magento\Customer\Service\V1\Data\AddressBuilder $addressBuilder
+     * @param \Magento\Framework\Service\Data\ObjectFactory $objectFactory
+     * @param AttributeValueBuilder $valueBuilder
+     * @param MetadataServiceInterface $metadataService
+     * @param CustomerBuilder $customerBuilder
+     * @param AddressBuilder $addressBuilder
      */
     public function __construct(
+        \Magento\Framework\Service\Data\ObjectFactory $objectFactory,
+        AttributeValueBuilder $valueBuilder,
+        MetadataServiceInterface $metadataService,
         \Magento\Customer\Service\V1\Data\CustomerBuilder $customerBuilder,
         \Magento\Customer\Service\V1\Data\AddressBuilder $addressBuilder
     ) {
-        parent::__construct();
+        parent::__construct($objectFactory, $valueBuilder, $metadataService);
         $this->_customerBuilder = $customerBuilder;
         $this->_addressBuilder = $addressBuilder;
     }

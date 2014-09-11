@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Sales
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -29,11 +27,8 @@ use Magento\Sales\Model\Order\Item;
 
 /**
  * Adminhtml sales order item renderer
- *
- * @category   Magento
- * @package    Magento_Sales
  */
-class DefaultRenderer extends \Magento\Sales\Block\Adminhtml\Items\AbstractItems
+class DefaultRenderer extends \Magento\Sales\Block\Adminhtml\Items\Renderer\DefaultRenderer
 {
     /**
      * Message helper
@@ -50,24 +45,31 @@ class DefaultRenderer extends \Magento\Sales\Block\Adminhtml\Items\AbstractItems
     protected $_checkoutHelper;
 
     /**
+     * Giftmessage object
+     *
+     * @var \Magento\GiftMessage\Model\Message
+     */
+    protected $_giftMessage = array();
+
+    /**
      * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\Catalog\Model\ProductFactory $productFactory
-     * @param \Magento\Registry $registry
+     * @param \Magento\CatalogInventory\Service\V1\StockItemService $stockItemService
+     * @param \Magento\Framework\Registry $registry
      * @param \Magento\GiftMessage\Helper\Message $messageHelper
      * @param \Magento\Checkout\Helper\Data $checkoutHelper
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
-        \Magento\Catalog\Model\ProductFactory $productFactory,
-        \Magento\Registry $registry,
+        \Magento\CatalogInventory\Service\V1\StockItemService $stockItemService,
+        \Magento\Framework\Registry $registry,
         \Magento\GiftMessage\Helper\Message $messageHelper,
         \Magento\Checkout\Helper\Data $checkoutHelper,
         array $data = array()
     ) {
         $this->_checkoutHelper = $checkoutHelper;
         $this->_messageHelper = $messageHelper;
-        parent::__construct($context, $productFactory, $registry, $data);
+        parent::__construct($context, $stockItemService, $registry, $data);
     }
 
     /**
@@ -112,13 +114,6 @@ class DefaultRenderer extends \Magento\Sales\Block\Adminhtml\Items\AbstractItems
     }
 
     /**
-     * Giftmessage object
-     *
-     * @var \Magento\GiftMessage\Model\Message
-     */
-    protected $_giftMessage = array();
-
-    /**
      * Retrieve default value for giftmessage sender
      *
      * @return string
@@ -150,14 +145,14 @@ class DefaultRenderer extends \Magento\Sales\Block\Adminhtml\Items\AbstractItems
         if ($this->getItem()->getOrder()) {
             if ($this->getItem()->getOrder()->getShippingAddress()) {
                 return $this->getItem()->getOrder()->getShippingAddress()->getName();
-            } else if ($this->getItem()->getOrder()->getBillingAddress()) {
+            } elseif ($this->getItem()->getOrder()->getBillingAddress()) {
                 return $this->getItem()->getOrder()->getBillingAddress()->getName();
             }
         }
 
         if ($this->getItem()->getShippingAddress()) {
             return $this->getItem()->getShippingAddress()->getName();
-        } else if ($this->getItem()->getBillingAddress()) {
+        } elseif ($this->getItem()->getBillingAddress()) {
             return $this->getItem()->getBillingAddress()->getName();
         }
 
@@ -265,10 +260,10 @@ class DefaultRenderer extends \Magento\Sales\Block\Adminhtml\Items\AbstractItems
     /**
      * Display item price including tax
      *
-     * @param Item|\Magento\Object $item
+     * @param Item|\Magento\Framework\Object $item
      * @return string
      */
-    public function displayPriceInclTax(\Magento\Object $item)
+    public function displayPriceInclTax(\Magento\Framework\Object $item)
     {
         return $this->displayPrices(
             $this->_checkoutHelper->getBasePriceInclTax($item),

@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Paypal
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -33,7 +31,7 @@ class Reports extends \Magento\Backend\App\Action
     /**
      * Core registry
      *
-     * @var \Magento\Registry
+     * @var \Magento\Framework\Registry
      */
     protected $_coreRegistry;
 
@@ -48,119 +46,29 @@ class Reports extends \Magento\Backend\App\Action
     protected $_settlementFactory;
 
     /**
-     * @var \Magento\Logger
+     * @var \Magento\Framework\Logger
      */
     protected $_logger;
 
     /**
      * @param \Magento\Backend\App\Action\Context $context
-     * @param \Magento\Registry $coreRegistry
+     * @param \Magento\Framework\Registry $coreRegistry
      * @param \Magento\Paypal\Model\Report\Settlement\RowFactory $rowFactory
      * @param \Magento\Paypal\Model\Report\SettlementFactory $settlementFactory
-     * @param \Magento\Logger $logger
+     * @param \Magento\Framework\Logger $logger
      */
     public function __construct(
         \Magento\Backend\App\Action\Context $context,
-        \Magento\Registry $coreRegistry,
+        \Magento\Framework\Registry $coreRegistry,
         \Magento\Paypal\Model\Report\Settlement\RowFactory $rowFactory,
         \Magento\Paypal\Model\Report\SettlementFactory $settlementFactory,
-        \Magento\Logger $logger
+        \Magento\Framework\Logger $logger
     ) {
         $this->_coreRegistry = $coreRegistry;
         $this->_rowFactory = $rowFactory;
         $this->_settlementFactory = $settlementFactory;
         $this->_logger = $logger;
         parent::__construct($context);
-    }
-
-    /**
-     * Grid action
-     *
-     * @return void
-     */
-    public function indexAction()
-    {
-        $this->_initAction();
-        $this->_view->renderLayout();
-    }
-
-    /**
-     * Ajax callback for grid actions
-     *
-     * @return void
-     */
-    public function gridAction()
-    {
-        $this->_view->loadLayout(false);
-        $this->_view->renderLayout();
-    }
-
-    /**
-     * View transaction details action
-     *
-     * @return void
-     */
-    public function detailsAction()
-    {
-        $rowId = $this->getRequest()->getParam('id');
-        $row = $this->_rowFactory->create()->load($rowId);
-        if (!$row->getId()) {
-            $this->_redirect('adminhtml/*/');
-            return;
-        }
-        $this->_coreRegistry->register('current_transaction', $row);
-        $this->_initAction();
-        $this->_title->add(__('View Transaction'));
-        $this->_addContent(
-            $this->_view->getLayout()->createBlock(
-                'Magento\Paypal\Block\Adminhtml\Settlement\Details',
-                'settlementDetails'
-            )
-        );
-        $this->_view->renderLayout();
-    }
-
-    /**
-     * Forced fetch reports action
-     *
-     * @return void
-     * @throws \Magento\Model\Exception
-     */
-    public function fetchAction()
-    {
-        try {
-            $reports = $this->_settlementFactory->create();
-            /* @var $reports \Magento\Paypal\Model\Report\Settlement */
-            $credentials = $reports->getSftpCredentials();
-            if (empty($credentials)) {
-                throw new \Magento\Model\Exception(__('We found nothing to fetch because of an empty configuration.'));
-            }
-            foreach ($credentials as $config) {
-                try {
-                    $fetched = $reports->fetchAndSave(
-                        \Magento\Paypal\Model\Report\Settlement::createConnection($config)
-                    );
-                    $this->messageManager->addSuccess(
-                        __(
-                            "We fetched %1 report rows from '%2@%3'.",
-                            $fetched,
-                            $config['username'],
-                            $config['hostname']
-                        )
-                    );
-                } catch (\Exception $e) {
-                    $this->messageManager->addError(
-                        __("We couldn't fetch reports from '%1@%2'.", $config['username'], $config['hostname'])
-                    );
-                    $this->_logger->logException($e);
-                }
-            }
-        } catch (\Magento\Model\Exception $e) {
-            $this->messageManager->addError($e->getMessage());
-        } catch (\Exception $e) {
-            $this->_logger->logException($e);
-        }
-        $this->_redirect('adminhtml/*/index');
     }
 
     /**

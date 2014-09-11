@@ -23,8 +23,26 @@
  */
 namespace Magento\Webapi\Service\Entity;
 
-class WebapiObjectManager implements \Magento\ObjectManager
+class WebapiObjectManager implements \Magento\Framework\ObjectManager
 {
+    /**
+     * @var array
+     */
+    private $configuration;
+
+    /**
+     * @var \Magento\TestFramework\Helper\ObjectManager
+     */
+    protected $factory;
+
+    /**
+     * @param \Magento\TestFramework\Helper\ObjectManager $factory
+     */
+    public function __construct(\Magento\TestFramework\Helper\ObjectManager $factory)
+    {
+        $this->factory = $factory;
+    }
+
     /**
      * Create new object instance
      *
@@ -34,7 +52,7 @@ class WebapiObjectManager implements \Magento\ObjectManager
      */
     public function create($type, array $arguments = array())
     {
-        return new $type($arguments);
+        return $this->factory->getObject($type, $arguments);
     }
 
     /**
@@ -45,7 +63,7 @@ class WebapiObjectManager implements \Magento\ObjectManager
      */
     public function get($type)
     {
-        return new $type();
+        return $this->factory->getObject($type);
     }
 
     /**
@@ -56,6 +74,6 @@ class WebapiObjectManager implements \Magento\ObjectManager
      */
     public function configure(array $configuration)
     {
-        return $configuration;
+        $this->configuration = $configuration;
     }
 }

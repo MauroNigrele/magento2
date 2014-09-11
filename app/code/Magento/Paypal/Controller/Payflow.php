@@ -26,7 +26,7 @@ namespace Magento\Paypal\Controller;
 /**
  * Payflow Checkout Controller
  */
-class Payflow extends \Magento\App\Action\Action
+class Payflow extends \Magento\Framework\App\Action\Action
 {
     /**
      * @var \Magento\Checkout\Model\Session
@@ -39,7 +39,7 @@ class Payflow extends \Magento\App\Action\Action
     protected $_orderFactory;
 
     /**
-     * @var \Magento\Logger
+     * @var \Magento\Framework\Logger
      */
     protected $_logger;
 
@@ -60,20 +60,20 @@ class Payflow extends \Magento\App\Action\Action
     protected $_redirectBlockName = 'payflow.link.iframe';
 
     /**
-     * @param \Magento\App\Action\Context $context
+     * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Checkout\Model\Session $checkoutSession
      * @param \Magento\Sales\Model\OrderFactory $orderFactory
      * @param \Magento\Paypal\Model\PayflowlinkFactory $payflowModelFactory
      * @param \Magento\Paypal\Helper\Checkout $checkoutHelper
-     * @param \Magento\Logger $logger
+     * @param \Magento\Framework\Logger $logger
      */
     public function __construct(
-        \Magento\App\Action\Context $context,
+        \Magento\Framework\App\Action\Context $context,
         \Magento\Checkout\Model\Session $checkoutSession,
         \Magento\Sales\Model\OrderFactory $orderFactory,
         \Magento\Paypal\Model\PayflowlinkFactory $payflowModelFactory,
         \Magento\Paypal\Helper\Checkout $checkoutHelper,
-        \Magento\Logger $logger
+        \Magento\Framework\Logger $logger
     ) {
         $this->_checkoutSession = $checkoutSession;
         $this->_orderFactory = $orderFactory;
@@ -81,82 +81,6 @@ class Payflow extends \Magento\App\Action\Action
         $this->_payflowModelFactory = $payflowModelFactory;
         $this->_checkoutHelper = $checkoutHelper;
         parent::__construct($context);
-    }
-
-    /**
-     * When a customer cancel payment from payflow gateway.
-     *
-     * @return void
-     */
-    public function cancelPaymentAction()
-    {
-        $this->_view->loadLayout(false);
-        $gotoSection = $this->_cancelPayment();
-        $redirectBlock = $this->_view->getLayout()->getBlock($this->_redirectBlockName);
-        $redirectBlock->setGotoSection($gotoSection);
-        $this->_view->renderLayout();
-    }
-
-    /**
-     * When a customer return to website from payflow gateway.
-     *
-     * @return void
-     */
-    public function returnUrlAction()
-    {
-        $this->_view->loadLayout(false);
-        $redirectBlock = $this->_view->getLayout()->getBlock($this->_redirectBlockName);
-
-        if ($this->_checkoutSession->getLastRealOrderId()) {
-            $order = $this->_orderFactory->create()->loadByIncrementId($this->_checkoutSession->getLastRealOrderId());
-
-            if ($order && $order->getIncrementId() == $this->_checkoutSession->getLastRealOrderId()) {
-                $allowedOrderStates = array(
-                    \Magento\Sales\Model\Order::STATE_PROCESSING,
-                    \Magento\Sales\Model\Order::STATE_COMPLETE
-                );
-                if (in_array($order->getState(), $allowedOrderStates)) {
-                    $this->_checkoutSession->unsLastRealOrderId();
-                    $redirectBlock->setGotoSuccessPage(true);
-                } else {
-                    $gotoSection = $this->_cancelPayment(strval($this->getRequest()->getParam('RESPMSG')));
-                    $redirectBlock->setGotoSection($gotoSection);
-                    $redirectBlock->setErrorMsg(__('Your payment has been declined. Please try again.'));
-                }
-            }
-        }
-
-        $this->_view->renderLayout();
-    }
-
-    /**
-     * Submit transaction to Payflow getaway into iframe
-     *
-     * @return void
-     */
-    public function formAction()
-    {
-        $this->_view->loadLayout(false)->renderLayout();
-        $layout = $this->_view->getLayout();
-    }
-
-    /**
-     * Get response from PayPal by silent post method
-     *
-     * @return void
-     */
-    public function silentPostAction()
-    {
-        $data = $this->getRequest()->getPost();
-        if (isset($data['INVNUM'])) {
-            /** @var $paymentModel \Magento\Paypal\Model\Payflowlink */
-            $paymentModel = $this->_payflowModelFactory->create();
-            try {
-                $paymentModel->process($data);
-            } catch (\Exception $e) {
-                $this->_logger->logException($e);
-            }
-        }
     }
 
     /**

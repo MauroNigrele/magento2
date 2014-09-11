@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Cms
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,15 +26,26 @@ namespace Magento\Cms\Model\Wysiwyg;
 /**
  * Wysiwyg Config for Editor HTML Element
  */
-class Config extends \Magento\Object
+class Config extends \Magento\Framework\Object
 {
     /**
-     * Wysiwyg behaviour
+     * Wysiwyg status enabled
      */
     const WYSIWYG_ENABLED = 'enabled';
 
+    /**
+     * Wysiwyg status configuration path
+     */
+    const WYSIWYG_STATUS_CONFIG_PATH = 'cms/wysiwyg/enabled';
+
+    /**
+     * Wysiwyg status hidden
+     */
     const WYSIWYG_HIDDEN = 'hidden';
 
+    /**
+     * Wysiwyg status disabled
+     */
     const WYSIWYG_DISABLED = 'disabled';
 
     /**
@@ -45,14 +54,14 @@ class Config extends \Magento\Object
     const IMAGE_DIRECTORY = 'wysiwyg';
 
     /**
-     * @var \Magento\AuthorizationInterface
+     * @var \Magento\Framework\AuthorizationInterface
      */
     protected $_authorization;
 
     /**
-     * @var \Magento\View\Url
+     * @var \Magento\Framework\View\Asset\Repository
      */
-    protected $_viewUrl;
+    protected $_assetRepo;
 
     /**
      * @var \Magento\Core\Model\Variable\Config
@@ -65,25 +74,18 @@ class Config extends \Magento\Object
     protected $_widgetConfig;
 
     /**
-     * Cms data
-     *
-     * @var \Magento\Cms\Helper\Data
-     */
-    protected $_cmsData;
-
-    /**
      * Core event manager proxy
      *
-     * @var \Magento\Event\ManagerInterface
+     * @var \Magento\Framework\Event\ManagerInterface
      */
     protected $_eventManager;
 
     /**
      * Core store config
      *
-     * @var \Magento\Core\Model\Store\ConfigInterface
+     * @var \Magento\Framework\App\Config\ScopeConfigInterface
      */
-    protected $_coreStoreConfig;
+    protected $_scopeConfig;
 
     /**
      * @var array
@@ -97,34 +99,31 @@ class Config extends \Magento\Object
 
     /**
      * @param \Magento\Backend\Model\UrlInterface $backendUrl
-     * @param \Magento\Event\ManagerInterface $eventManager
-     * @param \Magento\Cms\Helper\Data $cmsData
-     * @param \Magento\AuthorizationInterface $authorization
-     * @param \Magento\View\Url $viewUrl
+     * @param \Magento\Framework\Event\ManagerInterface $eventManager
+     * @param \Magento\Framework\AuthorizationInterface $authorization
+     * @param \Magento\Framework\View\Asset\Repository $assetRepo
      * @param \Magento\Core\Model\Variable\Config $variableConfig
      * @param \Magento\Widget\Model\Widget\Config $widgetConfig
-     * @param \Magento\Core\Model\Store\ConfigInterface $coreStoreConfig
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param array $windowSize
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Model\UrlInterface $backendUrl,
-        \Magento\Event\ManagerInterface $eventManager,
-        \Magento\Cms\Helper\Data $cmsData,
-        \Magento\AuthorizationInterface $authorization,
-        \Magento\View\Url $viewUrl,
+        \Magento\Framework\Event\ManagerInterface $eventManager,
+        \Magento\Framework\AuthorizationInterface $authorization,
+        \Magento\Framework\View\Asset\Repository $assetRepo,
         \Magento\Core\Model\Variable\Config $variableConfig,
         \Magento\Widget\Model\Widget\Config $widgetConfig,
-        \Magento\Core\Model\Store\ConfigInterface $coreStoreConfig,
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         array $windowSize = array(),
         array $data = array()
     ) {
         $this->_backendUrl = $backendUrl;
         $this->_eventManager = $eventManager;
-        $this->_cmsData = $cmsData;
-        $this->_coreStoreConfig = $coreStoreConfig;
+        $this->_scopeConfig = $scopeConfig;
         $this->_authorization = $authorization;
-        $this->_viewUrl = $viewUrl;
+        $this->_assetRepo = $assetRepo;
         $this->_variableConfig = $variableConfig;
         $this->_widgetConfig = $widgetConfig;
         $this->_windowSize = $windowSize;
@@ -132,7 +131,7 @@ class Config extends \Magento\Object
     }
 
     /**
-     * Return Wysiwyg config as \Magento\Object
+     * Return Wysiwyg config as \Magento\Framework\Object
      *
      * Config options description:
      *
@@ -144,12 +143,12 @@ class Config extends \Magento\Object
      * files_browser_*:         Files Browser (media, images) settings
      * encode_directives:       Encode template directives with JS or not
      *
-     * @param array|\Magento\Object $data \Magento\Object constructor params to override default config values
-     * @return \Magento\Object
+     * @param array|\Magento\Framework\Object $data Object constructor params to override default config values
+     * @return \Magento\Framework\Object
      */
     public function getConfig($data = array())
     {
-        $config = new \Magento\Object();
+        $config = new \Magento\Framework\Object();
 
         $config->setData(
             array(
@@ -159,13 +158,12 @@ class Config extends \Magento\Object
                 'add_variables' => true,
                 'add_widgets' => true,
                 'no_display' => false,
-                'translator' => $this->_cmsData,
                 'encode_directives' => true,
                 'directives_url' => $this->_backendUrl->getUrl('cms/wysiwyg/directive'),
-                'popup_css' => $this->_viewUrl->getViewFileUrl(
+                'popup_css' => $this->_assetRepo->getUrl(
                     'mage/adminhtml/wysiwyg/tiny_mce/themes/advanced/skins/default/dialog.css'
                 ),
-                'content_css' => $this->_viewUrl->getViewFileUrl(
+                'content_css' => $this->_assetRepo->getUrl(
                     'mage/adminhtml/wysiwyg/tiny_mce/themes/advanced/skins/default/content.css'
                 ),
                 'width' => '100%',
@@ -210,7 +208,7 @@ class Config extends \Magento\Object
      */
     public function getSkinImagePlaceholderUrl()
     {
-        return $this->_viewUrl->getViewFileUrl('Magento_Cms::images/wysiwyg_skin_image.png');
+        return $this->_assetRepo->getUrl('Magento_Cms::images/wysiwyg_skin_image.png');
     }
 
     /**
@@ -220,7 +218,11 @@ class Config extends \Magento\Object
      */
     public function isEnabled()
     {
-        $wysiwygState = $this->_coreStoreConfig->getConfig('cms/wysiwyg/enabled', $this->getStoreId());
+        $wysiwygState = $this->_scopeConfig->getValue(
+            self::WYSIWYG_STATUS_CONFIG_PATH,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $this->getStoreId()
+        );
         return in_array($wysiwygState, array(self::WYSIWYG_ENABLED, self::WYSIWYG_HIDDEN));
     }
 
@@ -231,6 +233,10 @@ class Config extends \Magento\Object
      */
     public function isHidden()
     {
-        return $this->_coreStoreConfig->getConfig('cms/wysiwyg/enabled') == self::WYSIWYG_HIDDEN;
+        $status = $this->_scopeConfig->getValue(
+            self::WYSIWYG_STATUS_CONFIG_PATH,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+        );
+        return $status == self::WYSIWYG_HIDDEN;
     }
 }

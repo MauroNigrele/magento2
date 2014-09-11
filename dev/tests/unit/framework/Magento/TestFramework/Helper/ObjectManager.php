@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     unit_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -37,8 +35,8 @@ class ObjectManager
      * @var array
      */
     protected $_specialCases = array(
-        'Magento\Model\Resource\AbstractResource' => '_getResourceModelMock',
-        'Magento\TranslateInterface' => '_getTranslatorMock',
+        'Magento\Framework\Model\Resource\AbstractResource' => '_getResourceModelMock',
+        'Magento\Framework\TranslateInterface' => '_getTranslatorMock',
     );
 
     /**
@@ -88,7 +86,7 @@ class ObjectManager
     {
         $object = null;
         $interfaces = class_implements($className);
-        if (in_array('Magento\ObjectManager\ContextInterface', $interfaces)) {
+        if (in_array('Magento\Framework\ObjectManager\ContextInterface', $interfaces)) {
             $object = $this->getObject($className, $arguments);
         } elseif (isset($this->_specialCases[$className])) {
             $method = $this->_specialCases[$className];
@@ -101,12 +99,12 @@ class ObjectManager
     /**
      * Retrieve specific mock of core resource model
      *
-     * @return \Magento\Core\Model\Resource\Resource|\PHPUnit_Framework_MockObject_MockObject
+     * @return \Magento\Framework\Module\ResourceInterface|\PHPUnit_Framework_MockObject_MockObject
      */
     protected function _getResourceModelMock()
     {
         $resourceMock = $this->_testObject->getMock(
-            'Magento\Core\Model\Resource\Resource',
+            'Magento\Install\Model\Resource\Resource',
             array('getIdFieldName', '__sleep', '__wakeup'),
             array(),
             '',
@@ -127,7 +125,7 @@ class ObjectManager
      * Retrieve mock of core translator model
      *
      * @param string $className
-     * @return \Magento\TranslateInterface|\PHPUnit_Framework_MockObject_MockObject
+     * @return \Magento\Framework\TranslateInterface|\PHPUnit_Framework_MockObject_MockObject
      */
     protected function _getTranslatorMock($className)
     {
@@ -172,9 +170,50 @@ class ObjectManager
      */
     public function getObject($className, array $arguments = array())
     {
+        if (is_subclass_of($className, '\Magento\Framework\Service\Data\AbstractSimpleObjectBuilder')) {
+            return $this->getBuilder($className, $arguments);
+        }
         $constructArguments = $this->getConstructArguments($className, $arguments);
         $reflectionClass = new \ReflectionClass($className);
         return $reflectionClass->newInstanceArgs($constructArguments);
+    }
+
+    /**
+     * Get data object builder
+     *
+     * @param string $className
+     * @param array $arguments
+     * @return object
+     */
+    protected function getBuilder($className, array $arguments)
+    {
+        $objectFactory = $this->_testObject->getMock('Magento\Framework\Service\Data\ObjectFactory', [], [], '', false);
+
+        if (!isset($arguments['objectFactory'])) {
+            $arguments['objectFactory'] = $objectFactory;
+        }
+
+
+        $constructArguments = $this->getConstructArguments($className, $arguments);
+        $reflectionClass = new \ReflectionClass($className);
+        $builderObject = $reflectionClass->newInstanceArgs($constructArguments);
+
+        $objectFactory->expects($this->_testObject->any())
+            ->method('populateWithArray')
+            ->will($this->_testObject->returnSelf());
+        $objectFactory->expects($this->_testObject->any())
+            ->method('populate')
+            ->will($this->_testObject->returnSelf());
+        $objectFactory->expects($this->_testObject->any())
+            ->method('create')
+            ->will($this->_testObject->returnCallback(
+                function ($className, $arguments) {
+                    $reflectionClass = new \ReflectionClass($className);
+                    return $reflectionClass->newInstanceArgs($arguments);
+                }
+            ));
+
+        return $builderObject;
     }
 
     /**
@@ -197,7 +236,7 @@ class ObjectManager
             $argClassName = null;
             $defaultValue = null;
 
-            if (isset($arguments[$parameterName])) {
+            if (array_key_exists($parameterName, $arguments)) {
                 $constructArguments[$parameterName] = $arguments[$parameterName];
                 continue;
             }
@@ -210,7 +249,7 @@ class ObjectManager
                 if ($parameter->getClass()) {
                     $argClassName = $parameter->getClass()->getName();
                 }
-                $object = $this->_createArgumentMock($argClassName, $arguments);
+                $object = $this->_getMockObject($argClassName, $arguments);
             } catch (\ReflectionException $e) {
                 $parameterString = $parameter->__toString();
                 $firstPosition = strpos($parameterString, '<required>');
@@ -236,8 +275,10 @@ class ObjectManager
      */
     public function getCollectionMock($className, array $data)
     {
-        if (!is_subclass_of($className, '\Magento\Data\Collection')) {
-            throw new \InvalidArgumentException($className . ' does not instance of \Magento\Data\Collection');
+        if (!is_subclass_of($className, '\Magento\Framework\Data\Collection')) {
+            throw new \InvalidArgumentException(
+                $className . ' does not instance of \Magento\Framework\Data\Collection'
+            );
         }
         $mock = $this->_testObject->getMock($className, array(), array(), '', false, false);
         $iterator = new \ArrayIterator($data);
@@ -249,5 +290,25 @@ class ObjectManager
             $this->_testObject->returnValue($iterator)
         );
         return $mock;
+    }
+
+    /**
+     * Helper function that creates a mock object for a given class name.
+     *
+     * Will return a real object in some cases to assist in testing.
+     *
+     * @param string $argClassName
+     * @param array $arguments
+     * @return null|object|\PHPUnit_Framework_MockObject_MockObject
+     */
+    private function _getMockObject($argClassName, array $arguments)
+    {
+        if (is_subclass_of($argClassName, '\Magento\Framework\Service\Data\AbstractExtensibleObjectBuilder')) {
+            $object = $this->getBuilder($argClassName, $arguments);
+            return $object;
+        } else {
+            $object = $this->_createArgumentMock($argClassName, $arguments);
+            return $object;
+        }
     }
 }

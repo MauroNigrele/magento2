@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Rss
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,8 +26,6 @@ namespace Magento\Rss\Model;
 /**
  * Auth session model
  *
- * @category   Magento
- * @package    Magento_Rss
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 class Rss
@@ -42,6 +38,7 @@ class Rss
     /**
      * @param array $data
      * @return $this
+     * @codeCoverageIgnore
      */
     public function _addHeader($data = array())
     {
@@ -52,6 +49,7 @@ class Rss
     /**
      * @param array $entries
      * @return $this
+     * @codeCoverageIgnore
      */
     public function _addEntries($entries)
     {
@@ -62,6 +60,7 @@ class Rss
     /**
      * @param array $entry
      * @return $this
+     * @codeCoverageIgnore
      */
     public function _addEntry($entry)
     {
@@ -71,6 +70,7 @@ class Rss
 
     /**
      * @return array
+     * @codeCoverageIgnore
      */
     public function getFeedArray()
     {

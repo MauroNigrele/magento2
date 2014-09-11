@@ -18,13 +18,44 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Tax
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 /** @var $installer \Magento\Tax\Model\Resource\Setup */
 $installer = $this;
+
+/**
+ * Add tax_class_id attribute to the 'eav_attribute' table
+ */
+$catalogInstaller = $installer->getCatalogResourceSetup(array('resourceName' => 'catalog_setup'));
+$catalogInstaller->addAttribute(
+    \Magento\Catalog\Model\Product::ENTITY,
+    'tax_class_id',
+    array(
+        'group' => 'Prices',
+        'type' => 'int',
+        'backend' => '',
+        'frontend' => '',
+        'label' => 'Tax Class',
+        'input' => 'select',
+        'class' => '',
+        'source' => 'Magento\Tax\Model\TaxClass\Source\Product',
+        'global' => \Magento\Catalog\Model\Resource\Eav\Attribute::SCOPE_WEBSITE,
+        'visible' => true,
+        'required' => true,
+        'user_defined' => false,
+        'default' => '',
+        'searchable' => true,
+        'filterable' => false,
+        'comparable' => false,
+        'visible_on_front' => false,
+        'visible_in_advanced_search' => true,
+        'used_in_product_listing' => true,
+        'unique' => false,
+        'apply_to' => implode($this->getTaxableItems(), ',')
+    )
+);
+
 /**
  * install tax classes
  */

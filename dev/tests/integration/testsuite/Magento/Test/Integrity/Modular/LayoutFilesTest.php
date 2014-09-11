@@ -26,19 +26,19 @@ namespace Magento\Test\Integrity\Modular;
 class LayoutFilesTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var \Magento\View\Layout\Argument\Parser
+     * @var \Magento\Framework\View\Layout\Argument\Parser
      */
     protected $_argParser;
 
     /**
-     * @var \Magento\Data\Argument\InterpreterInterface
+     * @var \Magento\Framework\Data\Argument\InterpreterInterface
      */
     protected $_argInterpreter;
 
     protected function setUp()
     {
         $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
-        $this->_argParser = $objectManager->get('Magento\View\Layout\Argument\Parser');
+        $this->_argParser = $objectManager->get('Magento\Framework\View\Layout\Argument\Parser');
         $this->_argInterpreter = $objectManager->get('layoutArgumentInterpreter');
     }
 
@@ -62,7 +62,7 @@ class LayoutFilesTest extends \PHPUnit_Framework_TestCase
                     continue;
                 }
                 $this->_argInterpreter->evaluate($argumentData);
-            } catch (\Magento\Data\Argument\MissingOptionalValueException $e) {
+            } catch (\Magento\Framework\Data\Argument\MissingOptionalValueException $e) {
                 // Argument value is missing in the testing environment, but it's optional, so no big deal
             } catch (\Exception $e) {
                 $this->fail($e->getMessage());
@@ -75,12 +75,12 @@ class LayoutFilesTest extends \PHPUnit_Framework_TestCase
      */
     public function layoutArgumentsDataProvider()
     {
-        $areas = array('adminhtml', 'frontend', 'install', 'email');
-        $data = array();
+        $areas = ['adminhtml', 'frontend', 'install', 'email'];
+        $data = [];
         foreach ($areas as $area) {
-            $layoutFiles = \Magento\TestFramework\Utility\Files::init()->getLayoutFiles(array('area' => $area), false);
+            $layoutFiles = \Magento\TestFramework\Utility\Files::init()->getLayoutFiles(['area' => $area], false);
             foreach ($layoutFiles as $layoutFile) {
-                $data[$layoutFile] = array($area, $layoutFile);
+                $data[substr($layoutFile, strlen(BP))] = [$area, $layoutFile];
             }
         }
         return $data;
@@ -119,6 +119,7 @@ class LayoutFilesTest extends \PHPUnit_Framework_TestCase
                 'value' => 'Magento\CustomerSegment\Model\Resource\Segment\Report\Detail\Collection'
             ),
             array($typeAttr => 'helper', 'helper' => 'Magento\Pbridge\Helper\Data::getReviewButtonTemplate'),
+            array($typeAttr => 'helper', 'helper' => 'Magento\Pbridge\Helper\Data::getContinueButtonTemplate'),
             array($typeAttr => 'options', 'model' => 'Magento\Search\Model\Adminhtml\Search\Grid\Options'),
             array($typeAttr => 'options', 'model' => 'Magento\Logging\Model\Resource\Grid\ActionsGroup'),
             array($typeAttr => 'options', 'model' => 'Magento\Logging\Model\Resource\Grid\Actions')

@@ -19,8 +19,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Backend
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
@@ -57,6 +55,11 @@
                 </input_types>
             </validator_data>
         </general>
+        <web>
+            <seo>
+                <use_rewrites>0</use_rewrites>
+            </seo>
+        </web>
     </default>
     <stores>
         <admin>

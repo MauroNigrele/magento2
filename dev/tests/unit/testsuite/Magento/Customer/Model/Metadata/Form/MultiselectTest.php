@@ -68,7 +68,7 @@ class MultiselectTest extends AbstractFormTestCase
         )->getMock();
         $multiselect->expects($this->once())->method('_getRequestValue')->will($this->returnValue($value));
 
-        $request = $this->getMockBuilder('Magento\App\RequestInterface')->getMock();
+        $request = $this->getMockBuilder('Magento\Framework\App\RequestInterface')->getMock();
         $actual = $multiselect->extractValue($request);
         $this->assertEquals($expected, $actual);
     }
@@ -204,6 +204,8 @@ class MultiselectTest extends AbstractFormTestCase
      */
     protected function runOutputValueTest($value, $expected, $format)
     {
+        $helper = new \Magento\TestFramework\Helper\ObjectManager($this);
+
         $this->attributeMetadataMock->expects(
             $this->any()
         )->method(
@@ -211,8 +213,10 @@ class MultiselectTest extends AbstractFormTestCase
         )->will(
             $this->returnValue(
                 array(
-                    (new OptionBuilder())->setValue('14')->setLabel('fourteen')->create(),
-                    (new OptionBuilder())->setValue('some key')->setLabel('some string')->create()
+                    $helper->getObject('\Magento\Customer\Service\V1\Data\Eav\OptionBuilder')
+                        ->setValue('14')->setLabel('fourteen')->create(),
+                    $helper->getObject('\Magento\Customer\Service\V1\Data\Eav\OptionBuilder')
+                        ->setValue('some key')->setLabel('some string')->create()
                 )
             )
         );

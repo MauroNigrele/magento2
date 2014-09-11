@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -27,13 +25,11 @@
 /**
  * Catalog product media gallery attribute backend model
  *
- * @category   Magento
- * @package    Magento_Catalog
  * @author     Magento Core Team <core@magentocommerce.com>
  */
 namespace Magento\Catalog\Model\Product\Attribute\Backend;
 
-use Magento\Model\Exception;
+use Magento\Framework\Model\Exception;
 
 class Media extends \Magento\Eav\Model\Entity\Attribute\Backend\AbstractBackend
 {
@@ -55,7 +51,7 @@ class Media extends \Magento\Eav\Model\Entity\Attribute\Backend\AbstractBackend
     protected $_mediaConfig;
 
     /**
-     * @var \Magento\Filesystem\Directory\WriteInterface
+     * @var \Magento\Framework\Filesystem\Directory\WriteInterface
      */
     protected $_mediaDirectory;
 
@@ -76,7 +72,7 @@ class Media extends \Magento\Eav\Model\Entity\Attribute\Backend\AbstractBackend
     /**
      * Core event manager proxy
      *
-     * @var \Magento\Event\ManagerInterface
+     * @var \Magento\Framework\Event\ManagerInterface
      */
     protected $_eventManager = null;
 
@@ -90,23 +86,23 @@ class Media extends \Magento\Eav\Model\Entity\Attribute\Backend\AbstractBackend
     /**
      * Construct
      *
-     * @param \Magento\Logger $logger
+     * @param \Magento\Framework\Logger $logger
      * @param \Magento\Catalog\Model\Resource\ProductFactory $productFactory
-     * @param \Magento\Event\ManagerInterface $eventManager
+     * @param \Magento\Framework\Event\ManagerInterface $eventManager
      * @param \Magento\Core\Helper\File\Storage\Database $fileStorageDb
      * @param \Magento\Core\Helper\Data $coreData
      * @param \Magento\Catalog\Model\Product\Media\Config $mediaConfig
-     * @param \Magento\App\Filesystem $filesystem
+     * @param \Magento\Framework\App\Filesystem $filesystem
      * @param \Magento\Catalog\Model\Resource\Product\Attribute\Backend\Media $resourceProductAttribute
      */
     public function __construct(
-        \Magento\Logger $logger,
+        \Magento\Framework\Logger $logger,
         \Magento\Catalog\Model\Resource\ProductFactory $productFactory,
-        \Magento\Event\ManagerInterface $eventManager,
+        \Magento\Framework\Event\ManagerInterface $eventManager,
         \Magento\Core\Helper\File\Storage\Database $fileStorageDb,
         \Magento\Core\Helper\Data $coreData,
         \Magento\Catalog\Model\Product\Media\Config $mediaConfig,
-        \Magento\App\Filesystem $filesystem,
+        \Magento\Framework\App\Filesystem $filesystem,
         \Magento\Catalog\Model\Resource\Product\Attribute\Backend\Media $resourceProductAttribute
     ) {
         $this->_productFactory = $productFactory;
@@ -115,7 +111,7 @@ class Media extends \Magento\Eav\Model\Entity\Attribute\Backend\AbstractBackend
         $this->_coreData = $coreData;
         $this->_resourceModel = $resourceProductAttribute;
         $this->_mediaConfig = $mediaConfig;
-        $this->_mediaDirectory = $filesystem->getDirectoryWrite(\Magento\App\Filesystem::MEDIA_DIR);
+        $this->_mediaDirectory = $filesystem->getDirectoryWrite(\Magento\Framework\App\Filesystem::MEDIA_DIR);
 
         $this->_mediaDirectory->create($this->_mediaConfig->getBaseMediaPath());
         $this->_mediaDirectory->create($this->_mediaConfig->getBaseTmpMediaPath());
@@ -176,9 +172,7 @@ class Media extends \Magento\Eav\Model\Entity\Attribute\Backend\AbstractBackend
         if ($this->getAttribute()->getIsRequired()) {
             $value = $object->getData($this->getAttribute()->getAttributeCode());
             if ($this->getAttribute()->isValueEmpty($value)) {
-                if (!(is_array($value) && count($value) > 0)) {
-                    return false;
-                }
+                return false;
             }
         }
         if ($this->getAttribute()->getIsUnique()) {
@@ -192,7 +186,7 @@ class Media extends \Magento\Eav\Model\Entity\Attribute\Backend\AbstractBackend
     }
 
     /**
-     * @param \Magento\Object $object
+     * @param \Magento\Framework\Object $object
      * @return $this|void
      */
     public function beforeSave($object)
@@ -282,7 +276,7 @@ class Media extends \Magento\Eav\Model\Entity\Attribute\Backend\AbstractBackend
     }
 
     /**
-     * @param \Magento\Object $object
+     * @param \Magento\Framework\Object $object
      * @return void
      */
     public function afterSave($object)
@@ -301,7 +295,7 @@ class Media extends \Magento\Eav\Model\Entity\Attribute\Backend\AbstractBackend
         $storeId = $object->getStoreId();
 
         $storeIds = $object->getStoreIds();
-        $storeIds[] = \Magento\Core\Model\Store::DEFAULT_STORE_ID;
+        $storeIds[] = \Magento\Store\Model\Store::DEFAULT_STORE_ID;
 
         // remove current storeId
         $storeIds = array_flip($storeIds);
@@ -315,12 +309,13 @@ class Media extends \Magento\Eav\Model\Entity\Attribute\Backend\AbstractBackend
             $picturesInOtherStores[$image['filepath']] = true;
         }
 
-        $toDelete = array();
-        $filesToValueIds = array();
+        $recordsToDelete = array();
+        $filesToDelete = array();
         foreach ($value['images'] as &$image) {
             if (!empty($image['removed'])) {
                 if (!empty($image['value_id']) && !isset($picturesInOtherStores[$image['file']])) {
-                    $toDelete[] = $image['value_id'];
+                    $recordsToDelete[] = $image['value_id'];
+                    $filesToDelete[] = ltrim($image['file'], '/');
                 }
                 continue;
             }
@@ -347,18 +342,32 @@ class Media extends \Magento\Eav\Model\Entity\Attribute\Backend\AbstractBackend
             $this->_getResource()->insertGalleryValueInStore($data);
         }
 
-        $this->_getResource()->deleteGallery($toDelete);
+        $this->_getResource()->deleteGallery($recordsToDelete);
+        $this->removeDeletedImages($filesToDelete);
+        $object->setData($attrCode, $value);
+    }
+
+    /**
+     * @param array $files
+     * @return null
+     */
+    protected function removeDeletedImages(array $files)
+    {
+        $catalogPath = $this->_mediaConfig->getBaseMediaPath();
+        foreach ($files as $filePath) {
+            $this->_mediaDirectory->delete($catalogPath . '/' . $filePath);
+        }
     }
 
     /**
      * Add image to media gallery and return new filename
      *
      * @param \Magento\Catalog\Model\Product $product
-     * @param string                     $file              file path of image in file system
-     * @param string|string[]            $mediaAttribute    code of attribute with type 'media_image',
+     * @param string $file file path of image in file system
+     * @param string|string[] $mediaAttribute code of attribute with type 'media_image',
      *                                                      leave blank if image should be only in gallery
-     * @param boolean                    $move              if true, it will move source file
-     * @param boolean                    $exclude           mark image as disabled in product page view
+     * @param boolean $move if true, it will move source file
+     * @param boolean $exclude mark image as disabled in product page view
      * @return string
      * @throws Exception
      */
@@ -724,7 +733,7 @@ class Media extends \Magento\Eav\Model\Entity\Attribute\Backend\AbstractBackend
     }
 
     /**
-     * @param \Magento\Object $object
+     * @param \Magento\Framework\Object $object
      * @return $this
      */
     public function duplicate($object)

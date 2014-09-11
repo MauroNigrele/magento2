@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Captcha
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -84,18 +82,18 @@ class DefaultModel extends \Zend_Captcha_Image implements \Magento\Captcha\Model
     protected $_keepSession = true;
 
     /**
-     * @var \Magento\Session\SessionManagerInterface
+     * @var \Magento\Framework\Session\SessionManagerInterface
      */
     protected $_session;
 
     /**
-     * @param \Magento\Session\SessionManagerInterface $session
+     * @param \Magento\Framework\Session\SessionManagerInterface $session
      * @param \Magento\Captcha\Helper\Data $captchaData
      * @param \Magento\Captcha\Model\Resource\LogFactory $resLogFactory
      * @param string $formId
      */
     public function __construct(
-        \Magento\Session\SessionManagerInterface $session,
+        \Magento\Framework\Session\SessionManagerInterface $session,
         \Magento\Captcha\Helper\Data $captchaData,
         \Magento\Captcha\Model\Resource\LogFactory $resLogFactory,
         $formId
@@ -410,7 +408,7 @@ class DefaultModel extends \Zend_Captcha_Image implements \Magento\Captcha\Model
             $to = self::DEFAULT_WORD_LENGTH_TO;
         }
 
-        return mt_rand($from, $to);
+        return \Magento\Framework\Math\Random::getRandomNumber($from, $to);
     }
 
     /**
@@ -511,7 +509,7 @@ class DefaultModel extends \Zend_Captcha_Image implements \Magento\Captcha\Model
      */
     protected function _randomSize()
     {
-        return mt_rand(280, 300) / 100;
+        return \Magento\Framework\Math\Random::getRandomNumber(280, 300) / 100;
     }
 
     /**

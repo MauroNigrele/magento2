@@ -25,6 +25,8 @@ namespace Magento\PayPalRecurringPayment\Model;
 
 use Exception;
 
+use Magento\Sales\Model\Order\Email\Sender\OrderSender;
+
 /**
  * PayPal Recurring Instant Payment Notification processor model
  */
@@ -43,21 +45,29 @@ class Ipn extends \Magento\Paypal\Model\AbstractIpn implements \Magento\Paypal\M
     protected $_recurringPaymentFactory;
 
     /**
+     * @var OrderSender
+     */
+    protected $orderSender;
+
+    /**
      * @param \Magento\Paypal\Model\ConfigFactory $configFactory
-     * @param \Magento\Logger\AdapterFactory $logAdapterFactory
-     * @param \Magento\HTTP\Adapter\CurlFactory $curlFactory
+     * @param \Magento\Framework\Logger\AdapterFactory $logAdapterFactory
+     * @param \Magento\Framework\HTTP\Adapter\CurlFactory $curlFactory
      * @param \Magento\RecurringPayment\Model\PaymentFactory $recurringPaymentFactory
+     * @param OrderSender $orderSender
      * @param array $data
      */
     public function __construct(
         \Magento\Paypal\Model\ConfigFactory $configFactory,
-        \Magento\Logger\AdapterFactory $logAdapterFactory,
-        \Magento\HTTP\Adapter\CurlFactory $curlFactory,
+        \Magento\Framework\Logger\AdapterFactory $logAdapterFactory,
+        \Magento\Framework\HTTP\Adapter\CurlFactory $curlFactory,
         \Magento\RecurringPayment\Model\PaymentFactory $recurringPaymentFactory,
+        OrderSender $orderSender,
         array $data = array()
     ) {
         parent::__construct($configFactory, $logAdapterFactory, $curlFactory, $data);
         $this->_recurringPaymentFactory = $recurringPaymentFactory;
+        $this->orderSender = $orderSender;
     }
 
     /**
@@ -120,7 +130,7 @@ class Ipn extends \Magento\Paypal\Model\AbstractIpn implements \Magento\Paypal\M
      * Process notification from recurring payments
      *
      * @return void
-     * @throws \Magento\Model\Exception
+     * @throws \Magento\Framework\Model\Exception
      * @throws Exception
      */
     protected function _processRecurringPayment()
@@ -140,7 +150,7 @@ class Ipn extends \Magento\Paypal\Model\AbstractIpn implements \Magento\Paypal\M
             ) - $this->getRequestData(
                 'shipping'
             );
-            $productItemInfo = new \Magento\Object();
+            $productItemInfo = new \Magento\Framework\Object();
             $type = trim($this->getRequestData('period_type'));
             if ($type == 'Trial') {
                 $productItemInfo->setPaymentType(\Magento\RecurringPayment\Model\PaymentTypeInterface::TRIAL);
@@ -171,9 +181,10 @@ class Ipn extends \Magento\Paypal\Model\AbstractIpn implements \Magento\Paypal\M
             $invoice = $payment->getCreatedInvoice();
             if ($invoice) {
                 $message = __('You notified customer about invoice #%1.', $invoice->getIncrementId());
-                $order->sendNewOrderEmail()->addStatusHistoryComment($message)->setIsCustomerNotified(true)->save();
+                $this->orderSender->send($order);
+                $order->addStatusHistoryComment($message)->setIsCustomerNotified(true)->save();
             }
-        } catch (\Magento\Model\Exception $e) {
+        } catch (\Magento\Framework\Model\Exception $e) {
             $comment = $this->_createIpnComment(__('Note: %1', $e->getMessage()), true);
             //TODO: add to payment comments
             //$comment->save();

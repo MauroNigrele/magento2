@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Cms
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -32,8 +30,8 @@ namespace Magento\Cms\Model;
  * @method \Magento\Cms\Model\Resource\Page getResource()
  * @method string getTitle()
  * @method \Magento\Cms\Model\Page setTitle(string $value)
- * @method string getRootTemplate()
- * @method \Magento\Cms\Model\Page setRootTemplate(string $value)
+ * @method string getPageLayout()
+ * @method \Magento\Cms\Model\Page setPageLayout(string $value)
  * @method string getMetaKeywords()
  * @method \Magento\Cms\Model\Page setMetaKeywords(string $value)
  * @method string getMetaDescription()
@@ -56,8 +54,8 @@ namespace Magento\Cms\Model;
  * @method \Magento\Cms\Model\Page setLayoutUpdateXml(string $value)
  * @method string getCustomTheme()
  * @method \Magento\Cms\Model\Page setCustomTheme(string $value)
- * @method string getCustomRootTemplate()
- * @method \Magento\Cms\Model\Page setCustomRootTemplate(string $value)
+ * @method string getCustomPageLayout()
+ * @method \Magento\Cms\Model\Page setCustomPageLayout(string $value)
  * @method string getCustomLayoutUpdateXml()
  * @method \Magento\Cms\Model\Page setCustomLayoutUpdateXml(string $value)
  * @method string getCustomThemeFrom()
@@ -65,20 +63,23 @@ namespace Magento\Cms\Model;
  * @method string getCustomThemeTo()
  * @method \Magento\Cms\Model\Page setCustomThemeTo(string $value)
  */
-class Page extends \Magento\Model\AbstractModel implements \Magento\Object\IdentityInterface
+class Page extends \Magento\Framework\Model\AbstractModel implements \Magento\Framework\Object\IdentityInterface
 {
     /**
      * No route page id
      */
     const NOROUTE_PAGE_ID = 'no-route';
 
-    /**
+    /**#@+
      * Page's Statuses
      */
     const STATUS_ENABLED = 1;
-
     const STATUS_DISABLED = 0;
+    /**#@-*/
 
+    /**
+     * CMS page cache tag
+     */
     const CACHE_TAG = 'cms_page';
 
     /**

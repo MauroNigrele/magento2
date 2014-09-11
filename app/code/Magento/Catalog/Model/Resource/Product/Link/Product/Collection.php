@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,8 +26,6 @@ namespace Magento\Catalog\Model\Resource\Product\Link\Product;
 /**
  * Catalog product linked products collection
  *
- * @category    Magento
- * @package     Magento_Catalog
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 class Collection extends \Magento\Catalog\Model\Resource\Product\Collection
@@ -116,6 +112,7 @@ class Collection extends \Magento\Catalog\Model\Resource\Product\Collection
         $this->_product = $product;
         if ($product && $product->getId()) {
             $this->_hasLinkFilter = true;
+            $this->setStore($product->getStore());
         }
         return $this;
     }
@@ -283,10 +280,8 @@ class Collection extends \Magento\Catalog\Model\Resource\Product\Collection
         if (!$this->getLinkModel()) {
             return $this;
         }
-        $attributes = $this->getLinkModel()->getAttributes();
 
-        $attributesByType = array();
-        foreach ($attributes as $attribute) {
+        foreach ($this->getLinkAttributes() as $attribute) {
             $table = $this->getLinkModel()->getAttributeTypeTable($attribute['type']);
             $alias = sprintf('link_attribute_%s_%s', $attribute['code'], $attribute['type']);
 
@@ -321,5 +316,35 @@ class Collection extends \Magento\Catalog\Model\Resource\Product\Collection
             return $this->setAttributeSetIdOrder($dir);
         }
         return parent::setOrder($attribute, $dir);
+    }
+
+    /**
+     * Get attributes of specified link type
+     *
+     * @param int $type
+     * @return array
+     */
+    public function getLinkAttributes($type = null)
+    {
+        return $this->getLinkModel()->getAttributes($type);
+    }
+
+    /**
+     * Add link attribute to filter.
+     *
+     * @param string $code
+     * @param array $condition
+     * @return $this
+     */
+    public function addLinkAttributeToFilter($code, $condition)
+    {
+        foreach ($this->getLinkAttributes() as $attribute) {
+            if ($attribute['code'] == $code) {
+                $alias = sprintf('link_attribute_%s_%s', $code, $attribute['type']);
+                $whereCondition = $this->_getConditionSql($alias.'.`value`', $condition);
+                $this->getSelect()->where($whereCondition);
+            }
+        }
+        return $this;
     }
 }

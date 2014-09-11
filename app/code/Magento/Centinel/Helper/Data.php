@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Centinel
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -31,25 +29,8 @@
  */
 namespace Magento\Centinel\Helper;
 
-class Data extends \Magento\App\Helper\AbstractHelper
+class Data extends \Magento\Framework\App\Helper\AbstractHelper
 {
-    /**
-     * Layout factory
-     *
-     * @var \Magento\View\LayoutInterface
-     */
-    protected $_layout;
-
-    /**
-     * @param \Magento\App\Helper\Context $context
-     * @param \Magento\View\LayoutInterface $layout
-     */
-    public function __construct(\Magento\App\Helper\Context $context, \Magento\View\LayoutInterface $layout)
-    {
-        $this->_layout = $layout;
-        parent::__construct($context);
-    }
-
     /**
      * Return label for cmpi field
      *
@@ -158,19 +139,6 @@ class Data extends \Magento\App\Helper\AbstractHelper
             default:
                 return $value;
         }
-    }
-
-    /**
-     * Return centinel block for payment form with logos
-     *
-     * @param \Magento\Payment\Model\MethodInterface $method
-     * @return \Magento\Centinel\Block\Logo
-     */
-    public function getMethodFormBlock($method)
-    {
-        $block = $this->_layout->createBlock('Magento\Centinel\Block\Logo');
-        $block->setMethod($method);
-        return $block;
     }
 
     /**

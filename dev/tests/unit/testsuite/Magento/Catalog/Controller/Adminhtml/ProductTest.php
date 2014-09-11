@@ -18,32 +18,31 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Catalog
- * @subpackage  unit_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
 namespace Magento\Catalog\Controller\Adminhtml;
 
-class ProductTest extends \PHPUnit_Framework_TestCase
+abstract class ProductTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var \Magento\Catalog\Controller\Adminhtml\Product
+     * @var \PHPUnit_Framework_MockObject_MockObject
      */
-    protected $_controller;
+    protected $context;
 
     /**
-     * @var \Magento\Catalog\Model\Indexer\Product\Price\Processor
+     * @var \Magento\Catalog\Controller\Product
      */
-    protected $_priceProcessor;
+    protected $action;
 
-    public function setUp()
+    /**
+     *  Init context object
+     */
+    protected function initContext()
     {
         $productActionMock = $this->getMock('Magento\Catalog\Model\Product\Action', array(), array(), '', false);
-
         $objectManagerMock = $this->getMockForAbstractClass(
-            '\Magento\ObjectManager',
+            '\Magento\Framework\ObjectManager',
             array(),
             '',
             true,
@@ -51,95 +50,75 @@ class ProductTest extends \PHPUnit_Framework_TestCase
             true,
             array('get')
         );
-
         $objectManagerMock->expects($this->any())->method('get')->will($this->returnValue($productActionMock));
 
-        $this->_priceProcessor = $this->getMock(
-            'Magento\Catalog\Model\Indexer\Product\Price\Processor',
-            array(),
-            array(),
-            '',
-            false
-        );
+        $block = $this->getMockBuilder('\Magento\Framework\View\Element\AbstractBlock')
+            ->disableOriginalConstructor()->getMockForAbstractClass();
+        $layout = $this->getMockBuilder('Magento\Framework\View\Layout\Element\Layout')
+            ->setMethods(['getBlock'])->disableOriginalConstructor()
+            ->getMock();
+        $layout->expects($this->any())->method('getBlock')->will($this->returnValue($block));
+        $view = $this->getMockBuilder('Magento\Framework\App\View')
+            ->setMethods(['loadLayout', 'getLayout', 'renderLayout'])
+            ->disableOriginalConstructor()->getMock();
+        $view->expects($this->any())->method('renderLayout')->will($this->returnSelf());
+        $view->expects($this->any())->method('getLayout')->will($this->returnValue($layout));
+        $view->expects($this->any())->method('loadLayout')->with(array(
+            'popup',
+            'catalog_product_new',
+            'catalog_product_simple'
+        ))->will($this->returnSelf());
 
-        $requestInterfaceMock = $this->getMock('Magento\App\RequestInterface', array(), array(), '', false);
+        $eventManager = $this->getMockBuilder('Magento\Framework\Event\Manager')
+            ->setMethods(['dispatch'])->disableOriginalConstructor()->getMock();
+        $eventManager->expects($this->any())->method('dispatch')->will($this->returnSelf());
+        $title = $this->getMockBuilder('\Magento\Framework\App\Action\Title')
+            ->setMethods(['add'])->disableOriginalConstructor()->getMock();
+        $title->expects($this->any())->method('add')->withAnyParameters()->will($this->returnSelf());
+        $requestInterfaceMock = $this->getMockBuilder('Magento\Framework\App\Request\Http')->setMethods(
+            array('getParam', 'getFullActionName')
+        )->disableOriginalConstructor()->getMock();
 
-        $responseInterfaceMock = $this->getMock('Magento\App\ResponseInterface', array('setRedirect', 'sendResponse'));
+        $responseInterfaceMock = $this->getMockBuilder('Magento\Framework\App\ResponseInterface')->setMethods(
+            array('setRedirect', 'sendResponse')
+        )->getMock();
 
-        $managerInterfaceMock = $this->getMock('Magento\Message\ManagerInterface', array(), array(), '', false);
-
+        $managerInterfaceMock = $this->getMock('Magento\Framework\Message\ManagerInterface');
         $sessionMock = $this->getMock('Magento\Backend\Model\Session', array(), array(), '', false);
-
-        $actionFlagMock = $this->getMock('Magento\App\ActionFlag', array(), array(), '', false);
-
+        $actionFlagMock = $this->getMock('Magento\Framework\App\ActionFlag', array(), array(), '', false);
         $helperDataMock = $this->getMock('Magento\Backend\Helper\Data', array(), array(), '', false);
-
-        $contextMock = $this->getMock(
+        $this->context = $this->getMock(
             'Magento\Backend\App\Action\Context',
             array(
                 'getRequest',
                 'getResponse',
                 'getObjectManager',
+                'getEventManager',
                 'getMessageManager',
                 'getSession',
                 'getActionFlag',
-                'getHelper'
+                'getHelper',
+                'getTitle',
+                'getView'
             ),
             array(),
             '',
             false
         );
 
-        $contextMock->expects($this->any())->method('getRequest')->will($this->returnValue($requestInterfaceMock));
+        $this->context->expects($this->any())->method('getTitle')->will($this->returnValue($title));
+        $this->context->expects($this->any())->method('getEventManager')->will($this->returnValue($eventManager));
+        $this->context->expects($this->any())->method('getView')->will($this->returnValue($view));
+        $this->context->expects($this->any())->method('getRequest')->will($this->returnValue($requestInterfaceMock));
+        $this->context->expects($this->any())->method('getResponse')->will($this->returnValue($responseInterfaceMock));
+        $this->context->expects($this->any())->method('getObjectManager')->will($this->returnValue($objectManagerMock));
 
-        $contextMock->expects($this->any())->method('getResponse')->will($this->returnValue($responseInterfaceMock));
-
-        $contextMock->expects($this->any())->method('getObjectManager')->will($this->returnValue($objectManagerMock));
-
-        $contextMock->expects(
-            $this->any()
-        )->method(
-            'getMessageManager'
-        )->will(
-            $this->returnValue($managerInterfaceMock)
-        );
-
-        $contextMock->expects($this->any())->method('getSession')->will($this->returnValue($sessionMock));
-
-        $contextMock->expects($this->any())->method('getActionFlag')->will($this->returnValue($actionFlagMock));
-
-        $contextMock->expects($this->any())->method('getHelper')->will($this->returnValue($helperDataMock));
-
-        $this->_controller = new \Magento\Catalog\Controller\Adminhtml\Product(
-            $contextMock,
-            $this->getMock('Magento\Registry', array(), array(), '', false),
-            $this->getMock('Magento\Stdlib\DateTime\Filter\Date', array(), array(), '', false),
-            $this->getMock(
-                'Magento\Catalog\Controller\Adminhtml\Product\Initialization\Helper',
-                array(),
-                array(),
-                '',
-                false
-            ),
-            $this->getMock(
-                'Magento\Catalog\Controller\Adminhtml\Product\Initialization\StockDataFilter',
-                array(),
-                array(),
-                '',
-                false
-            ),
-            $this->getMock('Magento\Catalog\Model\Product\Copier', array(), array(), '', false),
-            $this->getMock('Magento\Catalog\Controller\Adminhtml\Product\Builder', array(), array(), '', false),
-            $this->getMock('Magento\Catalog\Model\Product\Validator', array(), array(), '', false),
-            $this->getMock('Magento\Catalog\Model\Product\TypeTransitionManager', array(), array(), '', false),
-            $this->_priceProcessor
-        );
-    }
-
-    public function testMassStatusAction()
-    {
-        $this->_priceProcessor->expects($this->once())->method('reindexList');
-
-        $this->_controller->massStatusAction();
+        $this->context->expects($this->any())
+            ->method('getMessageManager')
+            ->will($this->returnValue($managerInterfaceMock));
+        $this->context->expects($this->any())->method('getSession')->will($this->returnValue($sessionMock));
+        $this->context->expects($this->any())->method('getActionFlag')->will($this->returnValue($actionFlagMock));
+        $this->context->expects($this->any())->method('getHelper')->will($this->returnValue($helperDataMock));
+        return $this->context;
     }
 }

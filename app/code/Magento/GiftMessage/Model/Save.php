@@ -18,8 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Adminhtml
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -28,11 +26,9 @@ namespace Magento\GiftMessage\Model;
 /**
  * Adminhtml giftmessage save model
  *
- * @category   Magento
- * @package    Magento_Adminhtml
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-class Save extends \Magento\Object
+class Save extends \Magento\Framework\Object
 {
     /**
      * @var bool
@@ -93,7 +89,8 @@ class Save extends \Magento\Object
         }
 
         foreach ($giftmessages as $entityId => $giftmessage) {
-            $this->_saveOne($entityId, $giftmessage);
+            $entityType = $this->getMappedType($giftmessage['type']);
+            $this->_saveOne($entityId, $giftmessage, $entityType);
         }
 
         return $this;
@@ -112,14 +109,17 @@ class Save extends \Magento\Object
      */
     public function saveAllInOrder()
     {
-        $giftmessages = $this->getGiftmessages();
+        $giftMessages = $this->getGiftmessages();
 
-        if (!is_array($giftmessages)) {
+        if (!is_array($giftMessages)) {
             return $this;
         }
 
-        foreach ($giftmessages as $entityId => $giftmessage) {
-            $this->_saveOne($entityId, $giftmessage);
+        // types are 'quote', 'quote_item', etc
+        foreach ($giftMessages as $type => $giftMessageEntities) {
+            foreach ($giftMessageEntities as $entityId => $giftmessage) {
+                $this->_saveOne($entityId, $giftmessage, $type);
+            }
         }
 
         return $this;
@@ -130,13 +130,13 @@ class Save extends \Magento\Object
      *
      * @param int $entityId
      * @param array $giftmessage
+     * @param string $entityType
      * @return $this
      */
-    protected function _saveOne($entityId, $giftmessage)
+    protected function _saveOne($entityId, $giftmessage, $entityType)
     {
         /* @var $giftmessageModel \Magento\GiftMessage\Model\Message */
         $giftmessageModel = $this->_messageFactory->create();
-        $entityType = $this->_getMappedType($giftmessage['type']);
 
         switch ($entityType) {
             case 'quote':
@@ -181,7 +181,7 @@ class Save extends \Magento\Object
     /**
      * Delete a single gift message from entity
      *
-     * @param \Magento\Object $entityModel
+     * @param \Magento\Framework\Object $entityModel
      * @param \Magento\GiftMessage\Model\Message|null $giftmessageModel
      * @return $this
      */
@@ -259,7 +259,7 @@ class Save extends \Magento\Object
     /**
      * Checks allowed quote item for gift messages
      *
-     * @param  \Magento\Object $item
+     * @param  \Magento\Framework\Object $item
      * @return bool
      */
     public function getIsAllowedQuoteItem($item)
@@ -278,7 +278,7 @@ class Save extends \Magento\Object
     /**
      * Retrieve is gift message available for item (product)
      *
-     * @param \Magento\Object $item
+     * @param \Magento\Framework\Object $item
      * @return bool
      */
     public function isGiftMessagesAvailable($item)
@@ -353,14 +353,18 @@ class Save extends \Magento\Object
      * @param string $type
      * @return string|null
      */
-    protected function _getMappedType($type)
+    protected function getMappedType($type)
     {
-        $map = array('main' => 'quote', 'item' => 'quote_item', 'order' => 'order', 'order_item' => 'order_item');
+        $map = [
+            'main' => 'quote',
+            'item' => 'quote_item',
+            'order' => 'order',
+            'order_item' => 'order_item'
+        ];
 
         if (isset($map[$type])) {
             return $map[$type];
         }
-
         return null;
     }
 

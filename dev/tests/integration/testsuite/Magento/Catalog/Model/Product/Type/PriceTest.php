@@ -18,9 +18,6 @@
  * versions in the future. If you wish to customize Magento for your
  * needs please refer to http://www.magentocommerce.com for more information.
  *
- * @category    Magento
- * @package     Magento_Catalog
- * @subpackage  integration_tests
  * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
  * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
@@ -45,7 +42,7 @@ class PriceTest extends \PHPUnit_Framework_TestCase
 
     public function testGetPrice()
     {
-        $this->assertEquals('test', $this->_model->getPrice(new \Magento\Object(array('price' => 'test'))));
+        $this->assertEquals('test', $this->_model->getPrice(new \Magento\Framework\Object(array('price' => 'test'))));
     }
 
     public function testGetFinalPrice()
@@ -114,7 +111,7 @@ class PriceTest extends \PHPUnit_Framework_TestCase
         );
         $product->load(1);
         // fixture
-        $this->assertEquals(2, $this->_model->getTierPriceCount($product));
+        $this->assertEquals(3, $this->_model->getTierPriceCount($product));
     }
 
     public function testGetFormatedTierPrice()

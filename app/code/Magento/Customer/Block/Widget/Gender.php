@@ -46,24 +46,24 @@ class Gender extends AbstractWidget
     /**
      * Create an instance of the Gender widget
      *
-     * @param \Magento\View\Element\Template\Context $context
+     * @param \Magento\Framework\View\Element\Template\Context $context
      * @param \Magento\Customer\Helper\Address $addressHelper
-     * @param CustomerMetadataServiceInterface $attributeMetadata
+     * @param CustomerMetadataServiceInterface $customerMetadataService
      * @param CustomerAccountServiceInterface $customerAccountService
      * @param \Magento\Customer\Model\Session $customerSession
      * @param array $data
      */
     public function __construct(
-        \Magento\View\Element\Template\Context $context,
+        \Magento\Framework\View\Element\Template\Context $context,
         \Magento\Customer\Helper\Address $addressHelper,
-        CustomerMetadataServiceInterface $attributeMetadata,
+        CustomerMetadataServiceInterface $customerMetadataService,
         CustomerAccountServiceInterface $customerAccountService,
         \Magento\Customer\Model\Session $customerSession,
         array $data = array()
     ) {
         $this->_customerSession = $customerSession;
         $this->_customerAccountService = $customerAccountService;
-        parent::__construct($context, $addressHelper, $attributeMetadata, $data);
+        parent::__construct($context, $addressHelper, $customerMetadataService, $data);
         $this->_isScopePrivate = true;
     }
 
