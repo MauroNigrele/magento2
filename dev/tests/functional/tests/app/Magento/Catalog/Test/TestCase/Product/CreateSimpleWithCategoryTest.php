@@ -65,9 +65,9 @@ class CreateSimpleWithCategoryTest extends Functional
         //Steps
         $productListPage->open();
         $addProductBlock->addProduct();
-        $productForm->addNewCategory($product);
         $productForm->fill($product);
-        $createProductPage->getFormAction()->save();
+        $productForm->addNewCategory($product);
+        $createProductPage->getFormPageActions()->save();
 
         //Verifying
         $this->assertSuccessMessage("You saved the product.");
@@ -123,7 +123,7 @@ class CreateSimpleWithCategoryTest extends Functional
         $productViewBlock = $productPage->getViewBlock();
         $productListBlock->openProductViewPage($product->getName());
         $this->assertEquals($product->getName(), $productViewBlock->getProductName());
-        $price = $productViewBlock->getProductPrice();
-        $this->assertEquals(number_format($product->getProductPrice(), 2), $price['price_regular_price']);
+        $price = $productViewBlock->getPriceBlock()->getPrice();
+        $this->assertEquals(number_format($product->getProductPrice(), 2), $price);
     }
 }

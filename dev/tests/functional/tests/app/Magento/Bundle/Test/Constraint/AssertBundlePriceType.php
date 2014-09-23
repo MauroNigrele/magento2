@@ -27,7 +27,7 @@ namespace Magento\Bundle\Test\Constraint;
 use Mtf\Client\Browser;
 use Mtf\Constraint\AbstractConstraint;
 use Magento\Checkout\Test\Page\CheckoutCart;
-use Magento\Bundle\Test\Fixture\CatalogProductBundle;
+use Magento\Bundle\Test\Fixture\BundleProduct;
 use Magento\Catalog\Test\Page\Product\CatalogProductView;
 
 /**
@@ -56,18 +56,18 @@ class AssertBundlePriceType extends AbstractConstraint
      *   2. Dynamic (price of bundle item)
      *
      * @param CatalogProductView $catalogProductView
-     * @param CatalogProductBundle $product
+     * @param BundleProduct $product
      * @param CheckoutCart $checkoutCartView
      * @param Browser $browser
-     * @param CatalogProductBundle $originalProduct [optional]
+     * @param BundleProduct $originalProduct [optional]
      * @return void
      */
     public function processAssert(
         CatalogProductView $catalogProductView,
-        CatalogProductBundle $product,
+        BundleProduct $product,
         CheckoutCart $checkoutCartView,
         Browser $browser,
-        CatalogProductBundle $originalProduct = null
+        BundleProduct $originalProduct = null
     ) {
         $checkoutCartView->open()->getCartBlock()->clearShoppingCart();
         //Open product view page
@@ -80,30 +80,27 @@ class AssertBundlePriceType extends AbstractConstraint
     /**
      * Assert prices on the product view page and shopping cart page.
      *
-     * @param CatalogProductBundle $product
+     * @param BundleProduct $product
      * @param CatalogProductView $catalogProductView
      * @param CheckoutCart $checkoutCartView
-     * @param CatalogProductBundle $originalProduct [optional]
+     * @param BundleProduct $originalProduct [optional]
      * @return void
      *
      * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     protected function assertPrice(
-        CatalogProductBundle $product,
+        BundleProduct $product,
         CatalogProductView $catalogProductView,
         CheckoutCart $checkoutCartView,
-        CatalogProductBundle $originalProduct = null
+        BundleProduct $originalProduct = null
     ) {
         $customerGroup = 'NOT LOGGED IN';
-        $catalogProductView->getViewBlock()->clickCustomize();
         $bundleData = $product->getData();
         $this->productPriceType = $originalProduct !== null
             ? $originalProduct->getPriceType()
             : $product->getPriceType();
-        $fillData = $product->getDataFieldConfig('checkout_data')['source']->getPreset();
-        $bundleBlock = $catalogProductView->getBundleViewBlock()->getBundleBlock();
-        $bundleBlock->addToCart($product, $catalogProductView);
-        $cartBlock = $checkoutCartView->getCartBlock();
+        $catalogProductView->getViewBlock()->addToCart($product);
+        $cartItem = $checkoutCartView->getCartBlock()->getCartItem($product);
         $specialPrice = 0;
         if (isset($bundleData['group_price'])) {
             $specialPrice =
@@ -111,7 +108,8 @@ class AssertBundlePriceType extends AbstractConstraint
         }
 
         $optionPrice = [];
-        foreach ($fillData['bundle_options'] as $key => $data) {
+        $fillData = $product->getCheckoutData();
+        foreach ($fillData['options']['bundle_options'] as $key => $data) {
             $subProductPrice = 0;
             foreach ($bundleData['bundle_selections']['products'][$key] as $productKey => $itemProduct) {
                 if (strpos($itemProduct->getName(), $data['value']['name']) !== false) {
@@ -133,13 +131,13 @@ class AssertBundlePriceType extends AbstractConstraint
             $item['price'] -= $item['price'] * $specialPrice;
             \PHPUnit_Framework_Assert::assertEquals(
                 number_format($item['price'], 2),
-                $cartBlock->getPriceBundleOptions($index + 1),
+                $cartItem->getPriceBundleOptions($index + 1),
                 'Bundle item ' . ($index + 1) . ' options on frontend don\'t equal to fixture.'
             );
         }
         $sumOptionsPrice = $product->getDataFieldConfig('price')['source']->getPreset()['cart_price'];
 
-        $subTotal = number_format($cartBlock->getCartItemUnitPrice($product), 2);
+        $subTotal = number_format($cartItem->getPrice(), 2);
         \PHPUnit_Framework_Assert::assertEquals(
             $sumOptionsPrice,
             $subTotal,

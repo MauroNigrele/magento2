@@ -65,6 +65,11 @@ class PriceTest extends \PHPUnit_Framework_TestCase
      */
     protected $model;
 
+    /**
+     * @var \Magento\Framework\Pricing\PriceCurrencyInterface|\PHPUnit_Framework_MockObject_MockObject
+     */
+    protected $priceCurrency;
+
     protected function setUp()
     {
         $this->ruleFactoryMock = $this->getMock(
@@ -74,12 +79,13 @@ class PriceTest extends \PHPUnit_Framework_TestCase
             '',
             false
         );
-        $this->storeManagerMock = $this->getMock('\Magento\Store\Model\StoreManagerInterface');
+        $this->storeManagerMock = $this->getMock('\Magento\Framework\StoreManagerInterface');
         $this->localeDateMock = $this->getMock('\Magento\Framework\Stdlib\DateTime\TimezoneInterface');
         $this->customerSessionMock = $this->getMock('\Magento\Customer\Model\Session', array(), array(), '', false);
         $this->eventManagerMock = $this->getMock('\Magento\Framework\Event\ManagerInterface');
         $this->catalogHelperMock = $this->getMock('\Magento\Catalog\Helper\Data', array(), array(), '', false);
         $this->storeMock = $this->getMock('\Magento\Store\Model\Store', array(), array(), '', false);
+        $this->priceCurrency = $this->getMockBuilder('Magento\Framework\Pricing\PriceCurrencyInterface')->getMock();
 
         $this->model = new \Magento\Bundle\Model\Product\Price(
             $this->ruleFactoryMock,
@@ -87,6 +93,7 @@ class PriceTest extends \PHPUnit_Framework_TestCase
             $this->localeDateMock,
             $this->customerSessionMock,
             $this->eventManagerMock,
+            $this->priceCurrency,
             $this->catalogHelperMock
         );
     }

@@ -40,14 +40,14 @@ class Result
     protected $_error = null;
 
     /**
-     * @var \Magento\Store\Model\StoreManagerInterface
+     * @var \Magento\Framework\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
-     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\StoreManagerInterface $storeManager
      */
-    public function __construct(\Magento\Store\Model\StoreManagerInterface $storeManager)
+    public function __construct(\Magento\Framework\StoreManagerInterface $storeManager)
     {
         $this->_storeManager = $storeManager;
     }
@@ -151,7 +151,20 @@ class Result
      */
     public function asArray()
     {
-        $currencyFilter = $this->_storeManager->getStore()->getPriceFilter();
+        if ($this->_storeManager->getStore()->getBaseCurrency()
+            && $this->_storeManager->getStore()->getCurrentCurrency()
+        ) {
+            $currencyFilter = $this->_storeManager->getStore()->getCurrentCurrency()->getFilter();
+            $currencyFilter->setRate(
+                $this->_storeManager->getStore()->getBaseCurrency()->getRate(
+                    $this->_storeManager->getStore()->getCurrentCurrency()
+                )
+            );
+        } elseif ($this->_storeManager->getStore()->getDefaultCurrency()) {
+            $currencyFilter = $this->_storeManager->getStore()->getDefaultCurrency()->getFilter();
+        } else {
+            $currencyFilter = new \Magento\Framework\Filter\Sprintf('%s', 2);
+        }
         $rates = array();
         $allRates = $this->getAllRates();
         foreach ($allRates as $rate) {

@@ -64,9 +64,9 @@ class Converter
             Address::KEY_ID => $address->getId(),
             Address::KEY_CUSTOMER_ID => $address->getCustomerId(),
             Address::KEY_REGION => array(
-                Region::KEY_REGION => $address->getRegion(),
-                Region::KEY_REGION_ID => $address->getRegionId(),
-                Region::KEY_REGION_CODE => $address->getRegionCode()
+                Region::REGION => $address->getRegion(),
+                Region::REGION_ID => $address->getRegionId(),
+                Region::REGION_CODE => $address->getRegionCode()
             ),
             Address::KEY_STREET => $address->getStreet(),
             Address::KEY_COMPANY => $address->getCompany(),
@@ -85,7 +85,7 @@ class Converter
 
         foreach ($this->metadataService->getCustomAttributesMetadata() as $attributeMetadata) {
             $attributeCode = $attributeMetadata->getAttributeCode();
-            $method = 'get' . SimpleDataObjectConverter::snakeCaseToCamelCase($attributeCode);
+            $method = 'get' . SimpleDataObjectConverter::snakeCaseToUpperCamelCase($attributeCode);
             $data[Address::CUSTOM_ATTRIBUTES_KEY][] =
                 [AttributeValue::ATTRIBUTE_CODE => $attributeCode, AttributeValue::VALUE => $address->$method()];
         }

@@ -29,6 +29,11 @@ use Magento\Store\Model\ScopeInterface;
 class DataTest extends \PHPUnit_Framework_TestCase
 {
     /**
+     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Framework\Pricing\PriceCurrencyInterface
+     */
+    private $priceCurrency;
+
+    /**
      * @var Data
      */
     private $_helper;
@@ -141,7 +146,7 @@ class DataTest extends \PHPUnit_Framework_TestCase
                 )
             );
 
-        $this->_storeManager = $this->getMockForAbstractClass('\Magento\Store\Model\StoreManagerInterface');
+        $this->_storeManager = $this->getMockForAbstractClass('\Magento\Framework\StoreManagerInterface');
 
         $this->_checkoutSession = $this->getMock('\Magento\Checkout\Model\Session', array(), array(), '', false);
 
@@ -158,6 +163,8 @@ class DataTest extends \PHPUnit_Framework_TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
+        $this->priceCurrency = $this->getMockBuilder('Magento\Framework\Pricing\PriceCurrencyInterface')->getMock();
+
         $this->_helper = new Data(
             $this->_context,
             $this->_scopeConfig,
@@ -165,7 +172,8 @@ class DataTest extends \PHPUnit_Framework_TestCase
             $this->_checkoutSession,
             $localeDate,
             $this->_transportBuilder,
-            $this->_translator
+            $this->_translator,
+            $this->priceCurrency
         );
     }
 
@@ -309,24 +317,14 @@ class DataTest extends \PHPUnit_Framework_TestCase
         );
         $this->_checkoutSession->expects($this->once())->method('getQuote')->will($this->returnValue($quoteMock));
         $quoteMock->expects($this->once())->method('getStore')->will($this->returnValue($storeMock));
-        $storeMock->expects($this->once())->method('formatPrice')->will($this->returnValue('5.5'));
+        $this->priceCurrency->expects($this->once())->method('format')->will($this->returnValue('5.5'));
         $this->assertEquals('5.5', $this->_helper->formatPrice($price));
     }
 
     public function testConvertPrice()
     {
         $price = 5.5;
-        $quoteMock = $this->getMock('\Magento\Sales\Model\Quote', array(), array(), '', false);
-        $storeMock = $this->getMock(
-            'Magento\Store\Model\Store',
-            array('convertPrice', '__wakeup'),
-            array(),
-            '',
-            false
-        );
-        $this->_checkoutSession->expects($this->once())->method('getQuote')->will($this->returnValue($quoteMock));
-        $quoteMock->expects($this->once())->method('getStore')->will($this->returnValue($storeMock));
-        $storeMock->expects($this->once())->method('convertPrice')->will($this->returnValue('5.5'));
+        $this->priceCurrency->expects($this->once())->method('convertAndFormat')->willReturn($price);
         $this->assertEquals(5.5, $this->_helper->convertPrice($price));
     }
 
@@ -379,18 +377,14 @@ class DataTest extends \PHPUnit_Framework_TestCase
         $rowTotal = 15;
         $roundPrice = 17;
         $expected = 17;
-        $storeManager = $this->getMock('\Magento\Store\Model\StoreManagerInterface', array(), array(), '', false);
+        $storeManager = $this->getMock('\Magento\Framework\StoreManagerInterface', array(), array(), '', false);
         $objectManagerHelper = new ObjectManager($this);
         $helper = $objectManagerHelper->getObject(
             '\Magento\Checkout\Helper\Data',
-            ['storeManager' => $storeManager]
-        );
-        $storeMock = $this->getMock(
-            'Magento\Store\Model\Store',
-            array('roundPrice', '__wakeup'),
-            array(),
-            '',
-            false
+            [
+                'storeManager' => $storeManager,
+                'priceCurrency' => $this->priceCurrency,
+            ]
         );
         $itemMock = $this->getMock(
             'Magento\Framework\Object',
@@ -406,9 +400,7 @@ class DataTest extends \PHPUnit_Framework_TestCase
         $itemMock->expects($this->once())
             ->method('getDiscountTaxCompensation')->will($this->returnValue($discountTaxCompensation));
         $itemMock->expects($this->once())->method('getRowTotal')->will($this->returnValue($rowTotal));
-        $storeManager->expects($this->once())->method('getStore')->will($this->returnValue($storeMock));
-        $storeMock->expects($this->once())
-            ->method('roundPrice')->with($roundPrice)->will($this->returnValue($roundPrice));
+        $this->priceCurrency->expects($this->once())->method('round')->with($roundPrice)->willReturn($roundPrice);
         $this->assertEquals($expected, $helper->getPriceInclTax($itemMock));
     }
 
@@ -444,46 +436,36 @@ class DataTest extends \PHPUnit_Framework_TestCase
 
     public function testGetBasePriceInclTaxWithoutQty()
     {
-        $storeManager = $this->getMock('\Magento\Store\Model\StoreManagerInterface', array(), array(), '', false);
+        $storeManager = $this->getMock('\Magento\Framework\StoreManagerInterface', array(), array(), '', false);
         $objectManagerHelper = new ObjectManager($this);
         $helper = $objectManagerHelper->getObject(
             '\Magento\Checkout\Helper\Data',
-            ['storeManager' => $storeManager]
+            [
+                'storeManager' => $storeManager,
+                'priceCurrency' => $this->priceCurrency,
+            ]
         );
         $itemMock = $this->getMock('Magento\Framework\Object', array('getQty'), array(), '', false);
         $itemMock->expects($this->once())->method('getQty');
-        $storeMock = $this->getMock(
-            'Magento\Store\Model\Store',
-            array('roundPrice', '__wakeup'),
-            array(),
-            '',
-            false
-        );
-                $storeManager->expects($this->once())->method('getStore')->will($this->returnValue($storeMock));
-        $storeMock->expects($this->once())->method('roundPrice');
+        $this->priceCurrency->expects($this->once())->method('round');
         $helper->getPriceInclTax($itemMock);
     }
 
     public function testGetBasePriceInclTax()
     {
-        $storeManager = $this->getMock('\Magento\Store\Model\StoreManagerInterface', array(), array(), '', false);
+        $storeManager = $this->getMock('\Magento\Framework\StoreManagerInterface', array(), array(), '', false);
         $objectManagerHelper = new ObjectManager($this);
         $helper = $objectManagerHelper->getObject(
             '\Magento\Checkout\Helper\Data',
-            ['storeManager' => $storeManager]
+            [
+                'storeManager' => $storeManager,
+                'priceCurrency' => $this->priceCurrency,
+            ]
         );
         $itemMock = $this->getMock('Magento\Framework\Object', array('getQty', 'getQtyOrdered'), array(), '', false);
         $itemMock->expects($this->once())->method('getQty')->will($this->returnValue(false));
         $itemMock->expects($this->exactly(2))->method('getQtyOrdered')->will($this->returnValue(5.5));
-        $storeMock = $this->getMock(
-            'Magento\Store\Model\Store',
-            array('roundPrice', '__wakeup'),
-            array(),
-            '',
-            false
-        );
-        $storeManager->expects($this->once())->method('getStore')->will($this->returnValue($storeMock));
-        $storeMock->expects($this->once())->method('roundPrice');
+        $this->priceCurrency->expects($this->once())->method('round');
         $helper->getBasePriceInclTax($itemMock);
     }
 

@@ -24,6 +24,7 @@
 namespace Magento\Multishipping\Model\Checkout\Type;
 
 use Magento\Customer\Service\V1\CustomerAddressServiceInterface;
+use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Sales\Model\Order\Email\Sender\OrderSender;
 
 /**
@@ -58,7 +59,7 @@ class Multishipping extends \Magento\Framework\Object
     protected $_session;
 
     /**
-     * @var \Magento\Store\Model\StoreManagerInterface
+     * @var \Magento\Framework\StoreManagerInterface
      */
     protected $_storeManager;
 
@@ -110,6 +111,11 @@ class Multishipping extends \Magento\Framework\Object
     protected $orderSender;
 
     /**
+     * @var PriceCurrencyInterface
+     */
+    protected $priceCurrency;
+
+    /**
      * @param \Magento\Checkout\Model\Session $checkoutSession
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Sales\Model\OrderFactory $orderFactory
@@ -119,10 +125,11 @@ class Multishipping extends \Magento\Framework\Object
      * @param \Magento\Framework\Session\Generic $session
      * @param \Magento\Sales\Model\Quote\AddressFactory $addressFactory
      * @param \Magento\Sales\Model\Convert\Quote $quote
-     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\StoreManagerInterface $storeManager
      * @param \Magento\Payment\Model\Method\SpecificationInterface $paymentSpecification
      * @param \Magento\Multishipping\Helper\Data $helper
      * @param OrderSender $orderSender
+     * @param PriceCurrencyInterface $priceCurrency
      * @param array $data
      */
     public function __construct(
@@ -135,10 +142,11 @@ class Multishipping extends \Magento\Framework\Object
         \Magento\Framework\Session\Generic $session,
         \Magento\Sales\Model\Quote\AddressFactory $addressFactory,
         \Magento\Sales\Model\Convert\Quote $quote,
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\StoreManagerInterface $storeManager,
         \Magento\Payment\Model\Method\SpecificationInterface $paymentSpecification,
         \Magento\Multishipping\Helper\Data $helper,
         OrderSender $orderSender,
+        PriceCurrencyInterface $priceCurrency,
         array $data = array()
     ) {
         $this->_eventManager = $eventManager;
@@ -154,6 +162,7 @@ class Multishipping extends \Magento\Framework\Object
         $this->_orderFactory = $orderFactory;
         $this->_customerAddressService = $customerAddressService;
         $this->orderSender = $orderSender;
+        $this->priceCurrency = $priceCurrency;
         parent::__construct($data);
         $this->_init();
     }
@@ -557,7 +566,7 @@ class Multishipping extends \Magento\Framework\Object
         }
 
         $order->setPayment($this->_quote->paymentToOrderPayment($quote->getPayment()));
-        if ($this->_storeManager->getStore()->roundPrice($address->getGrandTotal()) == 0) {
+        if ($this->priceCurrency->round($address->getGrandTotal()) == 0) {
             $order->getPayment()->setMethod('free');
         }
 

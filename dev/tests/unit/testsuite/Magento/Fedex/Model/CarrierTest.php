@@ -68,7 +68,7 @@ class CarrierTest extends \PHPUnit_Framework_TestCase
 
         $store = $this->getMock('Magento\Store\Model\Store', ['getBaseCurrencyCode', '__wakeup'], [], '', false);
         $storeManager = $this->getMock(
-            'Magento\Store\Model\StoreManagerInterface',
+            'Magento\Framework\StoreManagerInterface',
             [
                 'getStore',
                 'setIsSingleStoreModeAllowed',
@@ -89,10 +89,18 @@ class CarrierTest extends \PHPUnit_Framework_TestCase
             false
         );
         $storeManager->expects($this->any())->method('getStore')->will($this->returnValue($store));
+        $priceCurrency = $this->getMockBuilder('Magento\Framework\Pricing\PriceCurrencyInterface')->getMock();
+        $priceCurrency->expects($this->once())
+            ->method('round')
+            ->willReturnCallback(
+                function ($price) {
+                    round($price, 2);
+                }
+            );
         $rateMethod = $this->getMock(
             'Magento\Sales\Model\Quote\Address\RateResult\Method',
             null,
-            ['storeManager' => $storeManager]
+            ['priceCurrency' => $priceCurrency]
         );
         $rateMethodFactory = $this->getMock(
             'Magento\Sales\Model\Quote\Address\RateResult\MethodFactory',

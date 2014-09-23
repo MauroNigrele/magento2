@@ -68,7 +68,7 @@ class EditBundleTest extends Functional
         $productGridPage = Factory::getPageFactory()->getCatalogProductIndex();
         $gridBlock = $productGridPage->getProductGrid();
         $editProductPage = Factory::getPageFactory()->getCatalogProductEdit();
-        $productForm = $editProductPage->getForm();
+        $productForm = $editProductPage->getProductForm();
         $cachePage = Factory::getPageFactory()->getAdminCache();
 
         $productGridPage->open();
@@ -77,7 +77,7 @@ class EditBundleTest extends Functional
             'type' => 'Bundle Product'
         ]);
         $productForm->fill($editProduct);
-        $editProductPage->getFormAction()->save();
+        $editProductPage->getFormPageActions()->save();
         //Verifying
         $editProductPage->getMessagesBlock()->assertSuccessMessage();
         // Flush cache
@@ -112,7 +112,7 @@ class EditBundleTest extends Functional
         $productGridPage = Factory::getPageFactory()->getCatalogProductIndex();
         $productGridPage->open();
         $gridBlock = $productGridPage->getProductGrid();
-        $this->assertTrue($gridBlock->isRowVisible(array('sku' => $product->getProductSku())));
+        $this->assertTrue($gridBlock->isRowVisible(['sku' => $product->getProductSku()]));
     }
 
     /**
@@ -138,6 +138,12 @@ class EditBundleTest extends Functional
         //Verification on product detail page
         $productViewBlock = $productPage->getViewBlock();
         $this->assertSame($product->getName(), $productViewBlock->getProductName());
-        $this->assertEquals($product->getProductPrice(), $productViewBlock->getProductPrice());
+        $this->assertEquals(
+            $product->getProductPrice(),
+            [
+                'price_from' => $productViewBlock->getPriceBlock()->getPriceFrom(),
+                'price_to' => $productViewBlock->getPriceBlock()->getPriceTo()
+            ]
+        );
     }
 }

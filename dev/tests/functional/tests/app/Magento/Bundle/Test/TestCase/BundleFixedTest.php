@@ -61,10 +61,10 @@ class BundleFixedTest extends Functional
         //Steps
         $manageProductsGrid->open();
         $manageProductsGrid->getGridPageActionBlock()->addProduct('bundle');
-        $productForm = $createProductPage->getForm();
+        $productForm = $createProductPage->getProductForm();
         $category = $bundle->getCategories()['category'];
         $productForm->fill($bundle, null, $category);
-        $createProductPage->getFormAction()->save();
+        $createProductPage->getFormPageActions()->save();
         //Verification
         $createProductPage->getMessagesBlock()->assertSuccessMessage();
         // Flush cache
@@ -88,7 +88,7 @@ class BundleFixedTest extends Functional
         $productGridPage = Factory::getPageFactory()->getCatalogProductIndex();
         $productGridPage->open();
         $gridBlock = $productGridPage->getProductGrid();
-        $this->assertTrue($gridBlock->isRowVisible(array('sku' => $product->getProductSku())));
+        $this->assertTrue($gridBlock->isRowVisible(['sku' => $product->getProductSku()]));
     }
 
     /**
@@ -113,14 +113,18 @@ class BundleFixedTest extends Functional
         //Verification on product detail page
         $productViewBlock = $productPage->getViewBlock();
         $this->assertSame($product->getName(), $productViewBlock->getProductName());
-        $this->assertEquals($product->getProductPrice(), $productViewBlock->getProductPrice());
+        $this->assertEquals(
+            $product->getProductPrice(),
+            [
+                'price_from' => $productViewBlock->getPriceBlock()->getPriceFrom(),
+                'price_to' => $productViewBlock->getPriceBlock()->getPriceTo()
+            ]
+        );
 
-        // @TODO: add click on "Customize and Add To Cart" button and assert options count
-        $productOptionsBlock = $productPage->getCustomOptionsBlock();
-        $actualOptions = $productOptionsBlock->getOptions();
+        $actualOptions = $productPage->getViewBlock()->getOptions($product)['bundle_options'];
         $expectedOptions = $product->getBundleOptions();
-        foreach ($actualOptions as $optionType => $actualOption) {
-            $this->assertContains($expectedOptions[$optionType], $actualOption);
+        foreach ($actualOptions as $key => $actualOption) {
+            $this->assertContains($expectedOptions[$key]['title'], $actualOption);
         }
     }
 }

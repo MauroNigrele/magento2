@@ -106,10 +106,10 @@ class Group extends \Magento\Framework\Model\AbstractModel implements \Magento\F
     /**
      * @var \Magento\Store\Model\Store
      */
-    protected $_store;
+    protected $_storeListFactory;
 
     /**
-     * @var \Magento\Store\Model\StoreManagerInterface
+     * @var \Magento\Framework\StoreManagerInterface
      */
     protected $_storeManager;
 
@@ -118,7 +118,7 @@ class Group extends \Magento\Framework\Model\AbstractModel implements \Magento\F
      * @param \Magento\Framework\Registry $registry
      * @param \Magento\Core\Model\Resource\Config\Data $configDataResource
      * @param \Magento\Store\Model\Store $store
-     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\StoreManagerInterface $storeManager
      * @param \Magento\Framework\Model\Resource\AbstractResource $resource
      * @param \Magento\Framework\Data\Collection\Db $resourceCollection
      * @param array $data
@@ -127,14 +127,14 @@ class Group extends \Magento\Framework\Model\AbstractModel implements \Magento\F
         \Magento\Framework\Model\Context $context,
         \Magento\Framework\Registry $registry,
         \Magento\Core\Model\Resource\Config\Data $configDataResource,
-        \Magento\Store\Model\Store $store,
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Store\Model\Resource\Store\CollectionFactory $storeListFactory,
+        \Magento\Framework\StoreManagerInterface $storeManager,
         \Magento\Framework\Model\Resource\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\Db $resourceCollection = null,
         array $data = array()
     ) {
         $this->_configDataResource = $configDataResource;
-        $this->_store = $store;
+        $this->_storeListFactory = $storeListFactory;
         $this->_storeManager = $storeManager;
         parent::__construct($context, $registry, $resource, $resourceCollection, $data);
     }
@@ -197,7 +197,7 @@ class Group extends \Magento\Framework\Model\AbstractModel implements \Magento\F
      */
     public function getStoreCollection()
     {
-        return $this->_store->getCollection()->addGroupFilter($this->getId());
+        return $this->_storeListFactory->create()->addGroupFilter($this->getId());
     }
 
     /**

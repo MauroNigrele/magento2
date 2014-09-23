@@ -25,6 +25,7 @@
 namespace Magento\Bundle\Model\Product;
 
 use Magento\Customer\Service\V1\CustomerGroupServiceInterface;
+use Magento\Framework\Pricing\PriceCurrencyInterface;
 
 /**
  * Bundle Price Model
@@ -56,25 +57,25 @@ class Price extends \Magento\Catalog\Model\Product\Type\Price
     protected $_catalogData = null;
 
     /**
-     *  Construct
-     *
      * @param \Magento\CatalogRule\Model\Resource\RuleFactory $ruleFactory
-     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\StoreManagerInterface $storeManager
      * @param \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Framework\Event\ManagerInterface $eventManager
+     * @param PriceCurrencyInterface $priceCurrency
      * @param \Magento\Catalog\Helper\Data $catalogData
      */
     public function __construct(
         \Magento\CatalogRule\Model\Resource\RuleFactory $ruleFactory,
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\StoreManagerInterface $storeManager,
         \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Framework\Event\ManagerInterface $eventManager,
+        PriceCurrencyInterface $priceCurrency,
         \Magento\Catalog\Helper\Data $catalogData
     ) {
         $this->_catalogData = $catalogData;
-        parent::__construct($ruleFactory, $storeManager, $localeDate, $customerSession, $eventManager);
+        parent::__construct($ruleFactory, $storeManager, $localeDate, $customerSession, $eventManager, $priceCurrency);
     }
 
     /**

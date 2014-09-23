@@ -33,7 +33,7 @@ namespace Magento\CatalogRule\Model\Resource;
 use Magento\Catalog\Model\Product;
 use Magento\CatalogRule\Model\Rule as ModelRule;
 use Magento\Framework\Model\AbstractModel;
-use Magento\Framework\Model\Resource\Db\AbstractDb;
+use Magento\Framework\Pricing\PriceCurrencyInterface;
 
 class Rule extends \Magento\Rule\Model\Resource\AbstractResource
 {
@@ -95,7 +95,7 @@ class Rule extends \Magento\Rule\Model\Resource\AbstractResource
     protected $_conditionFactory;
 
     /**
-     * @var \Magento\Store\Model\StoreManagerInterface
+     * @var \Magento\Framework\StoreManagerInterface
      */
     protected $_storeManager;
 
@@ -105,26 +105,33 @@ class Rule extends \Magento\Rule\Model\Resource\AbstractResource
     protected $dateTime;
 
     /**
+     * @var PriceCurrencyInterface
+     */
+    protected $priceCurrency;
+
+    /**
      * @param \Magento\Framework\App\Resource $resource
-     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
-     * @param \Magento\Catalog\Model\Product\ConditionFactory $conditionFactory
+     * @param \Magento\Framework\StoreManagerInterface $storeManager
+     * @param Product\ConditionFactory $conditionFactory
      * @param \Magento\Framework\Stdlib\DateTime\DateTime $coreDate
      * @param \Magento\Eav\Model\Config $eavConfig
      * @param \Magento\Framework\Event\ManagerInterface $eventManager
      * @param \Magento\CatalogRule\Helper\Data $catalogRuleData
      * @param \Magento\Framework\Logger $logger
      * @param \Magento\Framework\Stdlib\DateTime $dateTime
+     * @param PriceCurrencyInterface $priceCurrency
      */
     public function __construct(
         \Magento\Framework\App\Resource $resource,
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\StoreManagerInterface $storeManager,
         \Magento\Catalog\Model\Product\ConditionFactory $conditionFactory,
         \Magento\Framework\Stdlib\DateTime\DateTime $coreDate,
         \Magento\Eav\Model\Config $eavConfig,
         \Magento\Framework\Event\ManagerInterface $eventManager,
         \Magento\CatalogRule\Helper\Data $catalogRuleData,
         \Magento\Framework\Logger $logger,
-        \Magento\Framework\Stdlib\DateTime $dateTime
+        \Magento\Framework\Stdlib\DateTime $dateTime,
+        PriceCurrencyInterface $priceCurrency
     ) {
         $this->_storeManager = $storeManager;
         $this->_conditionFactory = $conditionFactory;
@@ -134,6 +141,7 @@ class Rule extends \Magento\Rule\Model\Resource\AbstractResource
         $this->_catalogRuleData = $catalogRuleData;
         $this->_logger = $logger;
         $this->dateTime = $dateTime;
+        $this->priceCurrency = $priceCurrency;
         parent::__construct($resource);
     }
 
@@ -663,7 +671,7 @@ class Rule extends \Magento\Rule\Model\Resource\AbstractResource
             $productPrice
         );
 
-        return $this->_storeManager->getStore()->roundPrice($productPrice);
+        return $this->priceCurrency->round($productPrice);
     }
 
     /**

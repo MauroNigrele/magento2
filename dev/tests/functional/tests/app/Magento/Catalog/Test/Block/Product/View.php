@@ -25,11 +25,10 @@
 namespace Magento\Catalog\Test\Block\Product;
 
 use Mtf\Block\Block;
-use Mtf\Factory\Factory;
 use Mtf\Client\Element\Locator;
 use Mtf\Fixture\FixtureInterface;
-use Magento\Catalog\Test\Fixture\GroupedProduct;
-use Magento\Catalog\Test\Fixture\ConfigurableProduct;
+use Mtf\Fixture\InjectableFixture;
+use Magento\Catalog\Test\Fixture\CatalogProductSimple;
 
 /**
  * Class View
@@ -37,6 +36,7 @@ use Magento\Catalog\Test\Fixture\ConfigurableProduct;
  *
  * @SuppressWarnings(PHPMD.TooManyFields)
  * @SuppressWarnings(PHPMD.ExcessivePublicCount)
+ * @SuppressWarnings(PHPMD.NPathComplexity)
  */
 class View extends Block
 {
@@ -76,13 +76,6 @@ class View extends Block
     protected $paypalCheckout = '[data-action=checkout-form-submit]';
 
     /**
-     * This member holds the class name for the price block found inside the product details.
-     *
-     * @var string
-     */
-    protected $priceBlockClass = 'price-box';
-
-    /**
      * Product name element
      *
      * @var string
@@ -111,20 +104,6 @@ class View extends Block
     protected $productShortDescription = '.product.attibute.overview';
 
     /**
-     * Product price element
-     *
-     * @var string
-     */
-    protected $productPrice = '.price-box .price';
-
-    /**
-     * Bundle options block
-     *
-     * @var string
-     */
-    protected $bundleBlock = '#product-options-wrapper';
-
-    /**
      * Click for Price link on Product page
      *
      * @var string
@@ -144,13 +123,6 @@ class View extends Block
      * @var string
      */
     protected $stockAvailability = '.stock span';
-
-    /**
-     * Customize and add to cart button selector
-     *
-     * @var string
-     */
-    protected $customizeButton = '.action.primary.customize';
 
     /**
      * This member holds the class name of the tier price block.
@@ -181,27 +153,28 @@ class View extends Block
     protected $addToWishlist = '[data-action="add-to-wishlist"]';
 
     /**
-     * Get bundle options block
-     *
-     * @return \Magento\Bundle\Test\Block\Catalog\Product\View\Type\Bundle
-     */
-    public function getBundleBlock()
-    {
-        return Factory::getBlockFactory()->getMagentoBundleCatalogProductViewTypeBundle(
-            $this->_rootElement->find($this->bundleBlock)
-        );
-    }
-
-    /**
      * Get block price
      *
      * @return \Magento\Catalog\Test\Block\Product\Price
      */
-    protected function getPriceBlock()
+    public function getPriceBlock()
     {
         return $this->blockFactory->create(
             'Magento\Catalog\Test\Block\Product\Price',
             ['element' => $this->_rootElement->find($this->priceBlock, Locator::SELECTOR_XPATH)]
+        );
+    }
+
+    /**
+     * This method returns the custom options block.
+     *
+     * @return \Magento\Catalog\Test\Block\Product\View\CustomOptions
+     */
+    public function getCustomOptionsBlock()
+    {
+        return $this->blockFactory->create(
+            'Magento\Catalog\Test\Block\Product\View\CustomOptions',
+            ['element' => $this->_rootElement->find($this->customOptionsSelector)]
         );
     }
 
@@ -213,18 +186,14 @@ class View extends Block
      */
     public function addToCart(FixtureInterface $product)
     {
-        $this->fillOptions($product);
-        $this->clickAddToCart();
-    }
+        /** @var CatalogProductSimple $product */
+        $checkoutData = $product->getCheckoutData();
 
-    /**
-     * Find button 'Add to cart'
-     *
-     * @return boolean
-     */
-    public function addToCartIsVisible()
-    {
-        return $this->_rootElement->find($this->addToCart, Locator::SELECTOR_CSS)->isVisible();
+        $this->fillOptions($product);
+        if (isset($checkoutData['qty'])) {
+            $this->_rootElement->find($this->qty)->setValue($checkoutData['qty']);
+        }
+        $this->clickAddToCart();
     }
 
     /**
@@ -290,42 +259,6 @@ class View extends Block
     }
 
     /**
-     * This method returns the price box block.
-     *
-     * @return Price
-     */
-    public function getProductPriceBlock()
-    {
-        return $this->blockFactory->create(
-            'Magento\Catalog\Test\Block\Product\Price',
-            ['element' => $this->_rootElement->find($this->priceBlockClass, Locator::SELECTOR_CLASS_NAME)]
-        );
-    }
-
-    /**
-     * This method returns the custom options block.
-     *
-     * @return \Magento\Catalog\Test\Block\Product\View\CustomOptions
-     */
-    public function getCustomOptionsBlock()
-    {
-        return $this->blockFactory->create(
-            'Magento\Catalog\Test\Block\Product\View\CustomOptions',
-            ['element' => $this->_rootElement->find($this->customOptionsSelector)]
-        );
-    }
-
-    /**
-     * Return product price displayed on page
-     *
-     * @return array|string Returns arrays with keys corresponding to fixture keys
-     */
-    public function getProductPrice()
-    {
-        return $this->getPriceBlock()->getPrice();
-    }
-
-    /**
      * Return product short description on page
      *
      * @return string|null
@@ -352,44 +285,20 @@ class View extends Block
     }
 
     /**
-     * Return configurable product options
+     * Return product options
      *
+     * @param FixtureInterface $product
      * @return array
      */
-    public function getProductOptions()
+    public function getOptions(FixtureInterface $product)
     {
-        $options = [];
-        for ($i = 2; $i <= 3; $i++) {
-            $options[] = $this->_rootElement->find(".super-attribute-select option:nth-child({$i})")->getText();
-        }
-        return $options;
-    }
+        /** @var CatalogProductSimple $product */
+        $dataConfig = $product->getDataConfig();
+        $typeId = isset($dataConfig['type_id']) ? $dataConfig['type_id'] : null;
 
-    /**
-     * Verify configurable product options
-     *
-     * @param ConfigurableProduct $product
-     * @return bool
-     */
-    public function verifyProductOptions(ConfigurableProduct $product)
-    {
-        $attributes = $product->getConfigurableOptions();
-        foreach ($attributes as $attributeName => $attribute) {
-            foreach ($attribute as $optionName) {
-                $option = $this->_rootElement->find(
-                    '//*[*[@class="field configurable required"]//span[text()="' .
-                    $attributeName .
-                    '"]]//select/option[contains(text(), "' .
-                    $optionName .
-                    '")]',
-                    Locator::SELECTOR_XPATH
-                );
-                if (!$option->isVisible()) {
-                    return false;
-                }
-            }
-        }
-        return true;
+        return $this->hasRender($typeId)
+            ? $this->callRender($typeId, 'getOptions', ['product' => $product])
+            : $this->getCustomOptionsBlock()->getOptions($product);
     }
 
     /**
@@ -400,18 +309,66 @@ class View extends Block
      */
     public function fillOptions(FixtureInterface $product)
     {
-        $configureButton = $this->_rootElement->find($this->customizeButton);
-        $configureSection = $this->_rootElement->find('.product-options-wrapper');
+        $dataConfig = $product->getDataConfig();
+        $typeId = isset($dataConfig['type_id']) ? $dataConfig['type_id'] : null;
+        $checkoutData = null;
 
-        if ($configureButton->isVisible()) {
-            $configureButton->click();
-            $bundleOptions = $product->getSelectionData();
-            $this->getBundleBlock()->fillBundleOptions($bundleOptions);
+        /** @var CatalogProductSimple $product */
+        if ($this->hasRender($typeId)) {
+            $this->callRender($typeId, 'fillOptions', ['product' => $product]);
+        } else {
+            $checkoutCustomOptions = [];
+
+            if ($product instanceof InjectableFixture) {
+                /** @var CatalogProductSimple $product */
+                $checkoutData = $product->getCheckoutData();
+                $checkoutCustomOptions = isset($checkoutData['options']['custom_options'])
+                    ? $checkoutData['options']['custom_options']
+                    : [];
+                $customOptions = $product->hasData('custom_options')
+                    ? $product->getDataFieldConfig('custom_options')['source']->getCustomOptions()
+                    : [];
+
+                $checkoutCustomOptions = $this->prepareCheckoutData($customOptions, $checkoutCustomOptions);
+            }
+
+            $this->getCustomOptionsBlock()->fillCustomOptions($checkoutCustomOptions);
         }
-        if ($configureSection->isVisible()) {
-            $productOptions = $product->getProductOptions();
-            $this->getCustomOptionsBlock()->fillProductOptions($productOptions);
+
+        if (isset($checkoutData['options']['qty'])) {
+            $this->_rootElement->find($this->qty)->setValue($checkoutData['options']['qty']);
         }
+    }
+
+    /**
+     * Replace index fields to name fields in checkout data
+     *
+     * @param array $options
+     * @param array $checkoutData
+     * @return array
+     */
+    protected function prepareCheckoutData(array $options, array $checkoutData)
+    {
+        $result = [];
+
+        foreach ($checkoutData as $checkoutOption) {
+            $attribute = str_replace('attribute_key_', '', $checkoutOption['title']);
+            $option = str_replace('option_key_', '', $checkoutOption['value']);
+
+            if (isset($options[$attribute])) {
+                $result[] = [
+                    'type' => strtolower(preg_replace('/[^a-z]/i', '', $options[$attribute]['type'])),
+                    'title' => isset($options[$attribute]['title'])
+                            ? $options[$attribute]['title']
+                            : $attribute,
+                    'value' => isset($options[$attribute]['options'][$option]['title'])
+                            ? $options[$attribute]['options'][$option]['title']
+                            : $option
+                ];
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -429,17 +386,6 @@ class View extends Block
     }
 
     /**
-     * Click "Customize and add to cart button"
-     *
-     * @return void
-     */
-    public function clickCustomize()
-    {
-        $this->_rootElement->find($this->customizeButton)->click();
-        $this->waitForElementVisible($this->addToCart);
-    }
-
-    /**
      * Click "ADD TO CART" button
      *
      * @return void
@@ -447,26 +393,6 @@ class View extends Block
     public function clickAddToCartButton()
     {
         $this->_rootElement->find($this->addToCart, Locator::SELECTOR_CSS)->click();
-    }
-
-    /**
-     * Verification of group products
-     *
-     * @param GroupedProduct $product
-     * @return bool
-     */
-    public function verifyGroupedProducts(GroupedProduct $product)
-    {
-        foreach ($product->getAssociatedProductNames() as $name) {
-            $option = $this->_rootElement->find(
-                "//*[@id='super-product-table']//tr[td/strong='{$name}']",
-                Locator::SELECTOR_XPATH
-            );
-            if (!$option->isVisible()) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**

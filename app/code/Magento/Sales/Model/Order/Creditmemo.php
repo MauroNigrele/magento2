@@ -24,6 +24,8 @@
 namespace Magento\Sales\Model\Order;
 
 use Magento\Framework\Model\Exception;
+use Magento\Framework\Pricing\PriceCurrencyInterface;
+use Magento\Sales\Model\EntityInterface;
 
 /**
  * Order creditmemo model
@@ -101,7 +103,6 @@ use Magento\Framework\Model\Exception;
  * @method \Magento\Sales\Model\Order\Creditmemo setGlobalCurrencyCode(string $value)
  * @method string getTransactionId()
  * @method \Magento\Sales\Model\Order\Creditmemo setTransactionId(string $value)
- * @method string getIncrementId()
  * @method \Magento\Sales\Model\Order\Creditmemo setIncrementId(string $value)
  * @method string getCreatedAt()
  * @method \Magento\Sales\Model\Order\Creditmemo setCreatedAt(string $value)
@@ -120,7 +121,7 @@ use Magento\Framework\Model\Exception;
  * @method float getBaseShippingInclTax()
  * @method \Magento\Sales\Model\Order\Creditmemo setBaseShippingInclTax(float $value)
  */
-class Creditmemo extends \Magento\Sales\Model\AbstractModel
+class Creditmemo extends \Magento\Sales\Model\AbstractModel implements EntityInterface
 {
     const STATE_OPEN = 1;
 
@@ -197,7 +198,7 @@ class Creditmemo extends \Magento\Sales\Model\AbstractModel
     protected $_calculatorFactory;
 
     /**
-     * @var \Magento\Store\Model\StoreManagerInterface
+     * @var \Magento\Framework\StoreManagerInterface
      */
     protected $_storeManager;
 
@@ -212,6 +213,11 @@ class Creditmemo extends \Magento\Sales\Model\AbstractModel
     protected $_commentCollectionFactory;
 
     /**
+     * @var PriceCurrencyInterface
+     */
+    protected $priceCurrency;
+
+    /**
      * @param \Magento\Framework\Model\Context $context
      * @param \Magento\Framework\Registry $registry
      * @param \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate
@@ -220,9 +226,10 @@ class Creditmemo extends \Magento\Sales\Model\AbstractModel
      * @param \Magento\Sales\Model\OrderFactory $orderFactory
      * @param \Magento\Sales\Model\Resource\Order\Creditmemo\Item\CollectionFactory $cmItemCollectionFactory
      * @param \Magento\Framework\Math\CalculatorFactory $calculatorFactory
-     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\StoreManagerInterface $storeManager
      * @param Creditmemo\CommentFactory $commentFactory
      * @param \Magento\Sales\Model\Resource\Order\Creditmemo\Comment\CollectionFactory $commentCollectionFactory
+     * @param PriceCurrencyInterface $priceCurrency
      * @param \Magento\Framework\Model\Resource\AbstractResource $resource
      * @param \Magento\Framework\Data\Collection\Db $resourceCollection
      * @param array $data
@@ -236,9 +243,10 @@ class Creditmemo extends \Magento\Sales\Model\AbstractModel
         \Magento\Sales\Model\OrderFactory $orderFactory,
         \Magento\Sales\Model\Resource\Order\Creditmemo\Item\CollectionFactory $cmItemCollectionFactory,
         \Magento\Framework\Math\CalculatorFactory $calculatorFactory,
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\StoreManagerInterface $storeManager,
         \Magento\Sales\Model\Order\Creditmemo\CommentFactory $commentFactory,
         \Magento\Sales\Model\Resource\Order\Creditmemo\Comment\CollectionFactory $commentCollectionFactory,
+        PriceCurrencyInterface $priceCurrency,
         \Magento\Framework\Model\Resource\AbstractResource $resource = null,
         \Magento\Framework\Data\Collection\Db $resourceCollection = null,
         array $data = array()
@@ -250,6 +258,7 @@ class Creditmemo extends \Magento\Sales\Model\AbstractModel
         $this->_storeManager = $storeManager;
         $this->_commentFactory = $commentFactory;
         $this->_commentCollectionFactory = $commentCollectionFactory;
+        $this->priceCurrency = $priceCurrency;
         parent::__construct($context, $registry, $localeDate, $dateTime, $resource, $resourceCollection, $data);
     }
 
@@ -503,14 +512,14 @@ class Creditmemo extends \Magento\Sales\Model\AbstractModel
     public function refund()
     {
         $this->setState(self::STATE_REFUNDED);
-        $orderRefund = $this->_storeManager->getStore()->roundPrice(
+        $orderRefund = $this->priceCurrency->round(
             $this->getOrder()->getTotalRefunded() + $this->getGrandTotal()
         );
-        $baseOrderRefund = $this->_storeManager->getStore()->roundPrice(
+        $baseOrderRefund = $this->priceCurrency->round(
             $this->getOrder()->getBaseTotalRefunded() + $this->getBaseGrandTotal()
         );
 
-        if ($baseOrderRefund > $this->_storeManager->getStore()->roundPrice($this->getOrder()->getBaseTotalPaid())) {
+        if ($baseOrderRefund > $this->priceCurrency->round($this->getOrder()->getBaseTotalPaid())) {
 
             $baseAvailableRefund = $this->getOrder()->getBaseTotalPaid() - $this->getOrder()->getBaseTotalRefunded();
 
@@ -710,10 +719,10 @@ class Creditmemo extends \Magento\Sales\Model\AbstractModel
     public function setShippingAmount($amount)
     {
         // base shipping amount calculated in total model
-        //        $amount = $this->getStore()->roundPrice($amount);
+        //        $amount = $this->getStore()->round($amount);
         //        $this->setData('base_shipping_amount', $amount);
         //
-        //        $amount = $this->getStore()->roundPrice(
+        //        $amount = $this->getStore()->round(
         //            $amount*$this->getOrder()->getStoreToOrderRate()
         //        );
         $this->setData('shipping_amount', $amount);
@@ -732,10 +741,10 @@ class Creditmemo extends \Magento\Sales\Model\AbstractModel
             $amount = $this->getOrder()->getGrandTotal() * $amount / 100;
         }
 
-        $amount = $this->getStore()->roundPrice($amount);
+        $amount = $this->priceCurrency->round($amount);
         $this->setData('base_adjustment_positive', $amount);
 
-        $amount = $this->getStore()->roundPrice($amount * $this->getOrder()->getBaseToOrderRate());
+        $amount = $this->priceCurrency->round($amount * $this->getOrder()->getBaseToOrderRate());
         $this->setData('adjustment_positive', $amount);
         return $this;
     }
@@ -752,10 +761,10 @@ class Creditmemo extends \Magento\Sales\Model\AbstractModel
             $amount = $this->getOrder()->getGrandTotal() * $amount / 100;
         }
 
-        $amount = $this->getStore()->roundPrice($amount);
+        $amount = $this->priceCurrency->round($amount);
         $this->setData('base_adjustment_negative', $amount);
 
-        $amount = $this->getStore()->roundPrice($amount * $this->getOrder()->getBaseToOrderRate());
+        $amount = $this->priceCurrency->round($amount * $this->getOrder()->getBaseToOrderRate());
         $this->setData('adjustment_negative', $amount);
         return $this;
     }
@@ -863,6 +872,16 @@ class Creditmemo extends \Magento\Sales\Model\AbstractModel
     public function getFilteredCollectionItems($filter = null)
     {
         return $this->getResourceCollection()->getFiltered($filter);
+    }
+
+    /**
+     * Returns increment id
+     *
+     * @return string
+     */
+    public function getIncrementId()
+    {
+        return $this->getData('increment_id');
     }
 
     /**

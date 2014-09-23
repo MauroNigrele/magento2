@@ -40,9 +40,9 @@ abstract class AbstractCollection extends \Magento\Catalog\Model\Resource\Produc
     protected $_customerId = null;
 
     /**
-     * @var \Magento\Log\Model\Visitor
+     * @var \Magento\Customer\Model\Visitor
      */
-    protected $_logVisitor;
+    protected $_customerVisitor;
 
     /**
      * @param \Magento\Core\Model\EntityFactory $entityFactory
@@ -54,8 +54,8 @@ abstract class AbstractCollection extends \Magento\Catalog\Model\Resource\Produc
      * @param \Magento\Eav\Model\EntityFactory $eavEntityFactory
      * @param \Magento\Catalog\Model\Resource\Helper $resourceHelper
      * @param \Magento\Framework\Validator\UniversalFactory $universalFactory
-     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
-     * @param \Magento\Catalog\Helper\Data $catalogData
+     * @param \Magento\Framework\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\Module\Manager $moduleManager
      * @param \Magento\Catalog\Model\Indexer\Product\Flat\State $catalogProductFlatState
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param \Magento\Catalog\Model\Product\OptionFactory $productOptionFactory
@@ -63,7 +63,7 @@ abstract class AbstractCollection extends \Magento\Catalog\Model\Resource\Produc
      * @param \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Framework\Stdlib\DateTime $dateTime
-     * @param \Magento\Log\Model\Visitor $logVisitor
+     * @param \Magento\Customer\Model\Visitor $customerVisitor
      * @param mixed $connection
      * 
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
@@ -78,8 +78,8 @@ abstract class AbstractCollection extends \Magento\Catalog\Model\Resource\Produc
         \Magento\Eav\Model\EntityFactory $eavEntityFactory,
         \Magento\Catalog\Model\Resource\Helper $resourceHelper,
         \Magento\Framework\Validator\UniversalFactory $universalFactory,
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
-        \Magento\Catalog\Helper\Data $catalogData,
+        \Magento\Framework\StoreManagerInterface $storeManager,
+        \Magento\Framework\Module\Manager $moduleManager,
         \Magento\Catalog\Model\Indexer\Product\Flat\State $catalogProductFlatState,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Catalog\Model\Product\OptionFactory $productOptionFactory,
@@ -87,7 +87,7 @@ abstract class AbstractCollection extends \Magento\Catalog\Model\Resource\Produc
         \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Framework\Stdlib\DateTime $dateTime,
-        \Magento\Log\Model\Visitor $logVisitor,
+        \Magento\Customer\Model\Visitor $customerVisitor,
         $connection = null
     ) {
         parent::__construct(
@@ -101,7 +101,7 @@ abstract class AbstractCollection extends \Magento\Catalog\Model\Resource\Produc
             $resourceHelper,
             $universalFactory,
             $storeManager,
-            $catalogData,
+            $moduleManager,
             $catalogProductFlatState,
             $scopeConfig,
             $productOptionFactory,
@@ -111,7 +111,7 @@ abstract class AbstractCollection extends \Magento\Catalog\Model\Resource\Produc
             $dateTime,
             $connection
         );
-        $this->_logVisitor = $logVisitor;
+        $this->_customerVisitor = $customerVisitor;
     }
 
     /**
@@ -184,7 +184,7 @@ abstract class AbstractCollection extends \Magento\Catalog\Model\Resource\Produc
         } elseif ($this->_customerId) {
             $condition['customer_id'] = $this->_customerId;
         } else {
-            $condition['visitor_id'] = $this->_logVisitor->getId();
+            $condition['visitor_id'] = $this->_customerVisitor->getId();
         }
 
         return $condition;
