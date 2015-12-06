@@ -1,82 +1,57 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Test\Constraint;
 
-use Mtf\Constraint\AbstractConstraint;
 use Magento\Catalog\Test\Fixture\CatalogAttributeSet;
 use Magento\Catalog\Test\Page\Adminhtml\CatalogProductSetEdit;
 use Magento\Catalog\Test\Page\Adminhtml\CatalogProductSetIndex;
+use Magento\Mtf\Constraint\AbstractConstraint;
 
 /**
  * Class AssertProductAttributeAbsenceInUnassignedAttributes
- * Checks that product attribute isn't displayed in Product template's Unassigned Attributes section
+ * Checks that product attribute isn't displayed in Attribute set's Unassigned Attributes section
  */
 class AssertProductAttributeAbsenceInUnassignedAttributes extends AbstractConstraint
 {
     /**
-     * Constraint severeness
+     * Assert that deleted attribute isn't displayed in Attribute set's Unassigned Attributes section
      *
-     * @var string
-     */
-    protected $severeness = 'low';
-
-    /**
-     * Assert that deleted attribute isn't displayed in Product template's Unassigned Attributes section
-     *
-     * @param CatalogAttributeSet $productTemplate
+     * @param CatalogAttributeSet $attributeSet
      * @param CatalogProductSetIndex $productSetIndex
      * @param CatalogProductSetEdit $productSetEdit
      * @return void
      */
     public function processAssert(
-        CatalogAttributeSet $productTemplate,
+        CatalogAttributeSet $attributeSet,
         CatalogProductSetIndex $productSetIndex,
         CatalogProductSetEdit $productSetEdit
     ) {
-        $filter = ['set_name' => $productTemplate->getAttributeSetName()];
+        $filter = ['set_name' => $attributeSet->getAttributeSetName()];
         $productSetIndex->open();
         $productSetIndex->getGrid()->searchAndOpen($filter);
 
-        $attributeCode = $productTemplate
+        $attributeCode = $attributeSet
             ->getDataFieldConfig('assigned_attributes')['source']
             ->getAttributes()[0]
             ->getAttributeCode();
 
         \PHPUnit_Framework_Assert::assertFalse(
             $productSetEdit->getAttributeSetEditBlock()->checkUnassignedProductAttribute($attributeCode),
-            "Attribute " . $attributeCode . " is present in Unassigned Product template's section."
+            "Attribute " . $attributeCode . " is present in Unassigned Attribute set's section."
         );
     }
 
     /**
-     * Text absent Product Attribute Unassigned Product template's section
+     * Text absent Product Attribute Unassigned Attribute set's section
      *
      * @return string
      */
     public function toString()
     {
-        return "Product Attribute is absent in Unassigned Product template's section.";
+        return "Product Attribute is absent in Unassigned Attribute set's section.";
     }
 }

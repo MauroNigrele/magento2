@@ -1,35 +1,16 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Test\Constraint;
 
-use Mtf\ObjectManager;
-use Mtf\Client\Browser;
-use Mtf\Constraint\AbstractAssertForm;
 use Magento\Catalog\Test\Page\Product\CatalogProductView;
-use Mtf\Fixture\FixtureInterface;
-use Magento\ConfigurableProduct\Test\Fixture\ConfigurableProductInjectable;
+use Magento\ConfigurableProduct\Test\Fixture\ConfigurableProduct;
+use Magento\Mtf\Client\BrowserInterface;
+use Magento\Mtf\Constraint\AbstractAssertForm;
+use Magento\Mtf\Fixture\FixtureInterface;
 
 /**
  * Class AssertProductPage
@@ -47,16 +28,9 @@ class AssertProductPage extends AbstractAssertForm
     /**
      * Product fixture
      *
-     * @var ConfigurableProductInjectable
+     * @var ConfigurableProduct
      */
     protected $product;
-
-    /**
-     * Constraint severeness
-     *
-     * @var string
-     */
-    protected $severeness = 'middle';
 
     /**
      * Assert that displayed product data on product page(front-end) equals passed from fixture:
@@ -67,13 +41,16 @@ class AssertProductPage extends AbstractAssertForm
      * 5. Description
      * 6. Short Description
      *
-     * @param Browser $browser
+     * @param BrowserInterface $browser
      * @param CatalogProductView $catalogProductView
      * @param FixtureInterface $product
      * @return void
      */
-    public function processAssert(Browser $browser, CatalogProductView $catalogProductView, FixtureInterface $product)
-    {
+    public function processAssert(
+        BrowserInterface $browser,
+        CatalogProductView $catalogProductView,
+        FixtureInterface $product
+    ) {
         $browser->open($_ENV['app_frontend_url'] . $product->getUrlKey() . '.html');
 
         $this->product = $product;
@@ -129,14 +106,19 @@ class AssertProductPage extends AbstractAssertForm
      */
     protected function verifyPrice()
     {
-        $fixtureProductPrice = number_format($this->product->getPrice(), 2);
-        $formProductPrice = $this->productView->getPriceBlock()->getRegularPrice();
-
-        if ($fixtureProductPrice == $formProductPrice) {
+        if ($this->product->hasData('price') == false) {
             return null;
         }
-        return "Displayed product price on product page(front-end) not equals passed from fixture. "
-        . "Actual: {$formProductPrice}, expected: {$fixtureProductPrice}.";
+
+        $priceBlock = $this->productView->getPriceBlock();
+        $formPrice = $priceBlock->isOldPriceVisible() ? $priceBlock->getOldPrice() : $priceBlock->getPrice();
+        $fixturePrice = number_format($this->product->getPrice(), 2, '.', '');
+
+        if ($fixturePrice != $formPrice) {
+            return "Displayed product price on product page(front-end) not equals passed from fixture. "
+                . "Actual: {$fixturePrice}, expected: {$formPrice}.";
+        }
+        return null;
     }
 
     /**
@@ -146,11 +128,10 @@ class AssertProductPage extends AbstractAssertForm
      */
     protected function verifySpecialPrice()
     {
-        $fixtureProductSpecialPrice = $this->product->getSpecialPrice();
-        if (!$fixtureProductSpecialPrice) {
+        if (!$this->product->hasData('special_price')) {
             return null;
         }
-
+        $fixtureProductSpecialPrice = $this->product->getSpecialPrice();
         $fixtureProductSpecialPrice = number_format($fixtureProductSpecialPrice, 2);
         $formProductSpecialPrice = $this->productView->getPriceBlock()->getSpecialPrice();
         if ($fixtureProductSpecialPrice == $formProductSpecialPrice) {
@@ -170,7 +151,7 @@ class AssertProductPage extends AbstractAssertForm
         $fixtureProductSku = $this->product->getSku();
         $formProductSku = $this->productView->getProductSku();
 
-        if ($fixtureProductSku == $formProductSku) {
+        if ($fixtureProductSku === null || $fixtureProductSku == $formProductSku) {
             return null;
         }
         return "Displayed product sku on product page(front-end) not equals passed from fixture. "

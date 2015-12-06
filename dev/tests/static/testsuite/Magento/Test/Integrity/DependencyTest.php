@@ -2,29 +2,14 @@
 /**
  * Scan source code for incorrect or undeclared modules dependencies
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  *
  */
 namespace Magento\Test\Integrity;
+
+use Magento\Framework\Component\ComponentRegistrar;
+use Magento\Framework\App\Utility\Files;
 
 /**
  * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
@@ -61,7 +46,7 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      *
      * @var array
      */
-    protected static $_listConfigXml = array();
+    protected static $_listConfigXml = [];
 
     /**
      * List of routes.xml files by modules
@@ -72,7 +57,7 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      *
      * @var array
      */
-    protected static $_listRoutesXml = array();
+    protected static $_listRoutesXml = [];
 
     /**
      * List of routers
@@ -83,7 +68,7 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      *
      * @var array
      */
-    protected static $_mapRouters = array();
+    protected static $_mapRouters = [];
 
     /**
      * List of layout blocks
@@ -95,7 +80,7 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      *
      * @var array
      */
-    protected static $_mapLayoutBlocks = array();
+    protected static $_mapLayoutBlocks = [];
 
     /**
      * List of layout handles
@@ -107,7 +92,7 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      *
      * @var array
      */
-    protected static $_mapLayoutHandles = array();
+    protected static $_mapLayoutHandles = [];
 
     /**
      * List of dependencies
@@ -121,7 +106,7 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      * )))
      * @var array
      */
-    protected static $_mapDependencies = array();
+    protected static $_mapDependencies = [];
 
     /**
      * Regex pattern for validation file path of theme
@@ -144,14 +129,31 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      *
      * @var array
      */
-    protected static $_rulesInstances = array();
+    protected static $_rulesInstances = [];
+
+    /**
+     * White list for libraries
+     *
+     * @var array
+     */
+    private static $whiteList = [];
 
     /**
      * Sets up data
      */
     public static function setUpBeforeClass()
     {
-        self::$_namespaces = implode('|', \Magento\TestFramework\Utility\Files::init()->getNamespaces());
+        $root = Files::init()->getPathToSource();
+        $rootJson = json_decode(file_get_contents($root . '/composer.json'), true);
+        if (preg_match('/magento\/project-*/', $rootJson['name']) == 1) {
+
+            // The Dependency test is skipped for vendor/magento build
+            self::markTestSkipped(
+                'MAGETWO-43654: The build is running from vendor/magento. DependencyTest is skipped.'
+            );
+        }
+
+        self::$_namespaces = implode('|', Files::init()->getNamespaces());
 
         self::_prepareListConfigXml();
         self::_prepareListRoutesXml();
@@ -160,9 +162,26 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
         self::_prepareMapLayoutBlocks();
         self::_prepareMapLayoutHandles();
 
+        self::getLibraryWhiteLists();
+
         self::_initDependencies();
         self::_initThemes();
         self::_initRules();
+    }
+
+    /**
+     * Initialize library white list
+     */
+    private static function getLibraryWhiteLists()
+    {
+        $componentRegistrar = new ComponentRegistrar();
+        foreach ($componentRegistrar->getPaths(ComponentRegistrar::LIBRARY) as $library) {
+            $library = str_replace('\\', '/', $library);
+            if (strpos($library, 'Framework/')) {
+                $partOfLibraryPath = explode('/', $library);
+                self::$whiteList[] = implode('\\', array_slice($partOfLibraryPath, -3));
+            }
+        }
     }
 
     /**
@@ -170,10 +189,10 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      */
     protected static function _initThemes()
     {
-        $defaultThemes = array();
+        $defaultThemes = [];
         foreach (self::$_listConfigXml as $file) {
             $config = simplexml_load_file($file);
-            $nodes = @($config->xpath("/config/*/design/theme/full_name") ?: array());
+            $nodes = @($config->xpath("/config/*/design/theme/full_name") ?: []);
             foreach ($nodes as $node) {
                 $defaultThemes[] = (string)$node;
             }
@@ -187,19 +206,19 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
     protected static function _initRules()
     {
         $replaceFilePattern = str_replace('\\', '/', realpath(__DIR__)) . '/_files/dependency_test/*.php';
-        $dbRuleTables = array();
+        $dbRuleTables = [];
         foreach (glob($replaceFilePattern) as $fileName) {
             $dbRuleTables = array_merge($dbRuleTables, @include $fileName);
         }
-        self::$_rulesInstances = array(
+        self::$_rulesInstances = [
             new \Magento\TestFramework\Dependency\PhpRule(self::$_mapRouters, self::$_mapLayoutBlocks),
             new \Magento\TestFramework\Dependency\DbRule($dbRuleTables),
             new \Magento\TestFramework\Dependency\LayoutRule(
                 self::$_mapRouters,
                 self::$_mapLayoutBlocks,
                 self::$_mapLayoutHandles
-            )
-        );
+            ),
+        ];
     }
 
     /**
@@ -245,7 +264,7 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
 
     public function testUndeclared()
     {
-        $invoker = new \Magento\TestFramework\Utility\AggregateInvoker($this);
+        $invoker = new \Magento\Framework\App\Utility\AggregateInvoker($this);
         $invoker(
             /**
              * Check undeclared modules dependencies for specified file
@@ -258,26 +277,30 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
                 $filename = self::_getRelativeFilename($file);
                 $isThemeFile = (bool)preg_match(self::$_defaultThemes, $filename);
 
-                if (strpos($file, 'app/code') === false && !$isThemeFile) {
-                    return;
+                $componentRegistrar = new ComponentRegistrar();
+                $foundModuleName = '';
+                if (!$isThemeFile) {
+                    foreach ($componentRegistrar->getPaths(ComponentRegistrar::MODULE) as $moduleName => $moduleDir) {
+                        if (strpos($file, $moduleDir . '/') !== false) {
+                            $foundModuleName = str_replace('_', '\\', $moduleName);
+                            break;
+                        }
+                    }
+                    if (empty($foundModuleName)) {
+                        return;
+                    }
                 }
 
-                $module = $this->_getModuleName($file);
+                $module = $foundModuleName;
                 $contents = $this->_getCleanedFileContents($fileType, $file);
 
-                // Apply rules
-                $dependencies = array();
-                foreach (self::$_rulesInstances as $rule) {
-                    /** @var \Magento\TestFramework\Dependency\RuleInterface $rule */
-                    $newDependencies = $rule->getDependencyInfo($module, $fileType, $file, $contents);
-                    $dependencies = array_merge($dependencies, $newDependencies);
-                }
+                $dependencies = $this->getDependenciesFromFiles($module, $fileType, $file, $contents);
 
                 // Collect dependencies
                 $undeclaredDependency = $this->_collectDependencies($module, $dependencies);
 
                 // Prepare output message
-                $result = array();
+                $result = [];
                 foreach ($undeclaredDependency as $type => $modules) {
                     $modules = array_unique($modules);
                     if (!count($modules)) {
@@ -294,18 +317,47 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * Retrieve dependencies from files
+     *
+     * @param string $module
+     * @param string $fileType
+     * @param string $file
+     * @param string $contents
+     * @return string[]
+     */
+    protected function getDependenciesFromFiles($module, $fileType, $file, $contents)
+    {
+        // Apply rules
+        $dependencies = [];
+        foreach (self::$_rulesInstances as $rule) {
+            /** @var \Magento\TestFramework\Dependency\RuleInterface $rule */
+            $newDependencies = $rule->getDependencyInfo($module, $fileType, $file, $contents);
+            $dependencies = array_merge($dependencies, $newDependencies);
+        }
+        foreach ($dependencies as $key => $dependency) {
+            foreach (self::$whiteList as $namespace) {
+                if (strpos($dependency['source'], $namespace) !== false) {
+                    $dependency['module'] = $namespace;
+                    $dependencies[$key] = $dependency;
+                }
+            }
+        }
+        return $dependencies;
+    }
+
+    /**
      * Collect dependencies
      *
      * @param string $currentModuleName
      * @param array $dependencies
      * @return array
      */
-    protected function _collectDependencies($currentModuleName, $dependencies = array())
+    protected function _collectDependencies($currentModuleName, $dependencies = [])
     {
         if (!count($dependencies)) {
-            return array();
+            return [];
         }
-        $undeclared = array();
+        $undeclared = [];
         foreach ($dependencies as $dependency) {
             $this->collectDependency($dependency, $currentModuleName, $undeclared);
         }
@@ -329,9 +381,9 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
         $hard = $this->_getDependencies($currentModule, self::TYPE_HARD, self::MAP_TYPE_DECLARED);
 
         $declared = $type == self::TYPE_SOFT ? array_merge($soft, $hard) : $hard;
-        if (!in_array($module, $declared) && !in_array($nsModule, $declared) && !$this->_isFake($module)) {
+        if (!in_array($module, $declared) && !in_array($nsModule, $declared) && !$this->_isFake($nsModule)) {
             $undeclared[$type][] = $module;
-        } elseif ((in_array($module, $declared) || in_array($nsModule, $declared)) && $this->_isFake($module)) {
+        } elseif ((in_array($module, $declared) || in_array($nsModule, $declared)) && $this->_isFake($nsModule)) {
             $this->_setDependencies($currentModule, $type, self::MAP_TYPE_REDUNDANT, $module);
         }
 
@@ -340,22 +392,17 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
 
     /**
      * Collect redundant dependencies
-     *
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      * @test
      * @depends testUndeclared
      */
     public function collectRedundant()
     {
         foreach (array_keys(self::$_mapDependencies) as $module) {
-            // Override 'soft' dependencies with 'hard'
-            $soft = $this->_getDependencies($module, self::TYPE_SOFT, self::MAP_TYPE_FOUND);
-            $hard = $this->_getDependencies($module, self::TYPE_HARD, self::MAP_TYPE_FOUND);
-            $this->_setDependencies($module, self::TYPE_SOFT, self::MAP_TYPE_FOUND, array_diff($soft, $hard));
-            foreach ($this->_getTypes() as $type) {
-                $declared = $this->_getDependencies($module, $type, self::MAP_TYPE_DECLARED);
-                $found = $this->_getDependencies($module, $type, self::MAP_TYPE_FOUND);
-                $this->_setDependencies($module, $type, self::MAP_TYPE_REDUNDANT, array_diff($declared, $found));
-            }
+            $declared = $this->_getDependencies($module, self::TYPE_HARD, self::MAP_TYPE_DECLARED);
+            $found = $this->_getDependencies($module, self::TYPE_HARD, self::MAP_TYPE_FOUND);
+            $found['Magento\Framework'] = 'Magento\Framework';
+            $this->_setDependencies($module, self::TYPE_HARD, self::MAP_TYPE_REDUNDANT, array_diff($declared, $found));
         }
     }
 
@@ -366,20 +413,19 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      */
     public function testRedundant()
     {
-        $output = array();
+        $output = [];
         foreach (array_keys(self::$_mapDependencies) as $module) {
-            $result = array();
-            foreach ($this->_getTypes() as $type) {
-                $redundant = $this->_getDependencies($module, $type, self::MAP_TYPE_REDUNDANT);
-                if (count($redundant)) {
-                    $result[] = sprintf(
-                        "\r\nModule %s: %s [%s]",
-                        $module,
-                        $type,
-                        implode(', ', array_values($redundant))
-                    );
-                }
+            $result = [];
+            $redundant = $this->_getDependencies($module, self::TYPE_HARD, self::MAP_TYPE_REDUNDANT);
+            if (count($redundant)) {
+                $result[] = sprintf(
+                    "\r\nModule %s: %s [%s]",
+                    $module,
+                    self::TYPE_HARD,
+                    implode(', ', array_values($redundant))
+                );
             }
+
             if (count($result)) {
                 $output[] = implode(', ', $result);
             }
@@ -397,24 +443,9 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      */
     protected static function _getRelativeFilename($absoluteFilename)
     {
-        $pathToSource = \Magento\TestFramework\Utility\Files::init()->getPathToSource();
+        $pathToSource = Files::init()->getPathToSource();
         $relativeFileName = str_replace($pathToSource, '', $absoluteFilename);
         return trim(str_replace('\\', '/', $relativeFileName), '/');
-    }
-
-    /**
-     * Extract module name from file path
-     *
-     * @param $absoluteFilename
-     * @return string
-     */
-    protected function _getModuleName($absoluteFilename)
-    {
-        $file = self::_getRelativeFilename($absoluteFilename);
-        if (preg_match('/\/(?<namespace>' . self::$_namespaces . ')[\/_\\\\]?(?<module>[^\/]+)\//', $file, $matches)) {
-            return $matches['namespace'] . '\\' . $matches['module'];
-        }
-        return '';
     }
 
     /**
@@ -427,13 +458,13 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      */
     protected function _prepareFiles($fileType, $files, $skip = null)
     {
-        $result = array();
+        $result = [];
         foreach ($files as $relativePath => $file) {
             $absolutePath = $file[0];
             if (!$skip && substr_count($relativePath, '/') < self::DIR_PATH_COUNT) {
                 continue;
             }
-            $result[$relativePath] = array($fileType, $absolutePath);
+            $result[$relativePath] = [$fileType, $absolutePath];
         }
         return $result;
     }
@@ -445,14 +476,14 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      */
     public function getAllFiles()
     {
-        $files = array();
+        $files = [];
 
         // Get all php files
         $files = array_merge(
             $files,
             $this->_prepareFiles(
                 'php',
-                \Magento\TestFramework\Utility\Files::init()->getPhpFiles(true, false, false, true),
+                Files::init()->getPhpFiles(Files::INCLUDE_APP_CODE | Files::AS_DATA_SET | Files::INCLUDE_NON_CLASSES),
                 true
             )
         );
@@ -460,19 +491,19 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
         // Get all configuration files
         $files = array_merge(
             $files,
-            $this->_prepareFiles('config', \Magento\TestFramework\Utility\Files::init()->getConfigFiles())
+            $this->_prepareFiles('config', Files::init()->getConfigFiles())
         );
 
         //Get all layout updates files
         $files = array_merge(
             $files,
-            $this->_prepareFiles('layout', \Magento\TestFramework\Utility\Files::init()->getLayoutFiles())
+            $this->_prepareFiles('layout', Files::init()->getLayoutFiles())
         );
 
         // Get all template files
         $files = array_merge(
             $files,
-            $this->_prepareFiles('template', \Magento\TestFramework\Utility\Files::init()->getPhtmlFiles())
+            $this->_prepareFiles('template', Files::init()->getPhtmlFiles())
         );
 
         return $files;
@@ -483,7 +514,7 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      */
     protected static function _prepareListConfigXml()
     {
-        $files = \Magento\TestFramework\Utility\Files::init()->getConfigFiles('config.xml', array(), false);
+        $files = Files::init()->getConfigFiles('config.xml', [], false);
         foreach ($files as $file) {
             if (preg_match('/(?<namespace>[A-Z][a-z]+)[_\/\\\\](?<module>[A-Z][a-zA-Z]+)/', $file, $matches)) {
                 $module = $matches['namespace'] . '\\' . $matches['module'];
@@ -497,7 +528,7 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      */
     protected static function _prepareListRoutesXml()
     {
-        $files = \Magento\TestFramework\Utility\Files::init()->getConfigFiles('*/routes.xml', array(), false);
+        $files = Files::init()->getConfigFiles('*/routes.xml', [], false);
         foreach ($files as $file) {
             if (preg_match('/(?<namespace>[A-Z][a-z]+)[_\/\\\\](?<module>[A-Z][a-zA-Z]+)/', $file, $matches)) {
                 $module = $matches['namespace'] . '\\' . $matches['module'];
@@ -514,14 +545,13 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
         $pattern = '/(?<namespace>[A-Z][a-z]+)[_\/\\\\](?<module>[A-Z][a-zA-Z]+)\/Controller\/' .
             '(?<path>[\/\w]*).php/';
 
-        $files = \Magento\TestFramework\Utility\Files::init()->getPhpFiles(true, false, false, false);
+        $files = Files::init()->getPhpFiles(Files::INCLUDE_APP_CODE | Files::INCLUDE_NON_CLASSES);
         foreach ($files as $file) {
             if (preg_match($pattern, $file, $matches)) {
                 $module = $matches['namespace'] . '\\' . $matches['module'];
                 if (!empty(self::$_listRoutesXml[$module])) {
                     foreach (self::$_listRoutesXml[$module] as $configFile) {
                         self::updateRoutersMap($module, $configFile);
-
                     }
                 }
             }
@@ -548,7 +578,7 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
                 continue;
             }
             if (!isset(self::$_mapRouters[$id])) {
-                self::$_mapRouters[$id] = array();
+                self::$_mapRouters[$id] = [];
             }
             if (!in_array($module, self::$_mapRouters[$id])) {
                 self::$_mapRouters[$id][] = $module;
@@ -561,12 +591,12 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      */
     protected static function _prepareMapLayoutBlocks()
     {
-        $files = \Magento\TestFramework\Utility\Files::init()->getLayoutFiles(array(), false);
+        $files = Files::init()->getLayoutFiles([], false);
         foreach ($files as $file) {
             $area = 'default';
             if (preg_match('/[\/](?<area>adminhtml|frontend)[\/]/', $file, $matches)) {
                 $area = $matches['area'];
-                self::$_mapLayoutBlocks[$area] = @(self::$_mapLayoutBlocks[$area] ?: array());
+                self::$_mapLayoutBlocks[$area] = @(self::$_mapLayoutBlocks[$area] ?: []);
             }
             if (preg_match('/(?<namespace>[A-Z][a-z]+)[_\/\\\\](?<module>[A-Z][a-zA-Z]+)/', $file, $matches)) {
                 $module = $matches['namespace'] . '\\' . $matches['module'];
@@ -576,7 +606,7 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
                     $attributes = $element->attributes();
                     $block = (string)$attributes->name;
                     if (!empty($block)) {
-                        self::$_mapLayoutBlocks[$area][$block] = @(self::$_mapLayoutBlocks[$area][$block] ?: array());
+                        self::$_mapLayoutBlocks[$area][$block] = @(self::$_mapLayoutBlocks[$area][$block] ?: []);
                         self::$_mapLayoutBlocks[$area][$block][$module] = $module;
                     }
                 }
@@ -589,12 +619,12 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      */
     protected static function _prepareMapLayoutHandles()
     {
-        $files = \Magento\TestFramework\Utility\Files::init()->getLayoutFiles(array(), false);
+        $files = Files::init()->getLayoutFiles([], false);
         foreach ($files as $file) {
             $area = 'default';
             if (preg_match('/\/(?<area>adminhtml|frontend)\//', $file, $matches)) {
                 $area = $matches['area'];
-                self::$_mapLayoutHandles[$area] = @(self::$_mapLayoutHandles[$area] ?: array());
+                self::$_mapLayoutHandles[$area] = @(self::$_mapLayoutHandles[$area] ?: []);
             }
             if (preg_match('/app\/code\/(?<namespace>[A-Z][a-z]+)[_\/\\\\](?<module>[A-Z][a-zA-Z]+)/', $file, $matches)
             ) {
@@ -603,7 +633,7 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
                 foreach ((array)$xml->xpath('/layout/child::*') as $element) {
                     /** @var \SimpleXMLElement $element */
                     $handle = $element->getName();
-                    self::$_mapLayoutHandles[$area][$handle] = @(self::$_mapLayoutHandles[$area][$handle] ?: array());
+                    self::$_mapLayoutHandles[$area][$handle] = @(self::$_mapLayoutHandles[$area][$handle] ?: []);
                     self::$_mapLayoutHandles[$area][$handle][$module] = $module;
                 }
             }
@@ -617,48 +647,93 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
      */
     protected static function _getTypes()
     {
-        return array(self::TYPE_HARD, self::TYPE_SOFT);
+        return [self::TYPE_HARD, self::TYPE_SOFT];
+    }
+
+    /**
+     * Converts a composer json component name into the Magento Module form
+     *
+     * @param string $jsonName The name of a composer json component or dependency e.g. 'magento/module-theme'
+     * @return string The corresponding Magento Module e.g. 'Magento\Theme'
+     */
+    protected static function convertModuleName($jsonName)
+    {
+        if (strpos($jsonName, 'magento/module') !== false) {
+            $moduleName = str_replace('-', ' ', $jsonName);
+            $moduleName = ucwords($moduleName);
+            $moduleName = str_replace('module ', '', $moduleName);
+            $moduleName = str_replace(' ', '', $moduleName);
+            $moduleName = str_replace('/', '\\', $moduleName);
+            return $moduleName;
+        } elseif (strpos($jsonName, 'magento/magento') !== false || strpos($jsonName, 'magento/framework') !== false) {
+            $moduleName = str_replace('/', "\t", $jsonName);
+            $moduleName = str_replace('framework-', "Framework\t", $moduleName);
+            $moduleName = str_replace('-', ' ', $moduleName);
+            $moduleName = ucwords($moduleName);
+            $moduleName = str_replace("\t", '\\', $moduleName);
+            $moduleName = str_replace(' ', '', $moduleName);
+            return $moduleName;
+        }
+        return $jsonName;
     }
 
     /**
      * Initialise map of dependencies
      *
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     protected static function _initDependencies()
     {
-        $files = \Magento\TestFramework\Utility\Files::init()->getConfigFiles('module.xml', array(), false);
-
-        foreach ($files as $file) {
-            $config = simplexml_load_file($file);
-            $module = $config->xpath("/config/module");
-            $moduleName = (string)$module[0]->attributes()->name;
-            $moduleName = str_replace('_', '\\', $moduleName);
-            self::$_mapDependencies[$moduleName] = @(self::$_mapDependencies[$moduleName] ?: array());
+        $jsonFiles = Files::init()->getComposerFiles(ComponentRegistrar::MODULE, false);
+        foreach ($jsonFiles as $file) {
+            $contents = file_get_contents($file);
+            $decodedJson = json_decode($contents);
+            if (null == $decodedJson) {
+                throw new \Exception("Invalid Json: $file");
+            }
+            $json = new \Magento\Framework\Config\Composer\Package(json_decode($contents));
+            $moduleName = self::convertModuleName($json->get('name'));
+            self::$_mapDependencies[$moduleName] = @(self::$_mapDependencies[$moduleName] ?: []);
 
             foreach (self::_getTypes() as $type) {
                 if (!isset(self::$_mapDependencies[$moduleName][$type])) {
-                    self::$_mapDependencies[$moduleName][$type] = array(
-                        self::MAP_TYPE_DECLARED => array(),
-                        self::MAP_TYPE_FOUND => array(),
-                        self::MAP_TYPE_REDUNDANT => array()
-                    );
+                    self::$_mapDependencies[$moduleName][$type] = [
+                        self::MAP_TYPE_DECLARED  => [],
+                        self::MAP_TYPE_FOUND     => [],
+                        self::MAP_TYPE_REDUNDANT => [],
+                    ];
                 }
             }
 
-            if (isset($module[0]->depends)) {
-                foreach ($module[0]->depends->children() as $dependency) {
-                    /** @var \SimpleXMLElement $dependency */
-                    $type = self::TYPE_HARD;
-                    if (isset($dependency['type']) && (string)$dependency['type'] == self::TYPE_SOFT) {
-                        $type = self::TYPE_SOFT;
-                    }
-                    if ($dependency->getName() == 'module') {
+            $require = $json->get('require');
+            if (isset($require) && !empty($require)) {
+                foreach ($require as $requiredModule => $version) {
+                    if (0 === strpos($requiredModule, 'magento/')
+                        && 'magento/magento-composer-installer' != $requiredModule
+                    ) {
+                        $type = self::TYPE_HARD;
                         self::_addDependencies(
                             $moduleName,
                             $type,
                             self::MAP_TYPE_DECLARED,
-                            str_replace('_', '\\', (string)$dependency->attributes()->name)
+                            self::convertModuleName($requiredModule)
+                        );
+                    }
+                }
+            }
+            $suggest = $json->get('suggest');
+            if (isset($suggest) && !empty($suggest)) {
+                foreach ($suggest as $requiredModule => $version) {
+                    if (0 === strpos($requiredModule, 'magento/')
+                        && 'magento/magento-composer-installer' != $requiredModule
+                    ) {
+                        $type = self::TYPE_SOFT;
+                        self::_addDependencies(
+                            $moduleName,
+                            $type,
+                            self::MAP_TYPE_DECLARED,
+                            self::convertModuleName($requiredModule)
                         );
                     }
                 }
@@ -677,7 +752,7 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
     protected static function _addDependencies($module, $type, $mapType, $dependencies)
     {
         if (!is_array($dependencies)) {
-            $dependencies = array($dependencies);
+            $dependencies = [$dependencies];
         }
         foreach ($dependencies as $dependency) {
             if (isset(self::$_mapDependencies[$module][$type][$mapType])) {
@@ -699,7 +774,7 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
         if (isset(self::$_mapDependencies[$module][$type][$mapType])) {
             return self::$_mapDependencies[$module][$type][$mapType];
         }
-        return array();
+        return [];
     }
 
     /**
@@ -713,7 +788,7 @@ class DependencyTest extends \PHPUnit_Framework_TestCase
     protected function _setDependencies($module, $type, $mapType, $dependencies)
     {
         if (!is_array($dependencies)) {
-            $dependencies = array($dependencies);
+            $dependencies = [$dependencies];
         }
         if (isset(self::$_mapDependencies[$module][$type][$mapType])) {
             self::$_mapDependencies[$module][$type][$mapType] = $dependencies;

@@ -1,62 +1,38 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Review\Test\TestCase;
 
-use Mtf\Client\Browser;
-use Mtf\TestCase\Injectable;
-use Magento\Cms\Test\Page\CmsIndex;
-use Magento\Review\Test\Fixture\ReviewInjectable;
-use Magento\Review\Test\Page\Adminhtml\ReviewEdit;
+use Magento\Catalog\Test\Fixture\CatalogProductSimple;
+use Magento\Catalog\Test\Page\Product\CatalogProductView;
+use Magento\Customer\Test\Fixture\Customer;
+use Magento\Customer\Test\Page\Adminhtml\CustomerIndex;
+use Magento\Customer\Test\Page\Adminhtml\CustomerIndexEdit;
+use Magento\Review\Test\Fixture\Review;
 use Magento\Review\Test\Page\Adminhtml\RatingEdit;
 use Magento\Review\Test\Page\Adminhtml\RatingIndex;
-use Magento\Customer\Test\Page\CustomerAccountLogin;
-use Magento\Customer\Test\Fixture\CustomerInjectable;
-use Magento\Catalog\Test\Fixture\CatalogProductSimple;
-use Magento\Customer\Test\Page\Adminhtml\CustomerIndex;
-use Magento\Catalog\Test\Page\Product\CatalogProductView;
-use Magento\Customer\Test\Page\Adminhtml\CustomerIndexEdit;
+use Magento\Review\Test\Page\Adminhtml\ReviewEdit;
+use Magento\Mtf\Client\BrowserInterface;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
- * Test Creation for ManageProductReviewFromCustomerPage
- *
- * Test Flow:
- *
  * Preconditions:
- * 1. Create Customer
- * 2. Create simple product
- * 3. Create Product review on the front
+ * 1. Create Customer.
+ * 2. Create simple product.
+ * 3. Create Product review on the front.
  *
  * Steps:
- * 1. Open backend
- * 2. Go to Customers->All Customers
- * 3. Open customer from preconditions
- * 4. Open Product Review tab
- * 5. Open Review created in preconditions
- * 6. Fill data according to dataset
- * 7. Click "Submit review"
- * 8. Perform all assertions
+ * 1. Open backend.
+ * 2. Go to Customers -> All Customers.
+ * 3. Open customer from preconditions.
+ * 4. Open Product Review tab.
+ * 5. Open Review created in preconditions.
+ * 6. Fill data according to dataset.
+ * 7. Click "Submit review".
+ * 8. Perform all assertions.
  *
  * @group Reviews_and_Ratings_(MX)
  * @ZephyrId MAGETWO-27625
@@ -65,97 +41,86 @@ use Magento\Customer\Test\Page\Adminhtml\CustomerIndexEdit;
  */
 class ManageProductReviewFromCustomerPageTest extends Injectable
 {
+    /* tags */
+    const MVP = 'no';
+    const DOMAIN = 'MX';
+    /* end tags */
+
     /**
-     * Customer index page
+     * Customer index page.
      *
      * @var CustomerIndex
      */
     protected $customerIndex;
 
     /**
-     * Customer edit page
+     * Customer edit page.
      *
      * @var CustomerIndexEdit
      */
     protected $customerIndexEdit;
 
     /**
-     * Customer login page
-     *
-     * @var CustomerAccountLogin
-     */
-    protected $customerAccountLogin;
-
-    /**
-     * Catalog product view page
+     * Catalog product view page.
      *
      * @var CatalogProductView
      */
     protected $catalogProductView;
 
     /**
-     * Browser
+     * Browser.
      *
-     * @var Browser
+     * @var BrowserInterface
      */
     protected $browser;
 
     /**
-     * Cms index page
-     *
-     * @var CmsIndex
-     */
-    protected $cmsIndex;
-
-    /**
-     * Backend rating grid page
+     * Backend rating grid page.
      *
      * @var RatingIndex
      */
     protected $ratingIndex;
 
     /**
-     * Backend rating edit page
+     * Backend rating edit page.
      *
      * @var RatingEdit
      */
     protected $ratingEdit;
 
     /**
-     * Review fixture
+     * Review fixture.
      *
-     * @var ReviewInjectable
+     * @var Review
      */
     protected $reviewInitial;
 
     /**
-     * Review edit page
+     * Review edit page.
      *
      * @var ReviewEdit
      */
     protected $reviewEdit;
 
     /**
-     * Prepare data
+     * Prepare data.
      *
-     * @param CustomerInjectable $customer
+     * @param Customer $customer
      * @return array
      */
-    public function __prepare(CustomerInjectable $customer)
+    public function __prepare(Customer $customer)
     {
         $customer->persist();
         return ['customer' => $customer];
     }
 
     /**
-     * Injection data
+     * Injection data.
      *
      * @param CustomerIndexEdit $customerIndexEdit
      * @param CustomerIndex $customerIndex
-     * @param CmsIndex $cmsIndex
-     * @param CustomerAccountLogin $customerAccountLogin
      * @param CatalogProductView $catalogProductView
-     * @param Browser $browser
+     * @param BrowserInterface $browser
      * @param RatingIndex $ratingIndex
      * @param RatingEdit $ratingEdit
      * @param ReviewEdit $reviewEdit
@@ -164,18 +129,14 @@ class ManageProductReviewFromCustomerPageTest extends Injectable
     public function __inject(
         CustomerIndexEdit $customerIndexEdit,
         CustomerIndex $customerIndex,
-        CmsIndex $cmsIndex,
-        CustomerAccountLogin $customerAccountLogin,
         CatalogProductView $catalogProductView,
-        Browser $browser,
+        BrowserInterface $browser,
         RatingIndex $ratingIndex,
         RatingEdit $ratingEdit,
         ReviewEdit $reviewEdit
     ) {
         $this->customerIndexEdit = $customerIndexEdit;
         $this->customerIndex = $customerIndex;
-        $this->cmsIndex = $cmsIndex;
-        $this->customerAccountLogin = $customerAccountLogin;
         $this->catalogProductView = $catalogProductView;
         $this->browser = $browser;
         $this->ratingIndex = $ratingIndex;
@@ -184,17 +145,17 @@ class ManageProductReviewFromCustomerPageTest extends Injectable
     }
 
     /**
-     * Run manage product review test
+     * Run manage product review test.
      *
-     * @param ReviewInjectable $reviewInitial
-     * @param ReviewInjectable $review
-     * @param CustomerInjectable $customer
+     * @param Review $reviewInitial
+     * @param Review $review
+     * @param Customer $customer
      * @return array
      */
     public function test(
-        ReviewInjectable $reviewInitial,
-        ReviewInjectable $review,
-        CustomerInjectable $customer
+        Review $reviewInitial,
+        Review $review,
+        Customer $customer
     ) {
         // Preconditions
         $this->login($customer);
@@ -211,9 +172,9 @@ class ManageProductReviewFromCustomerPageTest extends Injectable
         $this->customerIndexEdit->getCustomerForm()->openTab('product_reviews');
         $filter = [
             'title' => $reviewInitial->getTitle(),
-            'sku' => $product->getSku()
+            'sku' => $product->getSku(),
         ];
-        $this->customerIndexEdit->getCustomerForm()->getTabElement('product_reviews')->getReviewsGrid()
+        $this->customerIndexEdit->getCustomerForm()->getTab('product_reviews')->getReviewsGrid()
             ->searchAndOpen($filter);
         $this->reviewEdit->getReviewForm()->fill($review);
         $this->reviewEdit->getPageActions()->save();
@@ -222,32 +183,32 @@ class ManageProductReviewFromCustomerPageTest extends Injectable
     }
 
     /**
-     * Login customer on frontend
+     * Login customer on frontend.
      *
-     * @param CustomerInjectable $customer
+     * @param Customer $customer
      * @return void
      */
-    protected function login(CustomerInjectable $customer)
+    protected function login(Customer $customer)
     {
-        $this->cmsIndex->open();
-        if (!$this->cmsIndex->getLinksBlock()->isLinkVisible('Log Out')) {
-            $this->cmsIndex->getLinksBlock()->openLink("Log In");
-            $this->customerAccountLogin->getLoginBlock()->login($customer);
-        }
+        $this->objectManager->create(
+            'Magento\Customer\Test\TestStep\LoginCustomerOnFrontendStep',
+            ['customer' => $customer]
+        )->run();
     }
 
     /**
-     * Clear data after test
+     * Clear data after test.
      *
      * @return void
      */
     public function tearDown()
     {
         $this->ratingIndex->open();
-        if ($this->reviewInitial instanceof ReviewInjectable) {
+        if ($this->reviewInitial instanceof Review) {
             foreach ($this->reviewInitial->getRatings() as $rating) {
                 $this->ratingIndex->getRatingGrid()->searchAndOpen(['rating_code' => $rating['title']]);
                 $this->ratingEdit->getPageActions()->delete();
+                $this->ratingEdit->getModalBlock()->acceptAlert();
             }
         }
     }

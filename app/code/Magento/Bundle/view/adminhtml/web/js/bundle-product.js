@@ -1,24 +1,6 @@
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 /*jshint browser:true jquery:true*/
 /*global FORM_KEY*/
@@ -26,19 +8,23 @@
 /*global $H*/
 define([
     "jquery",
+    "Magento_Catalog/js/product/weight-handler",
+    "Magento_Ui/js/modal/modal",
     "jquery/ui",
     "mage/translate",
+    "Magento_Theme/js/sortable",
     "prototype"
-], function($){
+], function($, weightHandler, modal){
     'use strict';
 
     $.widget('mage.bundleProduct', {
         _create: function () {
-            this._initOptionBoxes();
-            this._initSortableSelections();
-            this._bindCheckboxHandlers();
-            this._bindAddSelectionDialog();
-            this._hideProductTypeSwitcher();
+            this._initOptionBoxes()
+                ._initSortableSelections()
+                ._bindCheckboxHandlers()
+                ._initCheckboxState()
+                ._bindAddSelectionDialog()
+                ._hideProductTypeSwitcher();
         },
         _initOptionBoxes: function () {
             this.element.sortable({
@@ -62,6 +48,8 @@ define([
                 'keyup .field-option-title input[name$="[title]"]': syncOptionTitle,
                 'paste .field-option-title input[name$="[title]"]': syncOptionTitle
             });
+            
+            return this;
         },
         _initSortableSelections: function () {
             this.element.find('.option-box .form-list tbody').sortable({
@@ -76,12 +64,25 @@ define([
                 update: this._updateSelectionsPositions,
                 tolerance: 'pointer'
             });
+
+            return this;
+        },
+        _initCheckboxState: function(){
+            this.element.find('.is-required').each(function () {
+                $(this).prop('checked', $(this).closest('.option-box').find('[name$="[required]"]').val() > 0);
+            });
+            
+            this.element.find('.is-user-defined-qty').each(function () {
+                $(this).prop('checked', $(this).closest('.qty-box').find('.select').val() > 0);
+            });
+
+            return this;
         },
         _bindAddSelectionDialog: function () {
             var widget = this;
             this._on({'click .add-selection': function (event) {
                 var $optionBox = $(event.target).closest('.option-box'),
-                    $selectionGrid = $optionBox.find('.selection-search'),
+                    $selectionGrid = $optionBox.find('.selection-search').clone(),
                     optionIndex = $optionBox.attr('id').replace('bundle_option_', ''),
                     productIds = [],
                     productSkus = [],
@@ -114,25 +115,21 @@ define([
                         delete selectedProductList[$(this).val()];
                     }
                 });
-                $selectionGrid.dialog({
+
+                $selectionGrid.modal({
                     title: $optionBox.find('input[name$="[title]"]').val() === '' ?
                         $.mage.__('Add Products to New Option') :
                         $.mage.__('Add Products to Option "%1"')
                             .replace('%1',($('<div>').text($optionBox.find('input[name$="[title]"]').val()).html())),
-                    autoOpen: false,
-                    minWidth: 980,
-                    'class': 'bundle',
-                    modal: true,
-                    resizable: true,
+                    modalClass: 'bundle',
+                    type: 'slide',
+                    closed: function(e, modal) {
+                        modal.modal.remove();
+                    },
                     buttons: [{
-                        text: $.mage.__('Cancel'),
-                        click: function() {
-                            $selectionGrid.dialog('close');
-                        }
-                    }, {
                         text: $.mage.__('Add Selected Products'),
-                        'class': 'add primary',
-                        click: function() {
+                        'class': 'action-primary action-add',
+                        click: function () {
                             $.each(selectedProductList, function() {
                                 window.bSelection.addRow(optionIndex, this);
                             });
@@ -145,14 +142,10 @@ define([
                             );
                             widget.refreshSortableElements();
                             widget._updateSelectionsPositions.apply(widget.element);
-                            $selectionGrid.dialog('close');
+                            $selectionGrid.modal('closeModal');
                         }
-                    }],
-                    close: function() {
-                        $(this).dialog('destroy');
-                    }
+                    }]
                 });
-
                 $.ajax({
                     url: bSelection.selectionSearchUrl,
                     dataType: 'html',
@@ -163,15 +156,17 @@ define([
                         form_key: FORM_KEY
                     },
                     success: function(data) {
-                        $selectionGrid.html(data).dialog('open');
+                        $selectionGrid.html(data).modal('openModal');
                     },
                     context: $('body'),
                     showLoader: true
                 });
             }});
+
+            return this;
         },
         _hideProductTypeSwitcher: function () {
-            $('#weight_and_type_switcher, label[for=weight_and_type_switcher]').hide();
+            weightHandler.hideWeightSwitcher();
         },
         _bindCheckboxHandlers: function () {
             this._on({
@@ -184,27 +179,29 @@ define([
                     $this.closest('.qty-box').find('.select').val($this.is(':checked') ? 1 : 0);
                 }
             });
-            this.element.find('.is-required').each(function () {
-                $(this).prop('checked', $(this).closest('.option-box').find('[name$="[required]"]').val() > 0);
-            });
-            this.element.find('.is-user-defined-qty').each(function () {
-                $(this).prop('checked', $(this).closest('.qty-box').find('.select').val() > 0);
-            });
+
+            return this;
         },
         _updateOptionBoxPositions: function () {
             $(this).find('[name^=bundle_options][name$="[position]"]').each(function (index) {
                 $(this).val(index);
             });
+
+            return this;
         },
         _updateSelectionsPositions: function () {
             $(this).find('[name^=bundle_selections][name$="[position]"]').each(function (index) {
                 $(this).val(index);
             });
+
+            return this;
         },
         refreshSortableElements: function () {
             this.element.sortable('refresh');
             this._updateOptionBoxPositions.apply(this.element);
             this._initSortableSelections();
+            this._initCheckboxState();
+
             return this;
         }
     });

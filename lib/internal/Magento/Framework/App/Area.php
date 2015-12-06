@@ -1,39 +1,28 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Framework\App;
 
+use Magento\Framework\ObjectManager\ConfigLoaderInterface;
+
 /**
  * Application area model
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class Area implements \Magento\Framework\App\AreaInterface
 {
     const AREA_GLOBAL = 'global';
-
     const AREA_FRONTEND = 'frontend';
-    
     const AREA_ADMIN    = 'admin';
+    const AREA_ADMINHTML = 'adminhtml';
+    const AREA_DOC = 'doc';
+    const AREA_CRONTAB = 'crontab';
+    const AREA_WEBAPI_REST = 'webapi_rest';
+    const AREA_WEBAPI_SOAP = 'webapi_soap';
 
     /**
      * Area parameter.
@@ -71,17 +60,17 @@ class Area implements \Magento\Framework\App\AreaInterface
     /**
      * Object manager
      *
-     * @var \Magento\Framework\ObjectManager
+     * @var \Magento\Framework\ObjectManagerInterface
      */
     protected $_objectManager;
 
     /**
-     * @var \Magento\Framework\App\ObjectManager\ConfigLoader
+     * @var ConfigLoaderInterface
      */
     protected $_diConfigLoader;
 
     /**
-     * @var \Magento\Framework\Logger
+     * @var \Psr\Log\LoggerInterface
      */
     protected $_logger;
 
@@ -103,22 +92,22 @@ class Area implements \Magento\Framework\App\AreaInterface
     protected $_designExceptions;
 
     /**
-     * @param \Magento\Framework\Logger $logger
+     * @param \Psr\Log\LoggerInterface $logger
      * @param \Magento\Framework\Event\ManagerInterface $eventManager
      * @param \Magento\Framework\TranslateInterface $translator
-     * @param \Magento\Framework\ObjectManager $objectManager
-     * @param \Magento\Framework\App\ObjectManager\ConfigLoader $diConfigLoader
+     * @param \Magento\Framework\ObjectManagerInterface $objectManager
+     * @param ConfigLoaderInterface $diConfigLoader
      * @param \Magento\Framework\App\DesignInterface $design
      * @param \Magento\Framework\App\ScopeResolverInterface $scopeResolver
      * @param \Magento\Framework\View\DesignExceptions $designExceptions
      * @param string $areaCode
      */
     public function __construct(
-        \Magento\Framework\Logger $logger,
+        \Psr\Log\LoggerInterface $logger,
         \Magento\Framework\Event\ManagerInterface $eventManager,
         \Magento\Framework\TranslateInterface $translator,
-        \Magento\Framework\ObjectManager $objectManager,
-        \Magento\Framework\App\ObjectManager\ConfigLoader $diConfigLoader,
+        \Magento\Framework\ObjectManagerInterface $objectManager,
+        ConfigLoaderInterface $diConfigLoader,
         \Magento\Framework\App\DesignInterface $design,
         \Magento\Framework\App\ScopeResolverInterface $scopeResolver,
         \Magento\Framework\View\DesignExceptions $designExceptions,
@@ -143,7 +132,7 @@ class Area implements \Magento\Framework\App\AreaInterface
      */
     public function load($part = null)
     {
-        if (is_null($part)) {
+        if ($part === null) {
             $this->_loadPart(self::PART_CONFIG)->_loadPart(self::PART_DESIGN)->_loadPart(self::PART_TRANSLATE);
         } else {
             $this->_loadPart($part);
@@ -186,7 +175,7 @@ class Area implements \Magento\Framework\App\AreaInterface
                 return true;
             }
         } catch (\Exception $e) {
-            $this->_logger->logException($e);
+            $this->_logger->critical($e);
         }
         return false;
     }
@@ -212,7 +201,7 @@ class Area implements \Magento\Framework\App\AreaInterface
         }
         \Magento\Framework\Profiler::start(
             'load_area:' . $this->_code . '.' . $part,
-            array('group' => 'load_area', 'area_code' => $this->_code, 'part' => $part)
+            ['group' => 'load_area', 'area_code' => $this->_code, 'part' => $part]
         );
         switch ($part) {
             case self::PART_CONFIG:

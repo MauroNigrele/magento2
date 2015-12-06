@@ -1,29 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Model\Indexer\Category;
 
-class Product implements \Magento\Indexer\Model\ActionInterface, \Magento\Framework\Mview\ActionInterface
+class Product implements \Magento\Framework\Indexer\ActionInterface, \Magento\Framework\Mview\ActionInterface
 {
     /**
      * Indexer ID in configuration
@@ -40,24 +22,22 @@ class Product implements \Magento\Indexer\Model\ActionInterface, \Magento\Framew
      */
     protected $rowsActionFactory;
 
-    /**
-     * @var \Magento\Indexer\Model\IndexerInterface
-     */
-    protected $indexer;
+    /** @var \Magento\Framework\Indexer\IndexerRegistry */
+    protected $indexerRegistry;
 
     /**
      * @param Product\Action\FullFactory $fullActionFactory
      * @param Product\Action\RowsFactory $rowsActionFactory
-     * @param \Magento\Indexer\Model\IndexerInterface $indexer
+     * @param \Magento\Framework\Indexer\IndexerRegistry $indexerRegistry
      */
     public function __construct(
         Product\Action\FullFactory $fullActionFactory,
         Product\Action\RowsFactory $rowsActionFactory,
-        \Magento\Indexer\Model\IndexerInterface $indexer
+        \Magento\Framework\Indexer\IndexerRegistry $indexerRegistry
     ) {
         $this->fullActionFactory = $fullActionFactory;
         $this->rowsActionFactory = $rowsActionFactory;
-        $this->indexer = $indexer;
+        $this->indexerRegistry = $indexerRegistry;
     }
 
     /**
@@ -87,7 +67,7 @@ class Product implements \Magento\Indexer\Model\ActionInterface, \Magento\Framew
      * @param int[] $ids
      * @return void
      */
-    public function executeList($ids)
+    public function executeList(array $ids)
     {
         $this->executeAction($ids);
     }
@@ -100,7 +80,7 @@ class Product implements \Magento\Indexer\Model\ActionInterface, \Magento\Framew
      */
     public function executeRow($id)
     {
-        $this->executeAction(array($id));
+        $this->executeAction([$id]);
     }
 
     /**
@@ -112,11 +92,11 @@ class Product implements \Magento\Indexer\Model\ActionInterface, \Magento\Framew
     protected function executeAction($ids)
     {
         $ids = array_unique($ids);
-        $this->indexer->load(static::INDEXER_ID);
+        $indexer = $this->indexerRegistry->get(static::INDEXER_ID);
 
         /** @var Product\Action\Rows $action */
         $action = $this->rowsActionFactory->create();
-        if ($this->indexer->isWorking()) {
+        if ($indexer->isWorking()) {
             $action->execute($ids, true);
         }
         $action->execute($ids);

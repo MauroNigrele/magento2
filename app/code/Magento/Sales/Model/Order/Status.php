@@ -1,29 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Model\Order;
 
-use Magento\Framework\Model\Exception;
+use Magento\Framework\Exception\LocalizedException;
 
 /**
  * Class Status
@@ -31,39 +13,52 @@ use Magento\Framework\Model\Exception;
  * @method string getStatus()
  * @method string getLabel()
  */
-class Status extends \Magento\Framework\Model\AbstractModel
+class Status extends \Magento\Sales\Model\AbstractModel
 {
     /**
-     * @var \Magento\Framework\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
      * @param \Magento\Framework\Model\Context $context
      * @param \Magento\Framework\Registry $registry
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
-     * @param \Magento\Framework\Model\Resource\AbstractResource $resource
-     * @param \Magento\Framework\Data\Collection\Db $resourceCollection
+     * @param \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory
+     * @param \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
      * @param array $data
      */
     public function __construct(
         \Magento\Framework\Model\Context $context,
         \Magento\Framework\Registry $registry,
-        \Magento\Framework\StoreManagerInterface $storeManager,
-        \Magento\Framework\Model\Resource\AbstractResource $resource = null,
-        \Magento\Framework\Data\Collection\Db $resourceCollection = null,
-        array $data = array()
+        \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory,
+        \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        array $data = []
     ) {
-        parent::__construct($context, $registry, $resource, $resourceCollection, $data);
+        parent::__construct(
+            $context,
+            $registry,
+            $extensionFactory,
+            $customAttributeFactory,
+            $resource,
+            $resourceCollection,
+            $data
+        );
         $this->_storeManager = $storeManager;
     }
+
 
     /**
      * @return void
      */
     protected function _construct()
     {
-        $this->_init('Magento\Sales\Model\Resource\Order\Status');
+        $this->_init('Magento\Sales\Model\ResourceModel\Order\Status');
     }
 
     /**
@@ -77,7 +72,7 @@ class Status extends \Magento\Framework\Model\AbstractModel
      */
     public function assignState($state, $isDefault = false, $visibleOnFront = false)
     {
-        /** @var \Magento\Sales\Model\Resource\Order\Status $resource */
+        /** @var \Magento\Sales\Model\ResourceModel\Order\Status $resource */
         $resource = $this->_getResource();
         $resource->beginTransaction();
         try {
@@ -93,15 +88,15 @@ class Status extends \Magento\Framework\Model\AbstractModel
     /**
      * @param string $state
      * @return void
-     * @throws Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     protected function validateBeforeUnassign($state)
     {
         if ($this->getResource()->checkIsStateLast($state)) {
-            throw new Exception(__('The last status can\'t be unassigned from its current state.'));
+            throw new LocalizedException(__('The last status can\'t be unassigned from its current state.'));
         }
         if ($this->getResource()->checkIsStatusUsed($this->getStatus())) {
-            throw new Exception(__('Status can\'t be unassigned, because it is used by existing order(s).'));
+            throw new LocalizedException(__('Status can\'t be unassigned, because it is used by existing order(s).'));
         }
     }
 
@@ -145,7 +140,7 @@ class Status extends \Magento\Framework\Model\AbstractModel
      * Get status label by store
      *
      * @param null|string|bool|int|\Magento\Store\Model\Store $store
-     * @return string
+     * @return \Magento\Framework\Phrase|string
      */
     public function getStoreLabel($store = null)
     {

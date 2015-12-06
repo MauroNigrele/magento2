@@ -1,31 +1,60 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Newsletter\Controller\Manage;
 
+use Magento\Customer\Api\CustomerRepositoryInterface as CustomerRepository;
+
 class Save extends \Magento\Newsletter\Controller\Manage
 {
+    /**
+     * @var \Magento\Framework\Data\Form\FormKey\Validator
+     */
+    protected $formKeyValidator;
+
+    /**
+     * @var \Magento\Store\Model\StoreManagerInterface
+     */
+    protected $storeManager;
+
+    /**
+     * @var CustomerRepository
+     */
+    protected $customerRepository;
+
+    /**
+     * @var \Magento\Newsletter\Model\SubscriberFactory
+     */
+    protected $subscriberFactory;
+
+    /**
+     * Initialize dependencies.
+     *
+     * @param \Magento\Framework\App\Action\Context $context
+     * @param \Magento\Customer\Model\Session $customerSession
+     * @param \Magento\Framework\Data\Form\FormKey\Validator $formKeyValidator
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param CustomerRepository $customerRepository
+     * @param \Magento\Newsletter\Model\SubscriberFactory $subscriberFactory
+     */
+    public function __construct(
+        \Magento\Framework\App\Action\Context $context,
+        \Magento\Customer\Model\Session $customerSession,
+        \Magento\Framework\Data\Form\FormKey\Validator $formKeyValidator,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        CustomerRepository $customerRepository,
+        \Magento\Newsletter\Model\SubscriberFactory $subscriberFactory
+    ) {
+        $this->storeManager = $storeManager;
+        $this->formKeyValidator = $formKeyValidator;
+        $this->customerRepository = $customerRepository;
+        $this->subscriberFactory = $subscriberFactory;
+        parent::__construct($context, $customerSession);
+    }
+
     /**
      * Save newsletter subscription preference action
      *
@@ -33,27 +62,24 @@ class Save extends \Magento\Newsletter\Controller\Manage
      */
     public function execute()
     {
-        if (!$this->_formKeyValidator->validate($this->getRequest())) {
+        if (!$this->formKeyValidator->validate($this->getRequest())) {
             return $this->_redirect('customer/account/');
         }
 
         $customerId = $this->_customerSession->getCustomerId();
-        if (is_null($customerId)) {
+        if ($customerId === null) {
             $this->messageManager->addError(__('Something went wrong while saving your subscription.'));
         } else {
             try {
-                $customer = $this->_customerAccountService->getCustomer($customerId);
-                $storeId = $this->_storeManager->getStore()->getId();
-                $customerDetails = $this->_customerDetailsBuilder->setAddresses(null)
-                    ->setCustomer($this->_customerBuilder->populate($customer)->setStoreId($storeId)->create())
-                    ->create();
-                $this->_customerAccountService->updateCustomer($customerDetails);
-
+                $customer = $this->customerRepository->getById($customerId);
+                $storeId = $this->storeManager->getStore()->getId();
+                $customer->setStoreId($storeId);
+                $this->customerRepository->save($customer);
                 if ((boolean)$this->getRequest()->getParam('is_subscribed', false)) {
-                    $this->_subscriberFactory->create()->subscribeCustomerById($customerId);
+                    $this->subscriberFactory->create()->subscribeCustomerById($customerId);
                     $this->messageManager->addSuccess(__('We saved the subscription.'));
                 } else {
-                    $this->_subscriberFactory->create()->unsubscribeCustomerById($customerId);
+                    $this->subscriberFactory->create()->unsubscribeCustomerById($customerId);
                     $this->messageManager->addSuccess(__('We removed the subscription.'));
                 }
             } catch (\Exception $e) {

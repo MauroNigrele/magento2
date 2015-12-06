@@ -1,32 +1,16 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\User\Controller\Adminhtml;
+
+use Magento\Framework\Encryption\Helper\Security;
 
 /**
  * \Magento\User Auth controller
  */
-class Auth extends \Magento\Backend\App\AbstractAction
+abstract class Auth extends \Magento\Backend\App\AbstractAction
 {
     /**
      * User model factory
@@ -55,7 +39,7 @@ class Auth extends \Magento\Backend\App\AbstractAction
      * @param int $userId
      * @param string $resetPasswordToken
      * @return void
-     * @throws \Magento\Framework\Model\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     protected function _validateResetPasswordLinkToken($userId, $resetPasswordToken)
     {
@@ -65,18 +49,20 @@ class Auth extends \Magento\Backend\App\AbstractAction
             $resetPasswordToken
         ) || empty($resetPasswordToken) || empty($userId) || $userId < 0
         ) {
-            throw new \Magento\Framework\Model\Exception(__('Please correct the password reset token.'));
+            throw new \Magento\Framework\Exception\LocalizedException(__('Please correct the password reset token.'));
         }
 
         /** @var $user \Magento\User\Model\User */
         $user = $this->_userFactory->create()->load($userId);
         if (!$user->getId()) {
-            throw new \Magento\Framework\Model\Exception(__('Please specify the correct account and try again.'));
+            throw new \Magento\Framework\Exception\LocalizedException(
+                __('Please specify the correct account and try again.')
+            );
         }
 
         $userToken = $user->getRpToken();
-        if (strcmp($userToken, $resetPasswordToken) != 0 || $user->isResetPasswordLinkTokenExpired()) {
-            throw new \Magento\Framework\Model\Exception(__('Your password reset link has expired.'));
+        if (!Security::compareStrings($userToken, $resetPasswordToken) || $user->isResetPasswordLinkTokenExpired()) {
+            throw new \Magento\Framework\Exception\LocalizedException(__('Your password reset link has expired.'));
         }
     }
 

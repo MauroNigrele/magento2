@@ -1,32 +1,19 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Controller\Adminhtml\Product;
 
 use Magento\Backend\App\Action;
 use Magento\Catalog\Controller\Adminhtml\Product;
 
+/**
+ * Product validate
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 class Validate extends \Magento\Catalog\Controller\Adminhtml\Product
 {
     /**
@@ -40,30 +27,54 @@ class Validate extends \Magento\Catalog\Controller\Adminhtml\Product
     protected $productValidator;
 
     /**
+     * @var \Magento\Framework\Controller\Result\JsonFactory
+     */
+    protected $resultJsonFactory;
+
+    /**
+     * @var \Magento\Framework\View\LayoutFactory
+     */
+    protected $layoutFactory;
+
+    /** @var \Magento\Catalog\Model\ProductFactory */
+    protected $productFactory;
+
+    /**
      * @param Action\Context $context
      * @param Builder $productBuilder
      * @param \Magento\Framework\Stdlib\DateTime\Filter\Date $dateFilter
      * @param \Magento\Catalog\Model\Product\Validator $productValidator
+     * @param \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
+     * @param \Magento\Framework\View\LayoutFactory $layoutFactory
+     * @param \Magento\Catalog\Model\ProductFactory $productFactory
      */
     public function __construct(
         \Magento\Backend\App\Action\Context $context,
         Product\Builder $productBuilder,
         \Magento\Framework\Stdlib\DateTime\Filter\Date $dateFilter,
-        \Magento\Catalog\Model\Product\Validator $productValidator
+        \Magento\Catalog\Model\Product\Validator $productValidator,
+        \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory,
+        \Magento\Framework\View\LayoutFactory $layoutFactory,
+        \Magento\Catalog\Model\ProductFactory $productFactory
     ) {
         $this->_dateFilter = $dateFilter;
         $this->productValidator = $productValidator;
         parent::__construct($context, $productBuilder);
+        $this->resultJsonFactory = $resultJsonFactory;
+        $this->layoutFactory = $layoutFactory;
+        $this->productFactory = $productFactory;
     }
 
     /**
      * Validate product
      *
-     * @return void
+     * @return \Magento\Framework\Controller\Result\Json
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function execute()
     {
-        $response = new \Magento\Framework\Object();
+        $response = new \Magento\Framework\DataObject();
         $response->setError(false);
 
         try {
@@ -73,13 +84,13 @@ class Validate extends \Magento\Catalog\Controller\Adminhtml\Product
                 $productData['stock_data']['use_config_manage_stock'] = 0;
             }
             /* @var $product \Magento\Catalog\Model\Product */
-            $product = $this->_objectManager->create('Magento\Catalog\Model\Product');
+            $product = $this->productFactory->create();
             $product->setData('_edit_mode', true);
             $storeId = $this->getRequest()->getParam('store');
             if ($storeId) {
                 $product->setStoreId($storeId);
             }
-            $setId = $this->getRequest()->getParam('set');
+            $setId = $this->getRequest()->getPost('set') ?: $this->getRequest()->getParam('set');
             if ($setId) {
                 $product->setAttributeSetId($setId);
             }
@@ -92,7 +103,7 @@ class Validate extends \Magento\Catalog\Controller\Adminhtml\Product
                 $product->load($productId);
             }
 
-            $dateFieldFilters = array();
+            $dateFieldFilters = [];
             $attributes = $product->getAttributes();
             foreach ($attributes as $attrKey => $attribute) {
                 if ($attribute->getBackend()->getType() == 'datetime') {
@@ -101,7 +112,7 @@ class Validate extends \Magento\Catalog\Controller\Adminhtml\Product
                     }
                 }
             }
-            $inputFilter = new \Zend_Filter_Input($dateFieldFilters, array(), $productData);
+            $inputFilter = new \Zend_Filter_Input($dateFieldFilters, [], $productData);
             $productData = $inputFilter->getUnescaped();
             $product->addData($productData);
 
@@ -116,16 +127,17 @@ class Validate extends \Magento\Catalog\Controller\Adminhtml\Product
             $response->setError(true);
             $response->setAttribute($e->getAttributeCode());
             $response->setMessage($e->getMessage());
-        } catch (\Magento\Framework\Model\Exception $e) {
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
             $response->setError(true);
             $response->setMessage($e->getMessage());
         } catch (\Exception $e) {
             $this->messageManager->addError($e->getMessage());
-            $this->_view->getLayout()->initMessages();
+            $layout = $this->layoutFactory->create();
+            $layout->initMessages();
             $response->setError(true);
-            $response->setHtmlMessage($this->_view->getLayout()->getMessagesBlock()->getGroupedHtml());
+            $response->setHtmlMessage($layout->getMessagesBlock()->getGroupedHtml());
         }
 
-        $this->getResponse()->representJson($response->toJson());
+        return $this->resultJsonFactory->create()->setJsonData($response->toJson());
     }
 }

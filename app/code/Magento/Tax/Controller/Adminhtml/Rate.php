@@ -1,35 +1,19 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Tax\Controller\Adminhtml;
+
+use Magento\Framework\Controller\ResultFactory;
 
 /**
  * Adminhtml tax rate controller
  *
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-class Rate extends \Magento\Backend\App\Action
+abstract class Rate extends \Magento\Backend\App\Action
 {
     /**
      * @var \Magento\Framework\Registry
@@ -37,46 +21,30 @@ class Rate extends \Magento\Backend\App\Action
     protected $_coreRegistry;
 
     /**
-     * @var \Magento\Tax\Service\V1\TaxRateServiceInterface
+     * @var \Magento\Tax\Model\Calculation\Rate\Converter
      */
-    protected $_taxRateService;
+    protected $_taxRateConverter;
 
     /**
-     * @var \Magento\Tax\Service\V1\Data\TaxRateBuilder
+     * @var \Magento\Tax\Api\TaxRateRepositoryInterface
      */
-    protected $_taxRateBuilder;
-
-    /**
-     * @var \Magento\Tax\Service\V1\Data\ZipRangeBuilder
-     */
-    protected $_zipRangeBuilder;
-
-    /**
-     * @var \Magento\Tax\Service\V1\Data\TaxRateTitleBuilder
-     */
-    protected $_taxRateTitleBuilder;
+    protected $_taxRateRepository;
 
     /**
      * @param \Magento\Backend\App\Action\Context $context
      * @param \Magento\Framework\Registry $coreRegistry
-     * @param \Magento\Tax\Service\V1\TaxRateServiceInterface $taxRateService
-     * @param \Magento\Tax\Service\V1\Data\TaxRateBuilder $taxRateBuilder
-     * @param \Magento\Tax\Service\V1\Data\ZipRangeBuilder $zipRangeBuilder
-     * @param \Magento\Tax\Service\V1\Data\TaxRateTitleBuilder $taxRateTitleBuilder
+     * @param \Magento\Tax\Model\Calculation\Rate\Converter $taxRateConverter
+     * @param \Magento\Tax\Api\TaxRateRepositoryInterface $taxRateRepository
      */
     public function __construct(
         \Magento\Backend\App\Action\Context $context,
         \Magento\Framework\Registry $coreRegistry,
-        \Magento\Tax\Service\V1\TaxRateServiceInterface $taxRateService,
-        \Magento\Tax\Service\V1\Data\TaxRateBuilder $taxRateBuilder,
-        \Magento\Tax\Service\V1\Data\ZipRangeBuilder $zipRangeBuilder,
-        \Magento\Tax\Service\V1\Data\TaxRateTitleBuilder $taxRateTitleBuilder
+        \Magento\Tax\Model\Calculation\Rate\Converter $taxRateConverter,
+        \Magento\Tax\Api\TaxRateRepositoryInterface $taxRateRepository
     ) {
         $this->_coreRegistry = $coreRegistry;
-        $this->_taxRateService = $taxRateService;
-        $this->_taxRateBuilder = $taxRateBuilder;
-        $this->_zipRangeBuilder = $zipRangeBuilder;
-        $this->_taxRateTitleBuilder = $taxRateTitleBuilder;
+        $this->_taxRateConverter = $taxRateConverter;
+        $this->_taxRateRepository = $taxRateRepository;
         parent::__construct($context);
     }
 
@@ -88,12 +56,12 @@ class Rate extends \Magento\Backend\App\Action
      */
     protected function _processRateData($rateData)
     {
-        $result = array();
+        $result = [];
         foreach ($rateData as $key => $value) {
             if (is_array($value)) {
                 $result[$key] = $this->_processRateData($value);
             } else {
-                $result[$key] = trim(strip_tags($value));
+                $result[$key] = trim($value);
             }
         }
         return $result;
@@ -102,21 +70,15 @@ class Rate extends \Magento\Backend\App\Action
     /**
      * Initialize action
      *
-     * @return \Magento\Backend\App\Action
+     * @return \Magento\Backend\Model\View\Result\Page
      */
-    protected function _initAction()
+    protected function initResultPage()
     {
-        $this->_view->loadLayout();
-        $this->_setActiveMenu(
-            'Magento_Tax::sales_tax_rates'
-        )->_addBreadcrumb(
-            __('Sales'),
-            __('Sales')
-        )->_addBreadcrumb(
-            __('Tax'),
-            __('Tax')
-        );
-        return $this;
+        $resultPage = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
+        $resultPage->setActiveMenu('Magento_Tax::sales_tax_rates')
+            ->addBreadcrumb(__('Sales'), __('Sales'))
+            ->addBreadcrumb(__('Tax'), __('Tax'));
+        return $resultPage;
     }
 
     /**
@@ -125,53 +87,5 @@ class Rate extends \Magento\Backend\App\Action
     protected function _isAllowed()
     {
         return $this->_authorization->isAllowed('Magento_Tax::manage_tax');
-    }
-
-    /**
-     * Populate a tax rate data object
-     *
-     * @param array $formData
-     * @return \Magento\Tax\Service\V1\Data\TaxRate
-     */
-    protected function populateTaxRateData($formData)
-    {
-        $this->_taxRateBuilder->setId($this->extractFormData($formData, 'tax_calculation_rate_id'))
-            ->setCountryId($this->extractFormData($formData, 'tax_country_id'))
-            ->setRegionId($this->extractFormData($formData, 'tax_region_id'))
-            ->setPostcode($this->extractFormData($formData, 'tax_postcode'))
-            ->setCode($this->extractFormData($formData, 'code'))
-            ->setPercentageRate($this->extractFormData($formData, 'rate'));
-
-        if (isset($formData['zip_is_range']) && $formData['zip_is_range']) {
-            $this->_zipRangeBuilder->setFrom($this->extractFormData($formData, 'zip_from'))
-                ->setTo($this->extractFormData($formData, 'zip_to'));
-            $zipRange = $this->_zipRangeBuilder->create();
-            $this->_taxRateBuilder->setZipRange($zipRange);
-        }
-
-        if (isset($formData['title'])) {
-            $titles = [];
-            foreach ($formData['title'] as $storeId => $value) {
-                $titles[] = $this->_taxRateTitleBuilder->setStoreId($storeId)->setValue($value)->create();
-            }
-            $this->_taxRateBuilder->setTitles($titles);
-        }
-
-        return $this->_taxRateBuilder->create();
-    }
-
-    /**
-     * Determines if an array value is set in the form data array and returns it.
-     *
-     * @param array $formData the form to get data from
-     * @param string $fieldName the key
-     * @return null|string
-     */
-    protected function extractFormData($formData, $fieldName)
-    {
-        if (isset($formData[$fieldName])) {
-            return $formData[$fieldName];
-        }
-        return null;
     }
 }

@@ -2,31 +2,13 @@
 /**
  * Google AdWords Validator Factory
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  * @SuppressWarnings(PHPMD.LongVariable)
  */
 namespace Magento\GoogleAdwords\Model\Validator;
 
-use Magento\Framework\Validator\Int;
+use Magento\Framework\Validator\IntUtils;
 use Magento\Framework\Validator\Regex;
 use Magento\Framework\Validator\UniversalFactory;
 
@@ -60,26 +42,26 @@ class Factory
         /** @var \Magento\Framework\Validator\Builder $builder */
         $builder = $this->_validatorBuilderFactory->create(
             'Magento\Framework\Validator\Builder',
-            array(
-                'constraints' => array(
-                    array(
+            [
+                'constraints' => [
+                    [
                         'alias' => 'Regex',
                         'type' => '',
                         'class' => 'Magento\Framework\Validator\Regex',
-                        'options' => array(
-                            'arguments' => array('pattern' => '/^[0-9a-f]{6}$/i'),
-                            'methods' => array(
-                                array(
+                        'options' => [
+                            'arguments' => ['pattern' => '/^[0-9a-f]{6}$/i'],
+                            'methods' => [
+                                [
                                     'method' => 'setMessages',
-                                    'arguments' => array(
-                                        array(Regex::NOT_MATCH => $message, Regex::INVALID => $message)
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            )
+                                    'arguments' => [
+                                        [Regex::NOT_MATCH => $message, Regex::INVALID => $message],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]
+            ]
         );
         return $builder->createValidator();
     }
@@ -96,23 +78,23 @@ class Factory
         /** @var \Magento\Framework\Validator\Builder $builder */
         $builder = $this->_validatorBuilderFactory->create(
             'Magento\Framework\Validator\Builder',
-            array(
-                'constraints' => array(
-                    array(
+            [
+                'constraints' => [
+                    [
                         'alias' => 'Int',
                         'type' => '',
-                        'class' => 'Magento\Framework\Validator\Int',
-                        'options' => array(
-                            'methods' => array(
-                                array(
+                        'class' => 'Magento\Framework\Validator\IntUtils',
+                        'options' => [
+                            'methods' => [
+                                [
                                     'method' => 'setMessages',
-                                    'arguments' => array(array(Int::NOT_INT => $message, Int::INVALID => $message))
-                                )
-                            )
-                        )
-                    )
-                )
-            )
+                                    'arguments' => [[IntUtils::NOT_INT => $message, IntUtils::INVALID => $message]],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]
+            ]
         );
         return $builder->createValidator();
     }

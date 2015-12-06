@@ -1,41 +1,58 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Customer\Test\Block\Adminhtml\Edit;
 
-use Mtf\Fixture\FixtureInterface;
 use Magento\Backend\Test\Block\Widget\FormTabs;
-use Mtf\Fixture\InjectableFixture;
+use Magento\Mtf\Client\Locator;
+use Magento\Mtf\Fixture\FixtureInterface;
+use Magento\Mtf\Fixture\InjectableFixture;
 
 /**
- * Class CustomerForm
- * Form for creation of the customer
+ * Form for creation of the customer.
  */
 class CustomerForm extends FormTabs
 {
     /**
-     * Fill Customer forms on tabs by customer, addresses data
+     * Magento form loader.
+     *
+     * @var string
+     */
+    protected $spinner = '[data-role="spinner"]';
+
+    /**
+     * Customer form to load.
+     *
+     * @var string
+     */
+    protected $activeFormTab = '#container [data-bind="visible: active"]:not([style="display: none;"])';
+
+    /**
+     * Field wrapper with label on form.
+     *
+     * @var string
+     */
+    protected $fieldLabel = './/*[contains(@class, "admin__field")]/*[contains(@class,"label")]';
+
+    /**
+     * Field wrapper with control block on form.
+     *
+     * @var string
+     */
+    protected $fieldWrapperControl = './/*[contains(@class, "admin__field")]/*[contains(@class,"control")]';
+
+    /**
+     * Selector for wainting tab content to load.
+     *
+     * @var string
+     */
+    protected $tabReadiness = '.admin__page-nav-item._active._loading';
+
+    /**
+     * Fill Customer forms on tabs by customer, addresses data.
      *
      * @param FixtureInterface $customer
      * @param FixtureInterface|FixtureInterface[]|null $address
@@ -43,20 +60,22 @@ class CustomerForm extends FormTabs
      */
     public function fillCustomer(FixtureInterface $customer, $address = null)
     {
+        $this->waitForm();
+
         $isHasData = ($customer instanceof InjectableFixture) ? $customer->hasData() : true;
         if ($isHasData) {
             parent::fill($customer);
         }
         if (null !== $address) {
             $this->openTab('addresses');
-            $this->getTabElement('addresses')->fillAddresses($address);
+            $this->getTab('addresses')->fillAddresses($address);
         }
 
         return $this;
     }
 
     /**
-     * Update Customer forms on tabs by customer, addresses data
+     * Update Customer forms on tabs by customer, addresses data.
      *
      * @param FixtureInterface $customer
      * @param FixtureInterface|FixtureInterface[]|null $address
@@ -64,13 +83,15 @@ class CustomerForm extends FormTabs
      */
     public function updateCustomer(FixtureInterface $customer, $address = null)
     {
+        $this->waitForm();
+
         $isHasData = ($customer instanceof InjectableFixture) ? $customer->hasData() : true;
         if ($isHasData) {
             parent::fill($customer);
         }
         if (null !== $address) {
             $this->openTab('addresses');
-            $this->getTabElement('addresses')->updateAddresses($address);
+            $this->getTab('addresses')->updateAddresses($address);
         }
 
         return $this;
@@ -85,13 +106,56 @@ class CustomerForm extends FormTabs
      */
     public function getDataCustomer(FixtureInterface $customer, $address = null)
     {
-        $data = ['customer' => $customer->hasData() ? parent::getData($customer) : parent::getData()];
+        $this->waitForm();
 
+        $data = ['customer' => $customer->hasData() ? parent::getData($customer) : parent::getData()];
         if (null !== $address) {
             $this->openTab('addresses');
-            $data['addresses'] = $this->getTabElement('addresses')->getDataAddresses($address);
+            $data['addresses'] = $this->getTab('addresses')->getDataAddresses($address);
         }
 
         return $data;
+    }
+
+    /**
+     * Wait for User before fill form which calls JS validation on correspondent form.
+     *
+     * @return void
+     */
+    protected function waitForm()
+    {
+        $this->waitForElementNotVisible($this->spinner);
+        $this->waitForElementVisible($this->activeFormTab);
+    }
+
+    /**
+     * Open tab.
+     *
+     * @param string $tabName
+     * @return CustomerForm
+     */
+    public function openTab($tabName)
+    {
+        parent::openTab($tabName);
+        $this->waitForElementNotVisible($this->tabReadiness);
+
+        return $this;
+    }
+
+    /**
+     * Get array of label => js error text.
+     *
+     * @return array
+     */
+    public function getJsErrors()
+    {
+        $tabs = ['account_information', 'addresses'];
+        $jsErrors = [];
+        foreach ($tabs as $tabName) {
+            $tab = $this->getTab($tabName);
+            $this->openTab($tabName);
+            $jsErrors = array_merge($jsErrors, $tab->getJsErrors());
+        }
+        return $jsErrors;
     }
 }

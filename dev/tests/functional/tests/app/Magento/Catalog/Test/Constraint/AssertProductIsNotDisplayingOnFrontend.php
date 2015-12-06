@@ -1,37 +1,19 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Test\Constraint;
 
-use Mtf\Client\Browser;
-use Mtf\Fixture\FixtureInterface;
-use Magento\Cms\Test\Page\CmsIndex;
-use Mtf\Constraint\AbstractConstraint;
-use Magento\Catalog\Test\Fixture\CatalogCategory;
-use Magento\CatalogSearch\Test\Page\CatalogsearchResult;
-use Magento\Catalog\Test\Page\Product\CatalogProductView;
+use Magento\Catalog\Test\Fixture\Category;
 use Magento\Catalog\Test\Page\Category\CatalogCategoryView;
+use Magento\Catalog\Test\Page\Product\CatalogProductView;
+use Magento\CatalogSearch\Test\Page\CatalogsearchResult;
+use Magento\Cms\Test\Page\CmsIndex;
+use Magento\Mtf\Client\BrowserInterface;
+use Magento\Mtf\Constraint\AbstractConstraint;
+use Magento\Mtf\Fixture\FixtureInterface;
 
 /**
  * Class AssertProductIsNotDisplayingOnFrontend
@@ -42,13 +24,6 @@ class AssertProductIsNotDisplayingOnFrontend extends AbstractConstraint
      * Message on the product page 404
      */
     const NOT_FOUND_MESSAGE = 'Whoops, our bad...';
-
-    /**
-     * Constraint severeness
-     *
-     * @var string
-     */
-    protected $severeness = 'high';
 
     /**
      * Product view page
@@ -81,14 +56,14 @@ class AssertProductIsNotDisplayingOnFrontend extends AbstractConstraint
     /**
      * Browser
      *
-     * @var Browser
+     * @var BrowserInterface
      */
     protected $browser;
 
     /**
      * Fixture category
      *
-     * @var CatalogCategory
+     * @var Category
      */
     protected $category;
 
@@ -100,8 +75,8 @@ class AssertProductIsNotDisplayingOnFrontend extends AbstractConstraint
      * @param CatalogCategoryView $catalogCategoryView
      * @param CmsIndex $cmsIndex
      * @param FixtureInterface|FixtureInterface[] $product
-     * @param Browser $browser
-     * @param CatalogCategory|null $category
+     * @param BrowserInterface $browser
+     * @param Category|null $category
      */
     public function processAssert(
         CatalogProductView $catalogProductView,
@@ -109,8 +84,8 @@ class AssertProductIsNotDisplayingOnFrontend extends AbstractConstraint
         CatalogCategoryView $catalogCategoryView,
         CmsIndex $cmsIndex,
         $product,
-        Browser $browser,
-        CatalogCategory $category = null
+        BrowserInterface $browser,
+        Category $category = null
     ) {
         $this->browser = $browser;
         $this->catalogProductView = $catalogProductView;
@@ -129,7 +104,6 @@ class AssertProductIsNotDisplayingOnFrontend extends AbstractConstraint
             . implode("\n", $errors)
         );
     }
-
 
     /**
      * Verify product displaying on frontend
@@ -152,7 +126,7 @@ class AssertProductIsNotDisplayingOnFrontend extends AbstractConstraint
 
         $this->cmsIndex->open();
         $this->cmsIndex->getSearchBlock()->search($product->getSku());
-        if ($this->catalogSearchResult->getListProductBlock()->isProductVisible($product->getName())) {
+        if ($this->catalogSearchResult->getListProductBlock()->getProductItem($product)->isVisible()) {
             $errors[] = '- successful product search.';
         }
 
@@ -161,14 +135,14 @@ class AssertProductIsNotDisplayingOnFrontend extends AbstractConstraint
             : $this->category->getName();
         $this->cmsIndex->open();
         $this->cmsIndex->getTopmenu()->selectCategoryByName($categoryName);
-        $isProductVisible = $this->catalogCategoryView->getListProductBlock()->isProductVisible($product->getName());
+        $isProductVisible = $this->catalogCategoryView->getListProductBlock()->getProductItem($product)->isVisible();
         while (!$isProductVisible && $this->catalogCategoryView->getBottomToolbar()->nextPage()) {
             $isProductVisible = $this->catalogCategoryView->getListProductBlock()
-                ->isProductVisible($product->getName());
+                ->getProductItem($product)->isVisible();
         }
 
         if ($isProductVisible) {
-            $errors[] = '- product with name "{$product->getName()}" is found in this category.';
+            $errors[] = "- product with name '{$product->getName()}' is found in this category.";
         }
 
         return $errors;

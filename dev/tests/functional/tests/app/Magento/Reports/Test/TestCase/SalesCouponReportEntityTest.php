@@ -1,42 +1,20 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Reports\Test\TestCase;
 
-use Mtf\TestCase\Injectable;
+use Magento\Reports\Test\Page\Adminhtml\SalesCouponReportView;
+use Magento\Reports\Test\Page\Adminhtml\Statistics;
 use Magento\Sales\Test\Fixture\OrderInjectable;
-use Magento\Sales\Test\Page\Adminhtml\OrderView;
 use Magento\Sales\Test\Page\Adminhtml\OrderIndex;
 use Magento\Sales\Test\Page\Adminhtml\OrderInvoiceNew;
-use Magento\Reports\Test\Page\Adminhtml\Statistics;
-use Magento\Reports\Test\Page\Adminhtml\SalesCouponReportView;
+use Magento\Sales\Test\Page\Adminhtml\SalesOrderView;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
- * Test Creation for SalesCouponReportEntity
- *
- * Test Flow:
- *
  * Preconditions:
  * 1. Create order with coupon
  * 2. Make invoice for this order
@@ -54,6 +32,11 @@ use Magento\Reports\Test\Page\Adminhtml\SalesCouponReportView;
  */
 class SalesCouponReportEntityTest extends Injectable
 {
+    /* tags */
+    const MVP = 'no';
+    const DOMAIN = 'MX';
+    /* end tags */
+
     /**
      * Order index page
      *
@@ -78,9 +61,9 @@ class SalesCouponReportEntityTest extends Injectable
     /**
      * Order view page
      *
-     * @var OrderView
+     * @var SalesOrderView
      */
-    protected $orderView;
+    protected $salesOrderView;
 
     /**
      * Report statistic page
@@ -95,7 +78,7 @@ class SalesCouponReportEntityTest extends Injectable
      * @param OrderIndex $orderIndex
      * @param OrderInvoiceNew $orderInvoiceNew
      * @param SalesCouponReportView $salesCouponReportView
-     * @param OrderView $orderView
+     * @param SalesOrderView $salesOrderView
      * @param Statistics $reportStatistic
      * @return void
      */
@@ -103,13 +86,13 @@ class SalesCouponReportEntityTest extends Injectable
         OrderIndex $orderIndex,
         OrderInvoiceNew $orderInvoiceNew,
         SalesCouponReportView $salesCouponReportView,
-        OrderView $orderView,
+        SalesOrderView $salesOrderView,
         Statistics $reportStatistic
     ) {
         $this->orderIndex = $orderIndex;
         $this->orderInvoiceNew = $orderInvoiceNew;
         $this->salesCouponReportView = $salesCouponReportView;
-        $this->orderView = $orderView;
+        $this->salesOrderView = $salesOrderView;
         $this->reportStatistic = $reportStatistic;
     }
 
@@ -126,7 +109,7 @@ class SalesCouponReportEntityTest extends Injectable
         $order->persist();
         $this->orderIndex->open();
         $this->orderIndex->getSalesOrderGrid()->searchAndOpen(['id' => $order->getId()]);
-        $this->orderView->getPageActions()->invoice();
+        $this->salesOrderView->getPageActions()->invoice();
         $this->orderInvoiceNew->getTotalsBlock()->submit();
         $this->reportStatistic->open();
         $this->reportStatistic->getGridBlock()->massaction(
@@ -138,7 +121,9 @@ class SalesCouponReportEntityTest extends Injectable
         // Steps
         $this->salesCouponReportView->open();
         $ruleName = $order->getCouponCode()->getName();
-        $viewsReport['rules_list'] = str_replace('%rule_name%', $ruleName, $viewsReport['rules_list']);
+        if (isset($viewsReport['rules_list'])) {
+            $viewsReport['rules_list'] = str_replace('%rule_name%', $ruleName, $viewsReport['rules_list']);
+        }
         $this->salesCouponReportView->getFilterBlock()->viewsReport($viewsReport);
         $this->salesCouponReportView->getActionBlock()->showReport();
     }

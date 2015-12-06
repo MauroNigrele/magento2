@@ -1,41 +1,61 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Authorizenet\Controller\Adminhtml\Authorizenet\Directpost\Payment;
 
+use Magento\Framework\Escaper;
+use Magento\Catalog\Helper\Product;
+use Magento\Backend\App\Action\Context;
+use Magento\Framework\View\Result\PageFactory;
+use Magento\Backend\Model\View\Result\ForwardFactory;
+use Magento\Authorizenet\Helper\Backend\Data as DataHelper;
+
+/**
+ * Class Place
+ */
 class Place extends \Magento\Sales\Controller\Adminhtml\Order\Create
 {
+    /**
+     * @var DataHelper
+     */
+    protected $helper;
+
+    /**
+     * Constructor
+     *
+     * @param Context $context
+     * @param Product $productHelper
+     * @param Escaper $escaper
+     * @param PageFactory $resultPageFactory
+     * @param ForwardFactory $resultForwardFactory
+     * @param DataHelper $helper
+     */
+    public function __construct(
+        Context $context,
+        Product $productHelper,
+        Escaper $escaper,
+        PageFactory $resultPageFactory,
+        ForwardFactory $resultForwardFactory,
+        DataHelper $helper
+    ) {
+        $this->helper = $helper;
+        parent::__construct($context, $productHelper, $escaper, $resultPageFactory, $resultForwardFactory);
+    }
+
     /**
      * Send request to authorize.net
      *
      * @return void
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
     public function execute()
     {
         $paymentParam = $this->getRequest()->getParam('payment');
         $controller = $this->getRequest()->getParam('controller');
-        $this->getRequest()->setPost('collect_shipping_rates', 1);
+        $this->getRequest()->setPostValue('collect_shipping_rates', 1);
         $this->_processActionData('save');
 
         //get confirmation by email flag
@@ -44,22 +64,17 @@ class Place extends \Magento\Sales\Controller\Adminhtml\Order\Create
         if ($orderData) {
             $sendConfirmationFlag = !empty($orderData['send_confirmation']) ? 1 : 0;
         } else {
-            $orderData = array();
+            $orderData = [];
         }
 
         if (isset($paymentParam['method'])) {
-            $result = array();
-            $params = $this->_objectManager->get(
-                'Magento\Authorizenet\Helper\Data'
-            )->getSaveOrderUrlParams(
-                $controller
-            );
+            $result = [];
             //create order partially
             $this->_getOrderCreateModel()->setPaymentData($paymentParam);
             $this->_getOrderCreateModel()->getQuote()->getPayment()->addData($paymentParam);
 
             $orderData['send_confirmation'] = 0;
-            $this->getRequest()->setPost('order', $orderData);
+            $this->getRequest()->setPostValue('order', $orderData);
 
             try {
                 //do not cancel old order.
@@ -82,7 +97,10 @@ class Place extends \Magento\Sales\Controller\Adminhtml\Order\Create
                     $session->addCheckoutOrderIncrementId($order->getIncrementId());
                     $session->setLastOrderIncrementId($order->getIncrementId());
 
-                    $requestToAuthorizenet = $payment->getMethodInstance()->generateRequestFromOrder($order);
+                    /** @var \Magento\Authorizenet\Model\Directpost $method */
+                    $method = $payment->getMethodInstance();
+                    $method->setDataHelper($this->helper);
+                    $requestToAuthorizenet = $method->generateRequestFromOrder($order);
                     $requestToAuthorizenet->setControllerActionName($controller);
                     $requestToAuthorizenet->setOrderSendConfirmation($sendConfirmationFlag);
                     $requestToAuthorizenet->setStoreId($this->_getOrderCreateModel()->getQuote()->getStoreId());
@@ -93,19 +111,19 @@ class Place extends \Magento\Sales\Controller\Adminhtml\Order\Create
                             $adminUrl->getSecretKey('adminhtml', 'authorizenet_directpost_payment', 'redirect')
                         );
                     }
-                    $result['directpost'] = array('fields' => $requestToAuthorizenet->getData());
+                    $result['directpost'] = ['fields' => $requestToAuthorizenet->getData()];
                 }
 
                 $result['success'] = 1;
                 $isError = false;
-            } catch (\Magento\Framework\Model\Exception $e) {
+            } catch (\Magento\Framework\Exception\LocalizedException $e) {
                 $message = $e->getMessage();
                 if (!empty($message)) {
-                    $this->messageManager->addError($message);
+                    $this->messageManager->addErrorMessage($message);
                 }
                 $isError = true;
             } catch (\Exception $e) {
-                $this->messageManager->addException($e, __('Order saving error: %1', $e->getMessage()));
+                $this->messageManager->addExceptionMessage($e, __('Order saving error: %1', $e->getMessage()));
                 $isError = true;
             }
 
@@ -120,12 +138,12 @@ class Place extends \Magento\Sales\Controller\Adminhtml\Order\Create
             }
 
             $this->getResponse()->representJson(
-                $this->_objectManager->get('Magento\Core\Helper\Data')->jsonEncode($result)
+                $this->_objectManager->get('Magento\Framework\Json\Helper\Data')->jsonEncode($result)
             );
         } else {
-            $result = array('error_messages' => __('Please choose a payment method.'));
+            $result = ['error_messages' => __('Please choose a payment method.')];
             $this->getResponse()->representJson(
-                $this->_objectManager->get('Magento\Core\Helper\Data')->jsonEncode($result)
+                $this->_objectManager->get('Magento\Framework\Json\Helper\Data')->jsonEncode($result)
             );
         }
     }

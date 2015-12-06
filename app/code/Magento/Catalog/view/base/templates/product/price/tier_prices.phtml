@@ -1,53 +1,40 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 ?>
 
 <?php
-/** @var \Magento\Catalog\Pricing\Render\PriceBox $this */
+/** @var \Magento\Catalog\Pricing\Render\PriceBox $block */
 
 /** @var \Magento\Catalog\Pricing\Price\TierPrice $tierPriceModel */
-$tierPriceModel = $this->getPrice();
+$tierPriceModel = $block->getPrice();
 $tierPrices = $tierPriceModel->getTierPriceList();
-$msrpShowOnGesture = $this->getPriceType('msrp_price')->isShowPriceOnGesture();
-$product = $this->getSaleableItem();
+$msrpShowOnGesture = $block->getPriceType('msrp_price')->isShowPriceOnGesture();
+$product = $block->getSaleableItem();
 ?>
 <?php if (count($tierPrices)) : ?>
-    <ul class="<?php echo ($this->hasListClass() ? $this->getListClass() : 'prices tier items'); ?>">
+    <ul class="<?php /* @escapeNotVerified */ echo($block->hasListClass() ? $block->getListClass() : 'prices-tier items'); ?>">
     <?php foreach ($tierPrices as $index => $price) : ?>
         <li class="item">
             <?php
-                $popupId = 'msrp-popup-' . $product->getId() . $this->getRandomString(20);
-                if ($msrpShowOnGesture):
+                $productId = $product->getId();
+                $isSaleable = $product->isSaleable();
+                $popupId = 'msrp-popup-' . $productId . $block->getRandomString(20);
+                if ($msrpShowOnGesture && $price['price']->getValue() < $product->getMsrp()):
                     $addToCartUrl = '';
-                    if ($product->isSaleable()) {
+                    if ($isSaleable) {
                         $addToCartUrl = $this->helper('\Magento\Checkout\Helper\Cart')
                             ->getAddUrl($product, ['qty' => $price['price_qty']]);
                     }
                     $tierPriceData = [
                         'addToCartUrl' => $addToCartUrl,
                         'name' => $product->getName(),
-                        'price' => $this->renderAmount(
+                        'realPrice' => $block->renderAmount(
                             $price['price'],
                             [
                                 'price_id'          => $index,
@@ -55,58 +42,65 @@ $product = $this->getSaleableItem();
                                 'include_container' => true
                             ]
                         ),
-                        'msrp' => $this->renderAmount(
-                            $this->getPriceType('msrp_price')->getAmount(),
+                        'msrpPrice' => $block->renderAmount(
+                            $block->getPriceType('msrp_price')->getAmount(),
                             [
                                 'price_id'          => $index,
                                 'id_suffix'         => '-' . $index,
                                 'include_container' => true
                             ]
-                        )
+                        ),
                     ];
-                    if ($this->getCanDisplayQty($product)) {
+                    if ($block->getCanDisplayQty($product)) {
                         $tierPriceData['qty'] = $price['price_qty'];
                     }
                 ?>
-                <?php echo __('Buy %1 for: ', $price['price_qty']); ?>
-                <a href="#" id="<?php echo($popupId);?>"
-                   data-tier-price="<?php echo $this->escapeHtml($this->jsonEncode($tierPriceData)); ?>">
-                    <?php echo __('Click for price'); ?></a>
+                <?php /* @escapeNotVerified */ echo __('Buy %1 for: ', $price['price_qty']); ?>
+                <a href="javascript:void(0);"
+                   id="<?php /* @escapeNotVerified */ echo($popupId);?>"
+                   data-tier-price="<?php echo $block->escapeHtml($block->jsonEncode($tierPriceData)); ?>">
+                    <?php /* @escapeNotVerified */ echo __('Click for price'); ?></a>
                 <?php else:
-                    echo __(
-                        'Buy %1 for %2',
-                        $price['price_qty'],
-                        $this->renderAmount(
-                            $price['price'],
-                            [
-                                'price_id'          => $index,
-                                'id_suffix'         => '-' . $index,
-                                'include_container' => true,
-                                'zone' => \Magento\Framework\Pricing\Render::ZONE_ITEM_OPTION
-                            ]
-                        )
+                    $priceAmountBlock = $block->renderAmount(
+                        $price['price'],
+                        [
+                            'price_id'          => $index,
+                            'id_suffix'         => '-' . $index,
+                            'include_container' => true,
+                            'zone' => \Magento\Framework\Pricing\Render::ZONE_ITEM_OPTION
+                        ]
                     );
-                ?><?php echo __('each') ?>
-                <?php if ($this->getShowDetailedPrice() !== false): ?>
-                    <?php echo __('and') ?>&nbsp;<strong class="benefit">
-                        <?php echo __('save')?>
-                        <span class="percent tier-<?php echo $index ?>"><?php echo $tierPriceModel->getSavePercent($price['price']) ?></span>%
-                    </strong>
-                <?php endif ?>
+                ?>
+                <?php /* @escapeNotVerified */ echo ($block->getShowDetailedPrice() !== false)
+                        ? __(
+                            'Buy %1 for %2 each and <strong class="benefit">save<span class="percent tier-%3">&nbsp;%4</span>%</strong>',
+                            $price['price_qty'],
+                            $priceAmountBlock,
+                            $index,
+                            $tierPriceModel->getSavePercent($price['price'])
+                        )
+                        : __('Buy %1 for %2 each', $price['price_qty'], $priceAmountBlock);
+                ?>
             <?php endif; ?>
         </li>
     <?php endforeach; ?>
     </ul>
     <?php if ($msrpShowOnGesture):?>
-        <script type="text/javascript">
-        require(["jquery", "mage/mage"], function($){
-
-            $('.product-info-main').mage('tierPrice', {
-                inputQty: '#qty',
-                productForm: '#product_addtocart_form'
-            });
-                
-        });
-</script>
+        <script type="text/x-magento-init">
+            {
+                ".product-info-main": {
+                    "addToCart": {
+                        "origin": "tier",
+                        "addToCartButton": "#product_addtocart_form [type=submit]",
+                        "inputQty": "#qty",
+                        "attr": "[data-tier-price]",
+                        "productForm": "#product_addtocart_form",
+                        "productId": "<?php /* @escapeNotVerified */ echo $productId; ?>",
+                        "productIdInput": "input[type=hidden][name=product]",
+                        "isSaleable": "<?php /* @escapeNotVerified */ echo $isSaleable; ?>"
+                    }
+                }
+            }
+        </script>
     <?php endif;?>
 <?php endif; ?>

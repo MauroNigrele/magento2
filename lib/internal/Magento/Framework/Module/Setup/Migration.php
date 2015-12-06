@@ -1,34 +1,20 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Module\Setup;
+
+use Magento\Framework\App\Filesystem\DirectoryList;
+use Magento\Framework\Filesystem;
+use Magento\Framework\Setup\ModuleDataSetupInterface;
 
 /**
  * Resource setup model with methods needed for migration process between Magento versions
  * @SuppressWarnings(PHPMD.ExcessiveParameterList)
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-class Migration extends \Magento\Framework\Module\Setup
+class Migration
 {
     /**#@+
      * Type of field content where class alias is used
@@ -73,7 +59,7 @@ class Migration extends \Magento\Framework\Module\Setup
      *
      * @var array
      */
-    protected $_entityTypes = array(self::ENTITY_TYPE_MODEL, self::ENTITY_TYPE_BLOCK, self::ENTITY_TYPE_RESOURCE);
+    protected $_entityTypes = [self::ENTITY_TYPE_MODEL, self::ENTITY_TYPE_BLOCK, self::ENTITY_TYPE_RESOURCE];
 
     /**
      * Rows per page. To split processing data from tables
@@ -95,7 +81,7 @@ class Migration extends \Magento\Framework\Module\Setup
      *
      * @var array
      */
-    protected $_replaceRules = array();
+    protected $_replaceRules = [];
 
     /**
      * Aliases to classes map
@@ -113,7 +99,7 @@ class Migration extends \Magento\Framework\Module\Setup
      *
      * @var array
      */
-    protected $_replacePatterns = array();
+    protected $_replacePatterns = [];
 
     /**
      * Path to map file from config
@@ -135,37 +121,38 @@ class Migration extends \Magento\Framework\Module\Setup
     protected $_directory;
 
     /**
-     * @var \Magento\Framework\Module\Setup\MigrationData
+     * @var MigrationData
      */
     protected $_migrationData;
 
     /**
-     * @param \Magento\Framework\Module\Setup\Context $context
-     * @param \Magento\Framework\Module\Setup\MigrationData $migrationData
+     * @var ModuleDataSetupInterface
+     */
+    private $setup;
+
+    /**
+     * @param ModuleDataSetupInterface $setup
+     * @param Filesystem $filesystem
+     * @param MigrationData $migrationData
      * @param string $confPathToMapFile
-     * @param string $resourceName
-     * @param string $moduleName
-     * @param string $connectionName
      * @param array $compositeModules
      */
     public function __construct(
-        \Magento\Framework\Module\Setup\Context $context,
-        $resourceName,
-        $moduleName,
-        \Magento\Framework\Module\Setup\MigrationData $migrationData,
+        ModuleDataSetupInterface $setup,
+        Filesystem $filesystem,
+        MigrationData $migrationData,
         $confPathToMapFile,
-        $connectionName = \Magento\Framework\Module\Updater\SetupInterface::DEFAULT_SETUP_CONNECTION,
-        $compositeModules = array()
+        $compositeModules = []
     ) {
-        $this->_directory = $context->getFilesystem()->getDirectoryRead(\Magento\Framework\App\Filesystem::ROOT_DIR);
+        $this->_directory = $filesystem->getDirectoryRead(DirectoryList::ROOT);
         $this->_pathToMapFile = $confPathToMapFile;
         $this->_migrationData = $migrationData;
-        $this->_replacePatterns = array(
+        $this->_replacePatterns = [
             self::FIELD_CONTENT_TYPE_WIKI => $this->_migrationData->getWikiFindPattern(),
-            self::FIELD_CONTENT_TYPE_XML => $this->_migrationData->getXmlFindPattern()
-        );
+            self::FIELD_CONTENT_TYPE_XML => $this->_migrationData->getXmlFindPattern(),
+        ];
         $this->_compositeModules = $compositeModules;
-        parent::__construct($context, $resourceName, $moduleName, $connectionName);
+        $this->setup = $setup;
     }
 
     /**
@@ -184,20 +171,20 @@ class Migration extends \Magento\Framework\Module\Setup
         $fieldName,
         $entityType = '',
         $fieldContentType = self::FIELD_CONTENT_TYPE_PLAIN,
-        array $primaryKeyFields = array(),
+        array $primaryKeyFields = [],
         $additionalWhere = ''
     ) {
         if (!isset($this->_replaceRules[$tableName])) {
-            $this->_replaceRules[$tableName] = array();
+            $this->_replaceRules[$tableName] = [];
         }
 
         if (!isset($this->_replaceRules[$tableName][$fieldName])) {
-            $this->_replaceRules[$tableName][$fieldName] = array(
+            $this->_replaceRules[$tableName][$fieldName] = [
                 'entity_type' => $entityType,
                 'content_type' => $fieldContentType,
                 'pk_fields' => $primaryKeyFields,
-                'additional_where' => $additionalWhere
-            );
+                'additional_where' => $additionalWhere,
+            ];
         }
     }
 
@@ -243,11 +230,11 @@ class Migration extends \Magento\Framework\Module\Setup
      */
     protected function _getRowsCount($tableName, $fieldName, $additionalWhere = '')
     {
-        $adapter = $this->getConnection();
+        $connection = $this->setup->getConnection();
 
-        $query = $adapter->select()->from(
-            $this->getTable($tableName),
-            array('rows_count' => new \Zend_Db_Expr('COUNT(*)'))
+        $query = $connection->select()->from(
+            $this->setup->getTable($tableName),
+            ['rows_count' => new \Zend_Db_Expr('COUNT(*)')]
         )->where(
             $fieldName . ' IS NOT NULL'
         );
@@ -256,7 +243,7 @@ class Migration extends \Magento\Framework\Module\Setup
             $query->where($additionalWhere);
         }
 
-        return (int)$adapter->fetchOne($query);
+        return (int)$connection->fetchOne($query);
     }
 
     /**
@@ -270,7 +257,7 @@ class Migration extends \Magento\Framework\Module\Setup
      */
     protected function _applyFieldRule($tableName, $fieldName, array $fieldRule, $currentPage = 0)
     {
-        $fieldsToSelect = array($fieldName);
+        $fieldsToSelect = [$fieldName];
         if (!empty($fieldRule['pk_fields'])) {
             $fieldsToSelect = array_merge($fieldsToSelect, $fieldRule['pk_fields']);
         }
@@ -282,7 +269,7 @@ class Migration extends \Magento\Framework\Module\Setup
             $currentPage
         );
 
-        $fieldReplacements = array();
+        $fieldReplacements = [];
         foreach ($tableData as $rowData) {
             $replacement = $this->_getReplacement(
                 $rowData[$fieldName],
@@ -290,11 +277,11 @@ class Migration extends \Magento\Framework\Module\Setup
                 $fieldRule['entity_type']
             );
             if ($replacement !== $rowData[$fieldName]) {
-                $fieldReplacement = array('to' => $replacement);
+                $fieldReplacement = ['to' => $replacement];
                 if (empty($fieldRule['pk_fields'])) {
-                    $fieldReplacement['where_fields'] = array($fieldName => $rowData[$fieldName]);
+                    $fieldReplacement['where_fields'] = [$fieldName => $rowData[$fieldName]];
                 } else {
-                    $fieldReplacement['where_fields'] = array();
+                    $fieldReplacement['where_fields'] = [];
                     foreach ($fieldRule['pk_fields'] as $pkField) {
                         $fieldReplacement['where_fields'][$pkField] = $rowData[$pkField];
                     }
@@ -317,14 +304,18 @@ class Migration extends \Magento\Framework\Module\Setup
     protected function _updateRowsData($tableName, $fieldName, array $fieldReplacements)
     {
         if (count($fieldReplacements) > 0) {
-            $adapter = $this->getConnection();
+            $connection = $this->setup->getConnection();
 
             foreach ($fieldReplacements as $fieldReplacement) {
-                $where = array();
+                $where = [];
                 foreach ($fieldReplacement['where_fields'] as $whereFieldName => $value) {
-                    $where[$adapter->quoteIdentifier($whereFieldName) . ' = ?'] = $value;
+                    $where[$connection->quoteIdentifier($whereFieldName) . ' = ?'] = $value;
                 }
-                $adapter->update($this->getTable($tableName), array($fieldName => $fieldReplacement['to']), $where);
+                $connection->update(
+                    $this->setup->getTable($tableName),
+                    [$fieldName => $fieldReplacement['to']],
+                    $where
+                );
             }
         }
     }
@@ -346,10 +337,10 @@ class Migration extends \Magento\Framework\Module\Setup
         $additionalWhere = '',
         $currPage = 0
     ) {
-        $adapter = $this->getConnection();
+        $connection = $this->setup->getConnection();
 
-        $query = $adapter->select()->from(
-            $this->getTable($tableName),
+        $query = $connection->select()->from(
+            $this->setup->getTable($tableName),
             $fieldsToSelect
         )->where(
             $fieldName . ' IS NOT NULL'
@@ -363,7 +354,7 @@ class Migration extends \Magento\Framework\Module\Setup
             $query->limitPage($currPage, $this->_rowsPerPage);
         }
 
-        return $adapter->fetchAll($query);
+        return $connection->fetchAll($query);
     }
 
     /**
@@ -473,7 +464,7 @@ class Migration extends \Magento\Framework\Module\Setup
             return null;
         }
 
-        $replacements = array();
+        $replacements = [];
         $pattern = $this->_replacePatterns[$contentType];
         preg_match_all($pattern, $data, $matches, PREG_PATTERN_ORDER);
         if (isset($matches['alias'])) {
@@ -543,7 +534,7 @@ class Migration extends \Magento\Framework\Module\Setup
         } elseif (false === strpos($module, '_')) {
             $module = "Magento_{$module}";
         }
-        return array($module, $name);
+        return [$module, $name];
     }
 
     /**
@@ -604,7 +595,7 @@ class Migration extends \Magento\Framework\Module\Setup
         $this->_getAliasesMap();
 
         if (!isset($this->_aliasesMap[$entityType])) {
-            $this->_aliasesMap[$entityType] = array();
+            $this->_aliasesMap[$entityType] = [];
         }
 
         if (!isset($this->_aliasesMap[$entityType][$alias])) {
@@ -619,8 +610,8 @@ class Migration extends \Magento\Framework\Module\Setup
      */
     protected function _getAliasesMap()
     {
-        if (is_null($this->_aliasesMap)) {
-            $this->_aliasesMap = array();
+        if (null === $this->_aliasesMap) {
+            $this->_aliasesMap = [];
 
             $map = $this->_loadMap($this->_pathToMapFile);
 
@@ -681,7 +672,7 @@ class Migration extends \Magento\Framework\Module\Setup
             unset($matches[0], $matches[1], $matches[2]);
             return $matches;
         } else {
-            return array();
+            return [];
         }
     }
 

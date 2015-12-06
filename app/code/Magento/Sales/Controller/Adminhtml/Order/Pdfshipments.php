@@ -1,84 +1,92 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Controller\Adminhtml\Order;
 
-use \Magento\Framework\App\ResponseInterface;
-use \Magento\Backend\App\Action;
+use Magento\Framework\App\ResponseInterface;
+use Magento\Framework\App\Filesystem\DirectoryList;
+use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
+use Magento\Backend\App\Action\Context;
+use Magento\Framework\App\Response\Http\FileFactory;
+use Magento\Ui\Component\MassAction\Filter;
+use Magento\Sales\Model\Order\Pdf\Shipment;
+use Magento\Framework\Stdlib\DateTime\DateTime;
+use Magento\Sales\Model\ResourceModel\Order\Shipment\CollectionFactory as ShipmentCollectionFactory;
+use Magento\Sales\Model\ResourceModel\Order\CollectionFactory;
 
-class Pdfshipments extends \Magento\Sales\Controller\Adminhtml\Order
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
+class Pdfshipments extends \Magento\Sales\Controller\Adminhtml\Order\AbstractMassAction
 {
+    /**
+     * @var FileFactory
+     */
+    protected $fileFactory;
+
+    /**
+     * @var DateTime
+     */
+    protected $dateTime;
+
+    /**
+     * @var Shipment
+     */
+    protected $pdfShipment;
+
+    /**
+     * @var ShipmentCollectionFactory
+     */
+    protected $shipmentCollectionFactotory;
+
+    /**
+     * @param Context $context
+     * @param Filter $filter
+     * @param CollectionFactory $collectionFactory
+     * @param DateTime $dateTime
+     * @param FileFactory $fileFactory
+     * @param Shipment $shipment
+     * @param ShipmentCollectionFactory $shipmentCollectionFactory
+     */
+    public function __construct(
+        Context $context,
+        Filter $filter,
+        CollectionFactory $collectionFactory,
+        DateTime $dateTime,
+        FileFactory $fileFactory,
+        Shipment $shipment,
+        ShipmentCollectionFactory $shipmentCollectionFactory
+    ) {
+        $this->fileFactory = $fileFactory;
+        $this->dateTime = $dateTime;
+        $this->pdfShipment = $shipment;
+        $this->collectionFactory = $collectionFactory;
+        $this->shipmentCollectionFactotory = $shipmentCollectionFactory;
+        parent::__construct($context, $filter);
+    }
+
     /**
      * Print shipments for selected orders
      *
-     * @return ResponseInterface|void
+     * @param AbstractCollection $collection
+     * @return ResponseInterface|\Magento\Backend\Model\View\Result\Redirect
      */
-    public function execute()
+    protected function massAction(AbstractCollection $collection)
     {
-        $orderIds = $this->getRequest()->getPost('order_ids');
-        $flag = false;
-        if (!empty($orderIds)) {
-            foreach ($orderIds as $orderId) {
-                $shipments = $this->_objectManager->create(
-                    'Magento\Sales\Model\Resource\Order\Shipment\Collection'
-                )->setOrderFilter(
-                    $orderId
-                )->load();
-                if ($shipments->getSize()) {
-                    $flag = true;
-                    if (!isset($pdf)) {
-                        $pdf = $this->_objectManager->create(
-                            'Magento\Sales\Model\Order\Pdf\Shipment'
-                        )->getPdf(
-                            $shipments
-                        );
-                    } else {
-                        $pages = $this->_objectManager->create(
-                            'Magento\Sales\Model\Order\Pdf\Shipment'
-                        )->getPdf(
-                            $shipments
-                        );
-                        $pdf->pages = array_merge($pdf->pages, $pages->pages);
-                    }
-                }
-            }
-            if ($flag) {
-                return $this->_fileFactory->create(
-                    'packingslip' . $this->_objectManager->get(
-                        'Magento\Framework\Stdlib\DateTime\DateTime'
-                    )->date(
-                        'Y-m-d_H-i-s'
-                    ) . '.pdf',
-                    $pdf->render(),
-                    \Magento\Framework\App\Filesystem::VAR_DIR,
-                    'application/pdf'
-                );
-            } else {
-                $this->messageManager->addError(__('There are no printable documents related to selected orders.'));
-                $this->_redirect('sales/*/');
-            }
+        $shipmentsCollection = $this->shipmentCollectionFactotory
+            ->create()
+            ->setOrderFilter(['in' => $collection->getAllIds()]);
+        if (!$shipmentsCollection->getSize()) {
+            $this->messageManager->addError(__('There are no printable documents related to selected orders.'));
+            return $this->resultRedirectFactory->create()->setPath($this->getComponentRefererUrl());
         }
-        $this->_redirect('sales/*/');
+        return $this->fileFactory->create(
+            sprintf('packingslip%s.pdf', $this->dateTime->date('Y-m-d_H-i-s')),
+            $this->pdfShipment->getPdf($shipmentsCollection->getItems())->render(),
+            DirectoryList::VAR_DIR,
+            'application/pdf'
+        );
     }
 }

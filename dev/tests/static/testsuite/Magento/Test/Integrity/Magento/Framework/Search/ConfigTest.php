@@ -2,31 +2,21 @@
 /**
  * Test search_request.xsd and xml files.
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Test\Integrity\Magento\Framework\Search;
 
 class ConfigTest extends \Magento\TestFramework\Integrity\AbstractConfig
 {
+    /** @var \Magento\Framework\Config\Dom\UrnResolver */
+    protected $urnResolver;
+
+    protected function setUp()
+    {
+        $this->urnResolver = new \Magento\Framework\Config\Dom\UrnResolver();
+    }
+
     /**
      * Returns the name of the XSD file to be used to validate the XML
      *
@@ -34,7 +24,7 @@ class ConfigTest extends \Magento\TestFramework\Integrity\AbstractConfig
      */
     protected function _getXsd()
     {
-        return '/lib/internal/Magento/Framework/Search/etc/search_request_merged.xsd';
+        return $this->urnResolver->getRealPath('urn:magento:framework:Search/etc/search_request_merged.xsd');
     }
 
     /**
@@ -44,7 +34,7 @@ class ConfigTest extends \Magento\TestFramework\Integrity\AbstractConfig
      */
     protected function _getFileXsd()
     {
-        return '/lib/internal/Magento/Framework/Search/etc/search_request.xsd';
+        return $this->urnResolver->getRealPath('urn:magento:framework:Search/etc/search_request.xsd');
     }
 
     /**
@@ -103,18 +93,16 @@ Element 'queryReference': No match found for key-sequence ['fulltext_search_quer
             explode(
                 "\n",
                 "
-Element 'dimensions': Missing child element(s). Expected is ( dimension )
+Element 'dimensions': Missing child element(s). Expected is ( dimension ).
+Element 'queryReference': The attribute 'clause' is required but missing.
 Element 'queryReference': The attribute 'ref' is required but missing.
-Element 'filterReference': The attribute 'ref' is required but missing.
-Element 'filter': The attribute 'field' is required but missing.
-Element 'filter': The attribute 'value' is required but missing.
 Element 'filterReference': The attribute 'clause' is required but missing.
 Element 'filterReference': The attribute 'ref' is required but missing.
-Element 'bucket': Missing child element(s). Expected is ( metrics ).
+Element 'filter': The attribute 'field' is required but missing.
 Element 'metric', attribute 'type': [facet 'enumeration'] " .
                 "The value 'sumasdasd' is not an element of the set {'sum', 'count', 'min', 'max'}.
 Element 'metric', attribute 'type': 'sumasdasd' is not a valid value of the local atomic type.
-Element 'bucket': Missing child element(s). Expected is ( ranges ).
+Element 'bucket': Missing child element(s). Expected is one of ( metrics, ranges ).
 Element 'request': Missing child element(s). Expected is ( from )."
             )
         );

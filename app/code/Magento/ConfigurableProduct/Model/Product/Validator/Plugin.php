@@ -1,34 +1,16 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\ConfigurableProduct\Model\Product\Validator;
 
 use Closure;
-use Magento\Framework\App\RequestInterface;
 use Magento\Catalog\Model\Product;
 use Magento\Catalog\Model\ProductFactory;
+use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Event\Manager;
-use Magento\Core\Helper;
+use Magento\Framework\Json\Helper\Data;
 
 /**
  * Configurable product validation
@@ -46,20 +28,23 @@ class Plugin
     protected $productFactory;
 
     /**
-     * @var Helper\Data
+     * @var Data
      */
-    protected $coreHelper;
+    protected $jsonHelper;
 
     /**
      * @param Manager $eventManager
      * @param ProductFactory $productFactory
-     * @param Helper\Data $coreHelper
+     * @param Data $jsonHelper
      */
-    public function __construct(Manager $eventManager, ProductFactory $productFactory, Helper\Data $coreHelper)
-    {
+    public function __construct(
+        Manager $eventManager,
+        ProductFactory $productFactory,
+        Data $jsonHelper
+    ) {
         $this->eventManager = $eventManager;
         $this->productFactory = $productFactory;
-        $this->coreHelper = $coreHelper;
+        $this->jsonHelper = $jsonHelper;
     }
 
     /**
@@ -69,7 +54,7 @@ class Plugin
      * @param Closure $proceed
      * @param Product $product
      * @param RequestInterface $request
-     * @param \Magento\Framework\Object $response
+     * @param \Magento\Framework\DataObject $response
      * @return bool
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
@@ -78,8 +63,11 @@ class Plugin
         Closure $proceed,
         \Magento\Catalog\Model\Product $product,
         \Magento\Framework\App\RequestInterface $request,
-        \Magento\Framework\Object $response
+        \Magento\Framework\DataObject $response
     ) {
+        if ($request->has('attributes')) {
+            $product->setTypeId(\Magento\ConfigurableProduct\Model\Product\Type\Configurable::TYPE_CODE);
+        }
         $result = $proceed($product, $request, $response);
         $variationProducts = (array)$request->getPost('variations-matrix');
         if ($variationProducts) {
@@ -107,12 +95,11 @@ class Plugin
      */
     protected function _validateProductVariations(Product $parentProduct, array $products, RequestInterface $request)
     {
-
         $this->eventManager->dispatch(
             'catalog_product_validate_variations_before',
-            array('product' => $parentProduct, 'variations' => $products)
+            ['product' => $parentProduct, 'variations' => $products]
         );
-        $validationResult = array();
+        $validationResult = [];
         foreach ($products as $productData) {
             $product = $this->productFactory->create();
             $product->setData('_edit_mode', true);
@@ -121,9 +108,14 @@ class Plugin
                 $product->setStoreId($storeId);
             }
             $product->setAttributeSetId($parentProduct->getAttributeSetId());
+            $product->addData($this->getRequiredDataFromProduct($parentProduct));
             $product->addData($productData);
             $product->setCollectExceptionMessages(true);
-            $configurableAttribute = $this->coreHelper->jsonDecode($productData['configurable_attribute']);
+            $configurableAttribute = [];
+            $encodedData = $productData['configurable_attribute'];
+            if ($encodedData) {
+                $configurableAttribute = $this->jsonHelper->jsonDecode($encodedData);
+            }
             $configurableAttribute = implode('-', $configurableAttribute);
 
             $errorAttributes = $product->validate();
@@ -137,5 +129,20 @@ class Plugin
             }
         }
         return $validationResult;
+    }
+
+    /**
+     * @param Product $product
+     * @return array
+     */
+    protected function getRequiredDataFromProduct(Product $product)
+    {
+        $parentProductData = [];
+        foreach ($product->getAttributes() as $attribute) {
+            if ($attribute->getIsUserDefined() && $attribute->getIsRequired()) {
+                $parentProductData[$attribute->getAttributeCode()] = $product->getData($attribute->getAttributeCode());
+            }
+        }
+        return $parentProductData;
     }
 }

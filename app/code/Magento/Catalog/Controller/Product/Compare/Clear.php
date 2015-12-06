@@ -1,39 +1,23 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Controller\Product\Compare;
+
+use Magento\Framework\Controller\ResultFactory;
 
 class Clear extends \Magento\Catalog\Controller\Product\Compare
 {
     /**
      * Remove all items from comparison list
      *
-     * @return void
+     * @return \Magento\Framework\Controller\ResultInterface
      */
     public function execute()
     {
-        /** @var \Magento\Catalog\Model\Resource\Product\Compare\Item\Collection $items */
+        /** @var \Magento\Catalog\Model\ResourceModel\Product\Compare\Item\Collection $items */
         $items = $this->_itemCollectionFactory->create();
 
         if ($this->_customerSession->isLoggedIn()) {
@@ -48,12 +32,14 @@ class Clear extends \Magento\Catalog\Controller\Product\Compare
             $items->clear();
             $this->messageManager->addSuccess(__('You cleared the comparison list.'));
             $this->_objectManager->get('Magento\Catalog\Helper\Product\Compare')->calculate();
-        } catch (\Magento\Framework\Model\Exception $e) {
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
             $this->messageManager->addError($e->getMessage());
         } catch (\Exception $e) {
             $this->messageManager->addException($e, __('Something went wrong  clearing the comparison list.'));
         }
 
-        $this->getResponse()->setRedirect($this->_redirect->getRedirectUrl());
+        /** @var \Magento\Framework\Controller\Result\Redirect $resultRedirect */
+        $resultRedirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
+        return $resultRedirect->setRefererOrBaseUrl();
     }
 }

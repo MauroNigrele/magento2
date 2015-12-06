@@ -1,173 +1,344 @@
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
-define([
-    "jquery",
-    "jquery/ui",
-    "jquery/hover-intent",
-    "jquery/jquery.details",
-    "jquery/jquery.tabs",
-    "mage/backend/floating-header",
-    "jquery/farbtastic"  // $(..).farbtastic()
-],function($) {
+define('globalNavigationScroll', [
+    'jquery'
+], function ($) {
+    'use strict';
+
+    var win = $(window),
+        subMenuClass = '.submenu',
+        fixedClassName = '_fixed',
+        menu = $('.menu-wrapper'),
+        content = $('.page-wrapper'),
+        menuItems = $('#nav').children('li'),
+        subMenus = menuItems.children(subMenuClass),
+        winHeight,
+        menuHeight = menu.height(),
+        menuHeightRest = 0,
+        menuScrollMax = 0,
+        submenuHeight = 0,
+        contentHeight,
+        winTop = 0,
+        winTopLast = 0,
+        scrollStep = 0,
+        nextTop = 0;
+
+    /**
+     * Check if menu is fixed
+     * @returns {boolean}
+     */
+    function isMenuFixed() {
+        return (menuHeight < contentHeight) && (contentHeight > winHeight);
+    }
+
+    /**
+     * Check if class exist than add or do nothing
+     * @param {jQuery} el
+     * @param $class string
+     */
+    function checkAddClass(el, $class) {
+        if (!el.hasClass($class)) {
+            el.addClass($class);
+        }
+    }
+
+    /**
+     * Check if class exist than remove or do nothing
+     * @param {jQuery} el
+     * @param $class string
+     */
+    function checkRemoveClass(el, $class) {
+        if (el.hasClass($class)) {
+            el.removeClass($class);
+        }
+    }
+
+    /**
+     * Calculate and apply menu position
+     */
+    function positionMenu() {
+
+        //  Spotting positions and heights
+        winHeight = win.height();
+        contentHeight = content.height();
+        winTop = win.scrollTop();
+        scrollStep = winTop - winTopLast;
+        menuHeightRest = menuHeight - winTop; // is a visible menu height
+
+        if (isMenuFixed()) { // fixed menu cases
+
+            checkAddClass(menu, fixedClassName);
+
+            if (menuHeight > winHeight) { // smart scroll cases
+
+                if (winTop > winTopLast) { //  scroll down
+
+                    menuScrollMax = menuHeight - winHeight;
+
+                    nextTop < (menuScrollMax - scrollStep) ?
+                        nextTop += scrollStep : nextTop = menuScrollMax;
+
+                    menu.css('top', -nextTop);
+
+                } else if (winTop <= winTopLast) { // scroll up
+
+                    nextTop > -scrollStep ?
+                        nextTop += scrollStep : nextTop = 0;
+
+                    menu.css('top', -nextTop);
+
+                }
+
+            }
+
+        } else { // static menu cases
+            checkRemoveClass(menu, fixedClassName);
+        }
+
+        //  Save previous window scrollTop
+        winTopLast = winTop;
+
+    }
+
+    positionMenu(); // page start calculation
+
+    //  Change position on scroll
+    win.on('scroll', function () {
+        positionMenu();
+    });
+
+    win.on('resize', function () {
+
+        winHeight = win.height();
+
+        //  Reset position if fixed and out of smart scroll
+        if ((menuHeight < contentHeight) && (menuHeight <= winHeight)) {
+            menu.removeAttr('style');
+            menuItems.off();
+        }
+
+    });
+
+    //  Add event to menuItems to check submenu overlap
+    menuItems.on('click', function (e) {
+
+        var submenu = $(this).children(subMenuClass),
+            delta,
+            logo = $('.logo')[0].offsetHeight;
+
+        submenuHeight = submenu.height();
+
+        if (submenuHeight > menuHeight && menuHeight + logo > winHeight) {
+            menu.height(submenuHeight - logo);
+            delta = -menu.position().top;
+            window.scrollTo(0, 0);
+            positionMenu();
+            window.scrollTo(0, delta);
+            positionMenu();
+            menuHeight = submenuHeight;
+        }
+    });
+
+});
+
+define('globalNavigation', [
+    'jquery',
+    'jquery/ui',
+    'globalNavigationScroll'
+], function ($) {
+    'use strict';
+
+    $.widget('mage.globalNavigation', {
+        options: {
+            selectors: {
+                menu: '#nav',
+                currentItem: '._current',
+                topLevelItem: '.level-0',
+                topLevelHref: '> a',
+                subMenu: '> .submenu',
+                closeSubmenuBtn: '[data-role="close-submenu"]'
+            },
+            overlayTmpl: '<div class="admin__menu-overlay"></div>'
+        },
+
+        _create: function () {
+            var selectors = this.options.selectors;
+
+            this.menu = this.element;
+            this.menuLinks = $(selectors.topLevelHref, selectors.topLevelItem);
+            this.closeActions = $(selectors.closeSubmenuBtn);
+
+            this._initOverlay()
+                ._bind();
+        },
+
+        _initOverlay: function () {
+            this.overlay = $(this.options.overlayTmpl).appendTo('body').hide(0);
+
+            return this;
+        },
+
+        _bind: function () {
+            var focus = this._focus.bind(this),
+                open = this._open.bind(this),
+                blur = this._blur.bind(this),
+                keyboard = this._keyboard.bind(this);
+
+            this.menuLinks
+                .on('focus', focus)
+                .on('click', open);
+
+            this.menuLinks.last().on('blur', blur);
+
+            this.closeActions.on('keydown', keyboard);
+        },
+
+
+        /**
+         * Remove active class from current menu item
+         * Turn back active class to current page menu item
+         */
+        _blur: function (e) {
+            var selectors = this.options.selectors,
+                menuItem = $(e.target).closest(selectors.topLevelItem),
+                currentItem = $(selectors.menu).find(selectors.currentItem);
+
+            menuItem.removeClass('_active');
+            currentItem.addClass('_active');
+        },
+
+        /**
+         * Add focus to active menu item
+         */
+        _keyboard: function (e) {
+            var selectors = this.options.selectors,
+                menuItem = $(e.target).closest(selectors.topLevelItem);
+
+            if (e.which === 13) {
+                this._close(e);
+                $(selectors.topLevelHref, menuItem).focus();
+            }
+        },
+
+        /**
+         * Toggle active state on focus
+         */
+        _focus: function (e) {
+            var selectors = this.options.selectors,
+                menuItem = $(e.target).closest(selectors.topLevelItem);
+
+            menuItem.addClass('_active')
+                .siblings(selectors.topLevelItem)
+                .removeClass('_active');
+        },
+
+        _closeSubmenu: function (e) {
+            var selectors = this.options.selectors,
+                currentItem = $(selectors.menu).find(selectors.currentItem);
+
+            this._close(e);
+
+            currentItem.addClass('_active');
+        },
+
+        _open: function (e) {
+            var selectors = this.options.selectors,
+                menuItemSelector = selectors.topLevelItem,
+                menuItem = $(e.target).closest(menuItemSelector),
+                subMenu = $(selectors.subMenu, menuItem),
+                close = this._closeSubmenu.bind(this),
+                closeBtn = subMenu.find(selectors.closeSubmenuBtn);
+
+
+            if (subMenu.length) {
+                e.preventDefault();
+            }
+
+            menuItem.addClass('_show')
+                .siblings(menuItemSelector)
+                .removeClass('_show');
+
+            subMenu.attr('aria-expanded', 'true');
+
+            //subMenu.css('height', subMenu.find('ul.menu')[0].height() + subMenu.find('strong.submenu-title').height());
+
+            closeBtn.on('click', close);
+
+            this.overlay.show(0).on('click', close);
+            this.menuLinks.last().off('blur');
+        },
+
+        _close: function (e) {
+            var selectors = this.options.selectors,
+                menuItem = this.menu.find(selectors.topLevelItem + '._show'),
+                subMenu = $(selectors.subMenu, menuItem),
+                closeBtn = subMenu.find(selectors.closeSubmenuBtn),
+                blur = this._blur.bind(this);
+
+            e.preventDefault();
+
+            this.overlay.hide(0).off('click');
+
+            this.menuLinks.last().on('blur', blur);
+
+            closeBtn.off('click');
+
+            subMenu.attr('aria-expanded', 'false');
+
+            menuItem.removeClass('_show _active');
+        }
+    });
+
+    return $.mage.globalNavigation;
+});
+
+define('globalSearch', [
+    'jquery',
+    'jquery/ui'
+], function ($) {
     'use strict';
 
     $.widget('mage.globalSearch', {
         options: {
             field: '.search-global-field',
-            fieldActiveClass: 'active',
+            fieldActiveClass: '_active',
             input: '#search-global'
         },
 
-        _create: function() {
+        _create: function () {
             this.field = $(this.options.field);
             this.input = $(this.options.input);
             this._events();
         },
 
-        _events: function() {
+        _events: function () {
             var self = this;
+
             this.input
-                .on('blur.resetGlobalSearchForm', function() {
+                .on('blur.resetGlobalSearchForm', function () {
                     if (!self.input.val()) {
                         self.field.removeClass(self.options.fieldActiveClass)
                     }
                 });
+
             this.input
-                .on('focus.activateGlobalSearchForm', function() {
-                        self.field.addClass(self.options.fieldActiveClass)
+                .on('focus.activateGlobalSearchForm', function () {
+                    self.field.addClass(self.options.fieldActiveClass)
                 });
         }
     });
 
-    $.widget('mage.globalNavigation', {
-        options: {
-            menuCategory: '.level-0',
-            menuLinks: 'a',
-            itemsConfig: null,
-            hoverIntentConfig: {
-                interval: 100,
-                timeout: 500 // number = milliseconds delay before onMouseOut
-            }
-        },
+    return $.mage.globalSearch;
+});
 
-        _create: function() {
-            this.menu = this.element;
-            this.menuCategory = $(this.options.menuCategory, this.menu);
-            this.menuLinks = $(this.options.menuLinks, this.menuCategory);
-            this._bind();
-        },
-
-        _menuCategoryBind: function(category, config) {
-            category
-                .hoverIntent($.extend({}, this.options.hoverIntentConfig, {
-                    over: !config.open ? this._hoverEffects : $.noop,
-                    out: !config.close ? this._leaveEffects : $.noop
-                }));
-            if (config.open) {
-                category.on(config.open, this._hoverEffects);
-            }
-            if (config.close) {
-                category.on(config.close, this._leaveEffects);
-            }
-        },
-
-        _menuCategoryEvents: function() {
-            this.menuCategory.each($.proxy(function(i, category) {
-                var itemConfig = {};
-                if (this.options.categoriesConfig) {
-                    $.each(this.options.categoriesConfig, $.proxy(function(selector, conf) {
-                        if ($(category).is(selector)) {
-                            itemConfig = conf;
-                        }
-                    }, this));
-                }
-                this._menuCategoryBind($(category), itemConfig);
-            }, this));
-        },
-
-        _bind: function() {
-            this._menuCategoryEvents();
-            this.menuLinks
-                .on('focus.tabFocus', function(e) {
-                    $(e.target).trigger('mouseenter');
-                })
-                .on('blur.tabFocus', function(e) {
-                    $(e.target).trigger('mouseleave');
-                });
-        },
-
-        _hoverEffects: function (e) {
-            $(this)
-                .addClass('hover recent')
-                .siblings('.level-0').each(function() {
-                     clearTimeout($(this).prop('hoverIntent_t'));
-                    $(this).prop('hoverIntent_s', 0);
-                    $(this).removeClass('recent hover');
-                });
-
-            var targetSubmenu = $(e.target).closest('.submenu');
-            if(targetSubmenu.length && targetSubmenu.is(':visible')) {
-                return;
-            }
-            var availableWidth = parseInt($(this).parent().css('width')) - $(this).position().left,
-                submenu = $('> .submenu', this),
-                colsWidth = 0;
-
-            submenu.show();
-
-            $.each($('> .submenu > ul li.column', this), function() {
-                colsWidth = colsWidth + parseInt($(this).css('width'));
-            });
-
-            var containerPaddings =  parseInt(submenu.css('padding-left')) + parseInt(submenu.css('padding-right'));
-
-            $(this).toggleClass('reverse', (containerPaddings + colsWidth) > availableWidth);
-
-            submenu
-                .hide()
-                .slideDown('fast');
-        },
-
-        _leaveEffects: function (e) {
-            var targetSubmenu = $(e.target).closest('.submenu'),
-            self = $(this),
-            submenu = $('> .submenu', this);
-
-            if(targetSubmenu.length && targetSubmenu.is(':hidden')) {
-                return;
-            }
-
-            if(submenu.length) {
-                submenu.slideUp('fast', function() {
-                    self.removeClass('hover');
-                });
-            } else {
-                self.removeClass('hover');
-            }
-
-        }
-    });
+define('modalPopup', [
+    'jquery',
+    'jquery/ui'
+], function ($) {
+    'use strict';
 
     $.widget('mage.modalPopup', {
         options: {
@@ -176,7 +347,7 @@ define([
             btnHide: '[data-hide="popup"]'
         },
 
-        _create: function() {
+        _create: function () {
             this.fade = this.element;
             this.popup = $(this.options.popup, this.fade);
             this.btnDismiss = $(this.options.btnDismiss, this.popup);
@@ -185,75 +356,29 @@ define([
             this._events();
         },
 
-        _events: function() {
+        _events: function () {
             var self = this;
 
             this.btnDismiss
-                .on('click.dismissModalPopup', function() {
+                .on('click.dismissModalPopup', function () {
                     self.fade.remove();
                 });
 
             this.btnHide
-                .on('click.hideModalPopup', function() {
+                .on('click.hideModalPopup', function () {
                     self.fade.hide();
                 });
         }
     });
 
-    $.widget('mage.loadingPopup', {
-        options: {
-            message: 'Please wait...',
-            timeout: 5000,
-            timeoutId: null,
-            callback: null,
-            template: null
-        },
+    return $.mage.modalPopup;
+});
 
-        _create: function() {
-            this.template =
-                '<div class="popup popup-loading">' +
-                    '<div class="popup-inner">' + this.options.message + '</div>' +
-                '</div>';
-
-            this.popup = $(this.template);
-
-            this._show();
-            this._events();
-        },
-
-        _events: function() {
-            var self = this;
-
-            this.element
-                .on('showLoadingPopup', function() {
-                    self._show();
-                })
-                .on('hideLoadingPopup', function() {
-                    self._hide();
-                });
-        },
-
-        _show: function() {
-            var self = this;
-
-            this.element.append(this.popup);
-
-            if (this.options.timeout) {
-                this.options.timeoutId = setTimeout(function() {
-                    self._hide();
-
-                    self.options.callback && self.options.callback();
-
-                    self.options.timeoutId && clearTimeout(self.options.timeoutId);
-                }, self.options.timeout);
-            }
-        },
-
-        _hide: function() {
-            this.popup.remove();
-            this.destroy();
-        }
-    });
+define('useDefault', [
+    'jquery',
+    'jquery/ui'
+], function ($) {
+    'use strict';
 
     $.widget('mage.useDefault', {
         options: {
@@ -263,7 +388,7 @@ define([
             label: '.use-default-label'
         },
 
-        _create: function() {
+        _create: function () {
             this.el = this.element;
             this.field = $(this.el).closest(this.options.field);
             this.useDefault = $(this.options.useDefault, this.field);
@@ -274,7 +399,7 @@ define([
             this._events();
         },
 
-        _events: function() {
+        _events: function () {
             var self = this;
 
             this.el
@@ -282,7 +407,7 @@ define([
                 .trigger('change.toggleUseDefaultVisibility');
 
             this.checkbox
-                .on('change.setOrigValue', function() {
+                .on('change.setOrigValue', function () {
                     if ($(this).prop('checked')) {
                         self.el
                             .val(self.origValue)
@@ -293,21 +418,97 @@ define([
                 });
         },
 
-        _toggleUseDefaultVisibility: function() {
+        _toggleUseDefaultVisibility: function () {
             var curValue = this.el.val(),
                 origValue = this.origValue;
 
             this[curValue != origValue ? '_show' : '_hide']();
         },
 
-        _show: function() {
+        _show: function () {
             this.useDefault.show();
         },
 
-        _hide: function() {
+        _hide: function () {
             this.useDefault.hide();
         }
     });
+
+    return $.mage.useDefault;
+});
+
+define('loadingPopup', [
+    'jquery',
+    'jquery/ui'
+], function ($) {
+    'use strict';
+
+    $.widget('mage.loadingPopup', {
+        options: {
+            message: 'Please wait...',
+            timeout: 5000,
+            timeoutId: null,
+            callback: null,
+            template: null
+        },
+
+        _create: function () {
+            this.template =
+                '<div class="popup popup-loading">' +
+                '<div class="popup-inner">' + this.options.message + '</div>' +
+                '</div>';
+
+            this.popup = $(this.template);
+
+            this._show();
+            this._events();
+        },
+
+        _events: function () {
+            var self = this;
+
+            this.element
+                .on('showLoadingPopup', function () {
+                    self._show();
+                })
+                .on('hideLoadingPopup', function () {
+                    self._hide();
+                });
+        },
+
+        _show: function () {
+            var options = this.options,
+                timeout = options.timeout;
+
+            $('body').trigger('processStart');
+
+            if (timeout) {
+                options.timeoutId = setTimeout(this._delayedHide.bind(this), timeout);
+            }
+        },
+
+        _hide: function () {
+            $('body').trigger('processStop');
+        },
+
+        _delayedHide: function () {
+            this._hide();
+
+            this.options.callback && this.options.callback();
+
+            this.options.timeoutId && clearTimeout(this.options.timeoutId);
+        }
+    });
+
+    return $.mage.loadingPopup;
+});
+
+define('collapsable', [
+    'jquery',
+    'jquery/ui',
+    'jquery/jquery.tabs'
+], function ($) {
+    'use strict';
 
     $.widget('mage.collapsable', {
         options: {
@@ -316,11 +517,11 @@ define([
             wrapper: '.fieldset-wrapper'
         },
 
-        _create: function() {
+        _create: function () {
             this._events();
         },
 
-        _events: function() {
+        _events: function () {
             var self = this;
 
             this.element
@@ -339,101 +540,26 @@ define([
         }
     });
 
-    var switcherForIe8 = function() {
-        /* Switcher for IE8 */
-        if ($.browser.msie && $.browser.version == '8.0') {
-            $('.switcher input')
-                .on('change.toggleSwitcher', function() {
-                    $(this)
-                        .closest('.switcher')
-                        .toggleClass('checked', $(this).prop('checked'));
-                })
-                .trigger('change');
-        }
-    };
-    var updateColorPickerValues = function() {
-        $('.element-color-picker').each(function(){
-            var _this = $(this);
-            _this.find('.color-box.active').removeClass('active');
-            if (_this.find('.farbtastic').is(':visible')) {
-                _this
-                    .find('.farbtastic').hide()
-                    .end()
-                    .find('input').trigger('change.quickStyleElement');
-            }
-        });
-    };
+    return $.mage.collapsable;
+});
 
-    var toggleColorPickerPosition = function () {
-        var colorPicker = $('.farbtastic:visible'),
-            colorPickerWidth = 350;
+define('js/theme', [
+    'jquery',
+    'mage/smart-keyboard-handler',
+    'mage/ie-class-fixer',
+    'collapsable',
+    'domReady!'
+], function ($, keyboardHandler) {
+    'use strict';
 
-        colorPicker.offset() && colorPicker.toggleClass('vertical', parseInt(colorPicker.offset().left, 10) + colorPickerWidth > $(window).width());
-    };
+    /* @TODO refactor collapsable as widget and avoid logic binding with such a general selectors */
+    $('.collapse').collapsable();
 
-    $(document).ready(function() {
-        $('.search-global.miniform').globalSearch();
-        $('.navigation').globalNavigation({
-            categoriesConfig: {
-                '[data-ui-id="menu-mage-adminhtml-system"]': {
-                    open: 'click'
-                },
-                '[data-ui-id="menu-mage-adminhtml-stores"]': {
-                    open: 'click'
-                }
-            }
-        });
-        $('.fade').modalPopup();
-        $('details').details();
-        $('.page-actions').floatingHeader();
-        $('[data-store-label]').useDefault();
-
-        /* @TODO refactor collapsable as widget and avoid logic binding with such a general selectors */
-        $('.collapse').collapsable();
-        $.each($('.entry-edit'), function(i, entry) {
-            $('.collapse:first', entry).collapse('show');
-        });
-
-        // TODO: Move to VDE js widjets
-        $.each($('.color-box'), function(index, elem) {
-            $(elem).farbtastic(function(color) {
-                $(elem).css({
-                    'backgroundColor': color
-                });
-                $(elem).siblings('input').val(color);
-            });
-        });
-
-        $(document).on('click', function(e) {
-            var target = $(e.target);
-            if (target.closest('.control').find('.color-box').length < 1) {
-                updateColorPickerValues();
-            }
-        });
-        $(window)
-            .on('resize.vdeColorPicker', function () {
-                this.vdeColorPickerTimeoutId && clearTimeout(this.vdeColorPickerTimeoutId);
-
-                this.vdeColorPickerTimeoutId = setTimeout(function() {
-                    toggleColorPickerPosition();
-                }, 500);
-            });
-
-        $('.color-box')
-            .on('click.showColorPicker', function() {
-                updateColorPickerValues();  // Update values is other color picker is not closed yet
-                $(this)
-                    .addClass('active')
-                    .siblings('input').trigger('focus.quickStyleElement')
-                    .end()
-                    .find('.farbtastic').show();
-                toggleColorPickerPosition();
-            });
-        switcherForIe8();
+    $.each($('.entry-edit'), function (i, entry) {
+        $('.collapse:first', entry).filter(function () {
+            return $(this).data('collapsed') !== true;
+        }).collapse('show');
     });
 
-    $(document).on('ajaxComplete', function() {
-        $('details').details();
-        switcherForIe8();
-    });
+    keyboardHandler.apply();
 });

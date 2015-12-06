@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\HTTP\Client;
 
@@ -28,7 +10,7 @@ namespace Magento\Framework\HTTP\Client;
  *
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-class Curl implements \Magento\Framework\HTTP\IClient
+class Curl implements \Magento\Framework\HTTP\ClientInterface
 {
     /**
      * Hostname
@@ -52,25 +34,25 @@ class Curl implements \Magento\Framework\HTTP\IClient
      * Request headers
      * @var array
      */
-    protected $_headers = array();
+    protected $_headers = [];
 
     /**
      * Fields for POST method - hash
      * @var array
      */
-    protected $_postFields = array();
+    protected $_postFields = [];
 
     /**
      * Request cookies
      * @var array
      */
-    protected $_cookies = array();
+    protected $_cookies = [];
 
     /**
      * Response headers
      * @var array
      */
-    protected $_responseHeaders = array();
+    protected $_responseHeaders = [];
 
     /**
      * Response body
@@ -108,7 +90,7 @@ class Curl implements \Magento\Framework\HTTP\IClient
      *
      * @var array
      */
-    protected $_curlUserOptions = array();
+    protected $_curlUserOptions = [];
 
     /**
      * Header count, used while parsing headers
@@ -223,7 +205,7 @@ class Curl implements \Magento\Framework\HTTP\IClient
      */
     public function removeCookies()
     {
-        $this->setCookies(array());
+        $this->setCookies([]);
     }
 
     /**
@@ -279,9 +261,9 @@ class Curl implements \Magento\Framework\HTTP\IClient
     public function getCookies()
     {
         if (empty($this->_responseHeaders['Set-Cookie'])) {
-            return array();
+            return [];
         }
-        $out = array();
+        $out = [];
         foreach ($this->_responseHeaders['Set-Cookie'] as $row) {
             $values = explode("; ", $row);
             $c = count($values);
@@ -289,7 +271,7 @@ class Curl implements \Magento\Framework\HTTP\IClient
                 continue;
             }
             list($key, $val) = explode("=", $values[0]);
-            if (is_null($val)) {
+            if ($val === null) {
                 continue;
             }
             $out[trim($key)] = trim($val);
@@ -305,9 +287,9 @@ class Curl implements \Magento\Framework\HTTP\IClient
     public function getCookiesFull()
     {
         if (empty($this->_responseHeaders['Set-Cookie'])) {
-            return array();
+            return [];
         }
-        $out = array();
+        $out = [];
         foreach ($this->_responseHeaders['Set-Cookie'] as $row) {
             $values = explode("; ", $row);
             $c = count($values);
@@ -315,10 +297,10 @@ class Curl implements \Magento\Framework\HTTP\IClient
                 continue;
             }
             list($key, $val) = explode("=", $values[0]);
-            if (is_null($val)) {
+            if ($val === null) {
                 continue;
             }
-            $out[trim($key)] = array('value' => trim($val));
+            $out[trim($key)] = ['value' => trim($val)];
             array_shift($values);
             $c--;
             if (!$c) {
@@ -349,8 +331,10 @@ class Curl implements \Magento\Framework\HTTP\IClient
      * @param string $uri
      * @param array $params
      * @return void
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
-    protected function makeRequest($method, $uri, $params = array())
+    protected function makeRequest($method, $uri, $params = [])
     {
         $this->_ch = curl_init();
         $this->curlOption(CURLOPT_URL, $uri);
@@ -364,7 +348,7 @@ class Curl implements \Magento\Framework\HTTP\IClient
         }
 
         if (count($this->_headers)) {
-            $heads = array();
+            $heads = [];
             foreach ($this->_headers as $k => $v) {
                 $heads[] = $k . ': ' . $v;
             }
@@ -372,7 +356,7 @@ class Curl implements \Magento\Framework\HTTP\IClient
         }
 
         if (count($this->_cookies)) {
-            $cookies = array();
+            $cookies = [];
             foreach ($this->_cookies as $k => $v) {
                 $cookies[] = "{$k}={$v}";
             }
@@ -389,8 +373,7 @@ class Curl implements \Magento\Framework\HTTP\IClient
 
         //$this->curlOption(CURLOPT_HEADER, 1);
         $this->curlOption(CURLOPT_RETURNTRANSFER, 1);
-        $this->curlOption(CURLOPT_HEADERFUNCTION, array($this, 'parseHeaders'));
-
+        $this->curlOption(CURLOPT_HEADERFUNCTION, [$this, 'parseHeaders']);
 
         if (count($this->_curlUserOptions)) {
             foreach ($this->_curlUserOptions as $k => $v) {
@@ -399,7 +382,7 @@ class Curl implements \Magento\Framework\HTTP\IClient
         }
 
         $this->_headerCount = 0;
-        $this->_responseHeaders = array();
+        $this->_responseHeaders = [];
         $this->_responseBody = curl_exec($this->_ch);
         $err = curl_errno($this->_ch);
         if ($err) {
@@ -425,11 +408,11 @@ class Curl implements \Magento\Framework\HTTP\IClient
      * @param resource $ch curl handle, not needed
      * @param string $data
      * @return int
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     protected function parseHeaders($ch, $data)
     {
         if ($this->_headerCount == 0) {
-
             $line = explode(" ", trim($data), 3);
             if (count($line) != 3) {
                 return $this->doError("Invalid response line returned from server: " . $data);
@@ -447,7 +430,7 @@ class Curl implements \Magento\Framework\HTTP\IClient
             if (strlen($name)) {
                 if ("Set-Cookie" == $name) {
                     if (!isset($this->_responseHeaders[$name])) {
-                        $this->_responseHeaders[$name] = array();
+                        $this->_responseHeaders[$name] = [];
                     }
                     $this->_responseHeaders[$name][] = $value;
                 } else {
@@ -456,7 +439,6 @@ class Curl implements \Magento\Framework\HTTP\IClient
             }
         }
         $this->_headerCount++;
-
 
         return strlen($data);
     }

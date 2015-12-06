@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Framework\View\PageLayout;
@@ -29,6 +11,26 @@ namespace Magento\Framework\View\PageLayout;
  */
 class Config extends \Magento\Framework\Config\AbstractXml
 {
+    /** @var \Magento\Framework\Config\Dom\UrnResolver */
+    protected $urnResolver;
+
+    /**
+     * Instantiate with the list of files to merge
+     *
+     * @param array $configFiles
+     * @param \Magento\Framework\Config\DomFactory $domFactory
+     * @param \Magento\Framework\Config\Dom\UrnResolver $urnResolver
+     * @throws \InvalidArgumentException
+     */
+    public function __construct(
+        $configFiles,
+        \Magento\Framework\Config\DomFactory $domFactory,
+        \Magento\Framework\Config\Dom\UrnResolver $urnResolver
+    ) {
+        $this->urnResolver = $urnResolver;
+        parent::__construct($configFiles, $domFactory);
+    }
+
     /**
      * Get absolute path to the XML-schema file
      *
@@ -36,7 +38,7 @@ class Config extends \Magento\Framework\Config\AbstractXml
      */
     public function getSchemaFile()
     {
-        return __DIR__ . '/etc/layouts.xsd';
+        return $this->urnResolver->getRealPath('urn:magento:framework:View/PageLayout/etc/layouts.xsd');
     }
 
     /**
@@ -76,12 +78,16 @@ class Config extends \Magento\Framework\Config\AbstractXml
      */
     public function toOptionArray($withEmpty = false)
     {
+        $options = [];
         foreach ($this->getPageLayouts() as $value => $label) {
-            $options[] = array('label' => $label, 'value' => $value);
+            $options[] = ['label' => $label, 'value' => $value];
         }
 
         if ($withEmpty) {
-            array_unshift($options, array('value' => '', 'label' => __('-- Please Select --')));
+            array_unshift($options, [
+                'value' => '',
+                'label' => (string)new \Magento\Framework\Phrase('-- Please Select --')
+            ]);
         }
         return $options;
     }
@@ -111,7 +117,7 @@ class Config extends \Magento\Framework\Config\AbstractXml
     protected function _getInitialXml()
     {
         return '<?xml version="1.0" encoding="UTF-8"?>'
-            .'<page_layouts xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"></page_layouts>';
+            . '<page_layouts xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"></page_layouts>';
     }
 
     /**

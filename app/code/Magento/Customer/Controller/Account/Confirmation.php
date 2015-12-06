@@ -1,78 +1,100 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Customer\Controller\Account;
 
+use Magento\Framework\App\Action\Context;
+use Magento\Customer\Model\Session;
+use Magento\Framework\View\Result\PageFactory;
+use Magento\Store\Model\StoreManagerInterface;
+use Magento\Customer\Api\AccountManagementInterface;
 use Magento\Framework\Exception\State\InvalidTransitionException;
 
-class Confirmation extends \Magento\Customer\Controller\Account
+class Confirmation extends \Magento\Customer\Controller\AbstractAccount
 {
+    /** @var StoreManagerInterface */
+    protected $storeManager;
+
+    /** @var AccountManagementInterface  */
+    protected $customerAccountManagement;
+
+    /**
+     * @var Session
+     */
+    protected $session;
+
+    /**
+     * @var PageFactory
+     */
+    protected $resultPageFactory;
+
+    /**
+     * @param Context $context
+     * @param Session $customerSession
+     * @param PageFactory $resultPageFactory
+     * @param StoreManagerInterface $storeManager
+     * @param AccountManagementInterface $customerAccountManagement
+     */
+    public function __construct(
+        Context $context,
+        Session $customerSession,
+        PageFactory $resultPageFactory,
+        StoreManagerInterface $storeManager,
+        AccountManagementInterface $customerAccountManagement
+    ) {
+        $this->session = $customerSession;
+        $this->resultPageFactory = $resultPageFactory;
+        $this->storeManager = $storeManager;
+        $this->customerAccountManagement = $customerAccountManagement;
+        parent::__construct($context);
+    }
+
     /**
      * Send confirmation link to specified email
      *
-     * @return void
+     * @return \Magento\Framework\Controller\Result\Redirect|\Magento\Framework\View\Result\Page
      */
     public function execute()
     {
-        if ($this->_getSession()->isLoggedIn()) {
-            $this->_redirect('*/*/');
-            return;
+        if ($this->session->isLoggedIn()) {
+            /** @var \Magento\Framework\Controller\Result\Redirect $resultRedirect */
+            $resultRedirect = $this->resultRedirectFactory->create();
+            $resultRedirect->setPath('*/*/');
+            return $resultRedirect;
         }
 
         // try to confirm by email
         $email = $this->getRequest()->getPost('email');
         if ($email) {
+            /** @var \Magento\Framework\Controller\Result\Redirect $resultRedirect */
+            $resultRedirect = $this->resultRedirectFactory->create();
+
             try {
-                $this->_customerAccountService->resendConfirmation(
+                $this->customerAccountManagement->resendConfirmation(
                     $email,
-                    $this->_storeManager->getStore()->getWebsiteId()
+                    $this->storeManager->getStore()->getWebsiteId()
                 );
-                $this->messageManager->addSuccess(__('Please, check your email for confirmation key.'));
+                $this->messageManager->addSuccess(__('Please check your email for confirmation key.'));
             } catch (InvalidTransitionException $e) {
                 $this->messageManager->addSuccess(__('This email does not require confirmation.'));
             } catch (\Exception $e) {
                 $this->messageManager->addException($e, __('Wrong email.'));
-                $this->getResponse()->setRedirect(
-                    $this->_createUrl()->getUrl('*/*/*', array('email' => $email, '_secure' => true))
-                );
-                return;
+                $resultRedirect->setPath('*/*/*', ['email' => $email, '_secure' => true]);
+                return $resultRedirect;
             }
-            $this->_getSession()->setUsername($email);
-            $this->getResponse()->setRedirect($this->_createUrl()->getUrl('*/*/index', array('_secure' => true)));
-            return;
+            $this->session->setUsername($email);
+            $resultRedirect->setPath('*/*/index', ['_secure' => true]);
+            return $resultRedirect;
         }
 
-        // output form
-        $this->_view->loadLayout();
-
-        $this->_view->getLayout()->getBlock(
-            'accountConfirmation'
-        )->setEmail(
+        /** @var \Magento\Framework\View\Result\Page $resultPage */
+        $resultPage = $this->resultPageFactory->create();
+        $resultPage->getLayout()->getBlock('accountConfirmation')->setEmail(
             $this->getRequest()->getParam('email', $email)
         );
-
-        $this->_view->getLayout()->initMessages();
-        $this->_view->renderLayout();
+        return $resultPage;
     }
 }

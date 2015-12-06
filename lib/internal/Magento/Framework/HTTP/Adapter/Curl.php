@@ -1,26 +1,10 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
 
 /**
  * HTTP CURL Adapter
@@ -36,7 +20,7 @@ class Curl implements \Zend_Http_Client_Adapter_Interface
      *
      * @var array
      */
-    protected $_config = array();
+    protected $_config = [];
 
     /**
      * Curl handle
@@ -50,25 +34,29 @@ class Curl implements \Zend_Http_Client_Adapter_Interface
      *
      * @var array
      */
-    protected $_allowedParams = array(
-        'timeout' => CURLOPT_TIMEOUT,
+    protected $_allowedParams = [
+        'timeout'      => CURLOPT_TIMEOUT,
         'maxredirects' => CURLOPT_MAXREDIRS,
-        'proxy' => CURLOPT_PROXY,
-        'ssl_cert' => CURLOPT_SSLCERT,
-        'userpwd' => CURLOPT_USERPWD
-    );
+        'proxy'        => CURLOPT_PROXY,
+        'ssl_cert'     => CURLOPT_SSLCERT,
+        'userpwd'      => CURLOPT_USERPWD,
+        'useragent'    => CURLOPT_USERAGENT,
+        'referer'      => CURLOPT_REFERER
+    ];
 
     /**
      * Array of CURL options
      *
      * @var array
      */
-    protected $_options = array();
+    protected $_options = [];
 
     /**
      * Apply current configuration array to transport resource
      *
      * @return \Magento\Framework\HTTP\Adapter\Curl
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
     protected function _applyConfig()
     {
@@ -101,7 +89,7 @@ class Curl implements \Zend_Http_Client_Adapter_Interface
      * @param array $options
      * @return $this
      */
-    public function setOptions(array $options = array())
+    public function setOptions(array $options = [])
     {
         $this->_options = $options;
         return $this;
@@ -126,7 +114,7 @@ class Curl implements \Zend_Http_Client_Adapter_Interface
      * @param array $config
      * @return $this
      */
-    public function setConfig($config = array())
+    public function setConfig($config = [])
     {
         $this->_config = $config;
         return $this;
@@ -139,8 +127,7 @@ class Curl implements \Zend_Http_Client_Adapter_Interface
      * @param int     $port
      * @param boolean $secure
      * @return $this
-     *
-     * @deprecated since 1.4.0.0-rc1
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function connect($host, $port = 80, $secure = false)
     {
@@ -156,8 +143,9 @@ class Curl implements \Zend_Http_Client_Adapter_Interface
      * @param array $headers
      * @param string $body
      * @return string Request as text
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function write($method, $url, $http_ver = '1.1', $headers = array(), $body = '')
+    public function write($method, $url, $http_ver = '1.1', $headers = [], $body = '')
     {
         if ($url instanceof \Zend_Uri_Http) {
             $url = $url->getUri();
@@ -273,10 +261,10 @@ class Curl implements \Zend_Http_Client_Adapter_Interface
      * @param array $options
      * @return array
      */
-    public function multiRequest($urls, $options = array())
+    public function multiRequest($urls, $options = [])
     {
-        $handles = array();
-        $result = array();
+        $handles = [];
+        $result = [];
 
         $multihandle = curl_multi_init();
 

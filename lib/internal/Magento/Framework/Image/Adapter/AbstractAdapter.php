@@ -1,31 +1,16 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Image\Adapter;
+
+use Magento\Framework\App\Filesystem\DirectoryList;
 
 /**
  * @file        Abstract.php
  * @author      Magento Core Team <core@magentocommerce.com>
+ * @SuppressWarnings(PHPMD.TooManyFields)
  */
 abstract class AbstractAdapter implements AdapterInterface
 {
@@ -160,7 +145,7 @@ abstract class AbstractAdapter implements AdapterInterface
     /**
      * Filesystem instance
      *
-     * @var \Magento\Framework\App\Filesystem
+     * @var \Magento\Framework\Filesystem
      */
     protected $_filesystem;
 
@@ -170,7 +155,7 @@ abstract class AbstractAdapter implements AdapterInterface
     protected $directoryWrite;
 
     /**
-     * @var \Magento\Framework\Logger
+     * @var \Psr\Log\LoggerInterface
      */
     protected $logger;
 
@@ -276,29 +261,48 @@ abstract class AbstractAdapter implements AdapterInterface
     /**
      * Initialize default values
      *
-     * @param \Magento\Framework\App\Filesystem $filesystem
+     * @param \Magento\Framework\Filesystem $filesystem
+     * @param \Psr\Log\LoggerInterface $logger
      * @param array $data
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function __construct(\Magento\Framework\App\Filesystem $filesystem, array $data = array())
-    {
+    public function __construct(
+        \Magento\Framework\Filesystem $filesystem,
+        \Psr\Log\LoggerInterface $logger,
+        array $data = []
+    ) {
         $this->_filesystem = $filesystem;
-        $this->directoryWrite = $this->_filesystem->getDirectoryWrite(\Magento\Framework\App\Filesystem::ROOT_DIR);
+        $this->logger = $logger;
+        $this->directoryWrite = $this->_filesystem->getDirectoryWrite(DirectoryList::ROOT);
     }
 
     /**
-     * Assign image width, height, fileType and fileMimeType to object properties
-     * using getimagesize function
+     * Assign image width, height, fileMimeType to object properties
+     *
+     * @return string|null
+     */
+    public function getMimeType()
+    {
+        if ($this->_fileMimeType) {
+            return $this->_fileMimeType;
+        } else {
+            $this->_fileMimeType = image_type_to_mime_type($this->getImageType());
+            return $this->_fileMimeType;
+        }
+    }
+
+    /**
+     * Assign image width, height, fileType to object properties using getimagesize function
      *
      * @return int|null
      */
-    public function getMimeType()
+    public function getImageType()
     {
         if ($this->_fileType) {
             return $this->_fileType;
         } else {
-            list($this->_imageSrcWidth, $this->_imageSrcHeight, $this->_fileType, ) = getimagesize($this->_fileName);
-            $this->_fileMimeType = image_type_to_mime_type($this->_fileType);
-            return $this->_fileMimeType;
+            list($this->_imageSrcWidth, $this->_imageSrcHeight, $this->_fileType) = getimagesize($this->_fileName);
+            return $this->_fileType;
         }
     }
 
@@ -309,7 +313,7 @@ abstract class AbstractAdapter implements AdapterInterface
      */
     public function getOriginalWidth()
     {
-        $this->getMimeType();
+        $this->getImageType();
         return $this->_imageSrcWidth;
     }
 
@@ -320,7 +324,7 @@ abstract class AbstractAdapter implements AdapterInterface
      */
     public function getOriginalHeight()
     {
-        $this->getMimeType();
+        $this->getImageType();
         return $this->_imageSrcHeight;
     }
 
@@ -562,12 +566,12 @@ abstract class AbstractAdapter implements AdapterInterface
             $dstX = 0;
         }
 
-        return array(
-            'src' => array('x' => $srcX, 'y' => $srcY),
-            'dst' => array('x' => $dstX, 'y' => $dstY, 'width' => $dstWidth, 'height' => $dstHeight),
+        return [
+            'src' => ['x' => $srcX, 'y' => $srcY],
+            'dst' => ['x' => $dstX, 'y' => $dstY, 'width' => $dstWidth, 'height' => $dstHeight],
             // size for new image
-            'frame' => array('width' => $frameWidth, 'height' => $frameHeight)
-        );
+            'frame' => ['width' => $frameWidth, 'height' => $frameHeight]
+        ];
     }
 
     /**
@@ -596,7 +600,7 @@ abstract class AbstractAdapter implements AdapterInterface
                 $dstWidth = round($dstHeight / $this->_imageSrcHeight * $this->_imageSrcWidth);
             }
         }
-        return array($dstWidth, $dstHeight);
+        return [$dstWidth, $dstHeight];
     }
 
     /**
@@ -645,7 +649,7 @@ abstract class AbstractAdapter implements AdapterInterface
      */
     public function getSupportedFormats()
     {
-        return array('gif', 'jpeg', 'jpg', 'png');
+        return ['gif', 'jpeg', 'jpg', 'png'];
     }
 
     /**
@@ -678,9 +682,8 @@ abstract class AbstractAdapter implements AdapterInterface
         if (!is_writable($destination)) {
             try {
                 $this->directoryWrite->create($this->directoryWrite->getRelativePath($destination));
-            } catch (\Magento\Framework\Filesystem\FilesystemException $e) {
-                $this->logger->addStreamLog(\Magento\Framework\Logger::LOGGER_SYSTEM);
-                $this->logger->log($e->getMessage());
+            } catch (\Magento\Framework\Exception\FileSystemException $e) {
+                $this->logger->critical($e);
                 throw new \Exception('Unable to write file into directory ' . $destination . '. Access forbidden.');
             }
         }
@@ -716,6 +719,6 @@ abstract class AbstractAdapter implements AdapterInterface
         $this->checkDependencies();
         $this->open($filePath);
 
-        return $this->getMimeType() !== null;
+        return $this->getImageType() !== null;
     }
 }

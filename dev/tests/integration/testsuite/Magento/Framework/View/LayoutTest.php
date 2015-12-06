@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -27,7 +9,7 @@
  *
  * Note that some methods are not covered here, see the \Magento\Framework\View\LayoutDirectivesTest
  *
- * @see \Magento\Core\Model\LayoutDirectivesTest
+ * @see \Magento\Framework\View\LayoutDirectivesTest
  */
 namespace Magento\Framework\View;
 
@@ -38,22 +20,26 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
      */
     protected $_layout;
 
+    /**
+     * @var \Magento\Framework\View\LayoutFactory
+     */
+    protected $layoutFactory;
+
     protected function setUp()
     {
-        $this->_layout = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
-            'Magento\Framework\View\Layout'
-        );
+        $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
+        $this->layoutFactory = $objectManager->get('Magento\Framework\View\LayoutFactory');
+        $this->_layout = $this->layoutFactory->create();
+        $objectManager->get('Magento\Framework\App\Cache\Type\Layout')->clean();
     }
 
     public function testConstructorStructure()
     {
-        $structure = new \Magento\Framework\Data\Structure();
-        $structure->createElement('test.container', array());
+        $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
+        $structure = $objectManager->get('Magento\Framework\View\Layout\Data\Structure');
+        $structure->createElement('test.container', []);
         /** @var $layout \Magento\Framework\View\LayoutInterface */
-        $layout = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
-            'Magento\Framework\View\Layout',
-            array('structure' => $structure)
-        );
+        $layout = $this->layoutFactory->create(['structure' => $structure]);
         $this->assertTrue($layout->hasElement('test.container'));
     }
 
@@ -80,10 +66,10 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
         /** @var $layout \Magento\Framework\View\LayoutInterface */
         $layout = $this->getMock(
             'Magento\Framework\View\Layout',
-            array('getUpdate'),
+            ['getUpdate'],
             $layoutUtility->getLayoutDependencies()
         );
-        $merge = $this->getMock('StdClass', array('asSimplexml'));
+        $merge = $this->getMock('StdClass', ['asSimplexml']);
         $merge->expects(
             $this->once()
         )->method(
@@ -106,7 +92,7 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
      * A smoke test for generating elements
      *
      * See sophisticated tests at \Magento\Framework\View\LayoutDirectivesTest
-     * @see \Magento\Core\Model\LayoutDirectivesTest
+     * @see \Magento\Framework\View\LayoutDirectivesTest
      * @magentoAppIsolation enabled
      */
     public function testGenerateGetAllBlocks()
@@ -123,21 +109,21 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
                 'Magento\Framework\View\Layout\Element'
             )
         );
-        $this->assertEquals(array(), $this->_layout->getAllBlocks());
+        $this->assertEquals([], $this->_layout->getAllBlocks());
         $this->_layout->generateElements();
-        $expected = array('block1', 'block1_schedule_block', 'schedule_block', 'schedule_block_1');
+        $expected = ['block1', 'block1_schedule_block0', 'schedule_block1', 'schedule_block2'];
         $this->assertSame($expected, array_keys($this->_layout->getAllBlocks()));
-        $child = $this->_layout->getBlock('block1_schedule_block');
+        $child = $this->_layout->getBlock('block1_schedule_block0');
         $this->assertSame($this->_layout->getBlock('block1'), $child->getParentBlock());
-        $this->assertEquals('test', $this->_layout->getBlock('schedule_block')->getData('template'));
-        $this->assertEquals('360', $this->_layout->getBlock('schedule_block')->getData('ttl'));
+        $this->assertEquals('test', $this->_layout->getBlock('schedule_block1')->getData('template'));
+        $this->assertEquals('360', $this->_layout->getBlock('schedule_block1')->getData('ttl'));
         $this->assertFalse($this->_layout->getBlock('nonexisting'));
     }
 
     public function testGetElementProperty()
     {
         $name = 'test';
-        $this->_layout->addContainer($name, 'Test', array('option1' => 1, 'option2' => 2));
+        $this->_layout->addContainer($name, 'Test', ['option1' => 1, 'option2' => 2]);
         $this->assertEquals(
             'Test',
             $this->_layout->getElementProperty($name, \Magento\Framework\View\Layout\Element::CONTAINER_OPT_LABEL)
@@ -154,7 +140,7 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
             $this->_layout->getElementProperty('text', 'type')
         );
         $this->assertSame(
-            array('text' => 'text'),
+            ['text' => 'text'],
             $this->_layout->getElementProperty($name, \Magento\Framework\Data\Structure::CHILDREN)
         );
     }
@@ -190,9 +176,9 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
      */
     public function testCreateBlock($blockType, $blockName, array $blockData, $expectedName)
     {
-        $expectedData = $blockData + array('type' => $blockType);
+        $expectedData = $blockData + ['type' => $blockType];
 
-        $block = $this->_layout->createBlock($blockType, $blockName, array('data' => $blockData));
+        $block = $this->_layout->createBlock($blockType, $blockName, ['data' => $blockData]);
 
         $this->assertRegExp($expectedName, $block->getNameInLayout());
         $this->assertEquals($expectedData, $block->getData());
@@ -200,25 +186,25 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
 
     public function createBlockDataProvider()
     {
-        return array(
-            'named block' => array(
+        return [
+            'named block' => [
                 'Magento\Framework\View\Element\Template',
                 'some_block_name_full_class',
-                array('type' => 'Magento\Framework\View\Element\Template', 'is_anonymous' => false),
-                '/^some_block_name_full_class$/'
-            ),
-            'no name block' => array(
+                ['type' => 'Magento\Framework\View\Element\Template', 'is_anonymous' => false],
+                '/^some_block_name_full_class$/',
+            ],
+            'no name block' => [
                 'Magento\Framework\View\Element\Text\ListText',
                 '',
-                array('type' => 'Magento\Framework\View\Element\Text\ListText', 'key1' => 'value1'),
-                '/text\\\\list/'
-            )
-        );
+                ['type' => 'Magento\Framework\View\Element\Text\ListText', 'key1' => 'value1'],
+                '/text\\\\list/',
+            ]
+        ];
     }
 
     /**
      * @dataProvider blockNotExistsDataProvider
-     * @expectedException \Magento\Framework\Model\Exception
+     * @expectedException \Magento\Framework\Exception\LocalizedException
      */
     public function testCreateBlockNotExists($name)
     {
@@ -227,7 +213,7 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
 
     public function blockNotExistsDataProvider()
     {
-        return array(array(''), array('block_not_exists'));
+        return [[''], ['block_not_exists']];
     }
 
     public function testAddBlock()
@@ -254,31 +240,30 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
     public function testAddContainer($htmlTag)
     {
         $this->assertFalse($this->_layout->hasElement('container'));
-        $this->_layout->addContainer('container', 'Container', array('htmlTag' => $htmlTag));
+        $this->_layout->addContainer('container', 'Container', ['htmlTag' => $htmlTag]);
         $this->assertTrue($this->_layout->hasElement('container'));
         $this->assertTrue($this->_layout->isContainer('container'));
         $this->assertEquals($htmlTag, $this->_layout->getElementProperty('container', 'htmlTag'));
 
-        $this->_layout->addContainer('container1', 'Container 1', array(), 'container', 'c1');
+        $this->_layout->addContainer('container1', 'Container 1', [], 'container', 'c1');
         $this->assertEquals('container1', $this->_layout->getChildName('container', 'c1'));
     }
 
     public function addContainerDataProvider()
     {
-        return array(
-            array('dd'),
-            array('div'),
-            array('dl'),
-            array('fieldset'),
-            array('header'),
-            array('hgroup'),
-            array('ol'),
-            array('p'),
-            array('section'),
-            array('table'),
-            array('tfoot'),
-            array('ul')
-        );
+        return [
+            ['dd'],
+            ['div'],
+            ['dl'],
+            ['fieldset'],
+            ['header'],
+            ['ol'],
+            ['p'],
+            ['section'],
+            ['table'],
+            ['tfoot'],
+            ['ul']
+        ];
     }
 
     /**
@@ -287,10 +272,10 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
     public function testAddContainerInvalidHtmlTag()
     {
         $msg = 'Html tag "span" is forbidden for usage in containers. ' .
-            'Consider to use one of the allowed: dd, div, dl, fieldset, header, ' .
-            'footer, hgroup, ol, p, section, table, tfoot, ul.';
-        $this->setExpectedException('Magento\Framework\Exception', $msg);
-        $this->_layout->addContainer('container', 'Container', array('htmlTag' => 'span'));
+            'Consider to use one of the allowed: dd, div, dl, fieldset, main, header, ' .
+            'footer, ol, p, section, table, tfoot, ul.';
+        $this->setExpectedException('Magento\Framework\Exception\LocalizedException', $msg);
+        $this->_layout->addContainer('container', 'Container', ['htmlTag' => 'span']);
     }
 
     /**
@@ -300,7 +285,7 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
     {
         $this->_layout->addContainer('parent', 'Parent');
         $block = $this->_layout->addBlock('Magento\Framework\View\Element\Text', 'block', 'parent', 'block_alias');
-        $this->_layout->addContainer('container', 'Container', array(), 'parent', 'container_alias');
+        $this->_layout->addContainer('container', 'Container', [], 'parent', 'container_alias');
         $this->assertSame($block, $this->_layout->getChildBlock('parent', 'block_alias'));
         $this->assertFalse($this->_layout->getChildBlock('parent', 'container_alias'));
     }
@@ -315,7 +300,7 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
         $this->_layout->addContainer('three', 'Three');
         $this->assertSame($this->_layout, $this->_layout->setChild('one', 'two', ''));
         $this->_layout->setChild('one', 'three', 'three_alias');
-        $this->assertSame(array('two', 'three'), $this->_layout->getChildNames('one'));
+        $this->assertSame(['two', 'three'], $this->_layout->getChildNames('one'));
         return $this->_layout;
     }
 
@@ -325,35 +310,35 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
      */
     public function testReorderChild(\Magento\Framework\View\LayoutInterface $layout)
     {
-        $layout->addContainer('four', 'Four', array(), 'one');
+        $layout->addContainer('four', 'Four', [], 'one');
 
         // offset +1
         $layout->reorderChild('one', 'four', 1);
-        $this->assertSame(array('two', 'four', 'three'), $layout->getChildNames('one'));
+        $this->assertSame(['two', 'four', 'three'], $layout->getChildNames('one'));
 
         // offset -2
         $layout->reorderChild('one', 'three', 2, false);
-        $this->assertSame(array('two', 'three', 'four'), $layout->getChildNames('one'));
+        $this->assertSame(['two', 'three', 'four'], $layout->getChildNames('one'));
 
         // after sibling
         $layout->reorderChild('one', 'two', 'three');
-        $this->assertSame(array('three', 'two', 'four'), $layout->getChildNames('one'));
+        $this->assertSame(['three', 'two', 'four'], $layout->getChildNames('one'));
 
         // after everyone
         $layout->reorderChild('one', 'three', '-');
-        $this->assertSame(array('two', 'four', 'three'), $layout->getChildNames('one'));
+        $this->assertSame(['two', 'four', 'three'], $layout->getChildNames('one'));
 
         // before sibling
         $layout->reorderChild('one', 'four', 'two', false);
-        $this->assertSame(array('four', 'two', 'three'), $layout->getChildNames('one'));
+        $this->assertSame(['four', 'two', 'three'], $layout->getChildNames('one'));
 
         // before everyone
         $layout->reorderChild('one', 'two', '-', false);
-        $this->assertSame(array('two', 'four', 'three'), $layout->getChildNames('one'));
+        $this->assertSame(['two', 'four', 'three'], $layout->getChildNames('one'));
 
         //reorder by sibling alias
         $layout->reorderChild('one', 'two', 'three_alias', true);
-        $this->assertSame(array('four', 'three', 'two'), $layout->getChildNames('one'));
+        $this->assertSame(['four', 'three', 'two'], $layout->getChildNames('one'));
     }
 
     /**
@@ -363,13 +348,13 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
     {
         $this->_layout->addContainer('parent', 'Parent');
         $block1 = $this->_layout->addBlock('Magento\Framework\View\Element\Text', 'block1', 'parent');
-        $this->_layout->addContainer('container', 'Container', array(), 'parent');
+        $this->_layout->addContainer('container', 'Container', [], 'parent');
         $block2 = $this->_layout->addBlock('Magento\Framework\View\Element\Template', 'block2', 'parent');
-        $this->assertSame(array('block1' => $block1, 'block2' => $block2), $this->_layout->getChildBlocks('parent'));
+        $this->assertSame(['block1' => $block1, 'block2' => $block2], $this->_layout->getChildBlocks('parent'));
     }
 
     /**
-     * @expectedException \Magento\Framework\Model\Exception
+     * @expectedException \Magento\Framework\Exception\LocalizedException
      */
     public function testAddBlockInvalidType()
     {
@@ -399,7 +384,7 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
 
         $this->_layout->addContainer('container1', 'Container 1');
         $this->_layout->addBlock('Magento\Framework\View\Element\Text', 'block3', 'container1');
-        $this->_layout->addContainer('container2', 'Container 2', array(), 'container1');
+        $this->_layout->addContainer('container2', 'Container 2', [], 'container1');
         $this->assertFalse($this->_layout->isManipulationAllowed('container1'));
         $this->assertTrue($this->_layout->isManipulationAllowed('block3'));
         $this->assertTrue($this->_layout->isManipulationAllowed('container2'));
@@ -441,7 +426,7 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
     public function testGetParentName()
     {
         $this->_layout->addContainer('one', 'One');
-        $this->_layout->addContainer('two', 'Two', array(), 'one');
+        $this->_layout->addContainer('two', 'Two', [], 'one');
         $this->assertFalse($this->_layout->getParentName('one'));
         $this->assertEquals('one', $this->_layout->getParentName('two'));
     }
@@ -449,7 +434,7 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
     public function testGetElementAlias()
     {
         $this->_layout->addContainer('one', 'One');
-        $this->_layout->addContainer('two', 'One', array(), 'one', '1');
+        $this->_layout->addContainer('two', 'One', [], 'one', '1');
         $this->assertFalse($this->_layout->getElementAlias('one'));
         $this->assertEquals('1', $this->_layout->getElementAlias('two'));
     }

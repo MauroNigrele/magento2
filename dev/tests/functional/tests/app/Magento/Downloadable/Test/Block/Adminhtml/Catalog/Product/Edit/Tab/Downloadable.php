@@ -1,32 +1,15 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Downloadable\Test\Block\Adminhtml\Catalog\Product\Edit\Tab;
 
-use Mtf\Client\Element;
+use Magento\Mtf\Client\Element;
+use Magento\Mtf\Client\Locator;
 use Magento\Backend\Test\Block\Widget\Tab;
-use Mtf\Client\Element\Locator;
+use Magento\Mtf\Client\Element\SimpleElement;
 
 /**
  * Class Downloadable
@@ -47,22 +30,22 @@ class Downloadable extends Tab
      *
      * @var string
      */
-    protected $downloadableBlock = '//dl[@id="tab_content_downloadableInfo"]';
+    protected $downloadableBlock = '[data-tab-type="tab_content_downloadableInfo"]';
 
     /**
      * Get Downloadable block
      *
      * @param string $type
-     * @param Element $element
+     * @param SimpleElement $element
      * @return \Magento\Downloadable\Test\Block\Adminhtml\Catalog\Product\Edit\Tab\Downloadable\Samples |
      *         \Magento\Downloadable\Test\Block\Adminhtml\Catalog\Product\Edit\Tab\Downloadable\Links
      */
-    public function getDownloadableBlock($type, Element $element = null)
+    public function getDownloadableBlock($type, SimpleElement $element = null)
     {
-        $element = $element ? : $this->_rootElement;
+        $element = $element ?: $this->_rootElement;
         return $this->blockFactory->create(
             'Magento\Downloadable\Test\Block\Adminhtml\Catalog\Product\Edit\Tab\Downloadable\\' . $type,
-            ['element' => $element->find($this->downloadableBlock, Locator::SELECTOR_XPATH)]
+            ['element' => $element->find($this->downloadableBlock, Locator::SELECTOR_CSS)]
         );
     }
 
@@ -70,10 +53,11 @@ class Downloadable extends Tab
      * Get data to fields on downloadable tab
      *
      * @param array|null $fields
-     * @param Element|null $element
+     * @param SimpleElement|null $element
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      * @return array
      */
-    public function getDataFormTab($fields = null, Element $element = null)
+    public function getDataFormTab($fields = null, SimpleElement $element = null)
     {
         $newFields = [];
         if (isset($fields['downloadable_sample']['value'])) {
@@ -94,10 +78,11 @@ class Downloadable extends Tab
      * Fill downloadable information
      *
      * @param array $fields
-     * @param Element|null $element
+     * @param SimpleElement|null $element
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      * @return $this
      */
-    public function fillFormTab(array $fields, Element $element = null)
+    public function fillFormTab(array $fields, SimpleElement $element = null)
     {
         if (isset($fields['downloadable_sample']['value'])) {
             $this->getDownloadableBlock('Samples')->fillSamples($fields['downloadable_sample']['value']);

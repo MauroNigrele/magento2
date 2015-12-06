@@ -1,31 +1,14 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\User\Controller\Adminhtml\User\Role;
 
 use Magento\Authorization\Model\Acl\Role\Group as RoleGroup;
 use Magento\Authorization\Model\UserContextInterface;
+use Magento\Framework\Controller\ResultFactory;
 
 class SaveRole extends \Magento\User\Controller\Adminhtml\User\Role
 {
@@ -70,10 +53,13 @@ class SaveRole extends \Magento\User\Controller\Adminhtml\User\Role
     /**
      * Role form submit action to save or create new role
      *
-     * @return void
+     * @return \Magento\Backend\Model\View\Result\Redirect
      */
     public function execute()
     {
+        /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
+        $resultRedirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
+
         $rid = $this->getRequest()->getParam('role_id', false);
         $resource = $this->getRequest()->getParam('resource', false);
         $roleUsers = $this->getRequest()->getParam('in_role_user', null);
@@ -86,26 +72,24 @@ class SaveRole extends \Magento\User\Controller\Adminhtml\User\Role
 
         $isAll = $this->getRequest()->getParam('all');
         if ($isAll) {
-            $resource = array($this->_objectManager->get('Magento\Framework\Acl\RootResource')->getId());
+            $resource = [$this->_objectManager->get('Magento\Framework\Acl\RootResource')->getId()];
         }
 
         $role = $this->_initRole('role_id');
         if (!$role->getId() && $rid) {
             $this->messageManager->addError(__('This role no longer exists.'));
-            $this->_redirect('adminhtml/*/');
-            return;
+            return $resultRedirect->setPath('adminhtml/*/');
         }
 
         try {
-            $roleName = $this->getRequest()->getParam('rolename', false);
-
+            $roleName = $this->_filterManager->removeTags($this->getRequest()->getParam('rolename', false));
             $role->setName($roleName)
                 ->setPid($this->getRequest()->getParam('parent_id', false))
                 ->setRoleType(RoleGroup::ROLE_TYPE)
                 ->setUserType(UserContextInterface::USER_TYPE_ADMIN);
             $this->_eventManager->dispatch(
                 'admin_permissions_role_prepare_save',
-                array('object' => $role, 'request' => $this->getRequest())
+                ['object' => $role, 'request' => $this->getRequest()]
             );
             $role->save();
 
@@ -119,12 +103,12 @@ class SaveRole extends \Magento\User\Controller\Adminhtml\User\Role
                 $this->_addUserToRole($nRuid, $role->getId());
             }
             $this->messageManager->addSuccess(__('You saved the role.'));
-        } catch (\Magento\Framework\Model\Exception $e) {
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
             $this->messageManager->addError($e->getMessage());
         } catch (\Exception $e) {
             $this->messageManager->addError(__('An error occurred while saving this role.'));
         }
-        $this->_redirect('adminhtml/*/');
-        return;
+
+        return $resultRedirect->setPath('adminhtml/*/');
     }
 }

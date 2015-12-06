@@ -1,27 +1,13 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 namespace Magento\Framework\Backup;
+use Magento\Framework\Filesystem\DriverInterface;
 
 /**
  * Class to work with filesystem backups
@@ -35,7 +21,7 @@ class Filesystem extends AbstractBackup
      *
      * @var array
      */
-    protected $_ignorePaths = array();
+    protected $_ignorePaths = [];
 
     /**
      * Whether use ftp account for rollback procedure
@@ -75,7 +61,7 @@ class Filesystem extends AbstractBackup
     /**
      * Implementation Rollback functionality for Filesystem
      *
-     * @throws \Magento\Framework\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      * @return bool
      */
     public function rollback()
@@ -99,7 +85,7 @@ class Filesystem extends AbstractBackup
     /**
      * Implementation Create Backup functionality for Filesystem
      *
-     * @throws \Magento\Framework\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      * @return boolean
      */
     public function create()
@@ -121,15 +107,10 @@ class Filesystem extends AbstractBackup
 
         if (!$filesInfo['readable']) {
             throw new \Magento\Framework\Backup\Exception\NotEnoughPermissions(
-                'Not enough permissions to read files for backup'
+                new \Magento\Framework\Phrase('Not enough permissions to read files for backup')
             );
         }
-
-        $freeSpace = disk_free_space($this->getBackupsDir());
-
-        if (2 * $filesInfo['size'] > $freeSpace) {
-            throw new \Magento\Framework\Backup\Exception\NotEnoughFreeSpace('Not enough free space to create backup');
-        }
+        $this->validateAvailableDiscSpace($this->getBackupsDir(), $filesInfo['size']);
 
         $tarTmpPath = $this->_getTarTmpPath();
 
@@ -137,7 +118,9 @@ class Filesystem extends AbstractBackup
         $tarPacker->setSkipFiles($this->getIgnorePaths())->pack($this->getRootDir(), $tarTmpPath, true);
 
         if (!is_file($tarTmpPath) || filesize($tarTmpPath) == 0) {
-            throw new \Magento\Framework\Exception('Failed to create backup');
+            throw new \Magento\Framework\Exception\LocalizedException(
+                new \Magento\Framework\Phrase('Failed to create backup')
+            );
         }
 
         $backupPath = $this->getBackupPath();
@@ -146,13 +129,37 @@ class Filesystem extends AbstractBackup
         $gzPacker->pack($tarTmpPath, $backupPath);
 
         if (!is_file($backupPath) || filesize($backupPath) == 0) {
-            throw new \Magento\Framework\Exception('Failed to create backup');
+            throw new \Magento\Framework\Exception\LocalizedException(
+                new \Magento\Framework\Phrase('Failed to create backup')
+            );
         }
 
         @unlink($tarTmpPath);
 
         $this->_lastOperationSucceed = true;
         return $this->_lastOperationSucceed;
+    }
+
+    /**
+     * Validate if disk space is available for creating backup
+     *
+     * @param string $backupDir
+     * @param int $size
+     * @return void
+     * @throws \Magento\Framework\Exception\LocalizedException
+     */
+    public function validateAvailableDiscSpace($backupDir, $size)
+    {
+        $freeSpace = disk_free_space($backupDir);
+        $requiredSpace = 2 * $size;
+        if ($requiredSpace > $freeSpace) {
+            throw new \Magento\Framework\Backup\Exception\NotEnoughFreeSpace(
+                new \Magento\Framework\Phrase(
+                'Warning: necessary space for backup is ' . (ceil($requiredSpace)/1024)
+                . 'MB, but your free disc space is ' . (ceil($freeSpace)/1024) . 'MB.'
+                )
+            );
+        }
     }
 
     /**
@@ -198,7 +205,7 @@ class Filesystem extends AbstractBackup
             if (!in_array($paths, $this->_ignorePaths)) {
                 $this->_ignorePaths[] = $paths;
             }
-        } else if (is_array($paths)) {
+        } elseif (is_array($paths)) {
             foreach ($paths as $path) {
                 $this->addIgnorePaths($path);
             }
@@ -256,7 +263,7 @@ class Filesystem extends AbstractBackup
      * Check backups directory existence and whether it's writeable
      *
      * @return void
-     * @throws \Magento\Framework\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     protected function _checkBackupsDir()
     {
@@ -266,15 +273,19 @@ class Filesystem extends AbstractBackup
             $backupsDirParentDirectory = basename($backupsDir);
 
             if (!is_writeable($backupsDirParentDirectory)) {
-                throw new \Magento\Framework\Backup\Exception\NotEnoughPermissions('Cant create backups directory');
+                throw new \Magento\Framework\Backup\Exception\NotEnoughPermissions(
+                    new \Magento\Framework\Phrase('Cant create backups directory')
+                );
             }
 
             mkdir($backupsDir);
-            chmod($backupsDir, 0777);
+            chmod($backupsDir, DriverInterface::WRITEABLE_DIRECTORY_MODE);
         }
 
         if (!is_writable($backupsDir)) {
-            throw new \Magento\Framework\Backup\Exception\NotEnoughPermissions('Backups directory is not writeable');
+            throw new \Magento\Framework\Backup\Exception\NotEnoughPermissions(
+                new \Magento\Framework\Phrase('Backups directory is not writeable')
+            );
         }
     }
 

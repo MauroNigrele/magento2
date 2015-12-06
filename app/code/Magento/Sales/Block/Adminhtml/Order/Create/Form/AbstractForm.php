@@ -1,28 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Block\Adminhtml\Order\Create\Form;
 
+use Magento\Framework\Convert\ConvertArray;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 
 /**
@@ -47,11 +30,17 @@ abstract class AbstractForm extends \Magento\Sales\Block\Adminhtml\Order\Create\
     protected $_form;
 
     /**
+     * @var \Magento\Framework\Reflection\DataObjectProcessor
+     */
+    protected $dataObjectProcessor;
+
+    /**
      * @param \Magento\Backend\Block\Template\Context $context
      * @param \Magento\Backend\Model\Session\Quote $sessionQuote
      * @param \Magento\Sales\Model\AdminOrder\Create $orderCreate
      * @param PriceCurrencyInterface $priceCurrency
      * @param \Magento\Framework\Data\FormFactory $formFactory
+     * @param \Magento\Framework\Reflection\DataObjectProcessor $dataObjectProcessor
      * @param array $data
      */
     public function __construct(
@@ -60,9 +49,11 @@ abstract class AbstractForm extends \Magento\Sales\Block\Adminhtml\Order\Create\
         \Magento\Sales\Model\AdminOrder\Create $orderCreate,
         PriceCurrencyInterface $priceCurrency,
         \Magento\Framework\Data\FormFactory $formFactory,
-        array $data = array()
+        \Magento\Framework\Reflection\DataObjectProcessor $dataObjectProcessor,
+        array $data = []
     ) {
         $this->_formFactory = $formFactory;
+        $this->dataObjectProcessor = $dataObjectProcessor;
         parent::__construct($context, $sessionQuote, $orderCreate, $priceCurrency, $data);
     }
 
@@ -105,7 +96,7 @@ abstract class AbstractForm extends \Magento\Sales\Block\Adminhtml\Order\Create\
      */
     public function getForm()
     {
-        if (is_null($this->_form)) {
+        if ($this->_form === null) {
             $this->_form = $this->_formFactory->create();
             $this->_prepareForm();
         }
@@ -126,11 +117,11 @@ abstract class AbstractForm extends \Magento\Sales\Block\Adminhtml\Order\Create\
      */
     protected function _getAdditionalFormElementTypes()
     {
-        return array(
+        return [
             'file' => 'Magento\Customer\Block\Adminhtml\Form\Element\File',
             'image' => 'Magento\Customer\Block\Adminhtml\Form\Element\Image',
             'boolean' => 'Magento\Customer\Block\Adminhtml\Form\Element\Boolean'
-        );
+        ];
     }
 
     /**
@@ -140,9 +131,9 @@ abstract class AbstractForm extends \Magento\Sales\Block\Adminhtml\Order\Create\
      */
     protected function _getAdditionalFormElementRenderers()
     {
-        return array(
+        return [
             'region' => $this->getLayout()->createBlock('Magento\Customer\Block\Adminhtml\Edit\Renderer\Region')
-        );
+        ];
     }
 
     /**
@@ -150,6 +141,7 @@ abstract class AbstractForm extends \Magento\Sales\Block\Adminhtml\Order\Create\
      *
      * @param \Magento\Framework\Data\Form\Element\AbstractElement $element
      * @return $this
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     protected function _addAdditionalFormElementData(\Magento\Framework\Data\Form\Element\AbstractElement $element)
     {
@@ -159,9 +151,10 @@ abstract class AbstractForm extends \Magento\Sales\Block\Adminhtml\Order\Create\
     /**
      * Add rendering EAV attributes to Form element
      *
-     * @param \Magento\Customer\Service\V1\Data\Eav\AttributeMetadata[] $attributes
+     * @param \Magento\Customer\Api\Data\AttributeMetadataInterface[] $attributes
      * @param \Magento\Framework\Data\Form\AbstractForm $form
      * @return $this
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     protected function _addAttributesToForm($attributes, \Magento\Framework\Data\Form\AbstractForm $form)
     {
@@ -179,12 +172,12 @@ abstract class AbstractForm extends \Magento\Sales\Block\Adminhtml\Order\Create\
                 $element = $form->addField(
                     $attribute->getAttributeCode(),
                     $inputType,
-                    array(
+                    [
                         'name' => $attribute->getAttributeCode(),
                         'label' => __($attribute->getStoreLabel()),
                         'class' => $attribute->getFrontendClass(),
                         'required' => $attribute->isRequired()
-                    )
+                    ]
                 );
                 if ($inputType == 'multiline') {
                     $element->setLineCount($attribute->getMultilineCount());
@@ -197,16 +190,20 @@ abstract class AbstractForm extends \Magento\Sales\Block\Adminhtml\Order\Create\
                 }
 
                 if ($inputType == 'select' || $inputType == 'multiselect') {
-                    $options = array();
+                    $options = [];
                     foreach ($attribute->getOptions() as $optionData) {
-                        $options[] = \Magento\Framework\Service\SimpleDataObjectConverter::toFlatArray($optionData);
+                        $options[] = ConvertArray::toFlatArray(
+                            $this->dataObjectProcessor->buildOutputDataArray(
+                                $optionData,
+                                '\Magento\Customer\Api\Data\OptionInterface'
+                            )
+                        );
                     }
                     $element->setValues($options);
                 } elseif ($inputType == 'date') {
                     $format = $this->_localeDate->getDateFormat(
-                        \Magento\Framework\Stdlib\DateTime\TimezoneInterface::FORMAT_TYPE_SHORT
+                        \IntlDateFormatter::SHORT
                     );
-                    $element->setImage($this->getViewFileUrl('images/grid-cal.gif'));
                     $element->setDateFormat($format);
                 }
             }
@@ -222,6 +219,6 @@ abstract class AbstractForm extends \Magento\Sales\Block\Adminhtml\Order\Create\
      */
     public function getFormValues()
     {
-        return array();
+        return [];
     }
 }

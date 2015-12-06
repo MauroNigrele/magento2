@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\App\Helper;
 
@@ -45,17 +27,12 @@ abstract class AbstractHelper
     protected $_request;
 
     /**
-     * @var \Magento\Framework\Translate\InlineInterface
-     */
-    protected $translateInline;
-
-    /**
      * @var \Magento\Framework\Module\Manager
      */
     protected $_moduleManager;
 
     /**
-     * @var \Magento\Framework\Logger
+     * @var \Psr\Log\LoggerInterface
      */
     protected $_logger;
 
@@ -82,11 +59,25 @@ abstract class AbstractHelper
     protected $_remoteAddress;
 
     /**
+     * @var \Magento\Framework\Url\EncoderInterface
+     */
+    protected $urlEncoder;
+
+    /**
+     * @var \Magento\Framework\Url\DecoderInterface
+     */
+    protected $urlDecoder;
+
+    /**
+     * @var \Magento\Framework\App\Config\ScopeConfigInterface
+     */
+    protected $scopeConfig;
+
+    /**
      * @param Context $context
      */
     public function __construct(Context $context)
     {
-        $this->translateInline = $context->getTranslateInline();
         $this->_moduleManager = $context->getModuleManager();
         $this->_logger = $context->getLogger();
         $this->_request = $context->getRequest();
@@ -95,6 +86,9 @@ abstract class AbstractHelper
         $this->_eventManager = $context->getEventManager();
         $this->_remoteAddress = $context->getRemoteAddress();
         $this->_cacheConfig = $context->getCacheConfig();
+        $this->urlEncoder = $context->getUrlEncoder();
+        $this->urlDecoder = $context->getUrlDecoder();
+        $this->scopeConfig = $context->getScopeConfig();
     }
 
     /**
@@ -118,7 +112,7 @@ abstract class AbstractHelper
             $class = get_class($this);
             $this->_moduleName = substr($class, 0, strpos($class, '\\Helper'));
         }
-        return str_replace(\Magento\Framework\Autoload\IncludePath::NS_SEPARATOR, '_', $this->_moduleName);
+        return str_replace('\\', '_', $this->_moduleName);
     }
 
     /**
@@ -126,7 +120,7 @@ abstract class AbstractHelper
      *
      * @param string $moduleName Full module name
      * @return boolean
-     * @deprecated use \Magento\Framework\Module\Manager::isOutputEnabled()
+     * use \Magento\Framework\Module\Manager::isOutputEnabled()
      */
     public function isModuleOutputEnabled($moduleName = null)
     {
@@ -137,52 +131,14 @@ abstract class AbstractHelper
     }
 
     /**
-     * Check is module exists and enabled in global config.
-     *
-     * @param string $moduleName the full module name, example Magento_Core
-     * @return boolean
-     * @deprecated use \Magento\Framework\Module\Manager::isEnabled()
-     */
-    public function isModuleEnabled($moduleName = null)
-    {
-        if ($moduleName === null) {
-            $moduleName = $this->_getModuleName();
-        }
-        return $this->_moduleManager->isEnabled($moduleName);
-    }
-
-    /**
      * Retrieve url
      *
      * @param   string $route
      * @param   array $params
      * @return  string
      */
-    protected function _getUrl($route, $params = array())
+    protected function _getUrl($route, $params = [])
     {
         return $this->_urlBuilder->getUrl($route, $params);
-    }
-
-    /**
-     * base64_encode() for URLs encoding
-     *
-     * @param    string $url
-     * @return   string
-     */
-    public function urlEncode($url)
-    {
-        return strtr(base64_encode($url), '+/=', '-_,');
-    }
-
-    /**
-     *  base64_decode() for URLs decoding
-     *
-     * @param    string $url
-     * @return   string
-     */
-    public function urlDecode($url)
-    {
-        $url = base64_decode(strtr($url, '-_,', '+/='));
-        return $this->_urlBuilder->sessionUrlVar($url);
     }
 }

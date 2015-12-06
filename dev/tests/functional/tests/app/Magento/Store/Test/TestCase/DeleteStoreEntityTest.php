@@ -1,35 +1,17 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Store\Test\TestCase;
 
-use Mtf\TestCase\Injectable;
-use Magento\Backend\Test\Page\Adminhtml\StoreIndex;
 use Magento\Backend\Test\Page\Adminhtml\EditStore;
-use Magento\Backup\Test\Page\Adminhtml\BackupIndex;
 use Magento\Backend\Test\Page\Adminhtml\StoreDelete;
+use Magento\Backend\Test\Page\Adminhtml\StoreIndex;
+use Magento\Backup\Test\Page\Adminhtml\BackupIndex;
 use Magento\Store\Test\Fixture\Store;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
  * Test Creation for DeleteStoreEntity
@@ -43,7 +25,7 @@ use Magento\Store\Test\Fixture\Store;
  * 2. Go to Stores -> All Stores
  * 3. Open created store view
  * 4. Click "Delete Store View"
- * 5. Set "Create DB Backup" according to dataSet
+ * 5. Set "Create DB Backup" according to dataset
  * 6. Click "Delete Store View"
  * 7. Perform all assertions
  *
@@ -52,6 +34,11 @@ use Magento\Store\Test\Fixture\Store;
  */
 class DeleteStoreEntityTest extends Injectable
 {
+    /* tags */
+    const MVP = 'yes';
+    const DOMAIN = 'PS';
+    /* end tags */
+
     /**
      * Page BackupIndex
      *
@@ -119,6 +106,6 @@ class DeleteStoreEntityTest extends Injectable
         $this->storeIndex->getStoreGrid()->searchAndOpenStore($store);
         $this->editStore->getFormPageActions()->delete();
         $this->storeDelete->getStoreForm()->fillForm(['create_backup' => $createBackup]);
-        $this->storeDelete->getFormPageFooterActions()->delete();
+        $this->storeDelete->getFormPageActions()->delete();
     }
 }

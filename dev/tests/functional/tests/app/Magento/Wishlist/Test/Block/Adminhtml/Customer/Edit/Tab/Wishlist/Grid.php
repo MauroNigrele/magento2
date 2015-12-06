@@ -1,37 +1,19 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Wishlist\Test\Block\Adminhtml\Customer\Edit\Tab\Wishlist;
 
-use Magento\Backend\Test\Block\Widget\Grid as ParentGrid;
-use Mtf\Client\Element\Locator;
+use Magento\Mtf\Client\Locator;
+use Magento\Mtf\Client\Element\SimpleElement;
 
 /**
  * Class Grid
  * Grid on Wishlist tab in customer details on backend
  */
-class Grid extends ParentGrid
+class Grid extends \Magento\Backend\Test\Block\Widget\Grid
 {
     /**
      * Grid fields map
@@ -40,7 +22,17 @@ class Grid extends ParentGrid
      */
     protected $filters = [
         'product_name' => [
-            'selector' => 'input[name="product_name"]'
+            'selector' => 'input[name="product_name"]',
+        ],
+        'qty_from' => [
+            'selector' => 'input[name="qty[from]"]',
+        ],
+        'qty_to' => [
+            'selector' => 'input[name="qty[to]"]',
+        ],
+        'options' => [
+            'selector' => 'td//*[dt[contains(.,"%option_name%")]/following-sibling::dd[contains(.,"%value%")]]',
+            'strategy' => 'xpath',
         ],
     ];
 
@@ -52,17 +44,110 @@ class Grid extends ParentGrid
     protected $deleteLink = 'a[onclick*="removeItem"]';
 
     /**
-     * Search item and delete it
+     * Configure link selector
+     *
+     * @var string
+     */
+    protected $configureLink = 'a[onclick*="configureItem"]';
+
+    /**
+     * Secondary part of row locator template for getRow() method with strict option.
+     *
+     * @var string
+     */
+    protected $rowTemplateStrict = 'td[contains(.,normalize-space("%s"))]';
+
+    /**
+     * Selector for confirm.
+     *
+     * @var string
+     */
+    protected $confirmModal = '.confirm._show[data-role=modal]';
+
+    /**
+     * Delete product
+     *
+     * @return void
+     */
+    protected function delete()
+    {
+        $this->_rootElement->find($this->rowItem . ' ' . $this->deleteLink)->click();
+        $element = $this->browser->find($this->confirmModal);
+        /** @var \Magento\Ui\Test\Block\Adminhtml\Modal $modal */
+        $modal = $this->blockFactory->create('Magento\Ui\Test\Block\Adminhtml\Modal', ['element' => $element]);
+        $modal->acceptAlert();
+    }
+
+    /**
+     * Configure product
+     *
+     * @return void
+     */
+    protected function configure()
+    {
+        $this->_rootElement->find($this->rowItem . ' ' . $this->configureLink)->click();
+    }
+
+    /**
+     * Search item product and action it
      *
      * @param array $filter
+     * @param string $action
      * @return void
-     * @throws \Exception
      */
-    public function searchAndDelete(array $filter)
+    public function searchAndAction(array $filter, $action)
     {
         $this->search($filter);
-        $rowItem = $this->_rootElement->find($this->rowItem, Locator::SELECTOR_CSS);
-        $rowItem->find($this->deleteLink, Locator::SELECTOR_CSS)->click();
-        $this->_rootElement->acceptAlert();
+        $this->{ucfirst($action)}();
+        $this->waitLoader();
+    }
+
+    /**
+     * Check if specific row exists in grid.
+     *
+     * @param array $filter
+     * @param bool $isSearchable
+     * @param bool $isStrict
+     * @return bool
+     */
+    public function isRowVisible(array $filter, $isSearchable = true, $isStrict = true)
+    {
+        if (isset($filter['options'])) {
+            unset($filter['options']);
+        }
+        return parent::isRowVisible($filter, $isSearchable, $isStrict);
+    }
+
+    /**
+     * Obtain specific row in grid
+     *
+     * @param array $filter
+     * @param bool $isStrict [optional]
+     * @return SimpleElement
+     */
+    protected function getRow(array $filter, $isStrict = true)
+    {
+        $options = [];
+        if (isset($filter['options'])) {
+            $options = $filter['options'];
+            unset($filter['options']);
+        }
+        $location = '//tr[';
+        $rowTemplate = ($isStrict) ? $this->rowTemplateStrict : $this->rowTemplate;
+        $rows = [];
+        foreach ($filter as $value) {
+            $rows[] = sprintf($rowTemplate, $value);
+        }
+        if (!empty($options) && is_array($options)) {
+            foreach ($options as $value) {
+                $rows[] = str_replace(
+                    '%value%',
+                    $value['value'],
+                    str_replace('%option_name%', $value['option_name'], $this->filters['options']['selector'])
+                );
+            }
+        }
+
+        return $this->_rootElement->find($location . implode(' and ', $rows) . ']', Locator::SELECTOR_XPATH);
     }
 }

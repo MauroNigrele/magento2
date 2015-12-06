@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Backend\Block\Widget;
 
@@ -46,7 +28,7 @@ class Form extends \Magento\Backend\Block\Widget
      * @param \Magento\Backend\Block\Template\Context $context
      * @param array $data
      */
-    public function __construct(\Magento\Backend\Block\Template\Context $context, array $data = array())
+    public function __construct(\Magento\Backend\Block\Template\Context $context, array $data = [])
     {
         parent::__construct($context, $data);
     }
@@ -129,6 +111,13 @@ class Form extends \Magento\Backend\Block\Widget
         $this->_form = $form;
         $this->_form->setParent($this);
         $this->_form->setBaseUrl($this->_urlBuilder->getBaseUrl());
+
+        $customAttributes = $this->getData('custom_attributes');
+        if (is_array($customAttributes)) {
+            foreach ($customAttributes as $key => $value) {
+                $this->_form->addCustomAttribute($key, $value);
+            }
+        }
         return $this;
     }
 
@@ -173,7 +162,7 @@ class Form extends \Magento\Backend\Block\Widget
      * @param array $exclude attributes that should be skipped
      * @return void
      */
-    protected function _setFieldset($attributes, $fieldset, $exclude = array())
+    protected function _setFieldset($attributes, $fieldset, $exclude = [])
     {
         $this->_addElementTypes($fieldset);
         foreach ($attributes as $attribute) {
@@ -186,7 +175,6 @@ class Form extends \Magento\Backend\Block\Widget
                 $exclude
             ) && ('media_image' != $inputType || $attribute->getAttributeCode() == 'image')
             ) {
-
                 $fieldType = $inputType;
                 $rendererClass = $attribute->getFrontend()->getInputRendererClass();
                 if (!empty($rendererClass)) {
@@ -197,13 +185,13 @@ class Form extends \Magento\Backend\Block\Widget
                 $element = $fieldset->addField(
                     $attribute->getAttributeCode(),
                     $fieldType,
-                    array(
+                    [
                         'name' => $attribute->getAttributeCode(),
-                        'label' => $attribute->getFrontend()->getLabel(),
+                        'label' => $attribute->getFrontend()->getLocalizedLabel(),
                         'class' => $attribute->getFrontend()->getClass(),
                         'required' => $attribute->getIsRequired(),
                         'note' => $attribute->getNote()
-                    )
+                    ]
                 )->setEntityAttribute(
                     $attribute
                 );
@@ -245,7 +233,6 @@ class Form extends \Magento\Backend\Block\Widget
                 $element->setCanBeEmpty(true);
                 break;
             case 'date':
-                $element->setImage($this->getViewFileUrl('images/grid-cal.gif'));
                 $element->setDateFormat($this->_localeDate->getDateFormatWithLongYear());
                 break;
             case 'multiline':
@@ -277,7 +264,7 @@ class Form extends \Magento\Backend\Block\Widget
      */
     protected function _getAdditionalElementTypes()
     {
-        return array();
+        return [];
     }
 
     /**

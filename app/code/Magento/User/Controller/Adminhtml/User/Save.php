@@ -1,38 +1,23 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\User\Controller\Adminhtml\User;
+
+use Magento\Framework\Exception\AuthenticationException;
 
 class Save extends \Magento\User\Controller\Adminhtml\User
 {
     /**
      * @return void
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function execute()
     {
         $userId = (int)$this->getRequest()->getParam('user_id');
-        $data = $this->getRequest()->getPost();
+        $data = $this->getRequest()->getPostValue();
         if (!$data) {
             $this->_redirect('adminhtml/*/');
             return;
@@ -45,14 +30,15 @@ class Save extends \Magento\User\Controller\Adminhtml\User
             return;
         }
         $model->setData($this->_getAdminUserData($data));
-        $uRoles = $this->getRequest()->getParam('roles', array());
+        $uRoles = $this->getRequest()->getParam('roles', []);
         if (count($uRoles)) {
             $model->setRoleId($uRoles[0]);
         }
 
+        /** @var $currentUser \Magento\User\Model\User */
         $currentUser = $this->_objectManager->get('Magento\Backend\Model\Auth\Session')->getUser();
         if ($userId == $currentUser->getId() && $this->_objectManager->get(
-            'Magento\Framework\Locale\Validator'
+            'Magento\Framework\Validator\Locale'
         )->isValid(
             $data['interface_locale']
         )
@@ -64,15 +50,40 @@ class Save extends \Magento\User\Controller\Adminhtml\User
             );
         }
 
+        /** Before updating admin user data, ensure that password of current admin user is entered and is correct */
+        $currentUserPasswordField = \Magento\User\Block\User\Edit\Tab\Main::CURRENT_USER_PASSWORD_FIELD;
+        $isCurrentUserPasswordValid = isset($data[$currentUserPasswordField])
+            && !empty($data[$currentUserPasswordField]) && is_string($data[$currentUserPasswordField]);
         try {
+            if (!($isCurrentUserPasswordValid && $currentUser->verifyIdentity($data[$currentUserPasswordField]))) {
+                throw new AuthenticationException(__('You have entered an invalid password for current user.'));
+            }
             $model->save();
             $this->messageManager->addSuccess(__('You saved the user.'));
             $this->_getSession()->setUserData(false);
             $this->_redirect('adminhtml/*/');
-        } catch (\Magento\Framework\Model\Exception $e) {
-            $this->messageManager->addMessages($e->getMessages());
-            $this->_getSession()->setUserData($data);
-            $this->_redirect('adminhtml/*/edit', array('_current' => true));
+        } catch (\Magento\Framework\Validator\Exception $e) {
+            $messages = $e->getMessages();
+            $this->messageManager->addMessages($messages);
+            $this->redirectToEdit($model, $data);
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+            if ($e->getMessage()) {
+                $this->messageManager->addError($e->getMessage());
+            }
+            $this->redirectToEdit($model, $data);
         }
+    }
+
+    /**
+     * @param \Magento\User\Model\User $model
+     * @param array $data
+     * @return void
+     */
+    protected function redirectToEdit(\Magento\User\Model\User $model, array $data)
+    {
+        $this->_getSession()->setUserData($data);
+        $arguments = $model->getId() ? ['user_id' => $model->getId()] : [];
+        $arguments = array_merge($arguments, ['_current' => true, 'active_tab' => '']);
+        $this->_redirect('adminhtml/*/edit', $arguments);
     }
 }

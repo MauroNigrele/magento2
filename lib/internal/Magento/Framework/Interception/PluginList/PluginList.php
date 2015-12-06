@@ -2,41 +2,26 @@
 /**
  * Plugin configuration storage. Provides list of plugins configured for type.
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- * 
- * @copyright Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Interception\PluginList;
 
-use Magento\Framework\Config\ReaderInterface;
-use Magento\Framework\Config\ScopeInterface;
 use Magento\Framework\Config\CacheInterface;
 use Magento\Framework\Config\Data\Scoped;
-use Magento\Framework\Interception\Definition;
-use Magento\Framework\Interception\PluginList as InterceptionPluginList;
-use Magento\Framework\Interception\ObjectManager\Config;
-use Magento\Framework\ObjectManager\Relations;
-use Magento\Framework\ObjectManager\Definition as ClassDefinitions;
-use Magento\Framework\ObjectManager;
+use Magento\Framework\Config\ReaderInterface;
+use Magento\Framework\Config\ScopeInterface;
+use Magento\Framework\Interception\DefinitionInterface;
+use Magento\Framework\Interception\PluginListInterface as InterceptionPluginList;
+use Magento\Framework\Interception\ObjectManager\ConfigInterface;
+use Magento\Framework\ObjectManager\RelationsInterface;
+use Magento\Framework\ObjectManager\DefinitionInterface as ClassDefinitions;
+use Magento\Framework\ObjectManagerInterface;
 use Zend\Soap\Exception\InvalidArgumentException;
 
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 class PluginList extends Scoped implements InterceptionPluginList
 {
     /**
@@ -56,21 +41,21 @@ class PluginList extends Scoped implements InterceptionPluginList
     /**
      * Type config
      *
-     * @var Config
+     * @var ConfigInterface
      */
     protected $_omConfig;
 
     /**
      * Class relations information provider
      *
-     * @var Relations
+     * @var RelationsInterface
      */
     protected $_relations;
 
     /**
      * List of interception methods per plugin
      *
-     * @var Definition
+     * @var DefinitionInterface
      */
     protected $_definitions;
 
@@ -82,37 +67,38 @@ class PluginList extends Scoped implements InterceptionPluginList
     protected $_classDefinitions;
 
     /**
-     * @var \Magento\Framework\ObjectManager
+     * @var \Magento\Framework\ObjectManagerInterface
      */
     protected $_objectManager;
 
     /**
      * @var array
      */
-    protected $_pluginInstances = array();
+    protected $_pluginInstances = [];
 
     /**
      * @param ReaderInterface $reader
      * @param ScopeInterface $configScope
      * @param CacheInterface $cache
-     * @param Relations $relations
-     * @param Config $omConfig
-     * @param Definition $definitions
-     * @param ObjectManager $objectManager
+     * @param RelationsInterface $relations
+     * @param ConfigInterface $omConfig
+     * @param DefinitionInterface $definitions
+     * @param ObjectManagerInterface $objectManager
      * @param ClassDefinitions $classDefinitions
      * @param array $scopePriorityScheme
      * @param string $cacheId
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
         ReaderInterface $reader,
         ScopeInterface $configScope,
         CacheInterface $cache,
-        Relations $relations,
-        Config $omConfig,
-        Definition $definitions,
-        ObjectManager $objectManager,
+        RelationsInterface $relations,
+        ConfigInterface $omConfig,
+        DefinitionInterface $definitions,
+        ObjectManagerInterface $objectManager,
         ClassDefinitions $classDefinitions,
-        array $scopePriorityScheme = array('global'),
+        array $scopePriorityScheme = ['global'],
         $cacheId = 'plugins'
     ) {
         parent::__construct($reader, $configScope, $cache, $cacheId);
@@ -131,17 +117,19 @@ class PluginList extends Scoped implements InterceptionPluginList
      * @return array
      * @throws InvalidArgumentException
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     protected function _inheritPlugins($type)
     {
+        $type = ltrim($type, '\\');
         if (!array_key_exists($type, $this->_inherited)) {
             $realType = $this->_omConfig->getOriginalInstanceType($type);
 
             if ($realType !== $type) {
                 $plugins = $this->_inheritPlugins($realType);
-            } else if ($this->_relations->has($type)) {
+            } elseif ($this->_relations->has($type)) {
                 $relations = $this->_relations->getParents($type);
-                $plugins = array();
+                $plugins = [];
                 foreach ($relations as $relation) {
                     if ($relation) {
                         $relationPlugins = $this->_inheritPlugins($relation);
@@ -151,7 +139,7 @@ class PluginList extends Scoped implements InterceptionPluginList
                     }
                 }
             } else {
-                $plugins = array();
+                $plugins = [];
             }
             if (isset($this->_data[$type])) {
                 if (!$plugins) {
@@ -162,9 +150,10 @@ class PluginList extends Scoped implements InterceptionPluginList
             }
             $this->_inherited[$type] = null;
             if (is_array($plugins) && count($plugins)) {
-                uasort($plugins, array($this, '_sort'));
+                uasort($plugins, [$this, '_sort']);
+                $this->trimInstanceStartingBackslash($plugins);
                 $this->_inherited[$type] = $plugins;
-                $lastPerMethod = array();
+                $lastPerMethod = [];
                 foreach ($plugins as $key => $plugin) {
                     // skip disabled plugins
                     if (isset($plugin['disabled']) && $plugin['disabled']) {
@@ -178,15 +167,15 @@ class PluginList extends Scoped implements InterceptionPluginList
                     foreach ($this->_definitions->getMethodList($pluginType) as $pluginMethod => $methodTypes) {
                         $current = isset($lastPerMethod[$pluginMethod]) ? $lastPerMethod[$pluginMethod] : '__self';
                         $currentKey = $type . '_' . $pluginMethod . '_' . $current;
-                        if ($methodTypes & Definition::LISTENER_AROUND) {
-                            $this->_processed[$currentKey][Definition::LISTENER_AROUND] = $key;
+                        if ($methodTypes & DefinitionInterface::LISTENER_AROUND) {
+                            $this->_processed[$currentKey][DefinitionInterface::LISTENER_AROUND] = $key;
                             $lastPerMethod[$pluginMethod] = $key;
                         }
-                        if ($methodTypes & Definition::LISTENER_BEFORE) {
-                            $this->_processed[$currentKey][Definition::LISTENER_BEFORE][] = $key;
+                        if ($methodTypes & DefinitionInterface::LISTENER_BEFORE) {
+                            $this->_processed[$currentKey][DefinitionInterface::LISTENER_BEFORE][] = $key;
                         }
-                        if ($methodTypes & Definition::LISTENER_AFTER) {
-                            $this->_processed[$currentKey][Definition::LISTENER_AFTER][] = $key;
+                        if ($methodTypes & DefinitionInterface::LISTENER_AFTER) {
+                            $this->_processed[$currentKey][DefinitionInterface::LISTENER_AFTER][] = $key;
                         }
                     }
                 }
@@ -194,6 +183,19 @@ class PluginList extends Scoped implements InterceptionPluginList
             return $plugins;
         }
         return $this->_inherited[$type];
+    }
+
+    /**
+     * Trims starting backslash from plugin instance name
+     *
+     * @param array $plugins
+     * @return void
+     */
+    private function trimInstanceStartingBackslash(&$plugins)
+    {
+        foreach ($plugins as &$plugin) {
+            $plugin['instance'] = ltrim($plugin['instance'], '\\');
+        }
     }
 
     /**
@@ -210,7 +212,7 @@ class PluginList extends Scoped implements InterceptionPluginList
                 return $itemA['sortOrder'] - $itemB['sortOrder'];
             }
             return $itemA['sortOrder'];
-        } else if (isset($itemB['sortOrder'])) {
+        } elseif (isset($itemB['sortOrder'])) {
             return $itemB['sortOrder'];
         } else {
             return 1;
@@ -245,7 +247,7 @@ class PluginList extends Scoped implements InterceptionPluginList
     public function getNext($type, $method, $code = '__self')
     {
         $this->_loadScopedData();
-        if (!array_key_exists($type, $this->_inherited)) {
+        if (!isset($this->_inherited[$type]) && !array_key_exists($type, $this->_inherited)) {
             $this->_inheritPlugins($type);
         }
         $key = $type . '_' . lcfirst($method) . '_' . $code;
@@ -273,7 +275,7 @@ class PluginList extends Scoped implements InterceptionPluginList
                     $this->_loadedScopes[$scope] = true;
                 }
             } else {
-                $virtualTypes = array();
+                $virtualTypes = [];
                 foreach ($this->_scopePriorityScheme as $scopeCode) {
                     if (false == isset($this->_loadedScopes[$scopeCode])) {
                         $data = $this->_reader->read($scopeCode);
@@ -281,8 +283,8 @@ class PluginList extends Scoped implements InterceptionPluginList
                         if (!count($data)) {
                             continue;
                         }
-                        $this->_inherited = array();
-                        $this->_processed = array();
+                        $this->_inherited = [];
+                        $this->_processed = [];
                         $this->merge($data);
                         $this->_loadedScopes[$scopeCode] = true;
                         foreach ($data as $class => $config) {
@@ -291,20 +293,41 @@ class PluginList extends Scoped implements InterceptionPluginList
                             }
                         }
                     }
-                    if ($scopeCode == $scope) {
+                    if ($this->isCurrentScope($scopeCode)) {
                         break;
                     }
                 }
                 foreach ($virtualTypes as $class) {
-                    $this->_inheritPlugins(ltrim($class, '\\'));
-                }
-                foreach ($this->_classDefinitions->getClasses() as $class) {
                     $this->_inheritPlugins($class);
                 }
-                $this->_cache->save(serialize(array($this->_data, $this->_inherited, $this->_processed)), $cacheId);
+                foreach ($this->getClassDefinitions() as $class) {
+                    $this->_inheritPlugins($class);
+                }
+                $this->_cache->save(serialize([$this->_data, $this->_inherited, $this->_processed]), $cacheId);
             }
-            $this->_pluginInstances = array();
+            $this->_pluginInstances = [];
         }
+    }
+
+    /**
+     * Whether scope code is current scope code
+     *
+     * @param string $scopeCode
+     * @return bool
+     */
+    protected function isCurrentScope($scopeCode)
+    {
+        return $this->_configScope->getCurrentScope() == $scopeCode;
+    }
+
+    /**
+     * Returns class definitions
+     *
+     * @return array
+     */
+    protected function getClassDefinitions()
+    {
+        return $this->_classDefinitions->getClasses();
     }
 
     /**

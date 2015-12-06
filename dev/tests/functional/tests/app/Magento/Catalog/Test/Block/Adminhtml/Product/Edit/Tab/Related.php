@@ -1,62 +1,47 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @spi
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Test\Block\Adminhtml\Product\Edit\Tab;
 
-use Mtf\Client\Element;
-use Mtf\Factory\Factory;
-use Magento\Backend\Test\Block\Widget\Tab;
+use Magento\Catalog\Test\Block\Adminhtml\Product\Edit\Tab\Related\Grid as RelatedGrid;
+use Magento\Mtf\Client\Element\SimpleElement;
 
 /**
  * Class Related
  * Related Tab
  */
-class Related extends Tab
+class Related extends AbstractRelated
 {
-    const GROUP = 'related-products';
+    /**
+     * Related products type
+     *
+     * @var string
+     */
+    protected $relatedType = 'related_products';
 
     /**
-     * Select related products
+     * Locator for related products grid
      *
-     * @param array $products
-     * @param Element|null $context
-     * @return $this
+     * @var string
      */
-    public function fillFormTab(array $products, Element $context = null)
-    {
-        if (!isset($products['related_products'])) {
-            return $this;
-        }
-        $element = $context ? : $this->_rootElement;
-        $relatedBlock = Factory::getBlockFactory()->getMagentoCatalogAdminhtmlProductEditTabRelatedGrid(
-            $element->find('#related_product_grid')
-        );
-        foreach ($products['related_products']['value'] as $product) {
-            $relatedBlock->searchAndSelect($product);
-        }
+    protected $relatedGrid = '#related_product_grid';
 
-        return $this;
+    /**
+     * Return related products grid
+     *
+     * @param SimpleElement|null $element [optional]
+     * @return RelatedGrid
+     */
+    protected function getRelatedGrid(SimpleElement $element = null)
+    {
+        $element = $element ? $element : $this->_rootElement;
+
+        return $this->blockFactory->create(
+            '\Magento\Catalog\Test\Block\Adminhtml\Product\Edit\Tab\Related\Grid',
+            ['element' => $element->find($this->relatedGrid)]
+        );
     }
 }

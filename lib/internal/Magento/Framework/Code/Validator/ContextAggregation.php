@@ -2,31 +2,12 @@
 /**
  * Class constructor validator
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Code\Validator;
 
 use Magento\Framework\Code\ValidatorInterface;
-use Magento\Framework\Code\ValidationException;
 
 class ContextAggregation implements ValidatorInterface
 {
@@ -48,15 +29,15 @@ class ContextAggregation implements ValidatorInterface
      *
      * @param string $className
      * @return bool
-     * @throws ValidationException
+     * @throws \Magento\Framework\Exception\ValidatorException
      */
     public function validate($className)
     {
         $class = new \ReflectionClass($className);
         $classArguments = $this->_argumentsReader->getConstructorArguments($class);
 
-        $errors = array();
-        $contextDependencies = array();
+        $errors = [];
+        $contextDependencies = [];
 
         $actualDependencies = $this->_getObjectArguments($classArguments);
 
@@ -80,10 +61,15 @@ class ContextAggregation implements ValidatorInterface
 
         if (false == empty($errors)) {
             $classPath = str_replace('\\', '/', $class->getFileName());
-            throw new ValidationException(
-                'Incorrect dependency in class ' . $className . ' in ' . $classPath . PHP_EOL . implode(
-                    PHP_EOL,
-                    $errors
+            throw new \Magento\Framework\Exception\ValidatorException(
+                new \Magento\Framework\Phrase(
+                    'Incorrect dependency in class %1 in %2%3%4',
+                    [
+                        $className,
+                        $classPath,
+                        PHP_EOL,
+                        implode(PHP_EOL, $errors)
+                    ]
                 )
             );
         }
@@ -98,7 +84,7 @@ class ContextAggregation implements ValidatorInterface
      */
     protected function _getObjectArguments(array $arguments)
     {
-        $output = array();
+        $output = [];
         foreach ($arguments as $argument) {
             $type = $argument['type'];
             if (!$type || $type == 'array') {

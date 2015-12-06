@@ -1,35 +1,20 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Backend\Helper\Dashboard;
+
+use Magento\Framework\App\DeploymentConfig;
+use Magento\Framework\Config\ConfigOptionsListConstants;
 
 /**
  * Data helper for dashboard
  */
-class Data extends \Magento\Core\Helper\Data
+class Data extends \Magento\Framework\App\Helper\AbstractHelper
 {
     /**
-     * @var \Magento\Framework\Data\Collection\Db
+     * @var \Magento\Framework\Data\Collection\AbstractDb
      */
     protected $_stores;
 
@@ -39,38 +24,31 @@ class Data extends \Magento\Core\Helper\Data
     protected $_installDate;
 
     /**
+     * @var \Magento\Store\Model\StoreManagerInterface
+     */
+    private $_storeManager;
+
+    /**
      * @param \Magento\Framework\App\Helper\Context $context
-     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
-     * @param \Magento\Framework\App\State $appState
-     * @param \Magento\Framework\Pricing\PriceCurrencyInterface $priceCurrency
-     * @param string $installDate
-     * @param bool $dbCompatibleMode
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param DeploymentConfig $deploymentConfig
      */
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Magento\Framework\StoreManagerInterface $storeManager,
-        \Magento\Framework\App\State $appState,
-        \Magento\Framework\Pricing\PriceCurrencyInterface $priceCurrency,
-        $installDate,
-        $dbCompatibleMode = true
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        DeploymentConfig $deploymentConfig
     ) {
         parent::__construct(
-            $context,
-            $scopeConfig,
-            $storeManager,
-            $appState,
-            $priceCurrency,
-            $dbCompatibleMode
+            $context
         );
-        $this->_installDate = $installDate;
+        $this->_installDate = $deploymentConfig->get(ConfigOptionsListConstants::CONFIG_PATH_INSTALL_DATE);
+        $this->_storeManager = $storeManager;
     }
 
     /**
      * Retrieve stores configured in system.
      *
-     * @return \Magento\Framework\Data\Collection\Db
+     * @return \Magento\Framework\Data\Collection\AbstractDb
      */
     public function getStores()
     {
@@ -97,13 +75,13 @@ class Data extends \Magento\Core\Helper\Data
      */
     public function getDatePeriods()
     {
-        return array(
+        return [
             '24h' => __('Last 24 Hours'),
             '7d' => __('Last 7 Days'),
             '1m' => __('Current Month'),
             '1y' => __('YTD'),
             '2y' => __('2YTD')
-        );
+        ];
     }
 
     /**

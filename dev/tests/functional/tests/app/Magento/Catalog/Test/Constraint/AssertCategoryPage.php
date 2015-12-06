@@ -1,90 +1,141 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Test\Constraint;
 
-use Magento\Catalog\Test\Fixture\CatalogCategory;
+use Magento\Catalog\Test\Fixture\Category;
+use Magento\Catalog\Test\Fixture\Category\LandingPage;
 use Magento\Catalog\Test\Page\Category\CatalogCategoryView;
-use Mtf\Client\Browser;
-use Mtf\Fixture\FixtureFactory;
-use Mtf\Constraint\AbstractConstraint;
+use Magento\Mtf\Client\BrowserInterface;
+use Magento\Mtf\Constraint\AbstractConstraint;
+use Magento\Mtf\Fixture\FixtureFactory;
 
 /**
- * Class AssertCategoryPage
- * Assert that displayed category data on category page equals to passed from fixture
+ * Assert that displayed category data on category page equals to passed from fixture.
  */
 class AssertCategoryPage extends AbstractConstraint
 {
     /**
-     * Constraint severeness
+     * CMS Block display mode.
      *
-     * @var string
+     * @var array
      */
-    protected $severeness = 'low';
+    protected $visibleCmsBlockMode = [
+        'Static block only',
+        'Static block and products'
+    ];
 
     /**
-     * Assert that displayed category data on category page equals to passed from fixture
+     * Category view page.
      *
-     * @param CatalogCategory $category
-     * @param CatalogCategory $initialCategory
+     * @var CatalogCategoryView
+     */
+    protected $categoryViewPage;
+
+    /**
+     * Browser instance.
+     *
+     * @var BrowserInterface
+     */
+    protected $browser;
+
+    /**
+     * Assert that displayed category data on category page equals to passed from fixture.
+     *
+     * @param Category $category
+     * @param Category $initialCategory
      * @param FixtureFactory $fixtureFactory
      * @param CatalogCategoryView $categoryView
-     * @param Browser $browser
+     * @param BrowserInterface $browser
      * @return void
      */
     public function processAssert(
-        CatalogCategory $category,
-        CatalogCategory $initialCategory,
+        Category $category,
+        Category $initialCategory,
         FixtureFactory $fixtureFactory,
         CatalogCategoryView $categoryView,
-        Browser $browser
+        BrowserInterface $browser
     ) {
+        $this->browser = $browser;
+        $this->categoryViewPage = $categoryView;
+        $categoryData = $this->prepareData($fixtureFactory, $category, $initialCategory);
+        $this->browser->open($this->getCategoryUrl($category));
+        $this->assertGeneralInformation($category, $categoryData);
+        $this->assertDisplaySetting($category, $categoryData);
+    }
+
+    /**
+     * Prepare comparison data.
+     *
+     * @param FixtureFactory $fixtureFactory
+     * @param Category $category
+     * @param Category $initialCategory
+     * @return array
+     */
+    protected function prepareData(FixtureFactory $fixtureFactory, Category $category, Category $initialCategory)
+    {
         $product = $fixtureFactory->createByCode(
             'catalogProductSimple',
             [
-                'dataSet' => 'default',
+                'dataset' => 'default',
                 'data' => [
                     'category_ids' => [
-                        'category' => $initialCategory
-                    ]
+                        'category' => $initialCategory,
+                    ],
                 ]
             ]
         );
-        $categoryData = array_merge($initialCategory->getData(), $category->getData());
         $product->persist();
-        $url = $_ENV['app_frontend_url'] . strtolower($category->getUrlKey()) . '.html';
-        $browser->open($url);
+
+        return array_merge($initialCategory->getData(), $category->getData());
+    }
+
+    /**
+     * Get category url to open.
+     *
+     * @param Category $category
+     * @return string
+     */
+    protected function getCategoryUrl(Category $category)
+    {
+        $categoryUrlKey = [];
+        while ($category) {
+            $categoryUrlKey[] = $category->hasData('url_key')
+                ? strtolower($category->getUrlKey())
+                : trim(strtolower(preg_replace('#[^0-9a-z%]+#i', '-', $category->getName())), '-');
+
+            $category = $category->getDataFieldConfig('parent_id')['source']->getParentCategory();
+            if (1 == $category->getParentId()) {
+                $category = null;
+            }
+        }
+
+        return $_ENV['app_frontend_url'] . implode('/', array_reverse($categoryUrlKey)) . '.html';
+    }
+
+    /**
+     * Assert category general information.
+     *
+     * @param Category $category
+     * @param array $categoryData
+     * @return void
+     */
+    protected function assertGeneralInformation(Category $category, array $categoryData)
+    {
+        $categoryUrl = $this->getCategoryUrl($category);
         \PHPUnit_Framework_Assert::assertEquals(
-            $url,
-            $browser->getUrl(),
+            $categoryUrl,
+            $this->browser->getUrl(),
             'Wrong page URL.'
-            . "\nExpected: " . $url
-            . "\nActual: " . $browser->getUrl()
+            . "\nExpected: " . $categoryUrl
+            . "\nActual: " . $this->browser->getUrl()
         );
 
         if (isset($categoryData['name'])) {
-            $title = $categoryView->getTitleBlock()->getTitle();
+            $title = $this->categoryViewPage->getTitleBlock()->getTitle();
             \PHPUnit_Framework_Assert::assertEquals(
                 $categoryData['name'],
                 $title,
@@ -95,7 +146,7 @@ class AssertCategoryPage extends AbstractConstraint
         }
 
         if (isset($categoryData['description'])) {
-            $description = $categoryView->getViewBlock()->getDescription();
+            $description = $this->categoryViewPage->getViewBlock()->getDescription();
             \PHPUnit_Framework_Assert::assertEquals(
                 $categoryData['description'],
                 $description,
@@ -104,10 +155,38 @@ class AssertCategoryPage extends AbstractConstraint
                 . "\nActual: " . $description
             );
         }
+    }
 
+    /**
+     * Assert category display settings.
+     *
+     * @param Category $category
+     * @param array $categoryData
+     * @return void
+     */
+    protected function assertDisplaySetting(Category $category, array $categoryData)
+    {
+        if (
+            isset($categoryData['landing_page'])
+            && isset($categoryData['display_mode'])
+            && in_array($categoryData['display_mode'], $this->visibleCmsBlockMode)
+        ) {
+            /** @var LandingPage $sourceLandingPage */
+            $sourceLandingPage = $category->getDataFieldConfig('landing_page')['source'];
+            $fixtureContent = $sourceLandingPage->getCmsBlock()->getContent();
+            $pageContent = $this->categoryViewPage->getViewBlock()->getContent();
+
+            \PHPUnit_Framework_Assert::assertEquals(
+                $fixtureContent,
+                $pageContent,
+                'Wrong category landing page content.'
+                . "\nExpected: " . $fixtureContent
+                . "\nActual: " . $pageContent
+            );
+        }
         if (isset($categoryData['default_sort_by'])) {
             $sortBy = strtolower($categoryData['default_sort_by']);
-            $sortType = $categoryView->getTopToolbar()->getSelectSortType();
+            $sortType = $this->categoryViewPage->getTopToolbar()->getSelectSortType();
             \PHPUnit_Framework_Assert::assertEquals(
                 $sortBy,
                 $sortType,
@@ -126,7 +205,7 @@ class AssertCategoryPage extends AbstractConstraint
             );
             if ($availableSortType) {
                 $availableSortType = array_values($availableSortType);
-                $availableSortTypeOnPage = $categoryView->getTopToolbar()->getSortType();
+                $availableSortTypeOnPage = $this->categoryViewPage->getTopToolbar()->getSortType();
                 \PHPUnit_Framework_Assert::assertEquals(
                     $availableSortType,
                     $availableSortTypeOnPage,
@@ -139,7 +218,7 @@ class AssertCategoryPage extends AbstractConstraint
     }
 
     /**
-     * Returns a string representation of the object
+     * Returns a string representation of the object.
      *
      * @return string
      */

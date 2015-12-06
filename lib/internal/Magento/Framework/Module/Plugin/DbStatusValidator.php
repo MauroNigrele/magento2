@@ -2,32 +2,16 @@
 /**
  * Validation of DB up to date state
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 namespace Magento\Framework\Module\Plugin;
 
 use Magento\Framework\Cache\FrontendInterface;
-use Magento\Framework\Module\Updater;
-use Magento\Framework\App\State;
+use Magento\Framework\Module\DbVersionInfo;
 
 class DbStatusValidator
 {
@@ -37,36 +21,20 @@ class DbStatusValidator
     private $cache;
 
     /**
-     * @var \Magento\Framework\Module\ModuleListInterface
+     * @var DbVersionInfo
      */
-    private $moduleList;
-
-    /**
-     * @var \Magento\Framework\Module\ResourceResolverInterface
-     */
-    private $resourceResolver;
-
-    /**
-     * @var \Magento\Framework\Module\Manager
-     */
-    private $moduleManager;
+    private $dbVersionInfo;
 
     /**
      * @param FrontendInterface $cache
-     * @param \Magento\Framework\Module\ModuleListInterface $moduleList
-     * @param \Magento\Framework\Module\ResourceResolverInterface $resourceResolver
-     * @param \Magento\Framework\Module\Manager $moduleManager
+     * @param DbVersionInfo $dbVersionInfo
      */
     public function __construct(
         FrontendInterface $cache,
-        \Magento\Framework\Module\ModuleListInterface $moduleList,
-        \Magento\Framework\Module\ResourceResolverInterface $resourceResolver,
-        \Magento\Framework\Module\Manager $moduleManager
+        DbVersionInfo $dbVersionInfo
     ) {
         $this->cache = $cache;
-        $this->moduleList = $moduleList;
-        $this->resourceResolver = $resourceResolver;
-        $this->moduleManager = $moduleManager;
+        $this->dbVersionInfo = $dbVersionInfo;
     }
 
     /**
@@ -74,7 +42,7 @@ class DbStatusValidator
      * @param \Closure $proceed
      * @param \Magento\Framework\App\RequestInterface $request
      *
-     * @throws \Magento\Framework\Module\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      * @return \Magento\Framework\App\ResponseInterface
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
@@ -84,9 +52,15 @@ class DbStatusValidator
         \Magento\Framework\App\RequestInterface $request
     ) {
         if (!$this->cache->load('db_is_up_to_date')) {
-            if (!$this->isDbUpToDate()) {
-                throw new \Magento\Framework\Module\Exception(
-                    'Looks like database is outdated. Please, use setup tool to perform update'
+            $errors = $this->dbVersionInfo->getDbVersionErrors();
+            if ($errors) {
+                $formattedErrors = $this->formatErrors($errors);
+                throw new \Magento\Framework\Exception\LocalizedException(
+                    new \Magento\Framework\Phrase(
+                        'Please upgrade your database: Run "bin/magento setup:upgrade" from the Magento root directory.'
+                        . ' %1The following modules are outdated:%2%3',
+                        [PHP_EOL, PHP_EOL, implode(PHP_EOL, $formattedErrors)]
+                    )
                 );
             } else {
                 $this->cache->save('true', 'db_is_up_to_date');
@@ -96,21 +70,20 @@ class DbStatusValidator
     }
 
     /**
-     * Check if DB is up to date
+     * Format each error in the error data from getOutOfDataDbErrors into a single message
      *
-     * @return bool
+     * @param array $errorsData array of error data from getOutOfDateDbErrors
+     * @return array Messages that can be used to log the error
      */
-    private function isDbUpToDate()
+    private function formatErrors($errorsData)
     {
-        foreach (array_keys($this->moduleList->getModules()) as $moduleName) {
-            foreach ($this->resourceResolver->getResourceList($moduleName) as $resourceName) {
-                $isSchemaUpToDate = $this->moduleManager->isDbSchemaUpToDate($moduleName, $resourceName);
-                $isDataUpToDate = $this->moduleManager->isDbDataUpToDate($moduleName, $resourceName);
-                if (!$isSchemaUpToDate || !$isDataUpToDate) {
-                    return false;
-                }
-            }
+        $formattedErrors = [];
+        foreach ($errorsData as $error) {
+            $formattedErrors[] = $error[DbVersionInfo::KEY_MODULE] .
+                ' ' . $error[DbVersionInfo::KEY_TYPE] .
+                ': current version - ' . $error[DbVersionInfo::KEY_CURRENT ] .
+                ', required version - ' . $error[DbVersionInfo::KEY_REQUIRED];
         }
-        return true;
+        return $formattedErrors;
     }
 }

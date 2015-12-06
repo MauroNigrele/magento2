@@ -1,41 +1,50 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Controller\Adminhtml\Product\Action\Attribute;
 
 class Validate extends \Magento\Catalog\Controller\Adminhtml\Product\Action\Attribute
 {
     /**
+     * @var \Magento\Framework\Controller\Result\JsonFactory
+     */
+    protected $resultJsonFactory;
+
+    /**
+     * @var \Magento\Framework\View\LayoutFactory
+     */
+    protected $layoutFactory;
+
+    /**
+     * @param \Magento\Backend\App\Action\Context $context
+     * @param \Magento\Catalog\Helper\Product\Edit\Action\Attribute $attributeHelper
+     * @param \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
+     * @param \Magento\Framework\View\LayoutFactory $layoutFactory
+     */
+    public function __construct(
+        \Magento\Backend\App\Action\Context $context,
+        \Magento\Catalog\Helper\Product\Edit\Action\Attribute $attributeHelper,
+        \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory,
+        \Magento\Framework\View\LayoutFactory $layoutFactory
+    ) {
+        parent::__construct($context, $attributeHelper);
+        $this->resultJsonFactory = $resultJsonFactory;
+        $this->layoutFactory = $layoutFactory;
+    }
+
+    /**
      * Attributes validation action
      *
-     * @return void
+     * @return \Magento\Framework\Controller\ResultInterface
      */
     public function execute()
     {
-        $response = $this->_objectManager->create('Magento\Framework\Object');
+        $response = $this->_objectManager->create('Magento\Framework\DataObject');
         $response->setError(false);
-        $attributesData = $this->getRequest()->getParam('attributes', array());
+        $attributesData = $this->getRequest()->getParam('attributes', []);
         $data = $this->_objectManager->create('Magento\Catalog\Model\Product');
 
         try {
@@ -55,7 +64,7 @@ class Validate extends \Magento\Catalog\Controller\Adminhtml\Product\Action\Attr
             $response->setError(true);
             $response->setAttribute($e->getAttributeCode());
             $response->setMessage($e->getMessage());
-        } catch (\Magento\Framework\Model\Exception $e) {
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
             $response->setError(true);
             $response->setMessage($e->getMessage());
         } catch (\Exception $e) {
@@ -63,11 +72,11 @@ class Validate extends \Magento\Catalog\Controller\Adminhtml\Product\Action\Attr
                 $e,
                 __('Something went wrong while updating the product(s) attributes.')
             );
-            $this->_view->getLayout()->initMessages();
+            $layout = $this->layoutFactory->create();
+            $layout->initMessages();
             $response->setError(true);
-            $response->setHtmlMessage($this->_view->getLayout()->getMessagesBlock()->getGroupedHtml());
+            $response->setHtmlMessage($layout->getMessagesBlock()->getGroupedHtml());
         }
-
-        $this->getResponse()->representJson($response->toJson());
+        return $this->resultJsonFactory->create()->setJsonData($response->toJson());
     }
 }

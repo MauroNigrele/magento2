@@ -1,49 +1,49 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Controller\Adminhtml\Product;
 
+use Magento\Catalog\Helper\Product\Composite;
+use Magento\Backend\Model\Session;
+use Magento\Backend\App\Action\Context;
+
 class ShowUpdateResult extends \Magento\Catalog\Controller\Adminhtml\Product
 {
+    /** @var Composite */
+    protected $productCompositeHelper;
+
+    /**
+     * @param Context $context
+     * @param Builder $productBuilder
+     * @param Composite $productCompositeHelper
+     */
+    public function __construct(
+        Context $context,
+        Builder $productBuilder,
+        Composite $productCompositeHelper
+    ) {
+        $this->productCompositeHelper = $productCompositeHelper;
+        parent::__construct($context, $productBuilder);
+    }
+
     /**
      * Show item update result from updateAction
      * in Wishlist and Cart controllers.
      *
-     * @return bool
+     * @return \Magento\Framework\View\Result\Layout
      */
     public function execute()
     {
-        $session = $this->_objectManager->get('Magento\Backend\Model\Session');
-        if ($session->hasCompositeProductResult()
-            && $session->getCompositeProductResult() instanceof \Magento\Framework\Object
+        $layout = false;
+        if ($this->_session->hasCompositeProductResult()
+            && $this->_session->getCompositeProductResult() instanceof \Magento\Framework\DataObject
         ) {
-            $this->_objectManager->get('Magento\Catalog\Helper\Product\Composite')
-                ->renderUpdateResult($session->getCompositeProductResult());
-            $session->unsCompositeProductResult();
-        } else {
-            $session->unsCompositeProductResult();
-            return false;
+            $layout = $this->productCompositeHelper->renderUpdateResult($this->_session->getCompositeProductResult());
         }
+        $this->_session->unsCompositeProductResult();
+        return $layout;
     }
 }

@@ -1,31 +1,48 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Backup\Controller\Adminhtml\Index;
 
+use Magento\Framework\App\Filesystem\DirectoryList;
+
 class Download extends \Magento\Backup\Controller\Adminhtml\Index
 {
+    /**
+     * @var \Magento\Framework\Controller\Result\RawFactory
+     */
+    protected $resultRawFactory;
+
+    /**
+     * @param \Magento\Backend\App\Action\Context $context
+     * @param \Magento\Framework\Registry $coreRegistry
+     * @param \Magento\Framework\Backup\Factory $backupFactory
+     * @param \Magento\Framework\App\Response\Http\FileFactory $fileFactory
+     * @param \Magento\Backup\Model\BackupFactory $backupModelFactory
+     * @param \Magento\Framework\App\MaintenanceMode $maintenanceMode
+     * @param \Magento\Framework\Controller\Result\RawFactory $resultRawFactory
+     */
+    public function __construct(
+        \Magento\Backend\App\Action\Context $context,
+        \Magento\Framework\Registry $coreRegistry,
+        \Magento\Framework\Backup\Factory $backupFactory,
+        \Magento\Framework\App\Response\Http\FileFactory $fileFactory,
+        \Magento\Backup\Model\BackupFactory $backupModelFactory,
+        \Magento\Framework\App\MaintenanceMode $maintenanceMode,
+        \Magento\Framework\Controller\Result\RawFactory $resultRawFactory
+    ) {
+        parent::__construct(
+            $context,
+            $coreRegistry,
+            $backupFactory,
+            $fileFactory,
+            $backupModelFactory,
+            $maintenanceMode
+        );
+        $this->resultRawFactory = $resultRawFactory;
+    }
 
     /**
      * Download backup action
@@ -41,22 +58,25 @@ class Download extends \Magento\Backup\Controller\Adminhtml\Index
         );
 
         if (!$backup->getTime() || !$backup->exists()) {
-            return $this->_redirect('backup/*');
+            /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
+            $resultRedirect = $this->resultRedirectFactory->create();
+            $resultRedirect->setPath('backup/*');
+            return $resultRedirect;
         }
 
         $fileName = $this->_objectManager->get('Magento\Backup\Helper\Data')->generateBackupDownloadName($backup);
 
-        $response = $this->_fileFactory->create(
+        $this->_fileFactory->create(
             $fileName,
             null,
-            \Magento\Framework\App\Filesystem::VAR_DIR,
+            DirectoryList::VAR_DIR,
             'application/octet-stream',
             $backup->getSize()
         );
 
-        $response->sendHeaders();
-
-        $backup->output();
-        exit;
+        /** @var \Magento\Framework\Controller\Result\Raw $resultRaw */
+        $resultRaw = $this->resultRawFactory->create();
+        $resultRaw->setContents($backup->output());
+        return $resultRaw;
     }
 }

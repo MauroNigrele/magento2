@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Math;
 
@@ -42,9 +24,10 @@ class Random
     /**
      * Get random string
      *
-     * @param int         $length
+     * @param int $length
      * @param null|string $chars
      * @return string
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function getRandomString($length, $chars = null)
     {
@@ -71,12 +54,9 @@ class Random
             }
             fclose($fp);
         } else {
-            // fallback to mt_rand() if all else fails
-            mt_srand(10000000 * (double)microtime());
-            for ($i = 0, $lc = strlen($chars) - 1; $i < $length; $i++) {
-                $rand = mt_rand(0, $lc); // random integer from 0 to $lc
-                $str .= $chars[$rand]; // random character in $chars
-            }
+            throw new \Magento\Framework\Exception\LocalizedException(
+                new \Magento\Framework\Phrase("Please make sure you have 'openssl' extension installed")
+            );
         }
 
         return $str;
@@ -88,6 +68,7 @@ class Random
      * @param $min [optional]
      * @param $max [optional]
      * @return int A random integer value between min (or 0) and max
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public static function getRandomNumber($min = 0, $max = null)
     {
@@ -109,9 +90,9 @@ class Random
             $offset = abs(hexdec($hex) % $range); // random integer from 0 to $range
             fclose($fp);
         } else {
-            // fallback to mt_rand() if all else fails
-            mt_srand(mt_rand() + (100000000 * microtime()) % PHP_INT_MAX);
-            return mt_rand($min, $max); // random integer from $min to $max
+            throw new \Magento\Framework\Exception\LocalizedException(
+                new \Magento\Framework\Phrase("Please make sure you have 'openssl' extension installed")
+            );
         }
 
         return $min + $offset; // random integer from $min to $max

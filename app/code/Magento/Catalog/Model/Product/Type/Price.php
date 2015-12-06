@@ -1,35 +1,19 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Model\Product\Type;
 
 use Magento\Catalog\Model\Product;
-use Magento\Store\Model\Store;
+use Magento\Customer\Api\GroupManagementInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
+use Magento\Store\Model\Store;
 
 /**
  * Product type price model
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class Price
 {
@@ -41,7 +25,7 @@ class Price
     /**
      * @var array
      */
-    protected static $attributeCache = array();
+    protected static $attributeCache = [];
 
     /**
      * Core event manager proxy
@@ -65,14 +49,14 @@ class Price
     /**
      * Store manager
      *
-     * @var \Magento\Framework\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
      * Rule factory
      *
-     * @var \Magento\CatalogRule\Model\Resource\RuleFactory
+     * @var \Magento\CatalogRule\Model\ResourceModel\RuleFactory
      */
     protected $_ruleFactory;
 
@@ -82,20 +66,44 @@ class Price
     protected $priceCurrency;
 
     /**
-     * @param \Magento\CatalogRule\Model\Resource\RuleFactory $ruleFactory
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
+     * @var GroupManagementInterface
+     */
+    protected $_groupManagement;
+
+    /**
+     * @var \Magento\Catalog\Api\Data\ProductTierPriceInterfaceFactory
+     */
+    protected $tierPriceFactory;
+
+    /**
+     * @var \Magento\Framework\App\Config\ScopeConfigInterface
+     */
+    protected $config;
+
+    /**
+     * Price constructor.
+     * @param \Magento\CatalogRule\Model\ResourceModel\RuleFactory $ruleFactory
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Framework\Event\ManagerInterface $eventManager
      * @param PriceCurrencyInterface $priceCurrency
+     * @param GroupManagementInterface $groupManagement
+     * @param \Magento\Catalog\Api\Data\ProductTierPriceInterfaceFactory $tierPriceFactory
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $config
+     *
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
-        \Magento\CatalogRule\Model\Resource\RuleFactory $ruleFactory,
-        \Magento\Framework\StoreManagerInterface $storeManager,
+        \Magento\CatalogRule\Model\ResourceModel\RuleFactory $ruleFactory,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Framework\Event\ManagerInterface $eventManager,
-        PriceCurrencyInterface $priceCurrency
+        PriceCurrencyInterface $priceCurrency,
+        GroupManagementInterface $groupManagement,
+        \Magento\Catalog\Api\Data\ProductTierPriceInterfaceFactory $tierPriceFactory,
+        \Magento\Framework\App\Config\ScopeConfigInterface $config
     ) {
         $this->_ruleFactory = $ruleFactory;
         $this->_storeManager = $storeManager;
@@ -103,6 +111,9 @@ class Price
         $this->_customerSession = $customerSession;
         $this->_eventManager = $eventManager;
         $this->priceCurrency = $priceCurrency;
+        $this->_groupManagement = $groupManagement;
+        $this->tierPriceFactory = $tierPriceFactory;
+        $this->config = $config;
     }
 
     /**
@@ -128,7 +139,6 @@ class Price
     {
         $price = (float) $product->getPrice();
         return min(
-            $this->_applyGroupPrice($product, $price),
             $this->_applyTierPrice($product, $qty, $price),
             $this->_applySpecialPrice($product, $price)
         );
@@ -143,14 +153,14 @@ class Price
      */
     public function getFinalPrice($qty, $product)
     {
-        if (is_null($qty) && !is_null($product->getCalculatedFinalPrice())) {
+        if ($qty === null && $product->getCalculatedFinalPrice() !== null) {
             return $product->getCalculatedFinalPrice();
         }
 
         $finalPrice = $this->getBasePrice($product, $qty);
         $product->setFinalPrice($finalPrice);
 
-        $this->_eventManager->dispatch('catalog_product_get_final_price', array('product' => $product, 'qty' => $qty));
+        $this->_eventManager->dispatch('catalog_product_get_final_price', ['product' => $product, 'qty' => $qty]);
 
         $finalPrice = $product->getData('final_price');
         $finalPrice = $this->_applyOptionsPrice($product, $qty, $finalPrice);
@@ -166,6 +176,8 @@ class Price
      * @param Product $childProduct
      * @param float $childProductQty
      * @return float
+     *
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function getChildFinalPrice($product, $productQty, $childProduct, $childProductQty)
     {
@@ -173,56 +185,46 @@ class Price
     }
 
     /**
-     * Apply group price for product
+     * Gets the 'tear_price' array from the product
      *
      * @param Product $product
-     * @param float $finalPrice
-     * @return float
+     * @param string $key
+     * @param bool $returnRawData
+     * @return array
      */
-    protected function _applyGroupPrice($product, $finalPrice)
+    protected function getExistingPrices($product, $key, $returnRawData = false)
     {
-        $groupPrice = $product->getGroupPrice();
-        if (is_numeric($groupPrice)) {
-            $finalPrice = min($finalPrice, $groupPrice);
+        $prices = $product->getData($key);
+
+        if ($prices === null) {
+            $attribute = $product->getResource()->getAttribute($key);
+            if ($attribute) {
+                $attribute->getBackend()->afterLoad($product);
+                $prices = $product->getData($key);
+            }
         }
-        return $finalPrice;
+
+        if ($prices === null || !is_array($prices)) {
+            return ($returnRawData ? $prices : []);
+        }
+
+        return $prices;
     }
 
     /**
-     * Get product group price
+     * Returns the website to use for group or tier prices, based on the price scope setting
      *
-     * @param Product $product
-     * @return float
-     * @deprecated see \Magento\Catalog\Pricing\Price\GroupPrice
+     * @return int|mixed
      */
-    public function getGroupPrice($product)
+    protected function getWebsiteForPriceScope()
     {
-
-        $groupPrices = $product->getData('group_price');
-
-        if (is_null($groupPrices)) {
-            $attribute = $product->getResource()->getAttribute('group_price');
-            if ($attribute) {
-                $attribute->getBackend()->afterLoad($product);
-                $groupPrices = $product->getData('group_price');
-            }
+        $websiteId = 0;
+        $value = $this->config->getValue('catalog/price/scope', \Magento\Store\Model\ScopeInterface::SCOPE_WEBSITE);
+        if ($value != 0) {
+            // use the website associated with the current store
+            $websiteId = $this->_storeManager->getWebsite()->getId();
         }
-
-        if (is_null($groupPrices) || !is_array($groupPrices)) {
-            return $product->getPrice();
-        }
-
-        $customerGroup = $this->_getCustomerGroupId($product);
-
-        $matchedPrice = $product->getPrice();
-        foreach ($groupPrices as $groupPrice) {
-            if ($groupPrice['cust_group'] == $customerGroup && $groupPrice['website_price'] < $matchedPrice) {
-                $matchedPrice = $groupPrice['website_price'];
-                break;
-            }
-        }
-
-        return $matchedPrice;
+        return $websiteId;
     }
 
     /**
@@ -235,7 +237,7 @@ class Price
      */
     protected function _applyTierPrice($product, $qty, $finalPrice)
     {
-        if (is_null($qty)) {
+        if ($qty === null) {
             return $finalPrice;
         }
 
@@ -252,43 +254,37 @@ class Price
      * @param   float $qty
      * @param   Product $product
      * @return  float|array
-     * @deprecated
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function getTierPrice($qty, $product)
     {
-        $allGroups = \Magento\Customer\Service\V1\CustomerGroupServiceInterface::CUST_GROUP_ALL;
-        $prices = $product->getData('tier_price');
+        $allGroupsId = $this->getAllCustomerGroupsId();
 
-        if (is_null($prices)) {
-            $attribute = $product->getResource()->getAttribute('tier_price');
-            if ($attribute) {
-                $attribute->getBackend()->afterLoad($product);
-                $prices = $product->getData('tier_price');
-            }
-        }
-
-        if (is_null($prices) || !is_array($prices)) {
-            if (!is_null($qty)) {
+        $prices = $this->getExistingPrices($product, 'tier_price', true);
+        if ($prices === null || !is_array($prices)) {
+            if ($qty !== null) {
                 return $product->getPrice();
+            } else {
+                return [
+                    [
+                        'price' => $product->getPrice(),
+                        'website_price' => $product->getPrice(),
+                        'price_qty' => 1,
+                        'cust_group' => $allGroupsId,
+                    ]
+                ];
             }
-            return array(
-                array(
-                    'price' => $product->getPrice(),
-                    'website_price' => $product->getPrice(),
-                    'price_qty' => 1,
-                    'cust_group' => $allGroups
-                )
-            );
         }
 
         $custGroup = $this->_getCustomerGroupId($product);
         if ($qty) {
             $prevQty = 1;
             $prevPrice = $product->getPrice();
-            $prevGroup = $allGroups;
+            $prevGroup = $allGroupsId;
 
             foreach ($prices as $price) {
-                if ($price['cust_group'] != $custGroup && $price['cust_group'] != $allGroups) {
+                if ($price['cust_group'] != $custGroup && $price['cust_group'] != $allGroupsId) {
                     // tier not for current customer group nor is for all groups
                     continue;
                 }
@@ -300,8 +296,9 @@ class Price
                     // higher tier qty already found
                     continue;
                 }
-                if ($price['price_qty'] == $prevQty && $prevGroup != $allGroups && $price['cust_group'] == $allGroups
-                ) {
+                if ($price['price_qty'] == $prevQty &&
+                    $prevGroup != $allGroupsId &&
+                    $price['cust_group'] == $allGroupsId) {
                     // found tier qty is same as current tier qty but current tier group is ALL_GROUPS
                     continue;
                 }
@@ -313,9 +310,9 @@ class Price
             }
             return $prevPrice;
         } else {
-            $qtyCache = array();
+            $qtyCache = [];
             foreach ($prices as $priceKey => $price) {
-                if ($price['cust_group'] != $custGroup && $price['cust_group'] != $allGroups) {
+                if ($price['cust_group'] != $custGroup && $price['cust_group'] != $allGroupsId) {
                     unset($prices[$priceKey]);
                 } elseif (isset($qtyCache[$price['price_qty']])) {
                     $priceQty = $qtyCache[$price['price_qty']];
@@ -331,7 +328,78 @@ class Price
             }
         }
 
-        return $prices ? $prices : array();
+        return $prices ? $prices : [];
+    }
+
+    /**
+     * Gets the CUST_GROUP_ALL id
+     *
+     * @return int
+     */
+    protected function getAllCustomerGroupsId()
+    {
+        // ex: 32000
+        return $this->_groupManagement->getAllCustomersGroup()->getId();
+    }
+
+    /**
+     * Gets list of product tier prices
+     *
+     * @param Product $product
+     * @return \Magento\Catalog\Api\Data\ProductTierPriceInterface[]
+     */
+    public function getTierPrices($product)
+    {
+        $prices = [];
+        $tierPrices = $this->getExistingPrices($product, 'tier_price');
+        foreach ($tierPrices as $price) {
+            /** @var \Magento\Catalog\Api\Data\ProductTierPriceInterface $tierPrice */
+            $tierPrice = $this->tierPriceFactory->create();
+            $tierPrice->setCustomerGroupId($price['cust_group']);
+            if (array_key_exists('website_price', $price)) {
+                $value = $price['website_price'];
+            } else {
+                $value = $price['price'];
+            }
+            $tierPrice->setValue($value);
+            $tierPrice->setQty($price['price_qty']);
+            $prices[] = $tierPrice;
+        }
+        return $prices;
+    }
+
+    /**
+     * Sets list of product tier prices
+     *
+     * @param Product $product
+     * @param \Magento\Catalog\Api\Data\ProductTierPriceInterface[] $tierPrices
+     * @return $this
+     */
+    public function setTierPrices($product, array $tierPrices = null)
+    {
+        // null array means leave everything as is
+        if ($tierPrices === null) {
+            return $this;
+        }
+
+        $websiteId = $this->getWebsiteForPriceScope();
+        $allGroupsId = $this->getAllCustomerGroupsId();
+
+        // build the new array of tier prices
+        $prices = [];
+        foreach ($tierPrices as $price) {
+            $prices[] = [
+                'website_id' => $websiteId,
+                'cust_group' => $price->getCustomerGroupId(),
+                'website_price' => $price->getValue(),
+                'price' => $price->getValue(),
+                'all_groups' => ($price->getCustomerGroupId() == $allGroupsId),
+                'price_qty' => $price->getQty()
+            ];
+        }
+        $product->setData('tier_price', $prices);
+
+        return $this;
     }
 
     /**
@@ -340,7 +408,7 @@ class Price
      */
     protected function _getCustomerGroupId($product)
     {
-        if ($product->getCustomerGroupId()) {
+        if ($product->getCustomerGroupId() !== null) {
             return $product->getCustomerGroupId();
         }
         return $this->_customerSession->getCustomerGroupId();
@@ -369,7 +437,6 @@ class Price
      *
      * @param   Product $product
      * @return  int
-     * @deprecated
      */
     public function getTierPriceCount($product)
     {
@@ -383,7 +450,6 @@ class Price
      * @param   float $qty
      * @param   Product $product
      * @return  array|float
-     * @deprecated
      */
     public function getFormatedTierPrice($qty, $product)
     {
@@ -419,7 +485,7 @@ class Price
      * @param int $qty
      * @param float $finalPrice
      * @return float
-     * @deprecated
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     protected function _applyOptionsPrice($product, $qty, $finalPrice)
     {
@@ -483,8 +549,8 @@ class Price
         );
 
         if ($rulePrice === false) {
-            $storeTimestamp = $this->_localeDate->scopeTimeStamp($sId);
-            $rulePrice = $this->_ruleFactory->create()->getRulePrice($storeTimestamp, $wId, $gId, $productId);
+            $date = $this->_localeDate->scopeDate($sId);
+            $rulePrice = $this->_ruleFactory->create()->getRulePrice($date, $wId, $gId, $productId);
         }
 
         if ($rulePrice !== null && $rulePrice !== false) {
@@ -513,7 +579,7 @@ class Price
         $specialPriceTo,
         $store = null
     ) {
-        if (!is_null($specialPrice) && $specialPrice != false) {
+        if ($specialPrice !== null && $specialPrice != false) {
             if ($this->_localeDate->isScopeDateInInterval($store, $specialPriceFrom, $specialPriceTo)) {
                 $finalPrice = min($finalPrice, $specialPrice);
             }
@@ -527,16 +593,6 @@ class Price
      * @return bool
      */
     public function isTierPriceFixed()
-    {
-        return $this->isGroupPriceFixed();
-    }
-
-    /**
-     * Check is group price value fixed or percent of original price
-     *
-     * @return bool
-     */
-    public function isGroupPriceFixed()
     {
         return true;
     }

@@ -1,32 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Module\Setup;
 
 class Context implements \Magento\Framework\ObjectManager\ContextInterface
 {
     /**
-     * @var \Magento\Framework\Logger
+     * @var \Psr\Log\LoggerInterface
      */
     protected $_logger;
 
@@ -36,7 +18,7 @@ class Context implements \Magento\Framework\ObjectManager\ContextInterface
     protected $_eventManager;
 
     /**
-     * @var \Magento\Framework\App\Resource
+     * @var \Magento\Framework\App\ResourceConnection
      */
     protected $_resourceModel;
 
@@ -53,7 +35,7 @@ class Context implements \Magento\Framework\ObjectManager\ContextInterface
     /**
      * @var \Magento\Framework\Module\ResourceInterface
      */
-    protected $_resourceResource;
+    protected $_resource;
 
     /**
      * @var \Magento\Framework\Module\Setup\MigrationFactory
@@ -66,40 +48,40 @@ class Context implements \Magento\Framework\ObjectManager\ContextInterface
     protected $_encryptor;
 
     /**
-     * @var \Magento\Framework\App\Filesystem
+     * @var \Magento\Framework\Filesystem
      */
     protected $filesystem;
 
     /**
      * Constructor
      *
-     * @param \Magento\Framework\Logger $logger
+     * @param \Psr\Log\LoggerInterface $logger
      * @param \Magento\Framework\Event\ManagerInterface $eventManager
-     * @param \Magento\Framework\App\Resource $resource
+     * @param \Magento\Framework\App\ResourceConnection $appResource
      * @param \Magento\Framework\Module\Dir\Reader $modulesReader
      * @param \Magento\Framework\Module\ModuleListInterface $moduleList
-     * @param \Magento\Framework\Module\ResourceInterface $resourceResource
+     * @param \Magento\Framework\Module\ResourceInterface $resource
      * @param \Magento\Framework\Module\Setup\MigrationFactory $migrationFactory
      * @param \Magento\Framework\Encryption\EncryptorInterface $encryptor
-     * @param \Magento\Framework\App\Filesystem $filesystem
+     * @param \Magento\Framework\Filesystem $filesystem
      */
     public function __construct(
-        \Magento\Framework\Logger $logger,
+        \Psr\Log\LoggerInterface $logger,
         \Magento\Framework\Event\ManagerInterface $eventManager,
-        \Magento\Framework\App\Resource $resource,
+        \Magento\Framework\App\ResourceConnection $appResource,
         \Magento\Framework\Module\Dir\Reader $modulesReader,
         \Magento\Framework\Module\ModuleListInterface $moduleList,
-        \Magento\Framework\Module\ResourceInterface $resourceResource,
+        \Magento\Framework\Module\ResourceInterface $resource,
         \Magento\Framework\Module\Setup\MigrationFactory $migrationFactory,
         \Magento\Framework\Encryption\EncryptorInterface $encryptor,
-        \Magento\Framework\App\Filesystem $filesystem
+        \Magento\Framework\Filesystem $filesystem
     ) {
         $this->_logger = $logger;
         $this->_eventManager = $eventManager;
-        $this->_resourceModel = $resource;
+        $this->_resourceModel = $appResource;
         $this->_modulesReader = $modulesReader;
         $this->_moduleList = $moduleList;
-        $this->_resourceResource = $resourceResource;
+        $this->_resource = $resource;
         $this->_migrationFactory = $migrationFactory;
         $this->_encryptor = $encryptor;
         $this->filesystem = $filesystem;
@@ -114,7 +96,7 @@ class Context implements \Magento\Framework\ObjectManager\ContextInterface
     }
 
     /**
-     * @return \Magento\Framework\Logger $logger
+     * @return \Psr\Log\LoggerInterface $logger
      */
     public function getLogger()
     {
@@ -138,7 +120,7 @@ class Context implements \Magento\Framework\ObjectManager\ContextInterface
     }
 
     /**
-     * @return \Magento\Framework\App\Resource
+     * @return \Magento\Framework\App\ResourceConnection
      */
     public function getResourceModel()
     {
@@ -156,9 +138,9 @@ class Context implements \Magento\Framework\ObjectManager\ContextInterface
     /**
      * @return \Magento\Framework\Module\ResourceInterface
      */
-    public function getResourceResource()
+    public function getResource()
     {
-        return $this->_resourceResource;
+        return $this->_resource;
     }
 
     /**
@@ -170,7 +152,7 @@ class Context implements \Magento\Framework\ObjectManager\ContextInterface
     }
 
     /**
-     * @return \Magento\Framework\App\Filesystem
+     * @return \Magento\Framework\Filesystem
      */
     public function getFilesystem()
     {

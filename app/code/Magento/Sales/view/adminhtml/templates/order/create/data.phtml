@@ -1,98 +1,112 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 ?>
 <div class="page-create-order">
-    <script type="text/javascript">
+    <script>
     require(["Magento_Sales/order/create/form"], function(){
-        order.setCurrencySymbol('<?php echo $this->getCurrencySymbol($this->getCurrentCurrencyCode()) ?>')
+        order.setCurrencySymbol('<?php /* @escapeNotVerified */ echo $block->getCurrencySymbol($block->getCurrentCurrencyCode()) ?>')
     });
 </script>
-    <?php if($this->getCustomerId()): ?>
-    <div class="order-sidebar">
-        <div class="store-switcher order-currency">
-            <label for="currency_switcher"><?php echo __('Order Currency:') ?></label>
-            <select id="currency_switcher" name="order[currency]" onchange="order.setCurrencyId(this.value); order.setCurrencySymbol(this.options[this.selectedIndex].getAttribute('symbol'));">
-                <?php foreach ($this->getAvailableCurrencies() as $_code): ?>
-                    <option value="<?php echo $_code ?>"<?php if($_code==$this->getCurrentCurrencyCode()): ?> selected="selected"<?php endif; ?> symbol="<?php echo $this->getCurrencySymbol($_code) ?>">
-                        <?php echo $this->getCurrencyName($_code) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
+    <div class="order-details<?php if ($block->getCustomerId()): ?> order-details-existing-customer<?php endif; ?>">
+
+        <div id="order-additional_area" style="display: none" class="admin__page-section order-additional-area">
+            <?php echo $block->getChildHtml('additional_area') ?>
         </div>
-        <div class="customer-current-activity" id="order-sidebar">
-            <?php echo $this->getChildHtml('sidebar') ?>
+
+        <div id="order-search" style="display: none" class="admin__page-section order-search-items">
+            <?php echo $block->getChildHtml('search') ?>
         </div>
+
+        <section id="order-items" class="admin__page-section order-items" data-mage-init='{"loader": {}}'>
+            <?php echo $block->getChildHtml('items') ?>
+        </section>
+
+        <div id="order-errors" class="order-errors"><?php echo $block->getChildHtml('errors') ?></div>
+
+        <section id="order-form_account" class="admin__page-section order-account-information">
+            <?php echo $block->getChildHtml('form_account') ?>
+        </section>
+
+        <section id="order-addresses" class="admin__page-section order-addresses">
+            <div class="admin__page-section-title">
+                <span class="title"><?php /* @escapeNotVerified */ echo __('Address Information') ?></span>
+            </div>
+            <div class="admin__page-section-content">
+                <div id="order-billing_address" class="admin__page-section-item order-billing-address">
+                    <?php echo $block->getChildHtml('billing_address') ?>
+                </div>
+                <div id="order-shipping_address" class="admin__page-section-item order-shipping-address">
+                    <?php echo $block->getChildHtml('shipping_address') ?>
+                </div>
+            </div>
+        </section>
+
+        <section id="order-methods" class="admin__page-section order-methods">
+            <div class="admin__page-section-title">
+                <span class="title"><?php /* @escapeNotVerified */ echo __('Payment &amp; Shipping Information') ?></span>
+            </div>
+            <div class="admin__page-section-content">
+                <div id="order-billing_method" class="admin__page-section-item order-billing-method">
+                    <?php echo $block->getChildHtml('billing_method') ?>
+                </div>
+                <div id="order-shipping_method" class="admin__page-section-item order-shipping-method">
+                    <?php echo $block->getChildHtml('shipping_method') ?>
+                </div>
+            </div>
+        </section>
+
+        <?php if ($block->getChildBlock('card_validation')): ?>
+        <section id="order-card_validation" class="admin__page-section order-card-validation">
+            <?php echo $block->getChildHtml('card_validation') ?>
+        </section>
+        <?php endif; ?>
+
+        <?php echo $block->getChildHtml('gift_options') ?>
+
+        <section class="admin__page-section order-summary">
+            <div class="admin__page-section-title">
+                <span class="title"><?php /* @escapeNotVerified */ echo __('Order Total') ?></span>
+            </div>
+            <div class="admin__page-section-content">
+                <fieldset class="admin__fieldset order-history" id="order-comment">
+                    <legend class="admin__legend"><span><?php /* @escapeNotVerified */ echo __('Order History') ?></span></legend>
+                    <br>
+                    <?php echo $block->getChildHtml('comment') ?>
+                </fieldset>
+                <fieldset id="order-totals" class="admin__fieldset order-totals">
+                    <?php echo $block->getChildHtml('totals') ?>
+                </fieldset>
+            </div>
+        </section>
     </div>
+
+    <?php if ($block->getCustomerId()): ?>
+        <div class="order-sidebar">
+            <div class="store-switcher order-currency">
+                <label class="admin__field-label" for="currency_switcher">
+                    <?php /* @escapeNotVerified */ echo __('Order Currency:') ?>
+                </label>
+                <select id="currency_switcher"
+                        class="admin__control-select"
+                        name="order[currency]"
+                        onchange="order.setCurrencyId(this.value); order.setCurrencySymbol(this.options[this.selectedIndex].getAttribute('symbol'));">
+                    <?php foreach ($block->getAvailableCurrencies() as $_code): ?>
+                        <option value="<?php /* @escapeNotVerified */ echo $_code ?>"<?php if ($_code == $block->getCurrentCurrencyCode()): ?> selected="selected"<?php endif; ?> symbol="<?php /* @escapeNotVerified */ echo $block->getCurrencySymbol($_code) ?>">
+                            <?php /* @escapeNotVerified */ echo $block->getCurrencyName($_code) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="customer-current-activity" id="order-sidebar">
+                <?php echo $block->getChildHtml('sidebar') ?>
+            </div>
+        </div>
     <?php endif; ?>
-    <div class="order-details<?php if($this->getCustomerId()): ?> order-details-existing-customer<?php endif; ?>">
-        <div class="order-details-inner">
-            <div id="order-additional_area" style="display:none" class="fieldset-wrapper order-additional-area"><?php echo $this->getChildHtml('additional_area') ?></div>
-            <div id="order-search" style="display:none" class="fieldset-wrapper order-search-items"><?php echo $this->getChildHtml('search') ?></div>
-            <div id="order-items" class="order-items fieldset-wrapper" data-mage-init='{"loader": {}}'><?php echo $this->getChildHtml('items') ?></div>
-            <div id="order-errors" class="order-errors"><?php echo $this->getChildHtml('errors') ?></div>
-            <div id="order-form_account" class="order-account-information fieldset-wrapper"><?php echo $this->getChildHtml('form_account') ?></div>
 
-            <div id="order-addresses" class="order-addresses">
-                <div id="order-billing_address" class="order-billing-address"><?php echo $this->getChildHtml('billing_address') ?></div>
-                <div id="order-shipping_address" class="order-shipping-address"><?php echo $this->getChildHtml('shipping_address') ?></div>
-            </div>
-
-            <div id="order-methods" class="order-methods">
-                <div class="order-billing-method">
-                    <div class="fieldset-wrapper" id="order-billing_method">
-                        <?php echo $this->getChildHtml('billing_method') ?>
-                    </div>
-                </div>
-                <div class="order-shipping-method">
-                    <div class="fieldset-wrapper" id="order-shipping_method">
-                        <?php echo $this->getChildHtml('shipping_method') ?>
-                    </div>
-                </div>
-            </div>
-
-            <?php if($this->getChildBlock('card_validation')): ?>
-                <div class="order-card-validation" id="order-card_validation">
-                    <?php echo $this->getChildHtml('card_validation') ?>
-                </div>
-            <?php endif; ?>
-
-            <?php echo $this->getChildHtml('gift_options') ?>
-
-            <div class="order-summary">
-                <div class="order-history">
-                    <fieldset class="fieldset" id="order-comment">
-                         <legend class="legend"><span><?php echo __('Order History') ?></span></legend>
-                        <?php echo $this->getChildHtml('comment') ?>
-                    </fieldset>
-                </div>
-                <div class="order-totals">
-                    <fieldset id="order-totals" class="order-totals-content fieldset">
-                        <?php echo $this->getChildHtml('totals') ?>
-                    </fieldset>
-                </div>
-            </div>
-
-        </div>
-    </div>
 </div>

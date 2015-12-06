@@ -1,32 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Framework\View\Asset;
 
-use Magento\Framework\View\Asset\File;
-use \Magento\Framework\UrlInterface;
-use \Magento\Framework\App\Filesystem;
+use Magento\Framework\UrlInterface;
+use Magento\Framework\App\Filesystem\DirectoryList;
+use Magento\Framework\Filesystem;
 
 /**
  * A repository service for view assets
@@ -70,21 +52,60 @@ class Repository
     private $fileContext;
 
     /**
+     * @var null|array
+     */
+    private $defaults = null;
+
+    /**
+     * @var FileFactory
+     */
+    private $fileFactory;
+
+    /**
+     * @var File\FallbackContextFactory
+     */
+    private $fallbackContextFactory;
+
+    /**
+     * @var File\ContextFactory
+     */
+    private $contextFactory;
+    /**
+     * @var RemoteFactory
+     */
+    private $remoteFactory;
+
+    /**
      * @param \Magento\Framework\UrlInterface $baseUrl
      * @param \Magento\Framework\View\DesignInterface $design
      * @param \Magento\Framework\View\Design\Theme\ListInterface $themeList
      * @param \Magento\Framework\View\Asset\Source $assetSource
+     * @param \Magento\Framework\App\Request\Http $request
+     * @param FileFactory $fileFactory
+     * @param File\FallbackContextFactory $fallbackContextFactory
+     * @param File\ContextFactory $contextFactory
+     * @param RemoteFactory $remoteFactory
      */
     public function __construct(
         \Magento\Framework\UrlInterface $baseUrl,
         \Magento\Framework\View\DesignInterface $design,
         \Magento\Framework\View\Design\Theme\ListInterface $themeList,
-        \Magento\Framework\View\Asset\Source $assetSource
+        \Magento\Framework\View\Asset\Source $assetSource,
+        \Magento\Framework\App\Request\Http $request,
+        FileFactory $fileFactory,
+        File\FallbackContextFactory $fallbackContextFactory,
+        File\ContextFactory $contextFactory,
+        RemoteFactory $remoteFactory
     ) {
         $this->baseUrl = $baseUrl;
         $this->design = $design;
         $this->themeList = $themeList;
         $this->assetSource = $assetSource;
+        $this->request = $request;
+        $this->fileFactory = $fileFactory;
+        $this->fallbackContextFactory = $fallbackContextFactory;
+        $this->contextFactory = $contextFactory;
+        $this->remoteFactory = $remoteFactory;
     }
 
     /**
@@ -98,11 +119,9 @@ class Repository
      */
     public function updateDesignParams(array &$params)
     {
-        $defaults = $this->design->getDesignParams();
-
         // Set area
         if (empty($params['area'])) {
-            $params['area'] = $defaults['area'];
+            $params['area'] = $this->getDefaultParameter('area');
         }
 
         // Set themeModel
@@ -112,7 +131,7 @@ class Repository
             $theme = $params['themeId'];
         } elseif (isset($params['theme'])) {
             $theme = $params['theme'];
-        } elseif (empty($params['themeModel']) && $area !== $defaults['area']) {
+        } elseif (empty($params['themeModel']) && $area !== $this->getDefaultParameter('area')) {
             $theme = $this->design->getConfigurationDesignTheme($area);
         }
 
@@ -122,9 +141,8 @@ class Repository
                 throw new \UnexpectedValueException("Could not find theme '$theme' for area '$area'");
             }
         } elseif (empty($params['themeModel'])) {
-            $params['themeModel'] = $defaults['themeModel'];
+            $params['themeModel'] = $this->getDefaultParameter('themeModel');
         }
-
 
         // Set module
         if (!array_key_exists('module', $params)) {
@@ -133,9 +151,21 @@ class Repository
 
         // Set locale
         if (empty($params['locale'])) {
-            $params['locale'] = $defaults['locale'];
+            $params['locale'] = $this->getDefaultParameter('locale');
         }
         return $this;
+    }
+
+    /**
+     * Get default design parameter
+     *
+     * @param string $name
+     * @return mixed
+     */
+    private function getDefaultParameter($name)
+    {
+        $this->defaults = $this->design->getDesignParams();
+        return $this->defaults[$name];
     }
 
     /**
@@ -145,7 +175,7 @@ class Repository
      * @param array $params
      * @return File
      */
-    public function createAsset($fileId, array $params = array())
+    public function createAsset($fileId, array $params = [])
     {
         $this->updateDesignParams($params);
         list($module, $filePath) = self::extractModule($fileId);
@@ -153,7 +183,7 @@ class Repository
             $module = $params['module'];
         }
         $isSecure = isset($params['_secure']) ? (bool) $params['_secure'] : null;
-        $themePath = $this->design->getThemePath($params['themeModel']);
+        $themePath = isset($params['theme']) ? $params['theme'] : $this->design->getThemePath($params['themeModel']);
         $context = $this->getFallbackContext(
             UrlInterface::URL_TYPE_STATIC,
             $isSecure,
@@ -161,12 +191,14 @@ class Repository
             $themePath,
             $params['locale']
         );
-        return new File(
-            $this->assetSource,
-            $context,
-            $filePath,
-            $module,
-            $this->assetSource->getContentType($filePath)
+        return $this->fileFactory->create(
+            [
+                'source' => $this->assetSource,
+                'context' => $context,
+                'filePath' => $filePath,
+                'module' => $module,
+                'contentType' => $this->assetSource->getContentType($filePath)
+            ]
         );
     }
 
@@ -177,12 +209,13 @@ class Repository
      */
     public function getStaticViewFileContext()
     {
-        $params = array();
+        $params = [];
         $this->updateDesignParams($params);
         $themePath = $this->design->getThemePath($params['themeModel']);
+        $isSecure = $this->request->isSecure();
         return $this->getFallbackContext(
             UrlInterface::URL_TYPE_STATIC,
-            null,
+            $isSecure,
             $params['area'],
             $themePath,
             $params['locale']
@@ -204,15 +237,18 @@ class Repository
     private function getFallbackContext($urlType, $isSecure, $area, $themePath, $locale)
     {
         $secureKey = null === $isSecure ? 'null' : (int)$isSecure;
-        $baseDirType = \Magento\Framework\App\Filesystem::STATIC_VIEW_DIR;
-        $id = implode('|', array($baseDirType, $urlType, $secureKey, $area, $themePath, $locale));
+        $baseDirType = DirectoryList::STATIC_VIEW;
+        $id = implode('|', [$baseDirType, $urlType, $secureKey, $area, $themePath, $locale]);
         if (!isset($this->fallbackContext[$id])) {
-            $url = $this->baseUrl->getBaseUrl(array('_type' => $urlType, '_secure' => $isSecure));
-            $this->fallbackContext[$id] = new \Magento\Framework\View\Asset\File\FallbackContext(
-                $url,
-                $area,
-                $themePath,
-                $locale
+            $url = $this->baseUrl->getBaseUrl(['_type' => $urlType, '_secure' => $isSecure]);
+            $this->fallbackContext[$id] = $this->fallbackContextFactory->create(
+                [
+                    'baseUrl' => $url,
+                    'areaType' => $area,
+                    'themePath' => $themePath,
+                    'localeCode' => $locale,
+                    'isSecure' => $isSecure
+                ]
             );
         }
         return $this->fallbackContext[$id];
@@ -231,12 +267,14 @@ class Repository
         if (!$module) {
             $module = $similarTo->getModule();
         }
-        return new File(
-            $this->assetSource,
-            $similarTo->getContext(),
-            $filePath,
-            $module,
-            $this->assetSource->getContentType($filePath)
+        return $this->fileFactory->create(
+            [
+                'source' => $this->assetSource,
+                'context' => $similarTo->getContext(),
+                'filePath' => $filePath,
+                'module' => $module,
+                'contentType' => $this->assetSource->getContentType($filePath)
+            ]
         );
     }
 
@@ -255,12 +293,20 @@ class Repository
     public function createArbitrary(
         $filePath,
         $dirPath,
-        $baseDirType = Filesystem::STATIC_VIEW_DIR,
+        $baseDirType = DirectoryList::STATIC_VIEW,
         $baseUrlType = UrlInterface::URL_TYPE_STATIC
     ) {
         $context = $this->getFileContext($baseDirType, $baseUrlType, $dirPath);
         $contentType = $this->assetSource->getContentType($filePath);
-        return new File($this->assetSource, $context, $filePath, '', $contentType);
+        return $this->fileFactory->create(
+            [
+                'source' => $this->assetSource,
+                'context' => $context,
+                'filePath' => $filePath,
+                'module' => '',
+                'contentType' => $contentType
+            ]
+        );
     }
 
     /**
@@ -275,10 +321,12 @@ class Repository
      */
     private function getFileContext($baseDirType, $urlType, $dirPath)
     {
-        $id = implode('|', array($baseDirType, $urlType, $dirPath));
+        $id = implode('|', [$baseDirType, $urlType, $dirPath]);
         if (!isset($this->fileContext[$id])) {
-            $url = $this->baseUrl->getBaseUrl(array('_type' => $urlType));
-            $this->fileContext[$id] = new \Magento\Framework\View\Asset\File\Context($url, $baseDirType, $dirPath);
+            $url = $this->baseUrl->getBaseUrl(['_type' => $urlType]);
+            $this->fileContext[$id] = $this->contextFactory->create(
+                ['baseUrl' => $url, 'baseDirType' => $baseDirType, 'contextPath' => $dirPath]
+            );
         }
         return $this->fileContext[$id];
     }
@@ -306,10 +354,11 @@ class Repository
      * @param string $url
      * @param string $contentType
      * @return Remote
+     * @codeCoverageIgnore
      */
     public function createRemoteAsset($url, $contentType)
     {
-        return new Remote($url, $contentType);
+        return $this->remoteFactory->create(['url' => $url, 'contentType' => $contentType]);
     }
 
     /**
@@ -345,17 +394,19 @@ class Repository
      *
      * @param string $fileId
      * @return array
-     * @throws \Magento\Framework\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public static function extractModule($fileId)
     {
         if (strpos($fileId, self::FILE_ID_SEPARATOR) === false) {
-            return array('', $fileId);
+            return ['', $fileId];
         }
         $result = explode(self::FILE_ID_SEPARATOR, $fileId, 2);
         if (empty($result[0])) {
-            throw new \Magento\Framework\Exception('Scope separator "::" cannot be used without scope identifier.');
+            throw new \Magento\Framework\Exception\LocalizedException(
+                new \Magento\Framework\Phrase('Scope separator "::" cannot be used without scope identifier.')
+            );
         }
-        return array($result[0], $result[1]);
+        return [$result[0], $result[1]];
     }
 }

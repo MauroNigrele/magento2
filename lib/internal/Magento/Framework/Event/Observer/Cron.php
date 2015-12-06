@@ -1,31 +1,12 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 
 /**
  * Event cron observer object
- * 
+ *
  * @author      Magento Core Team <core@magentocommerce.com>
  */
 namespace Magento\Framework\Event\Observer;
@@ -34,11 +15,12 @@ class Cron extends \Magento\Framework\Event\Observer
 {
     /**
      * Checks the observer's cron string against event's name
-     * 
+     *
      * Supports $this->setCronExpr('* 0-5,10-59/5 2-10,15-25 january-june/2 mon-fri')
      *
      * @param \Magento\Framework\Event $event
      * @return boolean
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function isValidFor(\Magento\Framework\Event $event)
     {
@@ -82,6 +64,8 @@ class Cron extends \Magento\Framework\Event\Observer
      * @param string $expr
      * @param int $num
      * @return bool
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function matchCronExpression($expr, $num)
     {
@@ -139,7 +123,7 @@ class Cron extends \Magento\Framework\Event\Observer
      */
     public function getNumeric($value)
     {
-        static $data = array(
+        static $data = [
             'jan' => 1,
             'feb' => 2,
             'mar' => 3,
@@ -158,8 +142,8 @@ class Cron extends \Magento\Framework\Event\Observer
             'wed' => 3,
             'thu' => 4,
             'fri' => 5,
-            'sat' => 6
-        );
+            'sat' => 6,
+        ];
 
         if (is_numeric($value)) {
             return $value;

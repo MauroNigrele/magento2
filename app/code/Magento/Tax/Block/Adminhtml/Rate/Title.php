@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Tax\Block\Adminhtml\Rate;
@@ -54,9 +36,9 @@ class Title extends \Magento\Framework\View\Element\Template
     protected $_coreRegistry;
 
     /**
-     * @var \Magento\Tax\Service\V1\TaxRateServiceInterface
+     * @var \Magento\Tax\Api\TaxRateRepositoryInterface
      */
-    protected $_taxRateService;
+    protected $_taxRateRepository;
 
     /**
      * Initialize dependencies
@@ -64,18 +46,18 @@ class Title extends \Magento\Framework\View\Element\Template
      * @param \Magento\Framework\View\Element\Template\Context $context
      * @param \Magento\Store\Model\StoreFactory $storeFactory
      * @param \Magento\Framework\Registry $coreRegistry
-     * @param \Magento\Tax\Service\V1\TaxRateServiceInterface $taxRateService
+     * @param \Magento\Tax\Api\TaxRateRepositoryInterface $taxRateRepository
      * @param array $data
      */
     public function __construct(
         \Magento\Framework\View\Element\Template\Context $context,
         \Magento\Store\Model\StoreFactory $storeFactory,
         \Magento\Framework\Registry $coreRegistry,
-        \Magento\Tax\Service\V1\TaxRateServiceInterface $taxRateService,
-        array $data = array()
+        \Magento\Tax\Api\TaxRateRepositoryInterface $taxRateRepository,
+        array $data = []
     ) {
         $this->_coreRegistry = $coreRegistry;
-        $this->_taxRateService = $taxRateService;
+        $this->_taxRateRepository = $taxRateRepository;
         $this->_storeFactory = $storeFactory;
         parent::__construct($context, $data);
     }
@@ -87,13 +69,13 @@ class Title extends \Magento\Framework\View\Element\Template
      */
     public function getTitles()
     {
-        if (is_null($this->_titles)) {
-            $this->_titles = array();
+        if ($this->_titles === null) {
+            $this->_titles = [];
 
             $taxRateId = $this->_coreRegistry->registry(RegistryConstants::CURRENT_TAX_RATE_ID);
-            $titles = array();
+            $titles = [];
             if ($taxRateId) {
-                $rate = $this->_taxRateService->getTaxRate($taxRateId);
+                $rate = $this->_taxRateRepository->get($taxRateId);
                 $titles = $rate->getTitles();
             }
 
@@ -115,7 +97,7 @@ class Title extends \Magento\Framework\View\Element\Template
     public function getStores()
     {
         $stores = $this->getData('stores');
-        if (is_null($stores)) {
+        if ($stores === null) {
             $stores = $this->_storeFactory->create()->getResourceCollection()->setLoadDefault(false)->load();
             $this->setData('stores', $stores);
         }

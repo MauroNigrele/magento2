@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\CatalogRule\Model;
 
@@ -28,8 +10,8 @@ use Magento\Catalog\Model\Product;
 /**
  * Catalog Rule data model
  *
- * @method \Magento\CatalogRule\Model\Resource\Rule _getResource()
- * @method \Magento\CatalogRule\Model\Resource\Rule getResource()
+ * @method \Magento\CatalogRule\Model\ResourceModel\Rule _getResource()
+ * @method \Magento\CatalogRule\Model\ResourceModel\Rule getResource()
  * @method string getName()
  * @method \Magento\CatalogRule\Model\Rule setName(string $value)
  * @method string getDescription()
@@ -55,6 +37,8 @@ use Magento\Catalog\Model\Product;
  * @method \Magento\CatalogRule\Model\Rule setDiscountAmount(float $value)
  * @method string getWebsiteIds()
  * @method \Magento\CatalogRule\Model\Rule setWebsiteIds(string $value)
+ * @SuppressWarnings(PHPMD.TooManyFields)
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class Rule extends \Magento\Rule\Model\AbstractModel
 {
@@ -100,7 +84,7 @@ class Rule extends \Magento\Rule\Model\AbstractModel
      *
      * @var array
      */
-    protected static $_priceRulesData = array();
+    protected static $_priceRulesData = [];
 
     /**
      * Catalog rule data
@@ -120,14 +104,9 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     protected $_relatedCacheTypes;
 
     /**
-     * @var \Magento\Framework\Model\Resource\Iterator
+     * @var \Magento\Framework\Model\ResourceModel\Iterator
      */
     protected $_resourceIterator;
-
-    /**
-     * @var \Magento\Index\Model\Indexer
-     */
-    protected $_indexer;
 
     /**
      * @var \Magento\Customer\Model\Session
@@ -150,12 +129,12 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     protected $_productFactory;
 
     /**
-     * @var \Magento\Framework\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
-     * @var \Magento\Catalog\Model\Resource\Product\CollectionFactory
+     * @var \Magento\Catalog\Model\ResourceModel\Product\CollectionFactory
      */
     protected $_productCollectionFactory;
 
@@ -165,46 +144,52 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     protected $dateTime;
 
     /**
+     * @var \Magento\CatalogRule\Model\Indexer\Rule\RuleProductProcessor;
+     */
+    protected $_ruleProductProcessor;
+
+    /**
      * @param \Magento\Framework\Model\Context $context
      * @param \Magento\Framework\Registry $registry
      * @param \Magento\Framework\Data\FormFactory $formFactory
      * @param \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate
-     * @param \Magento\Catalog\Model\Resource\Product\CollectionFactory $productCollectionFactory
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
+     * @param \Magento\Catalog\Model\ResourceModel\Product\CollectionFactory $productCollectionFactory
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param \Magento\CatalogRule\Model\Rule\Condition\CombineFactory $combineFactory
      * @param \Magento\CatalogRule\Model\Rule\Action\CollectionFactory $actionCollectionFactory
      * @param \Magento\Catalog\Model\ProductFactory $productFactory
-     * @param \Magento\Framework\Model\Resource\Iterator $resourceIterator
-     * @param \Magento\Index\Model\Indexer $indexer
+     * @param \Magento\Framework\Model\ResourceModel\Iterator $resourceIterator
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\CatalogRule\Helper\Data $catalogRuleData
      * @param \Magento\Framework\App\Cache\TypeListInterface $cacheTypesList
      * @param \Magento\Framework\Stdlib\DateTime $dateTime
-     * @param \Magento\Framework\Model\Resource\AbstractResource $resource
-     * @param \Magento\Framework\Data\Collection\Db $resourceCollection
+     * @param \Magento\CatalogRule\Model\Indexer\Rule\RuleProductProcessor $ruleProductProcessor
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
      * @param array $relatedCacheTypes
      * @param array $data
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
         \Magento\Framework\Model\Context $context,
         \Magento\Framework\Registry $registry,
         \Magento\Framework\Data\FormFactory $formFactory,
         \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate,
-        \Magento\Catalog\Model\Resource\Product\CollectionFactory $productCollectionFactory,
-        \Magento\Framework\StoreManagerInterface $storeManager,
+        \Magento\Catalog\Model\ResourceModel\Product\CollectionFactory $productCollectionFactory,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\CatalogRule\Model\Rule\Condition\CombineFactory $combineFactory,
         \Magento\CatalogRule\Model\Rule\Action\CollectionFactory $actionCollectionFactory,
         \Magento\Catalog\Model\ProductFactory $productFactory,
-        \Magento\Framework\Model\Resource\Iterator $resourceIterator,
-        \Magento\Index\Model\Indexer $indexer,
+        \Magento\Framework\Model\ResourceModel\Iterator $resourceIterator,
         \Magento\Customer\Model\Session $customerSession,
         \Magento\CatalogRule\Helper\Data $catalogRuleData,
         \Magento\Framework\App\Cache\TypeListInterface $cacheTypesList,
         \Magento\Framework\Stdlib\DateTime $dateTime,
-        \Magento\Framework\Model\Resource\AbstractResource $resource = null,
-        \Magento\Framework\Data\Collection\Db $resourceCollection = null,
-        array $relatedCacheTypes = array(),
-        array $data = array()
+        \Magento\CatalogRule\Model\Indexer\Rule\RuleProductProcessor $ruleProductProcessor,
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        array $relatedCacheTypes = [],
+        array $data = []
     ) {
         $this->_productCollectionFactory = $productCollectionFactory;
         $this->_storeManager = $storeManager;
@@ -212,12 +197,12 @@ class Rule extends \Magento\Rule\Model\AbstractModel
         $this->_actionCollectionFactory = $actionCollectionFactory;
         $this->_productFactory = $productFactory;
         $this->_resourceIterator = $resourceIterator;
-        $this->_indexer = $indexer;
         $this->_customerSession = $customerSession;
         $this->_catalogRuleData = $catalogRuleData;
         $this->_cacheTypesList = $cacheTypesList;
         $this->_relatedCacheTypes = $relatedCacheTypes;
         $this->dateTime = $dateTime;
+        $this->_ruleProductProcessor = $ruleProductProcessor;
         parent::__construct($context, $registry, $formFactory, $localeDate, $resource, $resourceCollection, $data);
     }
 
@@ -229,7 +214,7 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     protected function _construct()
     {
         parent::_construct();
-        $this->_init('Magento\CatalogRule\Model\Resource\Rule');
+        $this->_init('Magento\CatalogRule\Model\ResourceModel\Rule');
         $this->setIdFieldName('rule_id');
     }
 
@@ -275,7 +260,7 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     public function getNow()
     {
         if (!$this->_now) {
-            return $this->dateTime->now();
+            return (new \DateTime())->format(\Magento\Framework\Stdlib\DateTime::DATETIME_PHP_FORMAT);
         }
         return $this->_now;
     }
@@ -285,6 +270,7 @@ class Rule extends \Magento\Rule\Model\AbstractModel
      *
      * @param string $now
      * @return void
+     * @codeCoverageIgnore
      */
     public function setNow($now)
     {
@@ -298,12 +284,12 @@ class Rule extends \Magento\Rule\Model\AbstractModel
      */
     public function getMatchingProductIds()
     {
-        if (is_null($this->_productIds)) {
-            $this->_productIds = array();
-            $this->setCollectedAttributes(array());
+        if ($this->_productIds === null) {
+            $this->_productIds = [];
+            $this->setCollectedAttributes([]);
 
             if ($this->getWebsiteIds()) {
-                /** @var $productCollection \Magento\Catalog\Model\Resource\Product\Collection */
+                /** @var $productCollection \Magento\Catalog\Model\ResourceModel\Product\Collection */
                 $productCollection = $this->_productCollectionFactory->create();
                 $productCollection->addWebsiteFilter($this->getWebsiteIds());
                 if ($this->_productsFilter) {
@@ -313,11 +299,11 @@ class Rule extends \Magento\Rule\Model\AbstractModel
 
                 $this->_resourceIterator->walk(
                     $productCollection->getSelect(),
-                    array(array($this, 'callbackValidateProduct')),
-                    array(
+                    [[$this, 'callbackValidateProduct']],
+                    [
                         'attributes' => $this->getCollectedAttributes(),
                         'product' => $this->_productFactory->create()
-                    )
+                    ]
                 );
             }
         }
@@ -337,7 +323,7 @@ class Rule extends \Magento\Rule\Model\AbstractModel
         $product->setData($args['row']);
 
         $websites = $this->_getWebsitesMap();
-        $results = array();
+        $results = [];
 
         foreach ($websites as $websiteId => $defaultStoreId) {
             $product->setStoreId($defaultStoreId);
@@ -353,55 +339,68 @@ class Rule extends \Magento\Rule\Model\AbstractModel
      */
     protected function _getWebsitesMap()
     {
-        $map = array();
+        $map = [];
         $websites = $this->_storeManager->getWebsites(true);
         foreach ($websites as $website) {
+            // Continue if website has no store to be able to create catalog rule for website without store
+            if ($website->getDefaultStore() === null) {
+                continue;
+            }
             $map[$website->getId()] = $website->getDefaultStore()->getId();
         }
         return $map;
     }
 
     /**
-     * Apply rule to product
-     *
-     * @param int|Product $product
-     * @param array|null $websiteIds
-     *
-     * @return void
+     * {@inheritdoc}
      */
-    public function applyToProduct($product, $websiteIds = null)
+    public function validateData(\Magento\Framework\DataObject $dataObject)
     {
-        if (is_numeric($product)) {
-            $product = $this->_productFactory->create()->load($product);
+        $result = parent::validateData($dataObject);
+        if ($result === true) {
+            $result = [];
         }
-        if (is_null($websiteIds)) {
-            $websiteIds = $this->getWebsiteIds();
+
+        $action = $dataObject->getData('simple_action');
+        $discount = $dataObject->getData('discount_amount');
+        $result = array_merge($result, $this->validateDiscount($action, $discount));
+        if ($dataObject->getData('sub_is_enable') == 1) {
+            $action = $dataObject->getData('sub_simple_action');
+            $discount = $dataObject->getData('sub_discount_amount');
+            $result = array_merge($result, $this->validateDiscount($action, $discount));
         }
-        $this->getResource()->applyToProduct($this, $product, $websiteIds);
+
+        return !empty($result) ? $result : true;
     }
 
     /**
-     * Apply all price rules, invalidate related cache and refresh price index
+     * Validate discount based on action
      *
-     * @return void
-     */
-    public function applyAll()
-    {
-        $this->getResourceCollection()->walk(array($this->_getResource(), 'updateRuleProductData'));
-        $this->_getResource()->applyAllRulesForDateRange();
-        $this->_invalidateCache();
-    }
-
-    /**
-     * Apply all price rules to product
+     * @param string $action
+     * @param string|int|float $discount
      *
-     * @param  int|Product $product
-     * @return void
+     * @return array Validation errors
      */
-    public function applyAllRulesToProduct($product)
+    protected function validateDiscount($action, $discount)
     {
-        $this->_getResource()->applyAllRulesForDateRange(null, null, $product);
-        $this->_invalidateCache();
+        $result = [];
+        switch ($action) {
+            case 'by_percent':
+            case 'to_percent':
+                if ($discount < 0 || $discount > 100) {
+                    $result[] = __('Percentage discount should be between 0 and 100.');
+                };
+                break;
+            case 'by_fixed':
+            case 'to_fixed':
+                if ($discount < 0) {
+                    $result[] = __('Discount value should be 0 or greater.');
+                };
+                break;
+            default:
+                $result[] = __('Unknown action.');
+        }
+        return $result;
     }
 
     /**
@@ -410,6 +409,7 @@ class Rule extends \Magento\Rule\Model\AbstractModel
      * @param Product $product
      * @param float $price
      * @return float|null
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function calcProductPriceRule(Product $product, $price)
     {
@@ -482,6 +482,7 @@ class Rule extends \Magento\Rule\Model\AbstractModel
      *
      * @param  int|array $productIds
      * @return void
+     * @codeCoverageIgnore
      */
     public function setProductsFilter($productIds)
     {
@@ -492,6 +493,7 @@ class Rule extends \Magento\Rule\Model\AbstractModel
      * Returns products filter
      *
      * @return array|int|null
+     * @codeCoverageIgnore
      */
     public function getProductsFilter()
     {
@@ -512,35 +514,77 @@ class Rule extends \Magento\Rule\Model\AbstractModel
     }
 
     /**
-     * @deprecated after 1.11.2.0
+     * {@inheritdoc}
      *
-     * @param string $format
-     *
-     * @return string
+     * @return $this
      */
-    public function toString($format = '')
+    public function afterSave()
     {
-        return '';
+        if ($this->isObjectNew()) {
+            $this->getMatchingProductIds();
+            if (!empty($this->_productIds) && is_array($this->_productIds)) {
+                $this->_ruleProductProcessor->reindexList($this->_productIds);
+            }
+        } else {
+            $this->_ruleProductProcessor->getIndexer()->invalidate();
+        }
+        return parent::afterSave();
     }
 
     /**
-     * Returns rule as an array for admin interface
+     * {@inheritdoc}
      *
-     * @deprecated after 1.11.2.0
+     * @return $this
+     */
+    public function afterDelete()
+    {
+        $this->_ruleProductProcessor->getIndexer()->invalidate();
+        return parent::afterDelete();
+    }
+
+    /**
+     * Check if rule behavior changed
      *
-     * @param array $arrAttributes
-     *
-     * Output example:
-     * array(
-     *   'name'=>'Example rule',
-     *   'conditions'=>{condition_combine::toArray}
-     *   'actions'=>{action_collection::toArray}
-     * )
+     * @return bool
+     */
+    public function isRuleBehaviorChanged()
+    {
+        if (!$this->isObjectNew()) {
+            $arrayDiff = $this->dataDiff($this->getOrigData(), $this->getStoredData());
+            unset($arrayDiff['name']);
+            unset($arrayDiff['description']);
+            if (empty($arrayDiff)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Get array with data differences
+     * @param array $array1
+     * @param array $array2
      *
      * @return array
      */
-    public function toArray(array $arrAttributes = array())
+    protected function dataDiff($array1, $array2)
     {
-        return parent::toArray($arrAttributes);
+        $result = [];
+        foreach ($array1 as $key => $value) {
+            if (array_key_exists($key, $array2)) {
+                if (is_array($value)) {
+                    if ($value != $array2[$key]) {
+                        $result[$key] = true;
+                    }
+                } else {
+                    if ($value != $array2[$key]) {
+                        $result[$key] = true;
+                    }
+                }
+            } else {
+                $result[$key] = true;
+            }
+        }
+        return $result;
     }
 }

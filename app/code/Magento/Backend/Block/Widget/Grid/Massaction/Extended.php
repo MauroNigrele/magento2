@@ -1,35 +1,17 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Backend\Block\Widget\Grid\Massaction;
 
 /**
  * Grid widget massaction block
  *
- * @method \Magento\Sales\Model\Quote setHideFormElement(boolean $value) Hide Form element to prevent IE errors
+ * @method \Magento\Quote\Model\Quote setHideFormElement(boolean $value) Hide Form element to prevent IE errors
  * @method boolean getHideFormElement()
  * @author      Magento Core Team <core@magentocommerce.com>
- * @deprecated support Magento 1.x grid massaction implementation
+ * @TODO MAGETWO-31510: Remove deprecated class
  */
 class Extended extends \Magento\Backend\Block\Widget
 {
@@ -38,7 +20,7 @@ class Extended extends \Magento\Backend\Block\Widget
      *
      * @var array
      */
-    protected $_items = array();
+    protected $_items = [];
 
     /**
      * Path to template file in theme
@@ -69,7 +51,7 @@ class Extended extends \Magento\Backend\Block\Widget
         \Magento\Backend\Block\Template\Context $context,
         \Magento\Framework\Json\EncoderInterface $jsonEncoder,
         \Magento\Backend\Helper\Data $backendData,
-        array $data = array()
+        array $data = []
     ) {
         $this->_jsonEncoder = $jsonEncoder;
         $this->_backendData = $backendData;
@@ -155,7 +137,7 @@ class Extended extends \Magento\Backend\Block\Widget
      */
     public function getItemsJson()
     {
-        $result = array();
+        $result = [];
         foreach ($this->getItems() as $itemId => $item) {
             $result[$itemId] = $item->toArray();
         }
@@ -249,7 +231,7 @@ class Extended extends \Magento\Backend\Block\Widget
             $selected = explode(',', $selected);
             return $selected;
         } else {
-            return array();
+            return [];
         }
     }
 
@@ -276,8 +258,7 @@ class Extended extends \Magento\Backend\Block\Widget
             ($this->getUseAjax() ? "{$this->getJsObjectName()}.setUseAjax(true);" : '') .
             ($this->getUseSelectAll() ? "{$this->getJsObjectName()}.setUseSelectAll(true);" : '') .
             "{$this->getJsObjectName()}.errorText = '{$this->getErrorText()}';" . "\n" .
-            "window.{$this->getJsObjectName()} = {$this->getJsObjectName()};"
-            ;
+            "window.{$this->getJsObjectName()} = {$this->getJsObjectName()};";
     }
 
     /**
@@ -289,7 +270,9 @@ class Extended extends \Magento\Backend\Block\Widget
             return '';
         }
 
-        $gridIds = $this->getParentBlock()->getCollection()->getAllIds();
+        /** @var \Magento\Framework\Data\Collection $allIdsCollection */
+        $allIdsCollection = clone $this->getParentBlock()->getCollection();
+        $gridIds = $allIdsCollection->clear()->setPageSize(0)->getAllIds();
 
         if (!empty($gridIds)) {
             return join(",", $gridIds);
@@ -324,6 +307,7 @@ class Extended extends \Magento\Backend\Block\Widget
      * Retrieve select all functionality flag check
      *
      * @return boolean
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName)
      */
     public function getUseSelectAll()
     {

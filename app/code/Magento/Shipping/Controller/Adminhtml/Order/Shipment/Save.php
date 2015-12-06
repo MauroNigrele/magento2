@@ -1,31 +1,13 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Shipping\Controller\Adminhtml\Order\Shipment;
 
-use \Magento\Backend\App\Action;
-use \Magento\Sales\Model\Order\Email\Sender\ShipmentSender;
+use Magento\Backend\App\Action;
+use Magento\Sales\Model\Order\Email\Sender\ShipmentSender;
 
 class Save extends \Magento\Backend\App\Action
 {
@@ -96,9 +78,21 @@ class Save extends \Magento\Backend\App\Action
      * We can save only new shipment. Existing shipments are not editable
      *
      * @return void
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function execute()
     {
+        /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
+        $resultRedirect = $this->resultRedirectFactory->create();
+
+        $formKeyIsValid = $this->_formKeyValidator->validate($this->getRequest());
+        $isPost = $this->getRequest()->isPost();
+        if (!$formKeyIsValid || !$isPost) {
+            $this->messageManager->addError(__('We can\'t save the shipment right now.'));
+            return $resultRedirect->setPath('sales/order/index');
+        }
+
         $data = $this->getRequest()->getParam('shipment');
 
         if (!empty($data['comment_text'])) {
@@ -116,25 +110,21 @@ class Save extends \Magento\Backend\App\Action
                 return;
             }
 
-            $shipment->register();
-            $comment = '';
             if (!empty($data['comment_text'])) {
                 $shipment->addComment(
                     $data['comment_text'],
                     isset($data['comment_customer_notify']),
                     isset($data['is_visible_on_front'])
                 );
-                if (isset($data['comment_customer_notify'])) {
-                    $comment = $data['comment_text'];
-                }
+
+                $shipment->setCustomerNote($data['comment_text']);
+                $shipment->setCustomerNoteNotify(isset($data['comment_customer_notify']));
             }
 
-            if (!empty($data['send_email'])) {
-                $shipment->setEmailSent(true);
-            }
+            $shipment->register();
 
             $shipment->getOrder()->setCustomerNoteNotify(!empty($data['send_email']));
-            $responseAjax = new \Magento\Framework\Object();
+            $responseAjax = new \Magento\Framework\DataObject();
             $isNeedCreateLabel = isset($data['create_shipping_label']) && $data['create_shipping_label'];
 
             if ($isNeedCreateLabel) {
@@ -144,7 +134,9 @@ class Save extends \Magento\Backend\App\Action
 
             $this->_saveShipment($shipment);
 
-            $this->shipmentSender->send($shipment, !empty($data['send_email']), $comment);
+            if (!empty($data['send_email'])) {
+                $this->shipmentSender->send($shipment);
+            }
 
             $shipmentCreatedMessage = __('The shipment has been created.');
             $labelCreatedMessage = __('You created the shipping label.');
@@ -153,22 +145,22 @@ class Save extends \Magento\Backend\App\Action
                 $isNeedCreateLabel ? $shipmentCreatedMessage . ' ' . $labelCreatedMessage : $shipmentCreatedMessage
             );
             $this->_objectManager->get('Magento\Backend\Model\Session')->getCommentText(true);
-        } catch (\Magento\Framework\Model\Exception $e) {
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
             if ($isNeedCreateLabel) {
                 $responseAjax->setError(true);
                 $responseAjax->setMessage($e->getMessage());
             } else {
                 $this->messageManager->addError($e->getMessage());
-                $this->_redirect('*/*/new', array('order_id' => $this->getRequest()->getParam('order_id')));
+                $this->_redirect('*/*/new', ['order_id' => $this->getRequest()->getParam('order_id')]);
             }
         } catch (\Exception $e) {
-            $this->_objectManager->get('Magento\Framework\Logger')->logException($e);
+            $this->_objectManager->get('Psr\Log\LoggerInterface')->critical($e);
             if ($isNeedCreateLabel) {
                 $responseAjax->setError(true);
                 $responseAjax->setMessage(__('An error occurred while creating shipping label.'));
             } else {
                 $this->messageManager->addError(__('Cannot save shipment.'));
-                $this->_redirect('*/*/new', array('order_id' => $this->getRequest()->getParam('order_id')));
+                $this->_redirect('*/*/new', ['order_id' => $this->getRequest()->getParam('order_id')]);
             }
         }
         if ($isNeedCreateLabel) {

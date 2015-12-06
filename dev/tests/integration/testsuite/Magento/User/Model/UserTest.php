@@ -1,26 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 namespace Magento\User\Model;
 
 /**
@@ -68,7 +53,7 @@ class UserTest extends \PHPUnit_Framework_TestCase
             'user@magento.com'
         );
 
-        $crud = new \Magento\TestFramework\Entity($this->_model, array('firstname' => '_New_name_'));
+        $crud = new \Magento\TestFramework\Entity($this->_model, ['firstname' => '_New_name_']);
         $crud->testCrud();
     }
 
@@ -104,7 +89,7 @@ class UserTest extends \PHPUnit_Framework_TestCase
     public function testUpdateRoleOnSave()
     {
         $this->_model->loadByUsername(\Magento\TestFramework\Bootstrap::ADMIN_NAME);
-        $this->assertEquals('Administrators', $this->_model->getRole()->getRoleName());
+        $this->assertEquals(\Magento\TestFramework\Bootstrap::ADMIN_ROLE_NAME, $this->_model->getRole()->getRoleName());
         $this->_model->setRoleId(self::$_newRole->getId())->save();
         $this->assertEquals('admin_role', $this->_model->getRole()->getRoleName());
     }
@@ -124,7 +109,7 @@ class UserTest extends \PHPUnit_Framework_TestCase
     public function testSaveExtra()
     {
         $this->_model->loadByUsername(\Magento\TestFramework\Bootstrap::ADMIN_NAME);
-        $this->_model->saveExtra(array('test' => 'val'));
+        $this->_model->saveExtra(['test' => 'val']);
         $this->_model->loadByUsername(\Magento\TestFramework\Bootstrap::ADMIN_NAME);
         $extra = unserialize($this->_model->getExtra());
         $this->assertEquals($extra['test'], 'val');
@@ -181,15 +166,17 @@ class UserTest extends \PHPUnit_Framework_TestCase
 
     public function testGetCollection()
     {
-        $this->assertInstanceOf('Magento\Framework\Model\Resource\Db\Collection\AbstractCollection',
+        $this->assertInstanceOf('Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection',
             $this->_model->getCollection());
     }
 
     public function testGetName()
     {
+        $firstname = \Magento\TestFramework\Bootstrap::ADMIN_FIRSTNAME;
+        $lastname = \Magento\TestFramework\Bootstrap::ADMIN_LASTNAME;
         $this->_model->loadByUsername(\Magento\TestFramework\Bootstrap::ADMIN_NAME);
-        $this->assertEquals('firstname lastname', $this->_model->getName());
-        $this->assertEquals('firstname///lastname', $this->_model->getName('///'));
+        $this->assertEquals("$firstname $lastname", $this->_model->getName());
+        $this->assertEquals("$firstname///$lastname", $this->_model->getName('///'));
     }
 
     public function testGetUninitializedAclRole()
@@ -230,7 +217,7 @@ class UserTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \Magento\Backend\Model\Auth\Exception
+     * @expectedException \Magento\Framework\Exception\AuthenticationException
      * @magentoDbIsolation enabled
      */
     public function testAuthenticateInactiveUser()
@@ -244,7 +231,7 @@ class UserTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \Magento\Backend\Model\Auth\Exception
+     * @expectedException \Magento\Framework\Exception\AuthenticationException
      * @magentoDbIsolation enabled
      */
     public function testAuthenticateUserWithoutRole()
@@ -291,7 +278,7 @@ class UserTest extends \PHPUnit_Framework_TestCase
         $this->_model->setFirstname('NewFirstName');
         $this->assertEquals('NewFirstName', $this->_model->getFirstname());
         $this->_model->reload();
-        $this->assertEquals('firstname', $this->_model->getFirstname());
+        $this->assertEquals(\Magento\TestFramework\Bootstrap::ADMIN_FIRSTNAME, $this->_model->getFirstname());
     }
 
     /**
@@ -308,7 +295,7 @@ class UserTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \Magento\Framework\Model\Exception
+     * @expectedException \Magento\Framework\Exception\LocalizedException
      * @expectedExceptionMessage User Name is a required field.
      * @expectedExceptionMessage First Name is a required field.
      * @expectedExceptionMessage Last Name is a required field.
@@ -335,14 +322,14 @@ class UserTest extends \PHPUnit_Framework_TestCase
         )->setLastname(
             'Doe'
         )->setEmail(
-            'jdoe@gmail.com'
+            'jdoe@example.com'
         )->setPassword(
             '123123q'
         );
         $this->_model->save();
         $this->assertNotContains('123123q', $this->_model->getPassword(), 'Password is expected to be hashed');
         $this->assertRegExp(
-            '/^[0-9a-f]+:[0-9a-zA-Z]{32}$/',
+            '/^[0-9a-f]+:[0-9a-zA-Z]{32}:[0-9]+$/',
             $this->_model->getPassword(),
             'Salt is expected to be saved along with the password'
         );
@@ -358,7 +345,7 @@ class UserTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \Magento\Framework\Model\Exception
+     * @expectedException \Magento\Framework\Exception\LocalizedException
      * @expectedExceptionMessage Your password confirmation must match your password.
      * @magentoDbIsolation enabled
      */
@@ -370,7 +357,7 @@ class UserTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \Magento\Framework\Model\Exception
+     * @expectedException \Magento\Framework\Exception\LocalizedException
      * @expectedExceptionMessage Your password must include both numeric and alphabetic characters.
      * @magentoDbIsolation enabled
      */
@@ -382,7 +369,7 @@ class UserTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @dataProvider beforeSavePasswordInsecureDataProvider
-     * @expectedException \Magento\Framework\Model\Exception
+     * @expectedException \Magento\Framework\Exception\LocalizedException
      * @expectedExceptionMessage Your password must include both numeric and alphabetic characters.
      * @magentoDbIsolation enabled
      * @param string $password
@@ -395,11 +382,11 @@ class UserTest extends \PHPUnit_Framework_TestCase
 
     public function beforeSavePasswordInsecureDataProvider()
     {
-        return array('alpha chars only' => array('aaaaaaaa'), 'digits only' => array('1234567'));
+        return ['alpha chars only' => ['aaaaaaaa'], 'digits only' => ['1234567']];
     }
 
     /**
-     * @expectedException \Magento\Framework\Model\Exception
+     * @expectedException \Magento\Framework\Exception\LocalizedException
      * @expectedExceptionMessage A user with the same user name or email already exists.
      * @magentoDbIsolation enabled
      */
@@ -421,7 +408,7 @@ class UserTest extends \PHPUnit_Framework_TestCase
         )->setLastname(
             'Doe'
         )->setEmail(
-            'jdoe@gmail.com'
+            'jdoe@example.com'
         )->setPassword(
             '1234abc'
         )->setPasswordConfirmation(

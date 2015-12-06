@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\View;
 
@@ -49,6 +31,11 @@ class FileSystem
     protected $_staticFileResolution;
 
     /**
+     * @var \Magento\Framework\View\Design\FileResolution\Fallback\EmailTemplateFile
+     */
+    protected $_emailTemplateFileResolution;
+
+    /**
      * View service
      *
      * @var \Magento\Framework\View\Asset\Repository
@@ -62,6 +49,7 @@ class FileSystem
      * @param \Magento\Framework\View\Design\FileResolution\Fallback\TemplateFile $fallbackTemplateFile
      * @param \Magento\Framework\View\Design\FileResolution\Fallback\LocaleFile $fallbackLocaleFile
      * @param \Magento\Framework\View\Design\FileResolution\Fallback\StaticFile $fallbackStaticFile
+     * @param \Magento\Framework\View\Design\FileResolution\Fallback\EmailTemplateFile $fallbackEmailTemplateFile
      * @param \Magento\Framework\View\Asset\Repository $assetRepo
      */
     public function __construct(
@@ -69,12 +57,14 @@ class FileSystem
         \Magento\Framework\View\Design\FileResolution\Fallback\TemplateFile $fallbackTemplateFile,
         \Magento\Framework\View\Design\FileResolution\Fallback\LocaleFile $fallbackLocaleFile,
         \Magento\Framework\View\Design\FileResolution\Fallback\StaticFile $fallbackStaticFile,
+        \Magento\Framework\View\Design\FileResolution\Fallback\EmailTemplateFile $fallbackEmailTemplateFile,
         \Magento\Framework\View\Asset\Repository $assetRepo
     ) {
         $this->_fileResolution = $fallbackFile;
         $this->_templateFileResolution = $fallbackTemplateFile;
         $this->_localeFileResolution = $fallbackLocaleFile;
         $this->_staticFileResolution = $fallbackStaticFile;
+        $this->_emailTemplateFileResolution = $fallbackEmailTemplateFile;
         $this->_assetRepo = $assetRepo;
     }
 
@@ -85,7 +75,7 @@ class FileSystem
      * @param array $params
      * @return string
      */
-    public function getFilename($fileId, array $params = array())
+    public function getFilename($fileId, array $params = [])
     {
         list($module, $filePath) = \Magento\Framework\View\Asset\Repository::extractModule(
             $this->normalizePath($fileId)
@@ -106,7 +96,7 @@ class FileSystem
      * @param array $params
      * @return string
      */
-    public function getLocaleFileName($file, array $params = array())
+    public function getLocaleFileName($file, array $params = [])
     {
         $this->_assetRepo->updateDesignParams($params);
         return $this->_localeFileResolution
@@ -118,9 +108,9 @@ class FileSystem
      *
      * @param string $fileId
      * @param array $params
-     * @return string
+     * @return string|bool
      */
-    public function getTemplateFileName($fileId, array $params = array())
+    public function getTemplateFileName($fileId, array $params = [])
     {
         list($module, $filePath) = \Magento\Framework\View\Asset\Repository::extractModule(
             $this->normalizePath($fileId)
@@ -140,7 +130,7 @@ class FileSystem
      * @param array $params
      * @return string
      */
-    public function getStaticFileName($fileId, array $params = array())
+    public function getStaticFileName($fileId, array $params = [])
     {
         list($module, $filePath) = \Magento\Framework\View\Asset\Repository::extractModule(
             $this->normalizePath($fileId)
@@ -154,6 +144,21 @@ class FileSystem
     }
 
     /**
+     * Get an email template file
+     *
+     * @param string $fileId
+     * @param array $params
+     * @param string $module
+     * @return string|bool
+     */
+    public function getEmailTemplateFileName($fileId, array $params, $module)
+    {
+        $this->_assetRepo->updateDesignParams($params);
+        return $this->_emailTemplateFileResolution
+            ->getFile($params['area'], $params['themeModel'], $params['locale'], $fileId, $module);
+    }
+
+    /**
      * Remove excessive "." and ".." parts from a path
      *
      * For example foo/bar/../file.ext -> foo/file.ext
@@ -164,7 +169,7 @@ class FileSystem
     public static function normalizePath($path)
     {
         $parts = explode('/', $path);
-        $result = array();
+        $result = [];
 
         foreach ($parts as $part) {
             if ('..' === $part) {
@@ -239,6 +244,6 @@ class FileSystem
             array_shift($one);
             array_shift($two);
         }
-        return array(implode('/', $one), implode('/', $two));
+        return [implode('/', $one), implode('/', $two)];
     }
 }

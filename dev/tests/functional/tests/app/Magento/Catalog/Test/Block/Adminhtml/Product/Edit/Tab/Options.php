@@ -1,34 +1,16 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Test\Block\Adminhtml\Product\Edit\Tab;
 
-use Mtf\ObjectManager;
-use Mtf\Client\Element;
-use Mtf\Client\Element\Locator;
 use Magento\Backend\Test\Block\Widget\Tab;
+use Magento\Mtf\Client\Element\SimpleElement;
 use Magento\Catalog\Test\Block\Adminhtml\Product\Edit\Tab\Options\Search\Grid;
+use Magento\Mtf\ObjectManager;
+use Magento\Mtf\Client\Locator;
 
 /**
  * Class Options
@@ -69,16 +51,18 @@ class Options extends Tab
      *
      * @var string
      */
-    protected $importGrid = "//ancestor::body/div[*[@id='import-container'] and contains(@style,'display: block')]";
+    protected $importGrid = "//ancestor::body//aside[*//div[@id='import-container']]";
 
     /**
      * Fill custom options form on tab
      *
      * @param array $fields
-     * @param Element|null $element
+     * @param SimpleElement|null $element
      * @return $this
+     *
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function fillFormTab(array $fields, Element $element = null)
+    public function fillFormTab(array $fields, SimpleElement $element = null)
     {
         $fields = reset($fields);
         if (empty($fields['value']) || !is_array($fields['value'])) {
@@ -154,13 +138,16 @@ class Options extends Tab
     /**
      * Get data of tab
      *
-     * @param array|null $fields
-     * @param Element|null $element
+     * @param array|null $tabFields
+     * @param SimpleElement|null $element
      * @return array
+     *
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function getDataFormTab($fields = null, Element $element = null)
+    public function getDataFormTab($tabFields = null, SimpleElement $element = null)
     {
-        $fields = reset($fields);
+        $fields = reset($tabFields);
+        $name = key($tabFields);
         $formData = [];
         if (empty($fields['value'])) {
             return $formData;
@@ -198,7 +185,7 @@ class Options extends Tab
                     );
                 }
             }
-            $formData[$fields['attribute_code']][$keyRoot] = $formDataItem;
+            $formData[$name][$keyRoot] = $formDataItem;
         }
 
         return $formData;
@@ -215,21 +202,24 @@ class Options extends Tab
         $importOptions = $options['import']['options'];
         $options = array_merge($options, $importOptions);
         unset($options['import']);
+
         return $options;
     }
 
     /**
      * Convert option name
      *
-     * @param string $str
+     * @param string $inputType
      * @return string
      */
-    protected function optionNameConvert($str)
+    protected function optionNameConvert($inputType)
     {
-        $str = str_replace([' ', '&'], "", $str);
-        if ($end = strpos($str, '-')) {
-            $str = substr($str, 0, $end) . ucfirst(substr($str, ($end + 1)));
+        $option = substr($inputType, strpos($inputType, "/") + 1);
+        $option = str_replace([' ', '&'], "", $option);
+        if ($end = strpos($option, '-')) {
+            $option = substr($option, 0, $end) . ucfirst(substr($option, ($end + 1)));
         }
-        return $str;
+
+        return $option;
     }
 }

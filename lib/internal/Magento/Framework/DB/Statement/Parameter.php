@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\DB\Statement;
 
@@ -29,7 +11,7 @@ namespace Magento\Framework\DB\Statement;
  * Used to transmit specific information about parameter value binding to be bound the right
  * way to the query.
  * Most used properties and methods are defined in interface. Specific things for concrete DB adapter can be
- * transmitted using 'addtional' property (\Magento\Framework\Object) as a container.
+ * transmitted using 'addtional' property (\Magento\Framework\DataObject) as a container.
  *
  * @author      Magento Core Team <core@magentocommerce.com>
  */
@@ -72,7 +54,7 @@ class Parameter
 
     /*
      * Additional information to be used by DB adapter internally
-     * @var \Magento\Framework\Object
+     * @var \Magento\Framework\DataObject
      */
     protected $_additional = null;
 
@@ -84,7 +66,7 @@ class Parameter
     public function __construct($value)
     {
         $this->_value = $value;
-        $this->_additional = new \Magento\Framework\Object();
+        $this->_additional = new \Magento\Framework\DataObject();
         return $this;
     }
 
@@ -133,6 +115,7 @@ class Parameter
      * @return bool
      *
      * @see setIsBlob
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName)
      */
     public function getIsBlob()
     {
@@ -209,7 +192,7 @@ class Parameter
      * Sets additional information for concrete DB adapter.
      * Set there any data you want to pass along with query parameter.
      *
-     * @param \Magento\Framework\Object $additional
+     * @param \Magento\Framework\DataObject $additional
      * @return $this
      */
     public function setAdditional($additional)
@@ -221,7 +204,7 @@ class Parameter
     /**
      * Gets additional information for concrete DB adapter.
      *
-     * @return \Magento\Framework\Object
+     * @return \Magento\Framework\DataObject
      */
     public function getAdditional()
     {

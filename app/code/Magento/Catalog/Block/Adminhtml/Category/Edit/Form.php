@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -31,6 +13,9 @@ namespace Magento\Catalog\Block\Adminhtml\Category\Edit;
 
 use Magento\Backend\Block\Template;
 
+/**
+ * Class Form
+ */
 class Form extends \Magento\Catalog\Block\Adminhtml\Category\AbstractCategory
 {
     /**
@@ -38,7 +23,7 @@ class Form extends \Magento\Catalog\Block\Adminhtml\Category\AbstractCategory
      *
      * @var array
      */
-    protected $_additionalButtons = array();
+    protected $_additionalButtons = [];
 
     /**
      * @var string
@@ -51,20 +36,22 @@ class Form extends \Magento\Catalog\Block\Adminhtml\Category\AbstractCategory
     protected $_jsonEncoder;
 
     /**
+     * Constructor
+     *
      * @param Template\Context $context
      * @param \Magento\Framework\Json\EncoderInterface $jsonEncoder
-     * @param \Magento\Catalog\Model\Resource\Category\Tree $categoryTree
+     * @param \Magento\Catalog\Model\ResourceModel\Category\Tree $categoryTree
      * @param \Magento\Framework\Registry $registry
      * @param \Magento\Catalog\Model\CategoryFactory $categoryFactory,
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
-        \Magento\Catalog\Model\Resource\Category\Tree $categoryTree,
+        \Magento\Catalog\Model\ResourceModel\Category\Tree $categoryTree,
         \Magento\Framework\Registry $registry,
         \Magento\Catalog\Model\CategoryFactory $categoryFactory,
         \Magento\Framework\Json\EncoderInterface $jsonEncoder,
-        array $data = array()
+        array $data = []
     ) {
         $this->_jsonEncoder = $jsonEncoder;
         parent::__construct($context, $categoryTree, $registry, $categoryFactory, $data);
@@ -75,14 +62,6 @@ class Form extends \Magento\Catalog\Block\Adminhtml\Category\AbstractCategory
      */
     protected function _prepareLayout()
     {
-        //if ($head = $this->getLayout()->getBlock('head')) {
-        //    $head->addChild(
-        //        'magento-adminhtml-catalog-category-edit-js',
-        //        'Magento\Theme\Block\Html\Head\Script',
-        //        array('file' => 'Magento_Catalog::catalog/category/edit.js')
-        //    );
-        //}
-
         $category = $this->getCategory();
         $categoryId = (int)$category->getId();
         // 0 when we create category, otherwise some value for editing category
@@ -96,12 +75,19 @@ class Form extends \Magento\Catalog\Block\Adminhtml\Category\AbstractCategory
         if (!$category->isReadonly() && $this->hasStoreRootCategory()) {
             $this->addButton(
                 'save',
-                array(
+                [
                     'id' => 'save',
                     'label' => __('Save Category'),
-                    'onclick' => "categorySubmit('" . $this->getSaveUrl() . "', true)",
-                    'class' => 'save primary save-category'
-                )
+                    'class' => 'save primary save-category',
+                    'data_attribute' => [
+                        'mage-init' => [
+                            'Magento_Catalog/catalog/category/edit' => [
+                                'url' => $this->getSaveUrl(),
+                                'ajax' => true
+                            ]
+                        ]
+                    ]
+                ]
             );
         }
 
@@ -109,15 +95,12 @@ class Form extends \Magento\Catalog\Block\Adminhtml\Category\AbstractCategory
         if ($categoryId && !in_array($categoryId, $this->getRootIds()) && $category->isDeleteable()) {
             $this->addButton(
                 'delete',
-                array(
+                [
                     'id' => 'delete',
                     'label' => __('Delete Category'),
-                    'onclick' => "categoryDelete('" . $this->getUrl(
-                        'catalog/*/delete',
-                        array('_current' => true)
-                    ) . "', true, {$categoryId})",
+                    'onclick' => "categoryDelete('" . $this->getDeleteUrl() . "')",
                     'class' => 'delete'
-                )
+                ]
             );
         }
 
@@ -126,12 +109,14 @@ class Form extends \Magento\Catalog\Block\Adminhtml\Category\AbstractCategory
             $resetPath = $categoryId ? 'catalog/*/edit' : 'catalog/*/add';
             $this->addButton(
                 'reset',
-                array(
+                [
                     'id' => 'reset',
                     'label' => __('Reset'),
-                    'onclick' => "categoryReset('" . $this->getUrl($resetPath, array('_current' => true)) . "',true)",
+                    'onclick' => "categoryReset('"
+                        . $this->getUrl($resetPath, $this->getDefaultUrlParams())
+                        . "',true)",
                     'class' => 'reset'
-                )
+                ]
             );
         }
 
@@ -144,7 +129,7 @@ class Form extends \Magento\Catalog\Block\Adminhtml\Category\AbstractCategory
     public function getStoreConfigurationUrl()
     {
         $storeId = (int)$this->getRequest()->getParam('store');
-        $params = array();
+        $params = [];
         //        $params = array('section'=>'catalog');
         if ($storeId) {
             $store = $this->_storeManager->getStore($storeId);
@@ -156,7 +141,6 @@ class Form extends \Magento\Catalog\Block\Adminhtml\Category\AbstractCategory
 
     /**
      * @return string
-     * @deprecated
      */
     public function getDeleteButtonHtml()
     {
@@ -165,7 +149,6 @@ class Form extends \Magento\Catalog\Block\Adminhtml\Category\AbstractCategory
 
     /**
      * @return string
-     * @deprecated
      */
     public function getSaveButtonHtml()
     {
@@ -177,7 +160,6 @@ class Form extends \Magento\Catalog\Block\Adminhtml\Category\AbstractCategory
 
     /**
      * @return string
-     * @deprecated
      */
     public function getResetButtonHtml()
     {
@@ -251,7 +233,7 @@ class Form extends \Magento\Catalog\Block\Adminhtml\Category\AbstractCategory
     }
 
     /**
-     * @return string
+     * @return \Magento\Framework\Phrase|string
      */
     public function getHeader()
     {
@@ -274,10 +256,9 @@ class Form extends \Magento\Catalog\Block\Adminhtml\Category\AbstractCategory
      * @param array $args
      * @return string
      */
-    public function getDeleteUrl(array $args = array())
+    public function getDeleteUrl(array $args = [])
     {
-        $params = array('_current' => true);
-        $params = array_merge($params, $args);
+        $params = array_merge($this->getDefaultUrlParams(), $args);
         return $this->getUrl('catalog/*/delete', $params);
     }
 
@@ -287,10 +268,9 @@ class Form extends \Magento\Catalog\Block\Adminhtml\Category\AbstractCategory
      * @param array $args
      * @return string
      */
-    public function getRefreshPathUrl(array $args = array())
+    public function getRefreshPathUrl(array $args = [])
     {
-        $params = array('_current' => true);
-        $params = array_merge($params, $args);
+        $params = array_merge($this->getDefaultUrlParams(), $args);
         return $this->getUrl('catalog/*/refreshPath', $params);
     }
 
@@ -312,6 +292,26 @@ class Form extends \Magento\Catalog\Block\Adminhtml\Category\AbstractCategory
     public function isAjax()
     {
         return $this->_request->isXmlHttpRequest() || $this->_request->getParam('isAjax');
+    }
+
+    /**
+     * Get parent category id
+     *
+     * @return int
+     */
+    public function getParentCategoryId()
+    {
+        return (int)$this->templateContext->getRequest()->getParam('parent');
+    }
+
+    /**
+     * Get category id
+     *
+     * @return int
+     */
+    public function getCategoryId()
+    {
+        return (int)$this->templateContext->getRequest()->getParam('id');
     }
 
     /**
@@ -355,5 +355,13 @@ class Form extends \Magento\Catalog\Block\Adminhtml\Category\AbstractCategory
             $blockClassName = 'Magento\Backend\Block\Widget\Button';
         }
         return $this->getLayout()->createBlock($blockClassName, $this->getNameInLayout() . '-' . $childId);
+    }
+
+    /**
+     * @return array
+     */
+    protected function getDefaultUrlParams()
+    {
+        return ['_current' => true, '_query' => ['isAjax' => null]];
     }
 }

@@ -1,26 +1,7 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Interception;
 
@@ -28,97 +9,34 @@ namespace Magento\Framework\Interception;
  * Class GeneralTest
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-class GeneralTest extends \PHPUnit_Framework_TestCase
+class GeneralTest extends AbstractPlugin
 {
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject
-     */
-    protected $_configReader;
-
-    /**
-     * @var \Magento\Framework\ObjectManager
-     */
-    protected $_objectManager;
-
     public function setUp()
     {
-        $classReader = new \Magento\Framework\Code\Reader\ClassReader();
-        $relations = new \Magento\Framework\ObjectManager\Relations\Runtime($classReader);
-        $definitions = new \Magento\Framework\ObjectManager\Definition\Runtime($classReader);
-        $config = new \Magento\Framework\Interception\ObjectManager\Config($relations, $definitions);
-        $factory = new \Magento\Framework\ObjectManager\Factory\Factory(
-            $config,
-            null,
-            $definitions
+        $this->setUpInterceptionConfig(
+            [
+                'Magento\Framework\Interception\Fixture\InterceptedInterface' =>
+                    [
+                        'plugins' => [
+                            'first' => [
+                                'instance'  => 'Magento\Framework\Interception\Fixture\Intercepted\InterfacePlugin',
+                                'sortOrder' => 10,
+                            ],
+                        ],
+                    ],
+                'Magento\Framework\Interception\Fixture\Intercepted'          =>
+                    [
+                        'plugins' => [
+                            'second' => [
+                                'instance'  => 'Magento\Framework\Interception\Fixture\Intercepted\Plugin',
+                                'sortOrder' => 20,
+                            ],
+                        ],
+                    ],
+            ]
         );
 
-        $this->_configReader = $this->getMock('Magento\Framework\Config\ReaderInterface');
-        $this->_configReader->expects(
-            $this->any()
-        )->method(
-            'read'
-        )->will(
-            $this->returnValue(
-                array(
-                    'Magento\Framework\Interception\Fixture\InterceptedInterface' => array(
-                        'plugins' => array(
-                            'first' => array(
-                                'instance' => 'Magento\Framework\Interception\Fixture\Intercepted\InterfacePlugin',
-                                'sortOrder' => 10
-                            )
-                        )
-                    ),
-                    'Magento\Framework\Interception\Fixture\Intercepted' => array(
-                        'plugins' => array(
-                            'second' => array(
-                                'instance' => 'Magento\Framework\Interception\Fixture\Intercepted\Plugin',
-                                'sortOrder' => 20
-                            )
-                        )
-                    )
-                )
-            )
-        );
-
-        $areaList = $this->getMock('Magento\Framework\App\AreaList', array(), array(), '', false);
-        $areaList->expects($this->any())->method('getCodes')->will($this->returnValue(array()));
-        $configScope = new \Magento\Framework\Config\Scope($areaList, 'global');
-        $cache = $this->getMock('Magento\Framework\Config\CacheInterface');
-        $cache->expects($this->any())->method('load')->will($this->returnValue(false));
-        $definitions = new \Magento\Framework\ObjectManager\Definition\Runtime();
-        $interceptionConfig = new Config\Config(
-            $this->_configReader,
-            $configScope,
-            $cache,
-            $relations,
-            $config,
-            $definitions
-        );
-        $interceptionDefinitions = new Definition\Runtime();
-        $this->_objectManager = new \Magento\Framework\ObjectManager\ObjectManager(
-            $factory,
-            $config,
-            array(
-                'Magento\Framework\Config\CacheInterface' => $cache,
-                'Magento\Framework\Config\ScopeInterface' => $configScope,
-                'Magento\Framework\Config\ReaderInterface' => $this->_configReader,
-                'Magento\Framework\ObjectManager\Relations' => $relations,
-                'Magento\Framework\ObjectManager\Config' => $config,
-                'Magento\Framework\ObjectManager\Definition' => $definitions,
-                'Magento\Framework\Interception\Definition' => $interceptionDefinitions
-            )
-        );
-        $factory->setObjectManager($this->_objectManager);
-        $config->setInterceptionConfig($interceptionConfig);
-        $config->extend(
-            array(
-                'preferences' => array(
-                    'Magento\Framework\Interception\PluginList' =>
-                        'Magento\Framework\Interception\PluginList\PluginList',
-                    'Magento\Framework\Interception\Chain' => 'Magento\Framework\Interception\Chain\Chain'
-                )
-            )
-        );
+        parent::setUp();
     }
 
     public function testMethodCanBePluginized()

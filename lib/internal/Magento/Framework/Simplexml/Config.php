@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Simplexml;
 
@@ -47,7 +29,7 @@ class Config
      *
      * @var array
      */
-    protected $_cacheTags = array();
+    protected $_cacheTags = [];
 
     /**
      * Enter description here...
@@ -136,12 +118,12 @@ class Config
      */
     public function getNode($path = null)
     {
-        if (!$this->_xml instanceof Element) {
+        if (!$this->getXml() instanceof Element) {
             return false;
         } elseif ($path === null) {
-            return $this->_xml;
+            return $this->getXml();
         } else {
-            return $this->_xml->descend($path);
+            return $this->getXml()->descend($path);
         }
     }
 
@@ -153,11 +135,12 @@ class Config
      */
     public function getXpath($xpath)
     {
-        if (empty($this->_xml)) {
+        $xml = $this->getXml();
+        if (empty($xml)) {
             return false;
         }
 
-        if (!($result = @$this->_xml->xpath($xpath))) {
+        if (!($result = @$xml->xpath($xpath))) {
             return false;
         }
 
@@ -202,6 +185,7 @@ class Config
      * Enter description here...
      *
      * @return boolean
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName)
      */
     public function getCacheSaved()
     {
@@ -447,7 +431,7 @@ class Config
      * @param int|boolean $lifetime
      * @return boolean
      */
-    protected function _saveCache($data, $id, $tags = array(), $lifetime = false)
+    protected function _saveCache($data, $id, $tags = [], $lifetime = false)
     {
         return $this->getCache()->save($data, $id, $tags, $lifetime);
     }
@@ -493,7 +477,7 @@ class Config
         if (!empty($string)) {
             $xml = simplexml_load_string($string, $this->_elementClass);
             if ($xml) {
-                $this->_xml = $xml;
+                $this->setXml($xml);
                 return true;
             }
         }
@@ -506,12 +490,11 @@ class Config
      * @param \DOMNode $dom
      * @return bool
      */
-    public function loadDom($dom)
+    public function loadDom(\DOMNode $dom)
     {
         $xml = simplexml_import_dom($dom, $this->_elementClass);
-
         if ($xml) {
-            $this->_xml = $xml;
+            $this->setXml($xml);
             return true;
         }
 
@@ -528,7 +511,7 @@ class Config
      */
     public function setNode($path, $value, $overwrite = true)
     {
-        $this->_xml->setNode($path, $value, $overwrite);
+        $this->getXml()->setNode($path, $value, $overwrite);
         return $this;
     }
 
@@ -592,5 +575,15 @@ class Config
     public function __destruct()
     {
         $this->_xml = null;
+    }
+
+    /**
+     * Getter for xml element
+     *
+     * @return Element
+     */
+    protected function getXml()
+    {
+        return $this->_xml;
     }
 }

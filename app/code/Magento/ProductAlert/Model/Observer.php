@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\ProductAlert\Model;
 
@@ -27,6 +9,7 @@ namespace Magento\ProductAlert\Model;
  * ProductAlert observer
  *
  * @author     Magento Core Team <core@magentocommerce.com>
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class Observer
 {
@@ -69,7 +52,7 @@ class Observer
      *
      * @var array
      */
-    protected $_errors = array();
+    protected $_errors = [];
 
     /**
      * Catalog data
@@ -86,24 +69,24 @@ class Observer
     protected $_scopeConfig;
 
     /**
-     * @var \Magento\Framework\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
-     * @var \Magento\ProductAlert\Model\Resource\Price\CollectionFactory
+     * @var \Magento\ProductAlert\Model\ResourceModel\Price\CollectionFactory
      */
     protected $_priceColFactory;
 
     /**
-     * @var \Magento\Customer\Service\V1\CustomerAccountServiceInterface
+     * @var \Magento\Customer\Api\CustomerRepositoryInterface
      */
-    protected $_customerAccountService;
+    protected $customerRepository;
 
     /**
-     * @var \Magento\Catalog\Model\ProductFactory
+     * @var \Magento\Catalog\Api\ProductRepositoryInterface
      */
-    protected $_productFactory;
+    protected $productRepository;
 
     /**
      * @var \Magento\Framework\Stdlib\DateTime\DateTimeFactory
@@ -111,7 +94,7 @@ class Observer
     protected $_dateFactory;
 
     /**
-     * @var \Magento\ProductAlert\Model\Resource\Stock\CollectionFactory
+     * @var \Magento\ProductAlert\Model\ResourceModel\Stock\CollectionFactory
      */
     protected $_stockColFactory;
 
@@ -133,25 +116,26 @@ class Observer
     /**
      * @param \Magento\Catalog\Helper\Data $catalogData
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
-     * @param \Magento\ProductAlert\Model\Resource\Price\CollectionFactory $priceColFactory
-     * @param \Magento\Customer\Service\V1\CustomerAccountServiceInterface $customerAccountService
-     * @param \Magento\Catalog\Model\ProductFactory $productFactory
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\ProductAlert\Model\ResourceModel\Price\CollectionFactory $priceColFactory
+     * @param \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository
+     * @param \Magento\Catalog\Api\ProductRepositoryInterface $productRepository
      * @param \Magento\Framework\Stdlib\DateTime\DateTimeFactory $dateFactory
-     * @param \Magento\ProductAlert\Model\Resource\Stock\CollectionFactory $stockColFactory
+     * @param \Magento\ProductAlert\Model\ResourceModel\Stock\CollectionFactory $stockColFactory
      * @param \Magento\Framework\Mail\Template\TransportBuilder $transportBuilder
      * @param \Magento\ProductAlert\Model\EmailFactory $emailFactory
      * @param \Magento\Framework\Translate\Inline\StateInterface $inlineTranslation
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
         \Magento\Catalog\Helper\Data $catalogData,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Magento\Framework\StoreManagerInterface $storeManager,
-        \Magento\ProductAlert\Model\Resource\Price\CollectionFactory $priceColFactory,
-        \Magento\Customer\Service\V1\CustomerAccountServiceInterface $customerAccountService,
-        \Magento\Catalog\Model\ProductFactory $productFactory,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\ProductAlert\Model\ResourceModel\Price\CollectionFactory $priceColFactory,
+        \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
+        \Magento\Catalog\Api\ProductRepositoryInterface $productRepository,
         \Magento\Framework\Stdlib\DateTime\DateTimeFactory $dateFactory,
-        \Magento\ProductAlert\Model\Resource\Stock\CollectionFactory $stockColFactory,
+        \Magento\ProductAlert\Model\ResourceModel\Stock\CollectionFactory $stockColFactory,
         \Magento\Framework\Mail\Template\TransportBuilder $transportBuilder,
         \Magento\ProductAlert\Model\EmailFactory $emailFactory,
         \Magento\Framework\Translate\Inline\StateInterface $inlineTranslation
@@ -160,8 +144,8 @@ class Observer
         $this->_scopeConfig = $scopeConfig;
         $this->_storeManager = $storeManager;
         $this->_priceColFactory = $priceColFactory;
-        $this->_customerAccountService = $customerAccountService;
-        $this->_productFactory = $productFactory;
+        $this->customerRepository = $customerRepository;
+        $this->productRepository = $productRepository;
         $this->_dateFactory = $dateFactory;
         $this->_stockColFactory = $stockColFactory;
         $this->_transportBuilder = $transportBuilder;
@@ -176,7 +160,7 @@ class Observer
      */
     protected function _getWebsites()
     {
-        if (is_null($this->_websites)) {
+        if ($this->_websites === null) {
             try {
                 $this->_websites = $this->_storeManager->getWebsites();
             } catch (\Exception $e) {
@@ -191,6 +175,8 @@ class Observer
      *
      * @param \Magento\ProductAlert\Model\Email $email
      * @return $this
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     protected function _processPrice(\Magento\ProductAlert\Model\Email $email)
     {
@@ -223,7 +209,7 @@ class Observer
             foreach ($collection as $alert) {
                 try {
                     if (!$previousCustomer || $previousCustomer->getId() != $alert->getCustomerId()) {
-                        $customer = $this->_customerAccountService->getCustomer($alert->getCustomerId());
+                        $customer = $this->customerRepository->getById($alert->getCustomerId());
                         if ($previousCustomer) {
                             $email->send();
                         }
@@ -237,15 +223,12 @@ class Observer
                         $customer = $previousCustomer;
                     }
 
-                    /** @var \Magento\Catalog\Model\Product $product */
-                    $product = $this->_productFactory->create()->setStoreId(
+                    $product = $this->productRepository->getById(
+                        $alert->getProductId(),
+                        false,
                         $website->getDefaultStore()->getId()
-                    )->load(
-                        $alert->getProductId()
                     );
-                    if (!$product) {
-                        continue;
-                    }
+
                     $product->setCustomerGroupId($customer->getGroupId());
                     if ($alert->getPrice() > $product->getFinalPrice()) {
                         $productPrice = $product->getFinalPrice();
@@ -279,6 +262,8 @@ class Observer
      *
      * @param \Magento\ProductAlert\Model\Email $email
      * @return $this
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     protected function _processStock(\Magento\ProductAlert\Model\Email $email)
     {
@@ -314,7 +299,7 @@ class Observer
             foreach ($collection as $alert) {
                 try {
                     if (!$previousCustomer || $previousCustomer->getId() != $alert->getCustomerId()) {
-                        $customer = $this->_customerAccountService->getCustomer($alert->getCustomerId());
+                        $customer = $this->customerRepository->getById($alert->getCustomerId());
                         if ($previousCustomer) {
                             $email->send();
                         }
@@ -328,15 +313,11 @@ class Observer
                         $customer = $previousCustomer;
                     }
 
-                    $product = $this->_productFactory->create()->setStoreId(
+                    $product = $this->productRepository->getById(
+                        $alert->getProductId(),
+                        false,
                         $website->getDefaultStore()->getId()
-                    )->load(
-                        $alert->getProductId()
                     );
-                    /* @var $product \Magento\Catalog\Model\Product */
-                    if (!$product) {
-                        continue;
-                    }
 
                     $product->setCustomerGroupId($customer->getGroupId());
 
@@ -389,12 +370,12 @@ class Observer
                     \Magento\Store\Model\ScopeInterface::SCOPE_STORE
                 )
             )->setTemplateOptions(
-                array(
-                    'area' => \Magento\Framework\App\Area::AREA_FRONTEND,
-                    'store' => $this->_storeManager->getStore()->getId()
-                )
+                [
+                    'area' => \Magento\Backend\App\Area\FrontNameResolver::AREA_CODE,
+                    'store' => \Magento\Store\Model\Store::DEFAULT_STORE_ID,
+                ]
             )->setTemplateVars(
-                array('warnings' => join("\n", $this->_errors))
+                ['warnings' => join("\n", $this->_errors)]
             )->setFrom(
                 $this->_scopeConfig->getValue(
                     self::XML_PATH_ERROR_IDENTITY,
@@ -410,7 +391,7 @@ class Observer
             $transport->sendMessage();
 
             $this->inlineTranslation->resume();
-            $this->_errors[] = array();
+            $this->_errors[] = [];
         }
         return $this;
     }

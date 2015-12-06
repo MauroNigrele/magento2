@@ -1,30 +1,15 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 ?>
 <?php
 /** @var $element \Magento\Framework\Data\Form\Element\Fieldset */
-$element = $this->getElement();
+$element = $block->getElement();
 $containerId = $element->getFieldsetContainerId();
 $id = $element->getHtmlId();
 $isCollapsable = $element->getCollapsable();
@@ -37,7 +22,7 @@ if (!isset($advancedLabel)) {
     $advancedLabel = __('Additional Settings');
 }
 
-$cssClass = ($isField) ? 'field ' . $element->getClass() : 'fieldset ' . $element->getClass();
+$cssClass = ($isField) ? 'field ' . $element->getClass() : 'fieldset admin__fieldset ' . $element->getClass();
 
 if ($isField) {
     $count = $element->getCountBasicChildren();
@@ -53,68 +38,74 @@ if ($isField) {
 */ ?>
 
 <?php if ($isWrapped): ?>
-    <div class="fieldset-wrapper <?php echo ($isCollapsable) ? 'collapsable-wrapper ' : ''; ?>"
-        id="<?php echo $containerId ? $containerId : $id . '-wrapper';?>"
-        data-role="<?php echo $id ?>-wrapper">
-        <div class="fieldset-wrapper-title">
-            <strong class="title"<?php echo ($isCollapsable) ? ' data-toggle="collapse" data-target="#' . $id . '-content"' : ''; ?>>
-                <span><?php echo $element->getLegend() ?></span>
+    <div class="fieldset-wrapper <?php echo($isCollapsable) ? 'admin__collapsible-block-wrapper ' : ''; ?>"
+        id="<?php /* @escapeNotVerified */ echo $containerId ? $containerId : $id . '-wrapper';?>"
+        data-role="<?php /* @escapeNotVerified */ echo $id ?>-wrapper">
+        <div class="fieldset-wrapper-title admin__fieldset-wrapper-title">
+            <strong <?php /* @escapeNotVerified */ echo($isCollapsable) ?
+                'class="admin__collapsible-title" data-toggle="collapse" data-target="#' . $id . '-content"' :
+                'class="title"'; ?>>
+                <span><?php /* @escapeNotVerified */ echo $element->getLegend() ?></span>
             </strong>
-            <?php echo $titleActions; ?>
+            <?php /* @escapeNotVerified */ echo $titleActions; ?>
         </div>
-        <div class="fieldset-wrapper-content<?php echo ($isCollapsable) ? ' collapse' : ''; ?>"
-            id="<?php echo $id ?>-content"
-            data-role="<?php echo $id ?>-content">
+        <div class="fieldset-wrapper-content admin__fieldset-wrapper-content<?php echo($isCollapsable) ? ' collapse' : ''; ?>"
+            id="<?php /* @escapeNotVerified */ echo $id ?>-content"
+            data-role="<?php /* @escapeNotVerified */ echo $id ?>-content">
 <?php endif; ?>
 
     <?php if (!$element->getNoContainer()): ?>
-        <fieldset class="<?php echo $cssClass ?>" id="<?php echo $id ?>">
+        <fieldset class="<?php /* @escapeNotVerified */ echo $cssClass ?>" id="<?php /* @escapeNotVerified */ echo $id ?>">
         <?php if ($element->getLegend() && !$isWrapped): ?>
-            <legend class="<?php echo $isField ? 'label' : 'legend'?>">
-                <span><?php echo $element->getLegend() ?></span>
+            <legend class="<?php /* @escapeNotVerified */ echo $isField ? 'label admin__field-label' : 'admin__legend legend'?>">
+                <span><?php /* @escapeNotVerified */ echo $element->getLegend() ?></span>
             </legend><br />
         <?php endif; ?>
     <?php endif; ?>
 
-    <?php if ($element->getComment() && !$isField): ?>
-        <div class="comment"><?php echo $this->escapeHtml($element->getComment()) ?></div>
-    <?php endif; ?>
 
-    <?php echo ($isField) ? '<div class="control">' : ''; ?>
+    <div class="messages">
+        <?php if ($element->getComment() && !$isField): ?>
+            <div class="message message-notice"><?php echo $block->escapeHtml($element->getComment()) ?></div>
+        <?php endif; ?>
+    </div>
+
+
+    <?php echo($isField) ? '<div class="control admin__field-control">' : ''; ?>
 
     <?php if ($element->hasHtmlContent() && !$isField): ?>
         <?php echo $element->getHtmlContent(); ?>
     <?php else: ?>
 
         <?php if ($isField && $count > 1):?>
-            <div class="fields-group-<?php echo $count?>">
+            <div class="fields-group-<?php /* @escapeNotVerified */ echo $count?>">
         <?php endif; ?>
 
         <?php echo $element->getBasicChildrenHtml(); ?>
 
-        <?php echo ($isField && $count > 1) ? '</div>' : '' ?>
+        <?php echo($isField && $count > 1) ? '</div>' : '' ?>
 
         <?php if ($element->getComment() && $isField): ?>
-            <div class="note"><?php echo $this->escapeHtml($element->getComment()) ?></div>
+            <div class="note"><?php echo $block->escapeHtml($element->getComment()) ?></div>
         <?php endif; ?>
 
         <?php if ($element->hasAdvanced() && !$isField): ?>
-            <?php echo (!$element->getNoContainer() && $advancedAfter)  ? '</fieldset>' : ''?>
-            <details class="details" id="details<?php echo $id ?>">
-                <summary class="details-summary" id="details-summary<?php echo $id ?>">
-                    <span><?php echo $advancedLabel ?></span>
+            <?php echo(!$element->getNoContainer() && $advancedAfter)  ? '</fieldset>' : ''?>
+            <details data-mage-init='{"details": {}}' class="details admin__collapsible-block-wrapper" id="details<?php /* @escapeNotVerified */ echo $id ?>">
+                <summary class="details-summary admin__collapsible-title" id="details-summary<?php /* @escapeNotVerified */ echo $id ?>">
+                    <span><?php /* @escapeNotVerified */ echo $advancedLabel ?></span>
                 </summary>
-                <div class="details-content" id="details-content<?php echo $id ?>">
+                <div class="details-content admin__fieldset" id="details-content<?php /* @escapeNotVerified */ echo $id ?>">
                     <?php echo $element->getAdvancedChildrenHtml(); ?>
                 </div>
             </details>
         <?php elseif ($element->hasAdvanced() && $isField): ?>
-            <div class="nested" id="nested<?php echo $id ?>">
+            <div class="nested" id="nested<?php /* @escapeNotVerified */ echo $id ?>">
                 <?php echo $element->getAdvancedChildrenHtml(); ?>
             </div>
         <?php endif; ?>
 
-        <?php echo ($isField) ? '</div>' : ''; ?>
+        <?php echo($isField) ? '</div>' : ''; ?>
 
     <?php endif; ?>
 

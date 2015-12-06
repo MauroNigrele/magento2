@@ -1,38 +1,19 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Integration\Controller\Adminhtml;
 
 use Magento\Backend\App\Action;
-use Magento\Integration\Service\V1\OauthInterface as IntegrationOauthService;
-use Magento\Integration\Model\Integration as IntegrationModel;
+use Magento\Integration\Api\OauthServiceInterface as IntegrationOauthService;
 
 /**
  * Controller for integrations management.
  *
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-class Integration extends Action
+abstract class Integration extends Action
 {
     /** Param Key for extracting integration id from Request */
     const PARAM_INTEGRATION_ID = 'id';
@@ -47,22 +28,22 @@ class Integration extends Action
      */
     protected $_registry;
 
-    /** @var \Magento\Framework\Logger */
+    /** @var \Psr\Log\LoggerInterface */
     protected $_logger;
 
-    /** @var \Magento\Integration\Service\V1\IntegrationInterface */
+    /** @var \Magento\Integration\Api\IntegrationServiceInterface */
     protected $_integrationService;
 
-    /** @var IntegrationOauthService */
+    /** @var \Magento\Integration\Api\OauthServiceInterface */
     protected $_oauthService;
 
-    /** @var \Magento\Core\Helper\Data */
-    protected $_coreHelper;
+    /** @var \Magento\Framework\Json\Helper\Data */
+    protected $jsonHelper;
 
     /** @var \Magento\Integration\Helper\Data */
     protected $_integrationData;
 
-    /** @var  \Magento\Integration\Model\Resource\Integration\Collection */
+    /** @var \Magento\Integration\Model\ResourceModel\Integration\Collection */
     protected $_integrationCollection;
 
     /**
@@ -73,31 +54,31 @@ class Integration extends Action
     /**
      * @param \Magento\Backend\App\Action\Context $context
      * @param \Magento\Framework\Registry $registry
-     * @param \Magento\Framework\Logger $logger
-     * @param \Magento\Integration\Service\V1\IntegrationInterface $integrationService
-     * @param IntegrationOauthService $oauthService
-     * @param \Magento\Core\Helper\Data $coreHelper
+     * @param \Psr\Log\LoggerInterface $logger
+     * @param \Magento\Integration\Api\IntegrationServiceInterface $integrationService
+     * @param \Magento\Integration\Api\OauthServiceInterface $oauthService
+     * @param \Magento\Framework\Json\Helper\Data $jsonHelper
      * @param \Magento\Integration\Helper\Data $integrationData
      * @param \Magento\Framework\Escaper $escaper
-     * @param \Magento\Integration\Model\Resource\Integration\Collection $integrationCollection
+     * @param \Magento\Integration\Model\ResourceModel\Integration\Collection $integrationCollection
      */
     public function __construct(
         \Magento\Backend\App\Action\Context $context,
         \Magento\Framework\Registry $registry,
-        \Magento\Framework\Logger $logger,
-        \Magento\Integration\Service\V1\IntegrationInterface $integrationService,
-        IntegrationOauthService $oauthService,
-        \Magento\Core\Helper\Data $coreHelper,
+        \Psr\Log\LoggerInterface $logger,
+        \Magento\Integration\Api\IntegrationServiceInterface $integrationService,
+        \Magento\Integration\Api\OauthServiceInterface $oauthService,
+        \Magento\Framework\Json\Helper\Data $jsonHelper,
         \Magento\Integration\Helper\Data $integrationData,
         \Magento\Framework\Escaper $escaper,
-        \Magento\Integration\Model\Resource\Integration\Collection $integrationCollection
+        \Magento\Integration\Model\ResourceModel\Integration\Collection $integrationCollection
     ) {
         parent::__construct($context);
         $this->_registry = $registry;
         $this->_logger = $logger;
         $this->_integrationService = $integrationService;
         $this->_oauthService = $oauthService;
-        $this->_coreHelper = $coreHelper;
+        $this->jsonHelper = $jsonHelper;
         $this->_integrationData = $integrationData;
         $this->escaper = $escaper;
         $this->_integrationCollection = $integrationCollection;
@@ -121,11 +102,11 @@ class Integration extends Action
      * @param array $arguments
      * @return $this|\Magento\Backend\App\AbstractAction
      */
-    protected function _redirect($path, $arguments = array())
+    protected function _redirect($path, $arguments = [])
     {
         if ($this->getRequest()->isXmlHttpRequest()) {
             $this->getResponse()->representJson(
-                $this->_coreHelper->jsonEncode(array('_redirect' => $this->getUrl($path, $arguments)))
+                $this->jsonHelper->jsonEncode(['_redirect' => $this->getUrl($path, $arguments)])
             );
             return $this;
         } else {

@@ -1,89 +1,109 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
-/** @var $this \Magento\Catalog\Block\Adminhtml\Product\Edit\Tabs */
+// @codingStandardsIgnoreFile
+
+/** @var $block \Magento\Catalog\Block\Adminhtml\Product\Edit\Tabs */
 ?>
 <?php if (!empty($tabs)): ?>
-<?php $tabGroups = array(
-    \Magento\Catalog\Block\Adminhtml\Product\Edit\Tabs::BASIC_TAB_GROUP_CODE,
-    \Magento\Catalog\Block\Adminhtml\Product\Edit\Tabs::ADVANCED_TAB_GROUP_CODE
-);?>
-<div id="<?php echo $this->getId() ?>"
-    data-mage-init='{"tabs":{
-        "active": "<?php echo $this->getActiveTabId() ?>",
-        "destination": "#<?php echo $this->getDestElementId() ?>",
-        "shadowTabs": "<?php echo $this->getAllShadowTabs()?>",
-        "tabsBlockPrefix": "<?php echo $this->getId() ?>_",
+    <?php $tabGroups = [
+        \Magento\Catalog\Block\Adminhtml\Product\Edit\Tabs::BASIC_TAB_GROUP_CODE,
+        \Magento\Catalog\Block\Adminhtml\Product\Edit\Tabs::ADVANCED_TAB_GROUP_CODE,
+    ];?>
+
+    <div id="<?php /* @escapeNotVerified */ echo $block->getId() ?>"
+         data-mage-init='{"tabs":{
+        "active": "<?php /* @escapeNotVerified */ echo $block->getActiveTabId() ?>",
+        "destination": "#<?php /* @escapeNotVerified */ echo $block->getDestElementId() ?>",
+        "shadowTabs": "<?php /* @escapeNotVerified */ echo $block->getAllShadowTabs()?>",
+        "tabsBlockPrefix": "<?php /* @escapeNotVerified */ echo $block->getId() ?>_",
         "tabIdArgument": "active_tab",
+        "tabPanelClass": "<?php /* @escapeNotVerified */ echo $block->getPanelsClass() ?>",
+        "excludedPanel": "<?php /* @escapeNotVerified */ echo $block->getExcludedPanel() ?>",
         "groups": "ul.tabs"
     }}'>
-    <?php foreach ($tabGroups as $tabGroupCode): ?>
-    <?php $tabGroupId = $this->getId() . '-' . $tabGroupCode; ?>
-    <?php $isBasic = $tabGroupCode == \Magento\Catalog\Block\Adminhtml\Product\Edit\Tabs::BASIC_TAB_GROUP_CODE; ?>
-    <div id="<?php echo $tabGroupId ?>"
-        <?php if (!$isBasic): ?>
-            data-mage-init='{"collapsible":{"active": <?php echo $this->isAdvancedTabGroupActive() ? 'true' : 'false' ?>, "collapsible": true}}'
-        <?php endif;?>>
-        <h3 <?php echo $this->getUiId('title') ?> data-role="title" <?php if (!$isBasic): ?>class="ui-accordion-header"<?php endif;?>>
-            <span data-role="trigger"> <?php echo $isBasic ? __('Basic Settings') : __('Advanced Settings') ?></span>
-        </h3>
-        <ul <?php echo $this->getUiId('tab', $tabGroupId) ?> class="tabs" data-role="content">
-            <?php foreach ($tabs as $_tab): ?>
-            <?php if (!$this->canShowTab($_tab) || $_tab->getParentTab()
-                || ($_tab->getGroupCode() && $_tab->getGroupCode() != $tabGroupCode)
-                || (!$_tab->getGroupCode() && $isBasic)): continue; endif;?>
-            <?php $_tabClass = 'tab-item-link ' . $this->getTabClass($_tab) . ' ' . (preg_match('/\s?ajax\s?/', $_tab->getClass()) ? 'notloaded' : '') ?>
-            <?php $_tabType = (!preg_match('/\s?ajax\s?/', $_tabClass) && $this->getTabUrl($_tab) != '#') ? 'link' : '' ?>
-            <?php $_tabHref = $this->getTabUrl($_tab) == '#' ? '#' . $this->getTabId($_tab) . '_content' : $this->getTabUrl($_tab) ?>
-            <li <?php if ($this->getTabIsHidden($_tab)): ?> class="no-display"<?php endif; ?><?php echo $this->getUiId('tab', 'item', $_tab->getId()) ?>>
-                <a href="<?php echo $_tabHref ?>" id="<?php echo $this->getTabId($_tab) ?>"
-                   name="<?php echo $this->getTabId($_tab, false) ?>" title="<?php echo $this->getTabTitle($_tab) ?>"
-                   class="<?php echo $_tabClass;?>"
-                   data-tab-type="<?php echo $_tabType;?>" <?php echo $this->getUiId('tab', 'link', $_tab->getId()) ?>>
-                    <span>
-                        <span class="changed" title="<?php echo __('The information in this tab has been changed.') ?>"></span>
-                        <span class="error" title="<?php echo __('This tab contains invalid data. Please solve the problem before saving.') ?>"></span>
-                        <span class="loader" title="<?php echo __('Loading...') ?>"></span>
-                        <?php echo $this->escapeHtml($this->getTabLabel($_tab)); ?>
-                    </span>
-                </a>
-                <div id="<?php echo $this->getTabId($_tab) ?>_content" class="no-display"
-                     data-tab-panel="<?=$_tab->getTabId() ?>"
-                     <?php echo $this->getUiId('tab', 'content', $_tab->getId()) ?>>
-                    <?php echo $this->getTabContent($_tab); ?>
-                    <?php foreach ($tabs as $childTab): ?>
-                        <?php if ($childTab->getParentTab() === $_tab->getId()):?>
-                            <div id="<?php echo $this->getTabId($childTab) ?>_content"
-                                <?php echo $this->getUiId('tab', 'content', $childTab->getId()) ?>>
-                            <?php echo $this->getTabContent($childTab); ?>
-                        <?php endif;?>
-                    <?php endforeach; ?>
+        <?php foreach ($tabGroups as $tabGroupCode): ?>
+            <?php
+                $tabGroupId = $block->getId() . '-' . $tabGroupCode;
+                $isBasic = $tabGroupCode == \Magento\Catalog\Block\Adminhtml\Product\Edit\Tabs::BASIC_TAB_GROUP_CODE;
+                $activeCollapsible = $block->isAdvancedTabGroupActive() ? true : false;
+            ?>
+
+            <div class="admin__page-nav <?php if (!$isBasic): ?> <?php echo '_collapsed';?> <?php endif;?>"
+                data-role="container"
+                id="<?php /* @escapeNotVerified */ echo $tabGroupId ?>"
+                <?php if (!$isBasic): ?>
+                    data-mage-init='{"collapsible":{
+                    "active": "<?php /* @escapeNotVerified */ echo $activeCollapsible; ?>",
+                    "openedState": "_show",
+                    "closedState": "_hide",
+                    "animate": 200,
+                    "collapsible": true
+                    }}'
+                <?php endif;?>>
+
+                <div class="admin__page-nav-title-wrap" <?php /* @escapeNotVerified */ echo $block->getUiId('title') ?> data-role="title">
+                    <div class="admin__page-nav-title <?php if (!$isBasic): ?> <?php echo '_collapsible';?><?php endif;?>"
+                        data-role="trigger">
+                        <strong>
+                            <?php /* @escapeNotVerified */ echo $isBasic ? __('Basic Settings') : __('Advanced Settings') ?>
+                        </strong>
+                        <span data-role="title-messages" class="admin__page-nav-title-messages"></span>
+                    </div>
                 </div>
-            </li>
-            <?php endforeach; ?>
-        </ul>
+
+                <ul <?php /* @escapeNotVerified */ echo $block->getUiId('tab', $tabGroupId) ?> class="tabs admin__page-nav-items" data-role="content">
+                    <?php foreach ($tabs as $_tab): ?>
+                        <?php /** @var $_tab \Magento\Backend\Block\Widget\Tab\TabInterface */ ?>
+                        <?php if (!$block->canShowTab($_tab) || $_tab->getParentTab()
+                            || ($_tab->getGroupCode() && $_tab->getGroupCode() != $tabGroupCode)
+                            || (!$_tab->getGroupCode() && $isBasic)): continue; endif;?>
+                        <?php $_tabClass = 'tab-item-link ' . $block->getTabClass($_tab) . ' ' . (preg_match('/\s?ajax\s?/', $_tab->getClass()) ? 'notloaded' : '') ?>
+                        <?php $_tabType = (!preg_match('/\s?ajax\s?/', $_tabClass) && $block->getTabUrl($_tab) != '#') ? 'link' : '' ?>
+                        <?php $_tabHref = $block->getTabUrl($_tab) == '#' ? '#' . $block->getTabId($_tab) . '_content' : $block->getTabUrl($_tab) ?>
+                        <li class="admin__page-nav-item <?php if ($block->getTabIsHidden($_tab)): ?> <?php echo "no-display"; ?> <?php endif; ?> " <?php /* @escapeNotVerified */ echo $block->getUiId('tab', 'item', $_tab->getId()) ?>>
+                            <a href="<?php /* @escapeNotVerified */ echo $_tabHref ?>" id="<?php /* @escapeNotVerified */ echo $block->getTabId($_tab) ?>"
+                               name="<?php /* @escapeNotVerified */ echo $block->getTabId($_tab, false) ?>"
+                               title="<?php /* @escapeNotVerified */ echo $block->getTabTitle($_tab) ?>"
+                               class="admin__page-nav-link <?php /* @escapeNotVerified */ echo $_tabClass;?>"
+                               data-tab-type="<?php /* @escapeNotVerified */ echo $_tabType;?>" <?php /* @escapeNotVerified */ echo $block->getUiId('tab', 'link', $_tab->getId()) ?>
+                            >
+                                <span><?php echo $block->escapeHtml($block->getTabLabel($_tab)); ?></span>
+                                <span class="admin__page-nav-item-messages" data-role="item-messages">
+                                   <span class="admin__page-nav-item-message _changed">
+                                       <span class="admin__page-nav-item-message-icon"></span>
+                                       <span class="admin__page-nav-item-message-tooltip">
+                                           <?php /* @escapeNotVerified */ echo __('Changes have been made to this section that have not been saved.'); ?>
+                                       </span>
+                                   </span>
+                                   <span class="admin__page-nav-item-message _error">
+                                       <span class="admin__page-nav-item-message-icon"></span>
+                                       <span class="admin__page-nav-item-message-tooltip">
+                                           <?php /* @escapeNotVerified */ echo __('This tab contains invalid data. Please resolve this before saving.'); ?>
+                                       </span>
+                                   </span>
+                                    <span class="admin__page-nav-item-message-loader">
+                                       <span class="spinner">
+                                           <span></span><span></span><span></span><span></span>
+                                           <span></span><span></span><span></span><span></span>
+                                       </span>
+                                   </span>
+                                </span>
+                            </a>
+                            <div id="<?php /* @escapeNotVerified */ echo $block->getTabId($_tab) ?>_content" class="no-display"
+                                 data-tab-panel="<?= /* @escapeNotVerified */ $_tab->getTabId() ?>"
+                                <?php /* @escapeNotVerified */ echo $block->getUiId('tab', 'content', $_tab->getId()) ?>
+                            >
+                                <?php /* @escapeNotVerified */ echo $block->getTabContent($_tab); ?>
+                                <?= /* @noEscape */ $block->getAccordion($_tab); ?>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endforeach; ?>
     </div>
-    <?php endforeach; ?>
-</div>
 <?php endif; ?>

@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Paypal\Helper;
 
@@ -30,6 +12,9 @@ use Magento\Paypal\Model\Billing\Agreement\MethodInterface;
  */
 class Data extends \Magento\Framework\App\Helper\AbstractHelper
 {
+    const HTML_TRANSACTION_ID =
+        '<a target="_blank" href="https://www.%1$s.paypal.com/cgi-bin/webscr?cmd=_view-a-trans&id=%2$s">%2$s</a>';
+
     /**
      * Cache for shouldAskToCreateBillingAgreement()
      *
@@ -48,17 +33,33 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     protected $_agreementFactory;
 
     /**
+     * @var array
+     */
+    private $methodCodes;
+
+    /**
+     * @var \Magento\Paypal\Model\ConfigFactory
+     */
+    private $configFactory;
+
+    /**
      * @param \Magento\Framework\App\Helper\Context $context
      * @param \Magento\Payment\Helper\Data $paymentData
      * @param \Magento\Paypal\Model\Billing\AgreementFactory $agreementFactory
+     * @param \Magento\Paypal\Model\ConfigFactory $configFactory
+     * @param array $methodCodes
      */
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
         \Magento\Payment\Helper\Data $paymentData,
-        \Magento\Paypal\Model\Billing\AgreementFactory $agreementFactory
+        \Magento\Paypal\Model\Billing\AgreementFactory $agreementFactory,
+        \Magento\Paypal\Model\ConfigFactory $configFactory,
+        array $methodCodes
     ) {
         $this->_paymentData = $paymentData;
         $this->_agreementFactory = $agreementFactory;
+        $this->methodCodes = $methodCodes;
+        $this->configFactory = $configFactory;
         parent::__construct($context);
     }
 
@@ -86,14 +87,14 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      * Retrieve available billing agreement methods
      *
      * @param null|string|bool|int|\Magento\Store\Model\Store $store
-     * @param \Magento\Sales\Model\Quote|null $quote
+     * @param \Magento\Quote\Model\Quote|null $quote
      * @return MethodInterface[]
      */
     public function getBillingAgreementMethods($store = null, $quote = null)
     {
-        $result = array();
+        $result = [];
         foreach ($this->_paymentData->getStoreMethods($store, $quote) as $method) {
-            if ($this->canManageBillingAgreements($method)) {
+            if ($method instanceof MethodInterface) {
                 $result[] = $method;
             }
         }
@@ -101,13 +102,20 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     }
 
     /**
-     * Check whether payment method can manage billing agreements or not
+     * Get HTML representation of transaction id
      *
-     * @param mixed $methodInstance
-     * @return bool
+     * @param string $methodCode
+     * @param string $txnId
+     * @return string
      */
-    public function canManageBillingAgreements($methodInstance)
+    public function getHtmlTransactionId($methodCode, $txnId)
     {
-        return $methodInstance instanceof MethodInterface;
+        if (in_array($methodCode, $this->methodCodes)) {
+            /** @var \Magento\Paypal\Model\Config $config */
+            $config = $this->configFactory->create()->setMethod($methodCode);
+            $sandboxFlag = ($config->getValue('sandboxFlag') ? 'sandbox' : '');
+            return sprintf(self::HTML_TRANSACTION_ID, $sandboxFlag, $txnId);
+        }
+        return $txnId;
     }
 }

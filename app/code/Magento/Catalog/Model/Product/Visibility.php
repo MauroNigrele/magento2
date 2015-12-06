@@ -1,27 +1,8 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 
 /**
  * Catalog Product visibilite model and attribute source model
@@ -30,9 +11,10 @@
  */
 namespace Magento\Catalog\Model\Product;
 
+use Magento\Framework\Data\OptionSourceInterface;
 use Magento\Framework\DB\Ddl\Table;
 
-class Visibility extends \Magento\Framework\Object
+class Visibility extends \Magento\Framework\DataObject implements OptionSourceInterface
 {
     const VISIBILITY_NOT_VISIBLE = 1;
 
@@ -45,40 +27,29 @@ class Visibility extends \Magento\Framework\Object
     /**
      * Reference to the attribute instance
      *
-     * @var \Magento\Catalog\Model\Resource\Eav\Attribute
+     * @var \Magento\Catalog\Model\ResourceModel\Eav\Attribute
      */
     protected $_attribute;
 
     /**
-     * Core data
-     *
-     * @var \Magento\Core\Helper\Data
-     */
-    protected $_coreData = null;
-
-    /**
      * Eav entity attribute
      *
-     * @var \Magento\Eav\Model\Resource\Entity\Attribute
+     * @var \Magento\Eav\Model\ResourceModel\Entity\Attribute
      */
     protected $_eavEntityAttribute;
 
     /**
      * Construct
      *
-     * @param \Magento\Eav\Model\Resource\Entity\Attribute $eavEntityAttribute
-     * @param \Magento\Core\Helper\Data $coreData
+     * @param \Magento\Eav\Model\ResourceModel\Entity\Attribute $eavEntityAttribute
      * @param array $data
      */
     public function __construct(
-        \Magento\Eav\Model\Resource\Entity\Attribute $eavEntityAttribute,
-        \Magento\Core\Helper\Data $coreData,
-        array $data = array()
+        \Magento\Eav\Model\ResourceModel\Entity\Attribute $eavEntityAttribute,
+        array $data = []
     ) {
         $this->_eavEntityAttribute = $eavEntityAttribute;
-        $this->_coreData = $coreData;
         parent::__construct($data);
-        $this->setIdFieldName('visibility_id');
     }
 
     /**
@@ -88,7 +59,7 @@ class Visibility extends \Magento\Framework\Object
      */
     public function getVisibleInCatalogIds()
     {
-        return array(self::VISIBILITY_IN_CATALOG, self::VISIBILITY_BOTH);
+        return [self::VISIBILITY_IN_CATALOG, self::VISIBILITY_BOTH];
     }
 
     /**
@@ -98,7 +69,7 @@ class Visibility extends \Magento\Framework\Object
      */
     public function getVisibleInSearchIds()
     {
-        return array(self::VISIBILITY_IN_SEARCH, self::VISIBILITY_BOTH);
+        return [self::VISIBILITY_IN_SEARCH, self::VISIBILITY_BOTH];
     }
 
     /**
@@ -108,7 +79,7 @@ class Visibility extends \Magento\Framework\Object
      */
     public function getVisibleInSiteIds()
     {
-        return array(self::VISIBILITY_IN_SEARCH, self::VISIBILITY_IN_CATALOG, self::VISIBILITY_BOTH);
+        return [self::VISIBILITY_IN_SEARCH, self::VISIBILITY_IN_CATALOG, self::VISIBILITY_BOTH];
     }
 
     /**
@@ -118,12 +89,12 @@ class Visibility extends \Magento\Framework\Object
      */
     public static function getOptionArray()
     {
-        return array(
+        return [
             self::VISIBILITY_NOT_VISIBLE => __('Not Visible Individually'),
             self::VISIBILITY_IN_CATALOG => __('Catalog'),
             self::VISIBILITY_IN_SEARCH => __('Search'),
             self::VISIBILITY_BOTH => __('Catalog, Search')
-        );
+        ];
     }
 
     /**
@@ -134,7 +105,7 @@ class Visibility extends \Magento\Framework\Object
     public static function getAllOption()
     {
         $options = self::getOptionArray();
-        array_unshift($options, array('value' => '', 'label' => ''));
+        array_unshift($options, ['value' => '', 'label' => '']);
         return $options;
     }
 
@@ -145,9 +116,9 @@ class Visibility extends \Magento\Framework\Object
      */
     public static function getAllOptions()
     {
-        $res = array();
+        $res = [];
         foreach (self::getOptionArray() as $index => $value) {
-            $res[] = array('value' => $index, 'label' => $value);
+            $res[] = ['value' => $index, 'label' => $value];
         }
         return $res;
     }
@@ -192,7 +163,7 @@ class Visibility extends \Magento\Framework\Object
      */
     public function getFlatIndexes()
     {
-        return array();
+        return [];
     }
 
     /**
@@ -209,7 +180,7 @@ class Visibility extends \Magento\Framework\Object
     /**
      * Set attribute instance
      *
-     * @param \Magento\Catalog\Model\Resource\Eav\Attribute $attribute
+     * @param \Magento\Catalog\Model\ResourceModel\Eav\Attribute $attribute
      * @return $this
      */
     public function setAttribute($attribute)
@@ -221,7 +192,7 @@ class Visibility extends \Magento\Framework\Object
     /**
      * Get attribute instance
      *
-     * @return \Magento\Catalog\Model\Resource\Eav\Attribute
+     * @return \Magento\Catalog\Model\ResourceModel\Eav\Attribute
      */
     public function getAttribute()
     {
@@ -244,28 +215,28 @@ class Visibility extends \Magento\Framework\Object
         if ($this->getAttribute()->isScopeGlobal()) {
             $tableName = $attributeCode . '_t';
             $collection->getSelect()->joinLeft(
-                array($tableName => $attributeTable),
+                [$tableName => $attributeTable],
                 "e.entity_id={$tableName}.entity_id" .
                 " AND {$tableName}.attribute_id='{$attributeId}'" .
                 " AND {$tableName}.store_id='0'",
-                array()
+                []
             );
             $valueExpr = $tableName . '.value';
         } else {
             $valueTable1 = $attributeCode . '_t1';
             $valueTable2 = $attributeCode . '_t2';
             $collection->getSelect()->joinLeft(
-                array($valueTable1 => $attributeTable),
+                [$valueTable1 => $attributeTable],
                 "e.entity_id={$valueTable1}.entity_id" .
                 " AND {$valueTable1}.attribute_id='{$attributeId}'" .
                 " AND {$valueTable1}.store_id='0'",
-                array()
+                []
             )->joinLeft(
-                array($valueTable2 => $attributeTable),
+                [$valueTable2 => $attributeTable],
                 "e.entity_id={$valueTable2}.entity_id" .
                 " AND {$valueTable2}.attribute_id='{$attributeId}'" .
                 " AND {$valueTable2}.store_id='{$collection->getStoreId()}'",
-                array()
+                []
             );
             $valueExpr = $collection->getConnection()->getCheckSql(
                 $valueTable2 . '.value_id > 0',
@@ -276,5 +247,13 @@ class Visibility extends \Magento\Framework\Object
 
         $collection->getSelect()->order($valueExpr . ' ' . $dir);
         return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function toOptionArray()
+    {
+        return $this->getAllOptions();
     }
 }

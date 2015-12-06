@@ -1,64 +1,73 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Controller\Adminhtml\Order;
 
-use \Magento\Backend\App\Action;
+use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
+use Magento\Backend\App\Action\Context;
+use Magento\Ui\Component\MassAction\Filter;
+use Magento\Sales\Model\ResourceModel\Order\CollectionFactory;
+use Magento\Sales\Api\OrderManagementInterface;
 
-class MassHold extends \Magento\Sales\Controller\Adminhtml\Order
+/**
+ * Class MassHold
+ */
+class MassHold extends \Magento\Sales\Controller\Adminhtml\Order\AbstractMassAction
 {
+    /**
+     * @var OrderManagementInterface
+     */
+    protected $orderManagement;
+
+    /**
+     * @param Context $context
+     * @param Filter $filter
+     * @param CollectionFactory $collectionFactory
+     * @param OrderManagementInterface $orderManagement
+     */
+    public function __construct(
+        Context $context,
+        Filter $filter,
+        CollectionFactory $collectionFactory,
+        OrderManagementInterface $orderManagement
+    ) {
+        parent::__construct($context, $filter);
+        $this->collectionFactory = $collectionFactory;
+        $this->orderManagement = $orderManagement;
+    }
+
     /**
      * Hold selected orders
      *
-     * @return void
+     * @param AbstractCollection $collection
+     * @return \Magento\Backend\Model\View\Result\Redirect
      */
-    public function execute()
+    protected function massAction(AbstractCollection $collection)
     {
-        $orderIds = $this->getRequest()->getPost('order_ids', array());
         $countHoldOrder = 0;
-
-        foreach ($orderIds as $orderId) {
-            $order = $this->_objectManager->create('Magento\Sales\Model\Order')->load($orderId);
-            if ($order->canHold()) {
-                $order->hold()->save();
-                $countHoldOrder++;
+        foreach ($collection->getItems() as $order) {
+            if (!$order->canHold()) {
+                continue;
             }
+            $this->orderManagement->hold($order->getEntityId());
+            $countHoldOrder++;
+        }
+        $countNonHoldOrder = $collection->count() - $countHoldOrder;
+
+        if ($countNonHoldOrder && $countHoldOrder) {
+            $this->messageManager->addError(__('%1 order(s) were not put on hold.', $countNonHoldOrder));
+        } elseif ($countNonHoldOrder) {
+            $this->messageManager->addError(__('No order(s) were put on hold.'));
         }
 
-        $countNonHoldOrder = count($orderIds) - $countHoldOrder;
-
-        if ($countNonHoldOrder) {
-            if ($countHoldOrder) {
-                $this->messageManager->addError(__('%1 order(s) were not put on hold.', $countNonHoldOrder));
-            } else {
-                $this->messageManager->addError(__('No order(s) were put on hold.'));
-            }
-        }
         if ($countHoldOrder) {
             $this->messageManager->addSuccess(__('You have put %1 order(s) on hold.', $countHoldOrder));
         }
 
-        $this->_redirect('sales/*/');
+        $resultRedirect = $this->resultRedirectFactory->create();
+        $resultRedirect->setPath($this->getComponentRefererUrl());
+        return $resultRedirect;
     }
 }

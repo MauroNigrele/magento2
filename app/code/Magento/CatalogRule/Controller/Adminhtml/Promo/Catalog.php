@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -31,10 +13,10 @@ namespace Magento\CatalogRule\Controller\Adminhtml\Promo;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\Stdlib\DateTime\Filter\Date;
 use Magento\Framework\Registry;
+use Magento\Framework\Stdlib\DateTime\Filter\Date;
 
-class Catalog extends Action
+abstract class Catalog extends Action
 {
     /**
      * Dirty rules notice message
@@ -52,11 +34,15 @@ class Catalog extends Action
     protected $_coreRegistry = null;
 
     /**
+     * Date filter instance
+     *
      * @var \Magento\Framework\Stdlib\DateTime\Filter\Date
      */
     protected $_dateFilter;
 
     /**
+     * Constructor
+     *
      * @param Context $context
      * @param Registry $coreRegistry
      * @param Date $dateFilter
@@ -69,6 +55,8 @@ class Catalog extends Action
     }
 
     /**
+     * Init action
+     *
      * @return $this
      */
     protected function _initAction()
@@ -84,6 +72,8 @@ class Catalog extends Action
     }
 
     /**
+     * Is access to section allowed
+     *
      * @return bool
      */
     protected function _isAllowed()
@@ -96,6 +86,7 @@ class Catalog extends Action
      *
      * @param string $dirtyRulesNoticeMessage
      * @return void
+     * @codeCoverageIgnore
      */
     public function setDirtyRulesNoticeMessage($dirtyRulesNoticeMessage)
     {
@@ -110,7 +101,7 @@ class Catalog extends Action
     public function getDirtyRulesNoticeMessage()
     {
         $defaultMessage = __(
-            'There are rules that have been changed but were not applied. Please, click Apply Rules in order to see immediate effect in the catalog.'
+            'We found updated rules that are not applied. Please click "Apply Rules" to update your catalog.'
         );
         return $this->_dirtyRulesNoticeMessage ? $this->_dirtyRulesNoticeMessage : $defaultMessage;
     }

@@ -1,27 +1,10 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Error;
+use Magento\Framework\Filesystem\DriverInterface;
 
 /**
  * Error processor
@@ -153,7 +136,7 @@ class Processor
         $this->_reportDir = dirname(dirname($this->_errorDir)) . '/var/report/';
 
         if (!empty($_SERVER['SCRIPT_NAME'])) {
-            if (in_array(basename($_SERVER['SCRIPT_NAME'], '.php'), array('404', '503', 'report'))) {
+            if (in_array(basename($_SERVER['SCRIPT_NAME'], '.php'), ['404', '503', 'report'])) {
                 $this->_scriptName = dirname($_SERVER['SCRIPT_NAME']);
             } else {
                 $this->_scriptName = $_SERVER['SCRIPT_NAME'];
@@ -166,7 +149,7 @@ class Processor
         }
 
         $this->_indexDir = $this->_getIndexDir();
-        $this->_root  = is_dir($this->_indexDir.'app');
+        $this->_root  = is_dir($this->_indexDir . 'app');
 
         $this->_prepareConfig();
         if (isset($_GET['skin'])) {
@@ -197,7 +180,6 @@ class Processor
         $this->_response->setHttpResponseCode(404);
         $this->_response->setBody($this->_renderPage('404.phtml'));
         return $this->_response;
-
     }
 
     /**
@@ -244,7 +226,13 @@ class Processor
      */
     public function getViewFileUrl()
     {
-        return $this->getBaseUrl() . self::ERROR_DIR. '/' . $this->_config->skin . '/';
+        //The url needs to be updated base on Document root path.
+        return $this->getBaseUrl() .
+        str_replace(
+            str_replace('\\', '/', $this->_indexDir),
+            '',
+            str_replace('\\', '/', $this->_errorDir)
+        ) . $this->_config->skin . '/';
     }
 
     /**
@@ -268,7 +256,7 @@ class Processor
         $isSecure = (!empty($_SERVER['HTTPS'])) && ($_SERVER['HTTPS'] != 'off');
         $url = ($isSecure ? 'https://' : 'http://') . $host;
 
-        if (!empty($_SERVER['SERVER_PORT']) && !in_array($_SERVER['SERVER_PORT'], array(80, 433))
+        if (!empty($_SERVER['SERVER_PORT']) && !in_array($_SERVER['SERVER_PORT'], [80, 433])
             && !preg_match('/.*?\:[0-9]+$/', $url)
         ) {
             $url .= ':' . $_SERVER['SERVER_PORT'];
@@ -404,11 +392,6 @@ class Processor
     protected function _getFilePath($file, $directories = null)
     {
         if (is_null($directories)) {
-            $directories = array();
-
-            if (!$this->_root) {
-                $directories[] = $this->_indexDir . self::ERROR_DIR . '/';
-            }
             $directories[] = $this->_errorDir;
         }
 
@@ -427,16 +410,6 @@ class Processor
      */
     protected function _getTemplatePath($template)
     {
-        $directories = array();
-
-        if (!$this->_root) {
-            $directories[] = $this->_indexDir . self::ERROR_DIR. '/'. $this->_config->skin . '/';
-
-            if ($this->_config->skin != self::DEFAULT_SKIN) {
-                $directories[] = $this->_indexDir . self::ERROR_DIR . '/'. self::DEFAULT_SKIN . '/';
-            }
-        }
-
         $directories[] = $this->_errorDir . $this->_config->skin . '/';
 
         if ($this->_config->skin != self::DEFAULT_SKIN) {
@@ -481,11 +454,11 @@ class Processor
         $this->_setReportData($reportData);
 
         if (!file_exists($this->_reportDir)) {
-            @mkdir($this->_reportDir, 0777, true);
+            @mkdir($this->_reportDir, DriverInterface::WRITEABLE_DIRECTORY_MODE, true);
         }
 
         @file_put_contents($this->_reportFile, serialize($reportData));
-        @chmod($this->_reportFile, 0777);
+        @chmod($this->_reportFile, DriverInterface::WRITEABLE_FILE_MODE);
 
         if (isset($reportData['skin']) && self::DEFAULT_SKIN != $reportData['skin']) {
             $this->_setSkin($reportData['skin']);
@@ -535,12 +508,11 @@ class Processor
 
         if (isset($_POST['submit'])) {
             if ($this->_validate()) {
-
                 $msg  = "URL: {$this->reportData['url']}\n"
                     . "IP Address: {$this->_getClientIp()}\n"
                     . "First Name: {$this->postData['firstName']}\n"
                     . "Last Name: {$this->postData['lastName']}\n"
-                    . "E-mail Address: {$this->postData['email']}\n";
+                    . "Email Address: {$this->postData['email']}\n";
                 if ($this->postData['telephone']) {
                     $msg .= "Telephone: {$this->postData['telephone']}\n";
                 }
@@ -618,7 +590,7 @@ class Processor
     {
         if ($this->reportId && $this->_config && isset($this->_config->skin)) {
             $this->reportUrl = "{$this->getBaseUrl(true)}pub/errors/report.php?"
-                . http_build_query(array('id' => $this->reportId, 'skin' => $this->_config->skin));
+                . http_build_query(['id' => $this->reportId, 'skin' => $this->_config->skin]);
         }
     }
 }

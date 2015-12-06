@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Captcha\Model;
 
@@ -28,7 +10,7 @@ namespace Magento\Captcha\Model;
  *
  * @author     Magento Core Team <core@magentocommerce.com>
  */
-class DefaultModel extends \Zend_Captcha_Image implements \Magento\Captcha\Model\ModelInterface
+class DefaultModel extends \Zend_Captcha_Image implements \Magento\Captcha\Model\CaptchaInterface
 {
     /**
      * Key in session for captcha code
@@ -70,7 +52,7 @@ class DefaultModel extends \Zend_Captcha_Image implements \Magento\Captcha\Model
     protected $_formId;
 
     /**
-     * @var \Magento\Captcha\Model\Resource\LogFactory
+     * @var \Magento\Captcha\Model\ResourceModel\LogFactory
      */
     protected $_resLogFactory;
 
@@ -89,13 +71,13 @@ class DefaultModel extends \Zend_Captcha_Image implements \Magento\Captcha\Model
     /**
      * @param \Magento\Framework\Session\SessionManagerInterface $session
      * @param \Magento\Captcha\Helper\Data $captchaData
-     * @param \Magento\Captcha\Model\Resource\LogFactory $resLogFactory
+     * @param \Magento\Captcha\Model\ResourceModel\LogFactory $resLogFactory
      * @param string $formId
      */
     public function __construct(
         \Magento\Framework\Session\SessionManagerInterface $session,
         \Magento\Captcha\Helper\Data $captchaData,
-        \Magento\Captcha\Model\Resource\LogFactory $resLogFactory,
+        \Magento\Captcha\Model\ResourceModel\LogFactory $resLogFactory,
         $formId
     ) {
         $this->_session = $session;
@@ -483,7 +465,7 @@ class DefaultModel extends \Zend_Captcha_Image implements \Magento\Captcha\Model
     {
         $this->_session->setData(
             $this->_getFormIdKey(self::SESSION_WORD),
-            array('data' => $word, 'expires' => time() + $this->getTimeout())
+            ['data' => $word, 'expires' => time() + $this->getTimeout()]
         );
         $this->_word = $word;
         return $this;
@@ -518,7 +500,7 @@ class DefaultModel extends \Zend_Captcha_Image implements \Magento\Captcha\Model
      * @return void
      *
      * Now deleting old captcha images make crontab script
-     * @see \Magento\Captcha\Model\Observer::deleteExpiredImages
+     * @see \Magento\Captcha\Cron\DeleteExpiredImages::execute
      */
     protected function _gc()
     {
@@ -528,7 +510,7 @@ class DefaultModel extends \Zend_Captcha_Image implements \Magento\Captcha\Model
     /**
      * Get resource model
      *
-     * @return \Magento\Captcha\Model\Resource\Log
+     * @return \Magento\Captcha\Model\ResourceModel\Log
      */
     protected function _getResourceModel()
     {

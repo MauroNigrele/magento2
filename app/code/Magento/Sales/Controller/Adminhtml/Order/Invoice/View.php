@@ -1,76 +1,63 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Controller\Adminhtml\Order\Invoice;
 
-use Magento\Backend\App\Action;
+use Magento\Framework\View\Result\PageFactory;
+use Magento\Backend\App\Action\Context;
+use Magento\Framework\Registry;
 
 class View extends \Magento\Sales\Controller\Adminhtml\Invoice\AbstractInvoice\View
 {
-    /**
-     * @var \Magento\Sales\Controller\Adminhtml\Order\InvoiceLoader
-     */
-    protected $invoiceLoader;
 
     /**
-     * @param Action\Context $context
-     * @param \Magento\Sales\Controller\Adminhtml\Order\InvoiceLoader $invoiceLoader
+     * @var PageFactory
+     */
+    protected $resultPageFactory;
+
+    /**
+     * @param Context $context
+     * @param Registry $registry
+     * @param \Magento\Backend\Model\View\Result\ForwardFactory $resultForwardFactory
+     * @param PageFactory $resultPageFactory
      */
     public function __construct(
-        Action\Context $context,
-        \Magento\Sales\Controller\Adminhtml\Order\InvoiceLoader $invoiceLoader
+        Context $context,
+        Registry $registry,
+        \Magento\Backend\Model\View\Result\ForwardFactory $resultForwardFactory,
+        PageFactory $resultPageFactory
     ) {
-        $this->invoiceLoader = $invoiceLoader;
-        parent::__construct($context);
+        $this->resultPageFactory = $resultPageFactory;
+        parent::__construct($context, $registry, $resultForwardFactory);
     }
 
     /**
      * Invoice information page
      *
-     * @return void
+     * @return \Magento\Framework\Controller\ResultInterface
      */
     public function execute()
     {
-        $this->_title->add(__('Invoices'));
-        $orderId = $this->getRequest()->getParam('order_id');
-        $invoiceId = $this->getRequest()->getParam('invoice_id');
-        $invoiceData = $this->getRequest()->getParam('invoice', []);
-        $invoiceData = isset($invoiceData['items']) ? $invoiceData['items'] : [];
-        $invoice = $this->invoiceLoader->load($orderId, $invoiceId, $invoiceData);
-        if ($invoice) {
-            $this->_title->add(sprintf("#%s", $invoice->getIncrementId()));
-
-            $this->_view->loadLayout();
-            $this->_setActiveMenu('Magento_Sales::sales_order');
-            $this->_view->getLayout()->getBlock(
-                'sales_invoice_view'
-            )->updateBackButtonUrl(
-                $this->getRequest()->getParam('come_from')
-            );
-            $this->_view->renderLayout();
-        } else {
-            $this->_forward('noroute');
+        $invoice = $this->getInvoice();
+        if (!$invoice) {
+            /** @var \Magento\Framework\Controller\Result\Forward $resultForward */
+            $resultForward = $this->resultForwardFactory->create();
+            return $resultForward->forward('noroute');
         }
+
+        /** @var \Magento\Backend\Model\View\Result\Page $resultPage */
+        $resultPage = $this->resultPageFactory->create();
+        $resultPage->setActiveMenu('Magento_Sales::sales_order');
+        $resultPage->getConfig()->getTitle()->prepend(__('Invoices'));
+        $resultPage->getConfig()->getTitle()->prepend(sprintf("#%s", $invoice->getIncrementId()));
+        $resultPage->getLayout()->getBlock(
+            'sales_invoice_view'
+        )->updateBackButtonUrl(
+            $this->getRequest()->getParam('come_from')
+        );
+        return $resultPage;
     }
 }

@@ -1,32 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Downloadable\Test\Block\Catalog\Product;
 
-use Magento\Downloadable\Test\Fixture\DownloadableProductInjectable;
-use Mtf\Client\Element\Locator;
-use Mtf\Fixture\FixtureInterface;
+use Magento\Downloadable\Test\Fixture\DownloadableProduct;
+use Magento\Mtf\Client\Locator;
+use Magento\Mtf\Fixture\FixtureInterface;
 
 /**
  * Class View
@@ -46,7 +28,7 @@ class View extends \Magento\Catalog\Test\Block\Product\View
      *
      * @var string
      */
-    protected $blockDownloadableSamples = '.downloadable.samples';
+    protected $blockDownloadableSamples = '.items.samples';
 
     /**
      * Get downloadable link block
@@ -86,26 +68,25 @@ class View extends \Magento\Catalog\Test\Block\Product\View
      */
     public function fillOptions(FixtureInterface $product)
     {
-        /** @var DownloadableProductInjectable $product */
+        /** @var DownloadableProduct $product */
         $productData = $product->getData();
         $downloadableLinks = isset($productData['downloadable_links']['downloadable']['link'])
             ? $productData['downloadable_links']['downloadable']['link']
             : [];
-        $data = $product->getCheckoutData()['options'];
+        $checkoutData = $product->getCheckoutData();
+        if (isset($checkoutData['options'])) {
+            // Replace link key to label
+            foreach ($checkoutData['options']['links'] as $key => $linkData) {
+                $linkKey = str_replace('link_', '', $linkData['label']);
 
-        // Replace link key to label
-        foreach ($data['links'] as $key => $linkData) {
-            $linkKey = str_replace('link_', '', $linkData['label']);
+                $linkData['label'] = isset($downloadableLinks[$linkKey]['title'])
+                    ? $downloadableLinks[$linkKey]['title']
+                    : $linkData['label'];
 
-            $linkData['label'] = isset($downloadableLinks[$linkKey]['title'])
-                ? $downloadableLinks[$linkKey]['title']
-                : $linkData['label'];
-
-            $data['links'][$key] = $linkData;
+                $checkoutData['options']['links'][$key] = $linkData;
+            }
+            $this->getDownloadableLinksBlock()->fill($checkoutData['options']['links']);
         }
-
-        $this->getDownloadableLinksBlock()->fill($data['links']);
-        parent::fillOptions($product);
     }
 
     /**
@@ -122,16 +103,16 @@ class View extends \Magento\Catalog\Test\Block\Product\View
             $downloadableOptions['downloadable_links'] = [
                 'title' => $this->getDownloadableLinksBlock()->getTitle(),
                 'downloadable' => [
-                    'link' => $this->getDownloadableLinksBlock()->getLinks()
-                ]
+                    'link' => $this->getDownloadableLinksBlock()->getLinks(),
+                ],
             ];
         }
         if ($this->_rootElement->find($this->blockDownloadableSamples)->isVisible()) {
             $downloadableOptions['downloadable_sample'] = [
                 'title' => $this->getDownloadableSamplesBlock()->getTitle(),
                 'downloadable' => [
-                    'sample' => $this->getDownloadableSamplesBlock()->getLinks()
-                ]
+                    'sample' => $this->getDownloadableSamplesBlock()->getLinks(),
+                ],
             ];
         }
 

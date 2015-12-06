@@ -1,33 +1,18 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\View\Design\Theme;
 
+use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\Filesystem\Directory\WriteInterface;
 use Magento\Framework\View\Design\ThemeInterface;
 
 /**
  * Theme Image model class
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class Image
 {
@@ -79,7 +64,7 @@ class Image
     /**
      * Logger
      *
-     * @var \Magento\Framework\Logger
+     * @var \Psr\Log\LoggerInterface
      */
     protected $logger;
 
@@ -100,25 +85,26 @@ class Image
     /**
      * Initialize dependencies
      *
-     * @param \Magento\Framework\App\Filesystem $filesystem
+     * @param \Magento\Framework\Filesystem $filesystem
      * @param \Magento\Framework\Image\Factory $imageFactory
      * @param Image\Uploader $uploader
      * @param Image\PathInterface $themeImagePath
-     * @param \Magento\Framework\Logger $logger
+     * @param \Psr\Log\LoggerInterface $logger
      * @param array $imageParams
      * @param ThemeInterface $theme
+     * @codingStandardsIgnoreStart
      */
     public function __construct(
-        \Magento\Framework\App\Filesystem $filesystem,
+        \Magento\Framework\Filesystem $filesystem,
         \Magento\Framework\Image\Factory $imageFactory,
         Image\Uploader $uploader,
         Image\PathInterface $themeImagePath,
-        \Magento\Framework\Logger $logger,
-        array $imageParams = array(self::PREVIEW_IMAGE_WIDTH, self::PREVIEW_IMAGE_HEIGHT),
+        \Psr\Log\LoggerInterface $logger,
+        array $imageParams = [self::PREVIEW_IMAGE_WIDTH, self::PREVIEW_IMAGE_HEIGHT],
         ThemeInterface $theme = null
     ) {
-        $this->mediaDirectory = $filesystem->getDirectoryWrite(\Magento\Framework\App\Filesystem::MEDIA_DIR);
-        $this->rootDirectory = $filesystem->getDirectoryWrite(\Magento\Framework\App\Filesystem::ROOT_DIR);
+        $this->mediaDirectory = $filesystem->getDirectoryWrite(DirectoryList::MEDIA);
+        $this->rootDirectory = $filesystem->getDirectoryWrite(DirectoryList::ROOT);
         $this->imageFactory = $imageFactory;
         $this->uploader = $uploader;
         $this->themeImagePath = $themeImagePath;
@@ -126,6 +112,7 @@ class Image
         $this->imageParams = $imageParams;
         $this->theme = $theme;
     }
+    // @codingStandardsIgnoreEnd
 
     /**
      * Create preview image
@@ -141,10 +128,10 @@ class Image
         $image->constrainOnly(true);
         $image->keepFrame(true);
         $image->keepAspectRatio(true);
-        $image->backgroundColor(array(255, 255, 255));
+        $image->backgroundColor([255, 255, 255]);
         $image->resize($imageWidth, $imageHeight);
 
-        $imageName = uniqid('preview_image_') . image_type_to_extension($image->getMimeType());
+        $imageName = uniqid('preview_image_') . image_type_to_extension($image->getImageType());
         $image->save($this->themeImagePath->getImagePreviewDirectory(), $imageName);
         $this->theme->setPreviewImage($imageName);
         return $this;
@@ -170,9 +157,9 @@ class Image
             $targetRelativePath =  $this->mediaDirectory->getRelativePath($previewDir . '/' . $destinationFileName);
             $isCopied = $this->rootDirectory->copyFile($sourceRelativePath, $targetRelativePath, $this->mediaDirectory);
             $this->theme->setPreviewImage($destinationFileName);
-        } catch (\Magento\Framework\Filesystem\FilesystemException $e) {
+        } catch (\Magento\Framework\Exception\FileSystemException $e) {
             $this->theme->setPreviewImage(null);
-            $this->logger->logException($e);
+            $this->logger->critical($e);
         }
         return $isCopied;
     }

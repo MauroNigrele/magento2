@@ -1,31 +1,15 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
  * Theme configuration files handler
  */
 namespace Magento\Framework\Config;
+
+use Magento\Framework\Config\Composer\Package;
 
 class Theme
 {
@@ -41,17 +25,21 @@ class Theme
      */
     protected $_data;
 
+    /** @var \Magento\Framework\Config\Dom\UrnResolver */
+    protected $urnResolver;
+
     /**
      * Constructor
      *
+     * @param \Magento\Framework\Config\Dom\UrnResolver $urnResolver
      * @param string $configContent
      */
-    public function __construct($configContent)
-    {
-        $config = new \DOMDocument();
-        $config->loadXML($configContent);
-        // todo: validation of the document
-        $this->_data = $this->_extractData($config);
+    public function __construct(
+        \Magento\Framework\Config\Dom\UrnResolver $urnResolver,
+        $configContent = null
+    ) {
+        $this->urnResolver = $urnResolver;
+        $this->_data = $this->_extractData($configContent);
     }
 
     /**
@@ -61,43 +49,41 @@ class Theme
      */
     public function getSchemaFile()
     {
-        return __DIR__ . '/etc/theme.xsd';
+        return $this->urnResolver->getRealPath('urn:magento:framework:Config/etc/theme.xsd');
     }
 
     /**
-     * Extract configuration data from the DOM structure
+     * Extract configuration data from theme.xml
      *
-     * @param \DOMDocument $dom
+     * @param string $configContent
      * @return array
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
-    protected function _extractData(\DOMDocument $dom)
+    protected function _extractData($configContent)
     {
-        /** @var $themeNode \DOMElement */
-        $themeNode = $dom->getElementsByTagName('theme')->item(0);
-        /** @var $mediaNode \DOMElement */
-        $mediaNode = $themeNode->getElementsByTagName('media')->item(0);
+        $data = [
+            'title' => null,
+            'media' => null,
+            'parent' => null,
+        ];
 
-        $themeVersionNode = $themeNode->getElementsByTagName('version')->item(0);
-        $themeParentNode = $themeNode->getElementsByTagName('parent')->item(0);
-        $themeTitleNode = $themeNode->getElementsByTagName('title')->item(0);
-        $previewImage = $mediaNode ? $mediaNode->getElementsByTagName('preview_image')->item(0)->nodeValue : '';
+        if (!empty($configContent)) {
+            $dom = new \DOMDocument();
+            $dom->loadXML($configContent);
+            // todo: validation of the document
+            /** @var $themeNode \DOMElement */
+            $themeNode = $dom->getElementsByTagName('theme')->item(0);
+            $themeTitleNode = $themeNode->getElementsByTagName('title')->item(0);
+            $data['title'] = $themeTitleNode ? $themeTitleNode->nodeValue : null;
+            /** @var $mediaNode \DOMElement */
+            $mediaNode = $themeNode->getElementsByTagName('media')->item(0);
+            $previewImage = $mediaNode ? $mediaNode->getElementsByTagName('preview_image')->item(0)->nodeValue : '';
+            $data['media']['preview_image'] = $previewImage;
+            $themeParentNode = $themeNode->getElementsByTagName('parent')->item(0);
+            $data['parent'] = $themeParentNode ? $themeParentNode->nodeValue : null;
+        }
 
-        return array(
-            'title' => $themeTitleNode->nodeValue,
-            'parent' => $themeParentNode ? $themeParentNode->nodeValue : null,
-            'version' => $themeVersionNode ? $themeVersionNode->nodeValue : null,
-            'media' => array('preview_image' => $previewImage)
-        );
-    }
-
-    /**
-     * Get title for specified package code
-     *
-     * @return string
-     */
-    public function getThemeVersion()
-    {
-        return $this->_data['version'];
+        return $data;
     }
 
     /**

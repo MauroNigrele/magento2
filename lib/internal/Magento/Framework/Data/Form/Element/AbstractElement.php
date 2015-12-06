@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Data\Form\Element;
 
@@ -32,6 +14,7 @@ use Magento\Framework\Escaper;
  * Data form abstract class
  *
  * @author     Magento Core Team <core@magentocommerce.com>
+ * @SuppressWarnings(PHPMD.NumberOfChildren)
  */
 abstract class AbstractElement extends AbstractForm
 {
@@ -89,7 +72,7 @@ abstract class AbstractElement extends AbstractForm
         Factory $factoryElement,
         CollectionFactory $factoryCollection,
         Escaper $escaper,
-        $data = array()
+        $data = []
     ) {
         $this->_escaper = $escaper;
         parent::__construct($factoryElement, $factoryCollection, $data);
@@ -245,7 +228,7 @@ abstract class AbstractElement extends AbstractForm
      */
     public function getHtmlAttributes()
     {
-        return array(
+        return [
             'type',
             'title',
             'class',
@@ -255,8 +238,12 @@ abstract class AbstractElement extends AbstractForm
             'disabled',
             'readonly',
             'tabindex',
-            'placeholder'
-        );
+            'placeholder',
+            'data-form-part',
+            'data-role',
+            'data-action',
+            'checked',
+        ];
     }
 
     /**
@@ -358,15 +345,18 @@ abstract class AbstractElement extends AbstractForm
     public function getElementHtml()
     {
         $html = '';
-        if ($this->getBeforeElementHtml() && $this->getBeforeElementHtml() != '') {
+        $htmlId = $this->getHtmlId();
+
+        if (($beforeElementHtml = $this->getBeforeElementHtml())) {
             $html .= '<label class="addbefore" for="' .
-                $this->getHtmlId() .
+                $htmlId .
                 '">' .
-                $this->getBeforeElementHtml() .
+                $beforeElementHtml .
                 '</label>';
         }
+
         $html .= '<input id="' .
-            $this->getHtmlId() .
+            $htmlId .
             '" name="' .
             $this->getName() .
             '" ' .
@@ -377,16 +367,19 @@ abstract class AbstractElement extends AbstractForm
             $this->serialize(
                 $this->getHtmlAttributes()
             ) . '/>';
-        if ($this->getAfterElementJs() && $this->getAfterElementJs() != '') {
-            $html .= $this->getAfterElementJs();
+
+        if (($afterElementJs = $this->getAfterElementJs())) {
+            $html .= $afterElementJs;
         }
-        if ($this->getAfterElementHtml() && $this->getAfterElementHtml() != '') {
+
+        if (($afterElementHtml = $this->getAfterElementHtml())) {
             $html .= '<label class="addafter" for="' .
-                $this->getHtmlId() .
+                $htmlId .
                 '">' .
-                $this->getAfterElementHtml() .
+                $afterElementHtml .
                 '</label>';
         }
+
         return $html;
     }
 
@@ -428,12 +421,13 @@ abstract class AbstractElement extends AbstractForm
      */
     public function getLabelHtml($idSuffix = '')
     {
-        if (!is_null($this->getLabel())) {
-            $html = '<label class="label" for="' . $this->getHtmlId() . $idSuffix . '"' . $this->_getUiId(
-                'label'
-            ) . '><span>' . $this->_escape(
-                $this->getLabel()
-            ) . '</span></label>' . "\n";
+        if ($this->getLabel() !== null) {
+            $html = '<label class="label admin__field-label" for="' .
+                $this->getHtmlId() . $idSuffix . '"' . $this->_getUiId(
+                    'label'
+                ) . '><span>' . $this->_escape(
+                    $this->getLabel()
+                ) . '</span></label>' . "\n";
         } else {
             $html = '';
         }
@@ -448,7 +442,7 @@ abstract class AbstractElement extends AbstractForm
     public function getDefaultHtml()
     {
         $html = $this->getData('default_html');
-        if (is_null($html)) {
+        if ($html === null) {
             $html = $this->getNoSpan() === true ? '' : '<span class="field-row">' . "\n";
             $html .= $this->getLabelHtml();
             $html .= $this->getElementHtml();
@@ -465,7 +459,7 @@ abstract class AbstractElement extends AbstractForm
     public function getHtml()
     {
         if ($this->getRequired()) {
-            $this->addClass('required-entry');
+            $this->addClass('required-entry _required');
         }
         if ($this->_renderer) {
             $html = $this->_renderer->render($this);
@@ -494,7 +488,7 @@ abstract class AbstractElement extends AbstractForm
      * @param string $quote
      * @return string
      */
-    public function serialize($attributes = array(), $valueSeparator = '=', $fieldSeparator = ' ', $quote = '"')
+    public function serialize($attributes = [], $valueSeparator = '=', $fieldSeparator = ' ', $quote = '"')
     {
         if ($this->isLocked() && !empty($attributes)) {
             $attributes[] = $this->lockHtmlAttribute;
@@ -547,6 +541,7 @@ abstract class AbstractElement extends AbstractForm
      * @param string|int|array $values
      * @param bool $overwrite
      * @return $this
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function addElementValues($values, $overwrite = false)
     {
@@ -555,7 +550,7 @@ abstract class AbstractElement extends AbstractForm
         }
         if (!is_array($values)) {
             $values = $this->_escaper->escapeHtml(trim($values));
-            $values = array($values => $values);
+            $values = [$values => $values];
         }
         $elementValues = $this->getValues();
         if (!empty($elementValues)) {

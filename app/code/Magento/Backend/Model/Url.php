@@ -1,30 +1,10 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Backend\Model;
 
-use Magento\Backend\Model\Auth;
-use Magento\Backend\Model\Menu;
 
 /**
  * Class \Magento\Backend\Model\UrlInterface
@@ -33,6 +13,13 @@ use Magento\Backend\Model\Menu;
  */
 class Url extends \Magento\Framework\Url implements \Magento\Backend\Model\UrlInterface
 {
+    /**
+     * Whether to use a security key in the backend
+     *
+     * @bug Currently, this constant is slightly misleading: it says "form key", but in fact it is used by URLs, too
+     */
+    const XML_PATH_USE_SECURE_KEY = 'admin/security/use_form_key';
+
     /**
      * Authentication session
      *
@@ -96,7 +83,7 @@ class Url extends \Magento\Framework\Url implements \Magento\Backend\Model\UrlIn
      * @param \Magento\Framework\Url\ScopeResolverInterface $scopeResolver
      * @param \Magento\Framework\Session\Generic $session
      * @param \Magento\Framework\Session\SidResolverInterface $sidResolver
-     * @param \Magento\Framework\Url\RouteParamsResolverFactory $routeParamsResolver
+     * @param \Magento\Framework\Url\RouteParamsResolverFactory $routeParamsResolverFactory
      * @param \Magento\Framework\Url\QueryParamsResolverInterface $queryParamsResolver
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param string $scopeType
@@ -118,7 +105,7 @@ class Url extends \Magento\Framework\Url implements \Magento\Backend\Model\UrlIn
         \Magento\Framework\Url\ScopeResolverInterface $scopeResolver,
         \Magento\Framework\Session\Generic $session,
         \Magento\Framework\Session\SidResolverInterface $sidResolver,
-        \Magento\Framework\Url\RouteParamsResolverFactory $routeParamsResolver,
+        \Magento\Framework\Url\RouteParamsResolverFactory $routeParamsResolverFactory,
         \Magento\Framework\Url\QueryParamsResolverInterface $queryParamsResolver,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         $scopeType,
@@ -139,7 +126,7 @@ class Url extends \Magento\Framework\Url implements \Magento\Backend\Model\UrlIn
             $scopeResolver,
             $session,
             $sidResolver,
-            $routeParamsResolver,
+            $routeParamsResolverFactory,
             $queryParamsResolver,
             $scopeConfig,
             $scopeType,
@@ -194,6 +181,10 @@ class Url extends \Magento\Framework\Url implements \Magento\Backend\Model\UrlIn
      */
     public function getUrl($routePath = null, $routeParams = null)
     {
+        if (filter_var($routePath, FILTER_VALIDATE_URL)) {
+            return $routePath;
+        }
+
         $cacheSecretKey = false;
         if (is_array($routeParams) && isset($routeParams['_cache_secret_key'])) {
             unset($routeParams['_cache_secret_key']);
@@ -203,6 +194,7 @@ class Url extends \Magento\Framework\Url implements \Magento\Backend\Model\UrlIn
         if (!$this->useSecretKey()) {
             return $result;
         }
+        $this->_setRoutePath($routePath);
         $routeName = $this->_getRouteName('*');
         $controllerName = $this->_getControllerName(self::DEFAULT_CONTROLLER_NAME);
         $actionName = $this->_getActionName(self::DEFAULT_ACTION_NAME);
@@ -210,7 +202,7 @@ class Url extends \Magento\Framework\Url implements \Magento\Backend\Model\UrlIn
             $secret = [self::SECRET_KEY_PARAM_NAME => "\${$routeName}/{$controllerName}/{$actionName}\$"];
         } else {
             $secret = [
-                self::SECRET_KEY_PARAM_NAME => $this->getSecretKey($routeName, $controllerName, $actionName)
+                self::SECRET_KEY_PARAM_NAME => $this->getSecretKey($routeName, $controllerName, $actionName),
             ];
         }
         if (is_array($routeParams)) {
@@ -268,7 +260,7 @@ class Url extends \Magento\Framework\Url implements \Magento\Backend\Model\UrlIn
      */
     public function useSecretKey()
     {
-        return $this->_scopeConfig->isSetFlag('admin/security/use_form_key') && !$this->getNoSecret();
+        return $this->_scopeConfig->isSetFlag(self::XML_PATH_USE_SECURE_KEY) && !$this->getNoSecret();
     }
 
     /**
@@ -313,7 +305,7 @@ class Url extends \Magento\Framework\Url implements \Magento\Backend\Model\UrlIn
         $menuItem = $this->_getMenu()->get(
             $this->_scopeConfig->getValue(self::XML_PATH_STARTUP_MENU_ITEM, $this->_scopeType)
         );
-        if (!is_null($menuItem)) {
+        if ($menuItem !== null) {
             if ($menuItem->isAllowed() && $menuItem->getAction()) {
                 return $menuItem->getAction();
             }
@@ -349,7 +341,7 @@ class Url extends \Magento\Framework\Url implements \Magento\Backend\Model\UrlIn
      */
     protected function _getMenu()
     {
-        if (is_null($this->_menu)) {
+        if ($this->_menu === null) {
             $this->_menu = $this->_menuConfig->getMenu();
         }
         return $this->_menu;
@@ -418,7 +410,7 @@ class Url extends \Magento\Framework\Url implements \Magento\Backend\Model\UrlIn
             $this->_scope = $this->_storeFactory->create(
                 [
                     'url' => $this,
-                    'data' => ['code' => 'admin', 'force_disable_rewrites' => false, 'disable_store_in_url' => true]
+                    'data' => ['code' => 'admin', 'force_disable_rewrites' => false, 'disable_store_in_url' => true],
                 ]
             );
         }

@@ -1,39 +1,20 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Cms\Test\Handler\CmsPage;
 
-use Mtf\Fixture\FixtureInterface;
 use Magento\Backend\Test\Handler\Conditions;
-use Mtf\Util\Protocol\CurlInterface;
-use Mtf\Util\Protocol\CurlTransport;
-use Mtf\Util\Protocol\CurlTransport\BackendDecorator;
-use Mtf\System\Config;
+use Magento\Mtf\Fixture\FixtureInterface;
+use Magento\Mtf\Config\DataInterface;
+use Magento\Mtf\System\Event\EventManagerInterface;
+use Magento\Mtf\Util\Protocol\CurlTransport;
+use Magento\Mtf\Util\Protocol\CurlTransport\BackendDecorator;
 
 /**
- * Class Curl
- * Curl handler for creating Cms page
+ * Curl handler for creating Cms page.
  */
 class Curl extends Conditions implements CmsPageInterface
 {
@@ -44,8 +25,8 @@ class Curl extends Conditions implements CmsPageInterface
      */
     protected $mappingData = [
         'is_active' => [
-            'Published' => 1,
-            'Disabled' => 0
+            'Enabled' => 1,
+            'Disabled' => 0,
         ],
         'store_id' => [
             'All Store Views' => 0,
@@ -54,23 +35,37 @@ class Curl extends Conditions implements CmsPageInterface
             '1 column' => '1column',
             '2 columns with left bar' => '2columns-left',
             '2 columns with right bar' => '2columns-right',
-            '3 columns' => '3columns'
-        ],
-        'under_version_control' => [
-            'Yes' => 1,
-            'No' => 0
+            '3 columns' => '3columns',
         ]
     ];
 
     /**
-     * Url for save cms page
+     * Url for save cms page.
      *
      * @var string
      */
-    protected $url = 'cms/page/save/back/edit/active_tab/content_section/';
+    protected $url = 'cms/page/save/back/edit/active_tab/main_section/';
 
     /**
-     * Post request for creating a cms page
+     * Mapping values for data.
+     *
+     * @var array
+     */
+    protected $additionalMappingData = [];
+
+    /**
+     * @constructor
+     * @param DataInterface $configuration
+     * @param EventManagerInterface $eventManager
+     */
+    public function __construct(DataInterface $configuration, EventManagerInterface $eventManager)
+    {
+        $this->mappingData = array_merge($this->mappingData, $this->additionalMappingData);
+        parent::__construct($configuration, $eventManager);
+    }
+
+    /**
+     * Post request for creating a cms page.
      *
      * @param FixtureInterface $fixture
      * @return array
@@ -80,9 +75,9 @@ class Curl extends Conditions implements CmsPageInterface
     {
         $url = $_ENV['app_backend_url'] . $this->url;
         $data = $this->prepareData($this->replaceMappingData($fixture->getData()));
-        $curl = new BackendDecorator(new CurlTransport(), new Config());
+        $curl = new BackendDecorator(new CurlTransport(), $this->_configuration);
         $curl->addOption(CURLOPT_HEADER, 1);
-        $curl->write(CurlInterface::POST, $url, '1.0', [], $data);
+        $curl->write($url, $data);
         $response = $curl->read();
         $curl->close();
         if (!strpos($response, 'data-ui-id="messages-message-success"')) {
@@ -95,7 +90,7 @@ class Curl extends Conditions implements CmsPageInterface
     }
 
     /**
-     * Prepare data
+     * Prepare data.
      *
      * @param array $data
      * @return array

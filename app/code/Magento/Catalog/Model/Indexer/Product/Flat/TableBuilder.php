@@ -1,27 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Model\Indexer\Product\Flat;
+
+use Magento\Framework\App\ResourceConnection;
 
 /**
  * Class TableBuilder
@@ -47,14 +31,14 @@ class TableBuilder
 
     /**
      * @param \Magento\Catalog\Helper\Product\Flat\Indexer $productIndexerHelper
-     * @param \Magento\Framework\App\Resource $resource
+     * @param \Magento\Framework\App\ResourceConnection $resource
      */
     public function __construct(
         \Magento\Catalog\Helper\Product\Flat\Indexer $productIndexerHelper,
-        \Magento\Framework\App\Resource $resource
+        \Magento\Framework\App\ResourceConnection $resource
     ) {
         $this->_productIndexerHelper = $productIndexerHelper;
-        $this->_connection = $resource->getConnection('write');
+        $this->_connection = $resource->getConnection();
     }
 
     /**
@@ -82,7 +66,7 @@ class TableBuilder
         $status = $this->_productIndexerHelper->getAttribute('status');
         $temporaryEavAttributes[$status->getBackendTable()]['status'] = $status;
         //Create list of temporary tables based on available attributes attributes
-        $valueTables = array();
+        $valueTables = [];
         foreach ($temporaryEavAttributes as $tableName => $columns) {
             $valueTables = array_merge(
                 $valueTables,
@@ -118,14 +102,14 @@ class TableBuilder
      * Create empty temporary table with given columns list
      *
      * @param string $tableName  Table name
-     * @param array $columns array('columnName' => \Magento\Catalog\Model\Resource\Eav\Attribute, ...)
+     * @param array $columns array('columnName' => \Magento\Catalog\Model\ResourceModel\Eav\Attribute, ...)
      * @param string $valueFieldSuffix
      *
      * @return array
      */
     protected function _createTemporaryTable($tableName, array $columns, $valueFieldSuffix)
     {
-        $valueTables = array();
+        $valueTables = [];
         if (!empty($columns)) {
             $valueTableName = $tableName . $valueFieldSuffix;
             $temporaryTable = $this->_connection->newTable($tableName);
@@ -140,7 +124,7 @@ class TableBuilder
 
             $valueTemporaryTable->addColumn('entity_id', \Magento\Framework\DB\Ddl\Table::TYPE_INTEGER);
 
-            /** @var $attribute \Magento\Catalog\Model\Resource\Eav\Attribute */
+            /** @var $attribute \Magento\Catalog\Model\ResourceModel\Eav\Attribute */
             foreach ($columns as $columnName => $attribute) {
                 $attributeCode = $attribute->getAttributeCode();
                 if (isset($flatColumns[$attributeCode])) {
@@ -197,16 +181,16 @@ class TableBuilder
      * @param array  $changedIds
      * @return void
      */
-    protected function _fillTemporaryEntityTable($tableName, array $columns, array $changedIds = array())
+    protected function _fillTemporaryEntityTable($tableName, array $columns, array $changedIds = [])
     {
         if (!empty($columns)) {
             $select = $this->_connection->select();
             $temporaryEntityTable = $this->_getTemporaryTableName($tableName);
-            $idsColumns = array('entity_id', 'type_id', 'attribute_set_id');
+            $idsColumns = ['entity_id', 'type_id', 'attribute_set_id'];
 
             $columns = array_merge($idsColumns, array_keys($columns));
 
-            $select->from(array('e' => $tableName), $columns);
+            $select->from(['e' => $tableName], $columns);
             $onDuplicate = false;
             if (!empty($changedIds)) {
                 $select->where($this->_connection->quoteInto('e.entity_id IN (?)', $changedIds));
@@ -229,7 +213,7 @@ class TableBuilder
         $this->_connection->addIndex(
             $tableName,
             'entity_id',
-            array($columnName),
+            [$columnName],
             \Magento\Framework\DB\Adapter\AdapterInterface::INDEX_TYPE_PRIMARY
         );
     }
@@ -252,7 +236,6 @@ class TableBuilder
         $storeId
     ) {
         if (!empty($tableColumns)) {
-
             $columnsChunks = array_chunk(
                 $tableColumns,
                 Action\Indexer::ATTRIBUTES_CHUNK_SIZE,
@@ -266,17 +249,17 @@ class TableBuilder
                 );
                 $temporaryTableName = $this->_getTemporaryTableName($tableName);
                 $temporaryValueTableName = $temporaryTableName . $valueFieldSuffix;
-                $keyColumn = array('entity_id');
+                $keyColumn = ['entity_id'];
                 $columns = array_merge($keyColumn, array_keys($columnsList));
                 $valueColumns = $keyColumn;
                 $flatColumns = $this->_productIndexerHelper->getFlatColumns();
                 $iterationNum = 1;
 
-                $select->from(array('e' => $entityTableName), $keyColumn);
+                $select->from(['e' => $entityTableName], $keyColumn);
 
-                $selectValue->from(array('e' => $temporaryTableName), $keyColumn);
+                $selectValue->from(['e' => $temporaryTableName], $keyColumn);
 
-                /** @var $attribute \Magento\Catalog\Model\Resource\Eav\Attribute */
+                /** @var $attribute \Magento\Catalog\Model\ResourceModel\Eav\Attribute */
                 foreach ($columnsList as $columnName => $attribute) {
                     $countTableName = 't' . $iterationNum++;
                     $joinCondition = sprintf(
@@ -286,9 +269,9 @@ class TableBuilder
                     );
 
                     $select->joinLeft(
-                        array($countTableName => $tableName),
+                        [$countTableName => $tableName],
                         $joinCondition,
-                        array($columnName => 'value')
+                        [$columnName => 'value']
                     );
 
                     if ($attribute->getFlatUpdateSelect($storeId) instanceof \Magento\Framework\DB\Select) {
@@ -301,13 +284,13 @@ class TableBuilder
                                 $countTableName
                             );
                             $selectValue->joinLeft(
-                                array(
+                                [
                                     $countTableName => $this->_productIndexerHelper->getTable(
                                         'eav_attribute_option_value'
-                                    )
-                                ),
+                                    ),
+                                ],
                                 $valueJoinCondition,
-                                array($columnValueName => $countTableName . '.value')
+                                [$columnValueName => $countTableName . '.value']
                             );
                             $valueColumns[] = $columnValueName;
                         }

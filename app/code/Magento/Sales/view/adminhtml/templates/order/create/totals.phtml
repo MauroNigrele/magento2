@@ -1,50 +1,42 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 ?>
-<legend class="legend"><span><?php echo __('Order Totals') ?></span></legend>
-<table class="data-table" cellspacing="0">
+<legend class="admin__legend"><span><?php /* @escapeNotVerified */ echo __('Order Totals') ?></span></legend>
+<br>
+
+<table class="admin__table-secondary data-table">
     <tbody>
-        <?php echo $this->renderTotals(); ?>
-        <?php echo $this->renderTotals('footer'); ?>
+        <?php /* @escapeNotVerified */ echo $block->renderTotals(); ?>
+        <?php /* @escapeNotVerified */ echo $block->renderTotals('footer'); ?>
     </tbody>
 </table>
-<div class="divider"></div>
-<div class="order-totals-bottom">
-    <div class="field choice field-append-comments">
-        <input type="checkbox" id="notify_customer" name="order[comment][customer_note_notify]" value="1" <?php if($this->getNoteNotify()): ?>checked="true"<?php endif; ?>/>
-        <label for="notify_customer" class="normal"><?php echo __('Append Comments') ?></label>
+
+<div class="order-totals-actions">
+    <div class="admin__field admin__field-option field-append-comments">
+        <input type="checkbox" id="notify_customer" name="order[comment][customer_note_notify]"
+               value="1"<?php if ($block->getNoteNotify()): ?> checked="checked"<?php endif; ?>
+               class="admin__control-checkbox"/>
+        <label for="notify_customer" class="admin__field-label"><?php /* @escapeNotVerified */ echo __('Append Comments') ?></label>
     </div>
-    <?php if ($this->canSendNewOrderConfirmationEmail()): ?>
-    <div class="field choice field-email-order-confirmation">
-        <input type="checkbox" id="send_confirmation" name="order[send_confirmation]" value="1" checked="checked"/>
-        <label for="send_confirmation" class="normal"><?php echo __('Email Order Confirmation') ?></label>
+    <?php if ($block->canSendNewOrderConfirmationEmail()): ?>
+    <div class="admin__field admin__field-option field-email-order-confirmation">
+        <input type="checkbox" id="send_confirmation" name="order[send_confirmation]" value="1" checked="checked"
+               class="admin__control-checkbox"/>
+        <label for="send_confirmation" class="admin__field-label"><?php /* @escapeNotVerified */ echo __('Email Order Confirmation') ?></label>
     </div>
     <?php endif; ?>
-    <div class="actions"><?php echo $this->getButtonHtml(__('Submit Order'),'order.submit()' ,'save primary'); ?></div>
+    <div class="actions">
+        <?php echo $block->getButtonHtml(__('Submit Order'), 'order.submit()', 'save primary'); ?>
+    </div>
 </div>
 
-<script type="text/javascript">
+<script>
 require(['prototype'], function(){
 
 //<![CDATA[

@@ -1,30 +1,11 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Controller\Adminhtml\Order;
 
-use \Magento\Backend\App\Action;
+use Magento\Backend\App\Action;
 
 class ReviewPayment extends \Magento\Sales\Controller\Adminhtml\Order
 {
@@ -33,43 +14,58 @@ class ReviewPayment extends \Magento\Sales\Controller\Adminhtml\Order
      *
      * Either denies or approves a payment that is in "review" state
      *
-     * @return void
+     * @return \Magento\Backend\Model\View\Result\Redirect
      */
     public function execute()
     {
+        $resultRedirect = $this->resultRedirectFactory->create();
         try {
             $order = $this->_initOrder();
-            if (!$order) {
-                return;
+            if ($order) {
+                $action = $this->getRequest()->getParam('action', '');
+                switch ($action) {
+                    case 'accept':
+                        $order->getPayment()->accept();
+                        $message = __('The payment has been accepted.');
+                        break;
+                    case 'deny':
+                        $order->getPayment()->deny();
+                        $message = __('The payment has been denied.');
+                        break;
+                    case 'update':
+                        $order->getPayment()->update();
+                        if ($order->getPayment()->getIsTransactionApproved()) {
+                            $message = __('Transaction has been approved.');
+                        } else if ($order->getPayment()->getIsTransactionDenied()) {
+                            $message = __('Transaction has been voided/declined.');
+                        } else {
+                            $message = __('There is no update for the transaction.');
+                        }
+                        break;
+                    default:
+                        throw new \Exception(sprintf('Action "%s" is not supported.', $action));
+                }
+                $this->orderRepository->save($order);
+                $this->messageManager->addSuccess($message);
+            } else {
+                $resultRedirect->setPath('sales/*/');
+                return $resultRedirect;
             }
-            $action = $this->getRequest()->getParam('action', '');
-            switch ($action) {
-                case 'accept':
-                    $order->getPayment()->accept();
-                    $message = __('The payment has been accepted.');
-                    break;
-                case 'deny':
-                    $order->getPayment()->deny();
-                    $message = __('The payment has been denied.');
-                    break;
-                case 'update':
-                    $order->getPayment()->registerPaymentReviewAction(
-                        \Magento\Sales\Model\Order\Payment::REVIEW_ACTION_UPDATE,
-                        true
-                    );
-                    $message = __('The payment update has been made.');
-                    break;
-                default:
-                    throw new \Exception(sprintf('Action "%s" is not supported.', $action));
-            }
-            $order->save();
-            $this->messageManager->addSuccess($message);
-        } catch (\Magento\Framework\Model\Exception $e) {
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
             $this->messageManager->addError($e->getMessage());
         } catch (\Exception $e) {
-            $this->messageManager->addError(__('We couldn\'t update the payment.'));
-            $this->_objectManager->get('Magento\Framework\Logger')->logException($e);
+            $this->messageManager->addError(__('We can\'t update the payment right now.'));
+            $this->logger->critical($e);
         }
-        $this->_redirect('sales/order/view', array('order_id' => $order->getId()));
+        $resultRedirect->setPath('sales/order/view', ['order_id' => $order->getEntityId()]);
+        return $resultRedirect;
+    }
+
+    /**
+     * @return bool
+     */
+    protected function _isAllowed()
+    {
+        return $this->_authorization->isAllowed('Magento_Sales::review_payment');
     }
 }

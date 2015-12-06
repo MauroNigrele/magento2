@@ -1,30 +1,15 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 namespace Magento\SalesRule\Model;
 
-use Magento\Sales\Model\Quote\Item\AbstractItem;
-use Magento\Sales\Model\Quote\Address;
+use Magento\Quote\Model\Quote\Address;
+use Magento\Quote\Model\Quote\Item\AbstractItem;
 
 /**
  * SalesRule Validator Model
@@ -37,13 +22,14 @@ use Magento\Sales\Model\Quote\Address;
  * @method Validator setWebsiteId($id)
  * @method mixed getCustomerGroupId()
  * @method Validator setCustomerGroupId($id)
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class Validator extends \Magento\Framework\Model\AbstractModel
 {
     /**
      * Rule source collection
      *
-     * @var \Magento\SalesRule\Model\Resource\Rule\Collection
+     * @var \Magento\SalesRule\Model\ResourceModel\Rule\Collection
      */
     protected $_rules;
 
@@ -60,7 +46,7 @@ class Validator extends \Magento\Framework\Model\AbstractModel
      *
      * @var array
      */
-    protected $_rulesItemTotals = array();
+    protected $_rulesItemTotals = [];
 
     /**
      * Skip action rules validation flag
@@ -77,7 +63,7 @@ class Validator extends \Magento\Framework\Model\AbstractModel
     protected $_catalogData = null;
 
     /**
-     * @var \Magento\SalesRule\Model\Resource\Rule\CollectionFactory
+     * @var \Magento\SalesRule\Model\ResourceModel\Rule\CollectionFactory
      */
     protected $_collectionFactory;
 
@@ -109,30 +95,31 @@ class Validator extends \Magento\Framework\Model\AbstractModel
     /**
      * @param \Magento\Framework\Model\Context $context
      * @param \Magento\Framework\Registry $registry
-     * @param Resource\Rule\CollectionFactory $collectionFactory
+     * @param \Magento\SalesRule\Model\ResourceModel\Rule\CollectionFactory $collectionFactory
      * @param \Magento\Catalog\Helper\Data $catalogData
      * @param Utility $utility
      * @param RulesApplier $rulesApplier
      * @param \Magento\Framework\Pricing\PriceCurrencyInterface $priceCurrency
      * @param Validator\Pool $validators
      * @param \Magento\Framework\Message\ManagerInterface $messageManager
-     * @param \Magento\Framework\Model\Resource\AbstractResource $resource
-     * @param \Magento\Framework\Data\Collection\Db $resourceCollection
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
      * @param array $data
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
         \Magento\Framework\Model\Context $context,
         \Magento\Framework\Registry $registry,
-        \Magento\SalesRule\Model\Resource\Rule\CollectionFactory $collectionFactory,
+        \Magento\SalesRule\Model\ResourceModel\Rule\CollectionFactory $collectionFactory,
         \Magento\Catalog\Helper\Data $catalogData,
         \Magento\SalesRule\Model\Utility $utility,
         \Magento\SalesRule\Model\RulesApplier $rulesApplier,
         \Magento\Framework\Pricing\PriceCurrencyInterface $priceCurrency,
         \Magento\SalesRule\Model\Validator\Pool $validators,
         \Magento\Framework\Message\ManagerInterface $messageManager,
-        \Magento\Framework\Model\Resource\AbstractResource $resource = null,
-        \Magento\Framework\Data\Collection\Db $resourceCollection = null,
-        array $data = array()
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        array $data = []
     ) {
         $this->_collectionFactory = $collectionFactory;
         $this->_catalogData = $catalogData;
@@ -175,7 +162,7 @@ class Validator extends \Magento\Framework\Model\AbstractModel
     /**
      * Get rules collection for current object state
      *
-     * @return \Magento\SalesRule\Model\Resource\Rule\Collection
+     * @return \Magento\SalesRule\Model\ResourceModel\Rule\Collection
      */
     protected function _getRules()
     {
@@ -264,6 +251,7 @@ class Validator extends \Magento\Framework\Model\AbstractModel
      *
      * @param Address $address
      * @return $this
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function processShippingAmount(Address $address)
     {
@@ -275,7 +263,7 @@ class Validator extends \Magento\Framework\Model\AbstractModel
             $baseShippingAmount = $address->getBaseShippingAmount();
         }
         $quote = $address->getQuote();
-        $appliedRuleIds = array();
+        $appliedRuleIds = [];
         foreach ($this->_getRules() as $rule) {
             /* @var \Magento\SalesRule\Model\Rule $rule */
             if (!$rule->getApplyToShipping() || !$this->validatorUtility->canProcessRule($rule, $address)) {
@@ -356,7 +344,7 @@ class Validator extends \Magento\Framework\Model\AbstractModel
      */
     public function initTotals($items, Address $address)
     {
-        $address->setCartFixedRules(array());
+        $address->setCartFixedRules([]);
 
         if (!$items) {
             return $this;
@@ -388,11 +376,11 @@ class Validator extends \Magento\Framework\Model\AbstractModel
                     $validItemsCount++;
                 }
 
-                $this->_rulesItemTotals[$rule->getId()] = array(
+                $this->_rulesItemTotals[$rule->getId()] = [
                     'items_price' => $ruleTotalItemsPrice,
                     'base_items_price' => $ruleTotalBaseItemsPrice,
-                    'items_count' => $validItemsCount
-                );
+                    'items_count' => $validItemsCount,
+                ];
             }
         }
 
@@ -479,7 +467,7 @@ class Validator extends \Magento\Framework\Model\AbstractModel
      */
     public function sortItemsByPriority($items)
     {
-        $itemsSorted = array();
+        $itemsSorted = [];
         /** @var $rule \Magento\SalesRule\Model\Rule */
         foreach ($this->_getRules() as $rule) {
             foreach ($items as $itemKey => $itemValue) {
@@ -500,12 +488,12 @@ class Validator extends \Magento\Framework\Model\AbstractModel
     /**
      * @param int $key
      * @return array
-     * @throws \Magento\Framework\Model\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function getRuleItemTotalsInfo($key)
     {
         if (empty($this->_rulesItemTotals[$key])) {
-            throw new \Magento\Framework\Model\Exception(__('Item totals are not set for the rule.'));
+            throw new \Magento\Framework\Exception\LocalizedException(__('Item totals are not set for the rule.'));
         }
 
         return $this->_rulesItemTotals[$key];

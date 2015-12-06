@@ -1,29 +1,17 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 namespace Magento\Framework\Mview;
 
-class View extends \Magento\Framework\Object implements ViewInterface
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
+class View extends \Magento\Framework\DataObject implements ViewInterface
 {
     /**
      * @var string
@@ -69,7 +57,7 @@ class View extends \Magento\Framework\Object implements ViewInterface
         View\StateInterface $state,
         View\ChangelogInterface $changelog,
         View\SubscriptionFactory $subscriptionFactory,
-        array $data = array()
+        array $data = []
     ) {
         $this->config = $config;
         $this->actionFactory = $actionFactory;
@@ -77,6 +65,50 @@ class View extends \Magento\Framework\Object implements ViewInterface
         $this->changelog = $changelog;
         $this->subscriptionFactory = $subscriptionFactory;
         parent::__construct($data);
+    }
+
+    /**
+     * Return ID
+     *
+     * @return string
+     */
+    public function getId()
+    {
+        return $this->getData($this->_idFieldName);
+    }
+
+    /**
+     * Set ID
+     *
+     * @param string $id
+     * @return $this
+     */
+    public function setId($id)
+    {
+        $this->setData($this->_idFieldName, $id);
+        return $this;
+    }
+
+    /**
+     * Id field name setter
+     *
+     * @param  string $name
+     * @return $this
+     */
+    public function setIdFieldName($name)
+    {
+        $this->_idFieldName = $name;
+        return $this;
+    }
+
+    /**
+     * Id field name getter
+     *
+     * @return string
+     */
+    public function getIdFieldName()
+    {
+        return $this->_idFieldName;
     }
 
     /**
@@ -146,11 +178,11 @@ class View extends \Magento\Framework\Object implements ViewInterface
                 foreach ($this->getSubscriptions() as $subscription) {
                     /** @var \Magento\Framework\Mview\View\SubscriptionInterface $subscription */
                     $subscription = $this->subscriptionFactory->create(
-                        array(
+                        [
                             'view' => $this,
                             'tableName' => $subscription['name'],
-                            'columnName' => $subscription['column']
-                        )
+                            'columnName' => $subscription['column'],
+                        ]
                     );
                     $subscription->create();
                 }
@@ -179,11 +211,11 @@ class View extends \Magento\Framework\Object implements ViewInterface
                 foreach ($this->getSubscriptions() as $subscription) {
                     /** @var \Magento\Framework\Mview\View\SubscriptionInterface $subscription */
                     $subscription = $this->subscriptionFactory->create(
-                        array(
+                        [
                             'view' => $this,
                             'tableName' => $subscription['name'],
-                            'columnName' => $subscription['column']
-                        )
+                            'columnName' => $subscription['column'],
+                        ]
                     );
                     $subscription->remove();
                 }

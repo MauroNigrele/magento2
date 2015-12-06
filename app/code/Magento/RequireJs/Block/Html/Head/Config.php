@@ -1,38 +1,21 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\RequireJs\Block\Html\Head;
 
-use Magento\Theme\Block\Html\Head\AssetBlockInterface;
+use Magento\Framework\RequireJs\Config as RequireJsConfig;
+use Magento\Framework\View\Asset\Minification;
 
 /**
  * Block responsible for including RequireJs config on the page
  */
-class Config extends \Magento\Framework\View\Element\AbstractBlock implements AssetBlockInterface
+class Config extends \Magento\Framework\View\Element\AbstractBlock
 {
     /**
-     * @var \Magento\Framework\RequireJs\Config
+     * @var RequireJsConfig
      */
     private $config;
 
@@ -42,38 +25,99 @@ class Config extends \Magento\Framework\View\Element\AbstractBlock implements As
     private $fileManager;
 
     /**
-     * @var \Magento\Framework\View\Asset\LocalInterface
+     * @var \Magento\Framework\View\Page\Config
      */
-    private $asset;
+    protected $pageConfig;
+
+    /**
+     * @var Minification
+     */
+    protected $minification;
 
     /**
      * @param \Magento\Framework\View\Element\Context $context
-     * @param \Magento\Framework\RequireJs\Config $config
+     * @param RequireJsConfig $config
      * @param \Magento\RequireJs\Model\FileManager $fileManager
+     * @param \Magento\Framework\View\Page\Config $pageConfig
+     * @param \Magento\Framework\View\Asset\ConfigInterface $bundleConfig
+     * @param Minification $minification
      * @param array $data
      */
     public function __construct(
         \Magento\Framework\View\Element\Context $context,
-        \Magento\Framework\RequireJs\Config $config,
+        RequireJsConfig $config,
         \Magento\RequireJs\Model\FileManager $fileManager,
-        array $data = array()
+        \Magento\Framework\View\Page\Config $pageConfig,
+        \Magento\Framework\View\Asset\ConfigInterface $bundleConfig,
+        Minification $minification,
+        array $data = []
     ) {
         parent::__construct($context, $data);
         $this->config = $config;
         $this->fileManager = $fileManager;
+        $this->pageConfig = $pageConfig;
+        $this->bundleConfig = $bundleConfig;
+        $this->minification = $minification;
     }
 
     /**
      * Include RequireJs configuration as an asset on the page
      *
-     * @return \Magento\Framework\View\Asset\LocalInterface
+     * @return $this
      */
-    public function getAsset()
+    protected function _prepareLayout()
     {
-        if (!$this->asset) {
-            $this->asset = $this->fileManager->createRequireJsAsset();
+        $requireJsConfig = $this->fileManager->createRequireJsConfigAsset();
+        $requireJsMixinsConfig = $this->fileManager->createRequireJsMixinsAsset();
+        $assetCollection = $this->pageConfig->getAssetCollection();
+
+        $after = RequireJsConfig::REQUIRE_JS_FILE_NAME;
+        if ($this->minification->isEnabled('js')) {
+            $minResolver = $this->fileManager->createMinResolverAsset();
+            $assetCollection->insert(
+                $minResolver->getFilePath(),
+                $minResolver,
+                $after
+            );
+            $after = $minResolver->getFilePath();
         }
-        return $this->asset;
+
+        if ($this->bundleConfig->isBundlingJsFiles()) {
+            $bundleAssets = $this->fileManager->createBundleJsPool();
+            $staticAsset = $this->fileManager->createStaticJsAsset();
+
+            /** @var \Magento\Framework\View\Asset\File $bundleAsset */
+            if (!empty($bundleAssets) && $staticAsset !== false) {
+                $bundleAssets = array_reverse($bundleAssets);
+                foreach ($bundleAssets as $bundleAsset) {
+                    $assetCollection->insert(
+                        $bundleAsset->getFilePath(),
+                        $bundleAsset,
+                        $after
+                    );
+                }
+                $assetCollection->insert(
+                    $staticAsset->getFilePath(),
+                    $staticAsset,
+                    reset($bundleAssets)->getFilePath()
+                );
+                $after = $staticAsset->getFilePath();
+            }
+        }
+
+        $assetCollection->insert(
+            $requireJsConfig->getFilePath(),
+            $requireJsConfig,
+            $after
+        );
+
+        $assetCollection->insert(
+            $requireJsMixinsConfig->getFilePath(),
+            $requireJsMixinsConfig,
+            $after
+        );
+
+        return parent::_prepareLayout();
     }
 
     /**

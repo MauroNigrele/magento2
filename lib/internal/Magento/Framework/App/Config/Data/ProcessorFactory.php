@@ -2,33 +2,15 @@
 /**
  * Config data Factory
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\App\Config\Data;
 
 class ProcessorFactory
 {
     /**
-     * @var \Magento\Framework\ObjectManager
+     * @var \Magento\Framework\ObjectManagerInterface
      */
     protected $_objectManager;
 
@@ -38,9 +20,9 @@ class ProcessorFactory
     protected $_pool;
 
     /**
-     * @param \Magento\Framework\ObjectManager $objectManager
+     * @param \Magento\Framework\ObjectManagerInterface $objectManager
      */
-    public function __construct(\Magento\Framework\ObjectManager $objectManager)
+    public function __construct(\Magento\Framework\ObjectManagerInterface $objectManager)
     {
         $this->_objectManager = $objectManager;
     }
@@ -48,21 +30,22 @@ class ProcessorFactory
     /**
      * Get concrete Processor Interface instance
      *
-     * @param string $model
+     * @param string $processorModel Classname of the instance to get
      * @return ProcessorInterface
-     * @throws \InvalidArgumentException
+     * @throws \InvalidArgumentException In case the given classname is not an instance of ProcessorInterface
+     * @api
      */
-    public function get($model)
+    public function get($processorModel)
     {
-        if (!isset($this->_pool[$model])) {
-            $instance = $this->_objectManager->create($model);
+        if (!isset($this->_pool[$processorModel])) {
+            $instance = $this->_objectManager->create($processorModel);
             if (!$instance instanceof ProcessorInterface) {
                 throw new \InvalidArgumentException(
-                    $model . ' does not instance of \Magento\Framework\App\Config\Data\ProcessorInterface'
+                    $processorModel . ' is not instance of \Magento\Framework\App\Config\Data\ProcessorInterface'
                 );
             }
-            $this->_pool[$model] = $instance;
+            $this->_pool[$processorModel] = $instance;
         }
-        return $this->_pool[$model];
+        return $this->_pool[$processorModel];
     }
 }

@@ -1,33 +1,17 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Newsletter\Model;
+
+use Magento\Framework\App\TemplateTypesInterface;
 
 /**
  * Newsletter queue model.
  *
- * @method \Magento\Newsletter\Model\Resource\Queue _getResource()
- * @method \Magento\Newsletter\Model\Resource\Queue getResource()
+ * @method \Magento\Newsletter\Model\ResourceModel\Queue _getResource()
+ * @method \Magento\Newsletter\Model\ResourceModel\Queue getResource()
  * @method int getTemplateId()
  * @method \Magento\Newsletter\Model\Queue setTemplateId(int $value)
  * @method int getNewsletterType()
@@ -49,8 +33,9 @@ namespace Magento\Newsletter\Model;
  * @method string getQueueFinishAt()
  * @method \Magento\Newsletter\Model\Queue setQueueFinishAt(string $value)
  * @SuppressWarnings(PHPMD.LongVariable)
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-class Queue extends \Magento\Email\Model\AbstractTemplate
+class Queue extends \Magento\Framework\Model\AbstractModel implements TemplateTypesInterface
 {
     /**
      * Newsletter Template object
@@ -62,7 +47,7 @@ class Queue extends \Magento\Email\Model\AbstractTemplate
     /**
      * Subscribers collection
      *
-     * @var \Magento\Newsletter\Model\Resource\Subscriber\Collection
+     * @var \Magento\Newsletter\Model\ResourceModel\Subscriber\Collection
      */
     protected $_subscribersCollection;
 
@@ -78,7 +63,7 @@ class Queue extends \Magento\Email\Model\AbstractTemplate
      *
      * @var array
      */
-    protected $_stores = array();
+    protected $_stores = [];
 
     const STATUS_NEVER = 0;
 
@@ -105,11 +90,6 @@ class Queue extends \Magento\Email\Model\AbstractTemplate
     protected $_date;
 
     /**
-     * @var \Magento\Framework\Stdlib\DateTime\TimezoneInterface
-     */
-    protected $_localeDate;
-
-    /**
      * Problem factory
      *
      * @var \Magento\Newsletter\Model\ProblemFactory
@@ -130,38 +110,40 @@ class Queue extends \Magento\Email\Model\AbstractTemplate
 
     /**
      * @param \Magento\Framework\Model\Context $context
-     * @param \Magento\Framework\View\DesignInterface $design
      * @param \Magento\Framework\Registry $registry
-     * @param \Magento\Core\Model\App\Emulation $appEmulation
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
      * @param \Magento\Newsletter\Model\Template\Filter $templateFilter
-     * @param \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate
      * @param \Magento\Framework\Stdlib\DateTime\DateTime $date
      * @param \Magento\Newsletter\Model\TemplateFactory $templateFactory
      * @param \Magento\Newsletter\Model\ProblemFactory $problemFactory
-     * @param \Magento\Newsletter\Model\Resource\Subscriber\CollectionFactory $subscriberCollectionFactory
+     * @param \Magento\Newsletter\Model\ResourceModel\Subscriber\CollectionFactory $subscriberCollectionFactory
      * @param \Magento\Newsletter\Model\Queue\TransportBuilder $transportBuilder
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
      * @param array $data
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
         \Magento\Framework\Model\Context $context,
-        \Magento\Framework\View\DesignInterface $design,
         \Magento\Framework\Registry $registry,
-        \Magento\Core\Model\App\Emulation $appEmulation,
-        \Magento\Framework\StoreManagerInterface $storeManager,
         \Magento\Newsletter\Model\Template\Filter $templateFilter,
-        \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate,
         \Magento\Framework\Stdlib\DateTime\DateTime $date,
         \Magento\Newsletter\Model\TemplateFactory $templateFactory,
         \Magento\Newsletter\Model\ProblemFactory $problemFactory,
-        \Magento\Newsletter\Model\Resource\Subscriber\CollectionFactory $subscriberCollectionFactory,
+        \Magento\Newsletter\Model\ResourceModel\Subscriber\CollectionFactory $subscriberCollectionFactory,
         \Magento\Newsletter\Model\Queue\TransportBuilder $transportBuilder,
-        array $data = array()
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        array $data = []
     ) {
-        parent::__construct($context, $design, $registry, $appEmulation, $storeManager, $data);
+        parent::__construct(
+            $context,
+            $registry,
+            $resource,
+            $resourceCollection,
+            $data
+        );
         $this->_templateFilter = $templateFilter;
         $this->_date = $date;
-        $this->_localeDate = $localeDate;
         $this->_templateFactory = $templateFactory;
         $this->_problemFactory = $problemFactory;
         $this->_subscribersCollection = $subscriberCollectionFactory->create();
@@ -176,7 +158,7 @@ class Queue extends \Magento\Email\Model\AbstractTemplate
     protected function _construct()
     {
         parent::_construct();
-        $this->_init('Magento\Newsletter\Model\Resource\Queue');
+        $this->_init('Magento\Newsletter\Model\ResourceModel\Queue');
     }
 
     /**
@@ -186,7 +168,7 @@ class Queue extends \Magento\Email\Model\AbstractTemplate
      */
     public function isNew()
     {
-        return is_null($this->getQueueStatus());
+        return $this->getQueueStatus() === null;
     }
 
     /**
@@ -197,13 +179,10 @@ class Queue extends \Magento\Email\Model\AbstractTemplate
      */
     public function setQueueStartAtByString($startAt)
     {
-        if (is_null($startAt) || $startAt == '') {
+        if ($startAt === null || $startAt == '') {
             $this->setQueueStartAt(null);
         } else {
-            $format = $this->_localeDate->getDateTimeFormat(
-                \Magento\Framework\Stdlib\DateTime\TimezoneInterface::FORMAT_TYPE_MEDIUM
-            );
-            $time = $this->_localeDate->date($startAt, $format)->getTimestamp();
+            $time = (new \DateTime($startAt))->getTimestamp();
             $this->setQueueStartAt($this->_date->gmtDate(null, $time));
         }
         return $this;
@@ -214,6 +193,7 @@ class Queue extends \Magento\Email\Model\AbstractTemplate
      *
      * @param int $count
      * @return $this
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function sendPerSubscriber($count = 20)
     {
@@ -240,23 +220,23 @@ class Queue extends \Magento\Email\Model\AbstractTemplate
         )->load();
 
         $this->_transportBuilder->setTemplateData(
-            array(
+            [
                 'template_subject' => $this->getNewsletterSubject(),
                 'template_text' => $this->getNewsletterText(),
                 'template_styles' => $this->getNewsletterStyles(),
                 'template_filter' => $this->_templateFilter,
-                'template_type' => self::TYPE_HTML
-            )
+                'template_type' => self::TYPE_HTML,
+            ]
         );
 
         /** @var \Magento\Newsletter\Model\Subscriber $item */
         foreach ($collection->getItems() as $item) {
             $transport = $this->_transportBuilder->setTemplateOptions(
-                array('area' => \Magento\Framework\App\Area::AREA_FRONTEND, 'store' => $item->getStoreId())
+                ['area' => \Magento\Framework\App\Area::AREA_FRONTEND, 'store' => $item->getStoreId()]
             )->setTemplateVars(
-                array('subscriber' => $item)
+                ['subscriber' => $item]
             )->setFrom(
-                array('name' => $this->getNewsletterSenderEmail(), 'email' => $this->getNewsletterSenderName())
+                ['name' => $this->getNewsletterSenderEmail(), 'email' => $this->getNewsletterSenderName()]
             )->addTo(
                 $item->getSubscriberEmail(),
                 $item->getSubscriberFullName()
@@ -264,7 +244,7 @@ class Queue extends \Magento\Email\Model\AbstractTemplate
 
             try {
                 $transport->sendMessage();
-            } catch (\Magento\Framework\Mail\Exception $e) {
+            } catch (\Magento\Framework\Exception\MailException $e) {
                 /** @var \Magento\Newsletter\Model\Problem $problem */
                 $problem = $this->_problemFactory->create();
                 $problem->addSubscriberData($item);
@@ -302,7 +282,7 @@ class Queue extends \Magento\Email\Model\AbstractTemplate
      */
     public function getDataForSave()
     {
-        $data = array();
+        $data = [];
         $data['template_id'] = $this->getTemplateId();
         $data['queue_status'] = $this->getQueueStatus();
         $data['queue_start_at'] = $this->getQueueStartAt();
@@ -338,6 +318,7 @@ class Queue extends \Magento\Email\Model\AbstractTemplate
      * Getter for save stores flag.
      *
      * @return boolean
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName)
      */
     public function getSaveStoresFlag()
     {
@@ -378,10 +359,20 @@ class Queue extends \Magento\Email\Model\AbstractTemplate
      */
     public function getTemplate()
     {
-        if (is_null($this->_template)) {
+        if ($this->_template === null) {
             $this->_template = $this->_templateFactory->create()->load($this->getTemplateId());
         }
         return $this->_template;
+    }
+
+    /**
+     * Return true if template type eq text
+     *
+     * @return boolean
+     */
+    public function isPlain()
+    {
+        return $this->getType() == self::TYPE_TEXT;
     }
 
     /**

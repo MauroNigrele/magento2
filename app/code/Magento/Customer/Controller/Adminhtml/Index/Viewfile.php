@@ -1,33 +1,126 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Customer\Controller\Adminhtml\Index;
 
-use Magento\Framework\App\Action\NotFoundException;
+use Magento\Customer\Api\AccountManagementInterface;
+use Magento\Customer\Api\AddressRepositoryInterface;
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Customer\Api\Data\AddressInterfaceFactory;
+use Magento\Customer\Api\Data\CustomerInterfaceFactory;
+use Magento\Customer\Model\Address\Mapper;
+use Magento\Framework\Exception\NotFoundException;
+use Magento\Framework\App\Filesystem\DirectoryList;
+use Magento\Framework\DataObjectFactory;
 
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 class Viewfile extends \Magento\Customer\Controller\Adminhtml\Index
 {
+    /**
+     * @var \Magento\Framework\Controller\Result\RawFactory
+     */
+    protected $resultRawFactory;
+
+    /**
+     * @var \Magento\Framework\Url\DecoderInterface
+     */
+    protected $urlDecoder;
+
+    /**
+     * @param \Magento\Backend\App\Action\Context $context
+     * @param \Magento\Framework\Registry $coreRegistry
+     * @param \Magento\Framework\App\Response\Http\FileFactory $fileFactory
+     * @param \Magento\Customer\Model\CustomerFactory $customerFactory
+     * @param \Magento\Customer\Model\AddressFactory $addressFactory
+     * @param \Magento\Customer\Model\Metadata\FormFactory $formFactory
+     * @param \Magento\Newsletter\Model\SubscriberFactory $subscriberFactory
+     * @param \Magento\Customer\Helper\View $viewHelper
+     * @param \Magento\Framework\Math\Random $random
+     * @param CustomerRepositoryInterface $customerRepository
+     * @param \Magento\Framework\Api\ExtensibleDataObjectConverter $extensibleDataObjectConverter
+     * @param Mapper $addressMapper
+     * @param AccountManagementInterface $customerAccountManagement
+     * @param AddressRepositoryInterface $addressRepository
+     * @param CustomerInterfaceFactory $customerDataFactory
+     * @param AddressInterfaceFactory $addressDataFactory
+     * @param \Magento\Customer\Model\Customer\Mapper $customerMapper
+     * @param \Magento\Framework\Reflection\DataObjectProcessor $dataObjectProcessor
+     * @param \Magento\Framework\Api\DataObjectHelper $dataObjectHelper
+     * @param DataObjectFactory $objectFactory
+     * @param \Magento\Framework\View\LayoutFactory $layoutFactory
+     * @param \Magento\Framework\View\Result\LayoutFactory $resultLayoutFactory
+     * @param \Magento\Framework\View\Result\PageFactory $resultPageFactory
+     * @param \Magento\Backend\Model\View\Result\ForwardFactory $resultForwardFactory
+     * @param \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
+     * @param \Magento\Framework\Controller\Result\RawFactory $resultRawFactory
+     * @param \Magento\Framework\Url\DecoderInterface $urlDecoder
+     *
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
+     */
+    public function __construct(
+        \Magento\Backend\App\Action\Context $context,
+        \Magento\Framework\Registry $coreRegistry,
+        \Magento\Framework\App\Response\Http\FileFactory $fileFactory,
+        \Magento\Customer\Model\CustomerFactory $customerFactory,
+        \Magento\Customer\Model\AddressFactory $addressFactory,
+        \Magento\Customer\Model\Metadata\FormFactory $formFactory,
+        \Magento\Newsletter\Model\SubscriberFactory $subscriberFactory,
+        \Magento\Customer\Helper\View $viewHelper,
+        \Magento\Framework\Math\Random $random,
+        CustomerRepositoryInterface $customerRepository,
+        \Magento\Framework\Api\ExtensibleDataObjectConverter $extensibleDataObjectConverter,
+        Mapper $addressMapper,
+        AccountManagementInterface $customerAccountManagement,
+        AddressRepositoryInterface $addressRepository,
+        CustomerInterfaceFactory $customerDataFactory,
+        AddressInterfaceFactory $addressDataFactory,
+        \Magento\Customer\Model\Customer\Mapper $customerMapper,
+        \Magento\Framework\Reflection\DataObjectProcessor $dataObjectProcessor,
+        \Magento\Framework\Api\DataObjectHelper $dataObjectHelper,
+        DataObjectFactory $objectFactory,
+        \Magento\Framework\View\LayoutFactory $layoutFactory,
+        \Magento\Framework\View\Result\LayoutFactory $resultLayoutFactory,
+        \Magento\Framework\View\Result\PageFactory $resultPageFactory,
+        \Magento\Backend\Model\View\Result\ForwardFactory $resultForwardFactory,
+        \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory,
+        \Magento\Framework\Controller\Result\RawFactory $resultRawFactory,
+        \Magento\Framework\Url\DecoderInterface $urlDecoder
+    ) {
+        parent::__construct(
+            $context,
+            $coreRegistry,
+            $fileFactory,
+            $customerFactory,
+            $addressFactory,
+            $formFactory,
+            $subscriberFactory,
+            $viewHelper,
+            $random,
+            $customerRepository,
+            $extensibleDataObjectConverter,
+            $addressMapper,
+            $customerAccountManagement,
+            $addressRepository,
+            $customerDataFactory,
+            $addressDataFactory,
+            $customerMapper,
+            $dataObjectProcessor,
+            $dataObjectHelper,
+            $objectFactory,
+            $layoutFactory,
+            $resultLayoutFactory,
+            $resultPageFactory,
+            $resultForwardFactory,
+            $resultJsonFactory
+        );
+        $this->resultRawFactory = $resultRawFactory;
+        $this->urlDecoder  = $urlDecoder;
+    }
+
     /**
      * Customer view file action
      *
@@ -42,30 +135,28 @@ class Viewfile extends \Magento\Customer\Controller\Adminhtml\Index
         $plain = false;
         if ($this->getRequest()->getParam('file')) {
             // download file
-            $file = $this->_objectManager->get(
-                'Magento\Core\Helper\Data'
-            )->urlDecode(
+            $file = $this->urlDecoder->decode(
                 $this->getRequest()->getParam('file')
             );
         } elseif ($this->getRequest()->getParam('image')) {
             // show plain image
-            $file = $this->_objectManager->get('Magento\Core\Helper\Data')->urlDecode(
+            $file = $this->urlDecoder->decode(
                 $this->getRequest()->getParam('image')
             );
             $plain = true;
         } else {
-            throw new NotFoundException();
+            throw new NotFoundException(__('Page not found.'));
         }
 
-        /** @var \Magento\Framework\App\Filesystem $filesystem */
-        $filesystem = $this->_objectManager->get('Magento\Framework\App\Filesystem');
-        $directory = $filesystem->getDirectoryRead(\Magento\Framework\App\Filesystem::MEDIA_DIR);
+        /** @var \Magento\Framework\Filesystem $filesystem */
+        $filesystem = $this->_objectManager->get('Magento\Framework\Filesystem');
+        $directory = $filesystem->getDirectoryRead(DirectoryList::MEDIA);
         $fileName = 'customer' . '/' . ltrim($file, '/');
         $path = $directory->getAbsolutePath($fileName);
         if (!$directory->isFile($fileName)
-            && !$this->_objectManager->get('Magento\Core\Helper\File\Storage')->processStorageFile($path)
+            && !$this->_objectManager->get('Magento\MediaStorage\Helper\File\Storage')->processStorageFile($path)
         ) {
-            throw new NotFoundException();
+            throw new NotFoundException(__('Page not found.'));
         }
 
         if ($plain) {
@@ -88,29 +179,22 @@ class Viewfile extends \Magento\Customer\Controller\Adminhtml\Index
             $contentLength = $stat['size'];
             $contentModify = $stat['mtime'];
 
-            $this->getResponse()
-                ->setHttpResponseCode(200)
+            /** @var \Magento\Framework\Controller\Result\Raw $resultRaw */
+            $resultRaw = $this->resultRawFactory->create();
+            $resultRaw->setHttpResponseCode(200)
                 ->setHeader('Pragma', 'public', true)
-                ->setHeader(
-                    'Content-type',
-                    $contentType,
-                    true
-                )
+                ->setHeader('Content-type', $contentType, true)
                 ->setHeader('Content-Length', $contentLength)
-                ->setHeader('Last-Modified', date('r', $contentModify))
-                ->clearBody();
-            $this->getResponse()->sendHeaders();
-
-            echo $directory->readFile($fileName);
+                ->setHeader('Last-Modified', date('r', $contentModify));
+            $resultRaw->setContents($directory->readFile($fileName));
+            return $resultRaw;
         } else {
             $name = pathinfo($path, PATHINFO_BASENAME);
             $this->_fileFactory->create(
                 $name,
-                array('type' => 'filename', 'value' => $fileName),
-                \Magento\Framework\App\Filesystem::MEDIA_DIR
-            )->sendResponse();
+                ['type' => 'filename', 'value' => $fileName],
+                DirectoryList::MEDIA
+            );
         }
-
-        exit;
     }
 }

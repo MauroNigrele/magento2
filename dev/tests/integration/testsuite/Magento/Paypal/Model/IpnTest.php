@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Paypal\Model;
 
@@ -29,7 +11,7 @@ namespace Magento\Paypal\Model;
 class IpnTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var \Magento\Framework\ObjectManager
+     * @var \Magento\Framework\ObjectManagerInterface
      */
     protected $_objectManager;
 
@@ -52,18 +34,6 @@ class IpnTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @param string $currencyCode
-     * @dataProvider currencyProvider
-     * @magentoDataFixture Magento/Paypal/_files/order_standard.php
-     * @magentoConfigFixture current_store payment/paypal_standard/active 1
-     * @magentoConfigFixture current_store paypal/general/business_account merchant_2012050718_biz@example.com
-     */
-    public function testProcessIpnRequestStandardCurrency($currencyCode)
-    {
-        $this->_processIpnRequestCurrency($currencyCode);
-    }
-
-    /**
      * Test processIpnRequest() currency check for paypal_express and paypal_standard payment methods
      *
      * @param string $currencyCode
@@ -76,7 +46,7 @@ class IpnTest extends \PHPUnit_Framework_TestCase
         /** @var  $ipnFactory \Magento\Paypal\Model\IpnFactory */
         $ipnFactory = $this->_objectManager->create('Magento\Paypal\Model\IpnFactory');
 
-        $model = $ipnFactory->create(array('data' => $ipnData, 'curlFactory' => $this->_createMockedHttpAdapter()));
+        $model = $ipnFactory->create(['data' => $ipnData, 'curlFactory' => $this->_createMockedHttpAdapter()]);
         $model->processIpnRequest();
 
         $order = $this->_objectManager->create('Magento\Sales\Model\Order');
@@ -109,7 +79,7 @@ class IpnTest extends \PHPUnit_Framework_TestCase
      */
     public static function currencyProvider()
     {
-        return array(array('USD'), array('EUR'));
+        return [['USD'], ['EUR']];
     }
 
     /**
@@ -119,8 +89,8 @@ class IpnTest extends \PHPUnit_Framework_TestCase
      */
     protected function _createMockedHttpAdapter()
     {
-        $factory = $this->getMock('Magento\Framework\HTTP\Adapter\CurlFactory', array('create'), array(), '', false);
-        $adapter = $this->getMock('Magento\Framework\HTTP\Adapter\Curl', array('read', 'write'), array(), '', false);
+        $factory = $this->getMock('Magento\Framework\HTTP\Adapter\CurlFactory', ['create'], [], '', false);
+        $adapter = $this->getMock('Magento\Framework\HTTP\Adapter\Curl', ['read', 'write'], [], '', false);
 
         $adapter->expects($this->once())->method('read')->with()->will($this->returnValue("\nVERIFIED"));
 

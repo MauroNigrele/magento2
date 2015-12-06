@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Tax\Model\System\Message;
 
@@ -31,7 +13,7 @@ class Notifications implements \Magento\Framework\Notification\MessageInterface
     /**
      * Store manager object
      *
-     * @var \Magento\Framework\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $storeManager;
 
@@ -62,12 +44,12 @@ class Notifications implements \Magento\Framework\Notification\MessageInterface
     protected $storesWithInvalidDiscountSettings;
 
     /**
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param \Magento\Framework\UrlInterface $urlBuilder
      * @param \Magento\Tax\Model\Config $taxConfig
      */
     public function __construct(
-        \Magento\Framework\StoreManagerInterface $storeManager,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Framework\UrlInterface $urlBuilder,
         \Magento\Tax\Model\Config $taxConfig
     ) {
@@ -154,7 +136,7 @@ class Notifications implements \Magento\Framework\Notification\MessageInterface
      */
     public function getIgnoreTaxNotificationUrl($section)
     {
-        return $this->urlBuilder->getUrl('tax/tax/ignoreTaxNotification', array('section' => $section));
+        return $this->urlBuilder->getUrl('tax/tax/ignoreTaxNotification', ['section' => $section]);
     }
 
     /**
@@ -165,7 +147,7 @@ class Notifications implements \Magento\Framework\Notification\MessageInterface
      */
     public function getStoresWithWrongDisplaySettings()
     {
-        $storeNames = array();
+        $storeNames = [];
         $storeCollection = $this->storeManager->getStores(true);
         foreach ($storeCollection as $store) {
             if (!$this->checkDisplaySettings($store)) {
@@ -184,7 +166,7 @@ class Notifications implements \Magento\Framework\Notification\MessageInterface
      */
     public function getStoresWithWrongDiscountSettings()
     {
-        $storeNames = array();
+        $storeNames = [];
         $storeCollection = $this->storeManager->getStores(true);
         foreach ($storeCollection as $store) {
             if (!$this->checkDiscountSettings($store)) {
@@ -236,15 +218,15 @@ class Notifications implements \Magento\Framework\Notification\MessageInterface
         if (!empty($this->storesWithInvalidDisplaySettings) && !$this->taxConfig->isWrongDisplaySettingsIgnored()) {
             $messageDetails .= '<strong>';
             $messageDetails .= __('Warning tax configuration can result in rounding errors. ');
-            $messageDetails .= '</strong><br>';
+            $messageDetails .= '</strong><p>';
             $messageDetails .= __('Store(s) affected: ');
             $messageDetails .= implode(', ', $this->storesWithInvalidDisplaySettings);
-            $messageDetails .= '<br><div style="text-align:right">';
+            $messageDetails .= '</p><p>';
             $messageDetails .= __(
                 'Click on the link to <a href="%1">ignore this notification</a>',
                 $this->getIgnoreTaxNotificationUrl('price_display')
             );
-            $messageDetails .= "</div><br>";
+            $messageDetails .= "</p>";
         }
 
         if (!empty($this->storesWithInvalidDiscountSettings) && !$this->taxConfig->isWrongDiscountSettingsIgnored()) {
@@ -253,23 +235,24 @@ class Notifications implements \Magento\Framework\Notification\MessageInterface
                 'Warning tax discount configuration might result in different discounts
                                 than a customer might expect. '
             );
-            $messageDetails .= '</strong><br>';
+            $messageDetails .= '</strong><p>';
             $messageDetails .= __('Store(s) affected: ');
             $messageDetails .= implode(', ', $this->storesWithInvalidDiscountSettings);
-            $messageDetails .= '<br><div style="text-align:right">';
+            $messageDetails .= '</p><p>';
             $messageDetails .= __(
                 'Click on the link to <a href="%1">ignore this notification</a>',
                 $this->getIgnoreTaxNotificationUrl('discount')
             );
-            $messageDetails .= "</div><br>";
+            $messageDetails .= "</p>";
         }
 
-        $messageDetails .= '<br>';
+        $messageDetails .= '<p>';
         $messageDetails .= __('Please see <a href="%1">documentation</a> for more details. ', $this->getInfoUrl());
         $messageDetails .= __(
             'Click here to go to <a href="%1">Tax Configuration</a> and change your settings.',
             $this->getManageUrl()
         );
+        $messageDetails .= '</p>';
 
         return $messageDetails;
     }

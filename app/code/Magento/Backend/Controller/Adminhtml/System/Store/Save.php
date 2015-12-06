@@ -1,40 +1,26 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Backend\Controller\Adminhtml\System\Store;
+
 
 class Save extends \Magento\Backend\Controller\Adminhtml\System\Store
 {
     /**
-     * @return void
+     * @return \Magento\Backend\Model\View\Result\Redirect
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function execute()
     {
-        if ($this->getRequest()->isPost() && ($postData = $this->getRequest()->getPost())) {
+        /** @var \Magento\Backend\Model\View\Result\Redirect $redirectResult */
+        $redirectResult = $this->resultRedirectFactory->create();
+        if ($this->getRequest()->isPost() && ($postData = $this->getRequest()->getPostValue())) {
             if (empty($postData['store_type']) || empty($postData['store_action'])) {
-                $this->_redirect('adminhtml/*/');
-                return;
+                $redirectResult->setPath('adminhtml/*/');
+                return $redirectResult;
             }
 
             try {
@@ -51,7 +37,7 @@ class Save extends \Magento\Backend\Controller\Adminhtml\System\Store
                         }
 
                         $websiteModel->save();
-                        $this->messageManager->addSuccess(__('The website has been saved.'));
+                        $this->messageManager->addSuccess(__('You saved the website.'));
                         break;
 
                     case 'group':
@@ -67,9 +53,9 @@ class Save extends \Magento\Backend\Controller\Adminhtml\System\Store
 
                         $groupModel->save();
 
-                        $this->_eventManager->dispatch('store_group_save', array('group' => $groupModel));
+                        $this->_eventManager->dispatch('store_group_save', ['group' => $groupModel]);
 
-                        $this->messageManager->addSuccess(__('The store has been saved.'));
+                        $this->messageManager->addSuccess(__('You saved the store.'));
                         break;
 
                     case 'store':
@@ -94,29 +80,30 @@ class Save extends \Magento\Backend\Controller\Adminhtml\System\Store
 
                         $this->_objectManager->get('Magento\Store\Model\StoreManager')->reinitStores();
 
-                        $this->_eventManager->dispatch($eventName, array('store' => $storeModel));
+                        $this->_eventManager->dispatch($eventName, ['store' => $storeModel]);
 
-                        $this->messageManager->addSuccess(__('The store view has been saved'));
+                        $this->messageManager->addSuccess(__('You saved the store view.'));
                         break;
                     default:
-                        $this->_redirect('adminhtml/*/');
-                        return;
+                        $redirectResult->setPath('adminhtml/*/');
+                        return $redirectResult;
                 }
-                $this->_redirect('adminhtml/*/');
-                return;
-            } catch (\Magento\Framework\Model\Exception $e) {
+                $redirectResult->setPath('adminhtml/*/');
+                return $redirectResult;
+            } catch (\Magento\Framework\Exception\LocalizedException $e) {
                 $this->messageManager->addError($e->getMessage());
                 $this->_getSession()->setPostData($postData);
             } catch (\Exception $e) {
                 $this->messageManager->addException(
                     $e,
-                    __('An error occurred while saving. Please review the error log.')
+                    __('Something went wrong while saving. Please review the error log.')
                 );
                 $this->_getSession()->setPostData($postData);
             }
-            $this->getResponse()->setRedirect($this->_redirect->getRedirectUrl($this->getUrl('*')));
-            return;
+            $redirectResult->setUrl($this->_redirect->getRedirectUrl($this->getUrl('*')));
+            return $redirectResult;
         }
-        $this->_redirect('adminhtml/*/');
+        $redirectResult->setPath('adminhtml/*/');
+        return $redirectResult;
     }
 }

@@ -1,82 +1,57 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Test\Block;
 
-use Mtf\Block\Block;
-use Mtf\Client\Element\Locator;
+use Magento\Mtf\Block\Block;
+use Magento\Mtf\Client\Locator;
 
 /**
  * Class Search
- * Block for search field
+ * Block for "Search" section
  */
 class Search extends Block
 {
     /**
-     * Selector matches found - "Suggest Search"
+     * Locator value for matches found - "Suggest Search".
      *
      * @var string
      */
-    protected $searchAutocomplete = './/div[@id="search_autocomplete"]//li[text()="%s"]';
+    protected $searchAutocomplete = './/div[@id="search_autocomplete"]//li[span[text()[normalize-space()="%s"]]]';
 
     /**
-     * Selector number of matches for a given row
+     * Locator value for given row matches amount.
      *
      * @var string
      */
     protected $searchItemAmount = '/span[contains(@class,"amount") and text()="%d"]';
 
     /**
-     * Search field
+     * Locator value for "Search" field.
      *
      * @var string
      */
     protected $searchInput = '#search';
 
     /**
-     * Search button
+     * Locator value for "Search" button.
      *
      * @var string
      */
     private $searchButton = '[title="Search"]';
 
     /**
-     * Search button
+     * Locator value for "Search" button placeholder.
      *
      * @var string
      */
     protected $placeholder = '//input[@id="search" and contains(@placeholder, "%s")]';
 
     /**
-     * Css selector advanced search button
-     *
-     * @var string
-     */
-    protected $advancedSearchSelector = '.action.advanced';
-
-    /**
-     * Search products by a keyword
+     * Perform search by a keyword.
      *
      * @param string $keyword
      * @return void
@@ -86,37 +61,34 @@ class Search extends Block
     public function search($keyword)
     {
         $this->fillSearch($keyword);
-        $this->_rootElement->find($this->searchButton, Locator::SELECTOR_CSS)->click();
+        $this->_rootElement->find($this->searchButton)->click();
     }
 
     /**
-     * Fills the search field
+     * Fill "Search" field with correspondent text.
      *
      * @param string $text
      * @return void
      */
     public function fillSearch($text)
     {
-        $this->_rootElement->find($this->searchInput, Locator::SELECTOR_CSS)->setValue($text);
+        $this->_rootElement->find($this->searchInput)->setValue($text);
     }
 
     /**
-     * Check that placeholder contains text
+     * Check if placeholder contains correspondent text or not.
      *
      * @param string $placeholderText
      * @return bool
      */
     public function isPlaceholderContains($placeholderText)
     {
-        $field = $this->_rootElement->find(
-            sprintf($this->placeholder, $placeholderText),
-            Locator::SELECTOR_XPATH
-        );
+        $field = $this->_rootElement->find(sprintf($this->placeholder, $placeholderText), Locator::SELECTOR_XPATH);
         return $field->isVisible();
     }
 
     /**
-     * Checking block visibility "Suggest Search"
+     * Check if "Suggest Search" block visible or not.
      *
      * @param string $text
      * @param int|null $amount
@@ -135,15 +107,5 @@ class Search extends Block
                 return $rootElement->find($searchAutocomplete, Locator::SELECTOR_XPATH)->isVisible() ? true : null;
             }
         );
-    }
-
-    /**
-     * Click advanced search button
-     *
-     * @return void
-     */
-    public function clickAdvancedSearchButton()
-    {
-        $this->_rootElement->find($this->advancedSearchSelector)->click();
     }
 }

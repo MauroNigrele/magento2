@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Eav\Model\Entity\Attribute\Source;
 
@@ -27,6 +9,7 @@ namespace Magento\Eav\Model\Entity\Attribute\Source;
  * Entity/Attribute/Model - attribute selection source abstract
  *
  * @author     Magento Core Team <core@magentocommerce.com>
+ * @SuppressWarnings(PHPMD.NumberOfChildren)
  */
 abstract class AbstractSource implements
     \Magento\Eav\Model\Entity\Attribute\Source\SourceInterface,
@@ -51,6 +34,7 @@ abstract class AbstractSource implements
      *
      * @param \Magento\Eav\Model\Entity\Attribute\AbstractAttribute $attribute
      * @return \Magento\Eav\Model\Entity\Attribute\Frontend\AbstractFrontend
+     * @codeCoverageIgnore
      */
     public function setAttribute($attribute)
     {
@@ -62,6 +46,7 @@ abstract class AbstractSource implements
      * Get attribute instance
      *
      * @return \Magento\Eav\Model\Entity\Attribute\AbstractAttribute
+     * @codeCoverageIgnore
      */
     public function getAttribute()
     {
@@ -112,6 +97,8 @@ abstract class AbstractSource implements
      * @param \Magento\Eav\Model\Entity\Collection\AbstractCollection $collection
      * @param string $dir direction
      * @return $this
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     * @codeCoverageIgnore
      */
     public function addValueSortToCollection($collection, $dir = \Magento\Framework\Data\Collection::SORT_ORDER_DESC)
     {
@@ -121,21 +108,23 @@ abstract class AbstractSource implements
     /**
      * Retrieve flat column definition
      *
+     * @codeCoverageIgnore
      * @return array
      */
     public function getFlatColumns()
     {
-        return array();
+        return [];
     }
 
     /**
      * Retrieve Indexes(s) for Flat
      *
      * @return array
+     * @codeCoverageIgnore
      */
     public function getFlatIndexes()
     {
-        return array();
+        return [];
     }
 
     /**
@@ -143,6 +132,8 @@ abstract class AbstractSource implements
      *
      * @param int $store
      * @return \Magento\Framework\DB\Select|null
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     * @codeCoverageIgnore
      */
     public function getFlatUpdateSelect($store)
     {
@@ -154,6 +145,7 @@ abstract class AbstractSource implements
      *
      * @param string|int $value
      * @return string|bool
+     * @codeCoverageIgnore
      */
     public function getIndexOptionText($value)
     {
@@ -164,6 +156,7 @@ abstract class AbstractSource implements
      * Get options as array
      *
      * @return array
+     * @codeCoverageIgnore
      */
     public function toOptionArray()
     {

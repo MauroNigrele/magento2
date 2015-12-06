@@ -1,56 +1,47 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Wishlist\Test\Block\Customer\Wishlist;
 
-use Mtf\Block\Block;
-use Mtf\Client\Element;
-use Mtf\Client\Element\Locator;
+use Magento\Wishlist\Test\Block\Customer\Wishlist\Items\Product;
+use Magento\Mtf\Block\Block;
+use Magento\Mtf\Client\Locator;
+use Magento\Mtf\Fixture\FixtureInterface;
 
 /**
- * Class Items
- * Customer wishlist items block on frontend
+ * Customer wishlist items block on frontend.
  */
 class Items extends Block
 {
     /**
-     * Product name link selector
+     * Item product block.
      *
      * @var string
      */
-    protected $productName = '//a[contains(@class,"product-item-link") and contains(.,"%s")]';
+    protected $itemBlock = './/li[.//a[contains(.,"%s")]]';
 
     /**
-     * Check that product present in wishlist
+     * Selector for 'Remove item' button.
      *
-     * @param string $productName
-     * @return bool
+     * @var string
      */
-    public function isProductPresent($productName)
-    {
-        $productNameSelector = sprintf($this->productName, $productName);
+    protected $remove = '[data-role="remove"]';
 
-        return $this->_rootElement->find($productNameSelector, Locator::SELECTOR_XPATH)->isVisible();
+    /**
+     * Get item product block.
+     *
+     * @param FixtureInterface $product
+     * @return Product
+     */
+    public function getItemProduct(FixtureInterface $product)
+    {
+        $productBlock = sprintf($this->itemBlock, $product->getName());
+        return $this->blockFactory->create(
+            'Magento\Wishlist\Test\Block\Customer\Wishlist\Items\Product',
+            ['element' => $this->_rootElement->find($productBlock, Locator::SELECTOR_XPATH)]
+        );
     }
 }

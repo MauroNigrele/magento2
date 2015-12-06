@@ -1,68 +1,62 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Customer\Test\TestCase;
 
-use Mtf\TestCase\Injectable;
+use Magento\Mtf\TestCase\Injectable;
+use Magento\Customer\Test\Fixture\Address;
+use Magento\Customer\Test\Fixture\Customer;
 use Magento\Customer\Test\Page\Adminhtml\CustomerIndex;
 use Magento\Customer\Test\Page\Adminhtml\CustomerIndexNew;
-use Magento\Customer\Test\Fixture\CustomerInjectable;
-use Magento\Customer\Test\Fixture\AddressInjectable;
 
 /**
- * Test Coverage for CreateCustomerBackendEntityTest
- *
- * General Flow:
+ * Steps:
  * 1. Log in as default admin user.
- * 2. Go to Customers > All Customers
- * 3. Press "Add New Customer" button
- * 4. Fill form
- * 5. Click "Save Customer" button
- * 6. Perform all assertions
+ * 2. Go to Customers > All Customers.
+ * 3. Press "Add New Customer" button.
+ * 4. Fill form.
+ * 5. Click "Save Customer" button.
+ * 6. Perform all assertions.
  *
- * @ticketId MAGETWO-23424
+ * @ZephyrId MAGETWO-23424
  */
 class CreateCustomerBackendEntityTest extends Injectable
 {
+    /* tags */
+    const MVP = 'yes';
+    const DOMAIN = 'CS';
+    /* end tags */
+
     /**
-     * @var CustomerInjectable
+     * Customer fixture.
+     *
+     * @var Customer
      */
     protected $customer;
 
     /**
+     * Customer index page.
+     *
      * @var CustomerIndex
      */
     protected $pageCustomerIndex;
 
     /**
+     * New customer page.
+     *
      * @var CustomerIndexNew
      */
     protected $pageCustomerIndexNew;
 
     /**
+     * Inject customer pages.
+     *
      * @param CustomerIndex $pageCustomerIndex
      * @param CustomerIndexNew $pageCustomerIndexNew
+     * @return void
      */
     public function __inject(
         CustomerIndex $pageCustomerIndex,
@@ -73,18 +67,19 @@ class CreateCustomerBackendEntityTest extends Injectable
     }
 
     /**
-     * @param CustomerInjectable $customer
-     * @param AddressInjectable $address
+     * Create customer on backend.
+     *
+     * @param Customer $customer
+     * @param string $customerAction
+     * @param Address $address
+     * @return void
      */
-    public function testCreateCustomerBackendEntity(CustomerInjectable $customer, AddressInjectable $address)
+    public function test(Customer $customer, $customerAction, Address $address = null)
     {
-        // Prepare data
-        $address = $address->hasData() ? $address : null;
-
         // Steps
         $this->pageCustomerIndex->open();
         $this->pageCustomerIndex->getPageActionsBlock()->addNew();
         $this->pageCustomerIndexNew->getCustomerForm()->fillCustomer($customer, $address);
-        $this->pageCustomerIndexNew->getPageActionsBlock()->save();
+        $this->pageCustomerIndexNew->getPageActionsBlock()->$customerAction();
     }
 }

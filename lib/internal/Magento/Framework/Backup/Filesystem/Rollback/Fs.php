@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Backup\Filesystem\Rollback;
 
@@ -34,7 +16,7 @@ class Fs extends AbstractRollback
      * Files rollback implementation via local filesystem
      *
      * @return void
-     * @throws \Magento\Framework\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      *
      * @see AbstractRollback::run()
      */
@@ -43,7 +25,9 @@ class Fs extends AbstractRollback
         $snapshotPath = $this->_snapshot->getBackupPath();
 
         if (!is_file($snapshotPath) || !is_readable($snapshotPath)) {
-            throw new \Magento\Framework\Backup\Exception\CantLoadSnapshot('Cant load snapshot archive');
+            throw new \Magento\Framework\Backup\Exception\CantLoadSnapshot(
+                new \Magento\Framework\Phrase('Can\'t load snapshot archive')
+            );
         }
 
         $fsHelper = new \Magento\Framework\Backup\Filesystem\Helper();
@@ -56,7 +40,7 @@ class Fs extends AbstractRollback
 
         if (!$filesInfo['writable']) {
             throw new \Magento\Framework\Backup\Exception\NotEnoughPermissions(
-                'Unable to make rollback because not all files are writable'
+                new \Magento\Framework\Phrase('Unable to make rollback because not all files are writable')
             );
         }
 
@@ -70,6 +54,7 @@ class Fs extends AbstractRollback
         new \Magento\Framework\Archive\Gz();
         new \Magento\Framework\Archive\Helper\File('');
         new \Magento\Framework\Archive\Helper\File\Gz('');
+        new \Magento\Framework\Exception\LocalizedException(new \Magento\Framework\Phrase('dummy'));
 
         $fsHelper->rm($this->_snapshot->getRootDir(), $this->_snapshot->getIgnorePaths());
         $archiver->unpack($snapshotPath, $this->_snapshot->getRootDir());

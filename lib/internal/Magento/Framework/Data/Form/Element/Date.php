@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -31,26 +13,35 @@ namespace Magento\Framework\Data\Form\Element;
 
 use Magento\Framework\Escaper;
 use Magento\Framework\Stdlib\DateTime;
+use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 
 class Date extends AbstractElement
 {
     /**
-     * @var \Magento\Framework\Stdlib\DateTime\Date
+     * @var \DateTime
      */
     protected $_value;
+
+    /**
+     * @var TimezoneInterface
+     */
+    protected $localeDate;
 
     /**
      * @param Factory $factoryElement
      * @param CollectionFactory $factoryCollection
      * @param Escaper $escaper
+     * @param TimezoneInterface $localeDate
      * @param array $data
      */
     public function __construct(
         Factory $factoryElement,
         CollectionFactory $factoryCollection,
         Escaper $escaper,
-        $data = array()
+        TimezoneInterface $localeDate,
+        $data = []
     ) {
+        $this->localeDate = $localeDate;
         parent::__construct($factoryElement, $factoryCollection, $escaper, $data);
         $this->setType('text');
         $this->setExtType('textfield');
@@ -68,7 +59,6 @@ class Date extends AbstractElement
      */
     protected function _toTimestamp($value)
     {
-
         $value = (int)$value;
         if ($value > 3155760000) {
             $value = 0;
@@ -79,44 +69,27 @@ class Date extends AbstractElement
 
     /**
      * Set date value
-     * If \Magento\Framework\Stdlib\DateTime\Date instance is provided instead of value, other params will be ignored.
-     * Format and locale must be compatible with \Magento\Framework\Stdlib\DateTime\Date
      *
      * @param mixed $value
-     * @param string $format
-     * @param string $locale
      * @return $this
      */
-    public function setValue($value, $format = null, $locale = null)
+    public function setValue($value)
     {
         if (empty($value)) {
             $this->_value = '';
             return $this;
         }
-        if ($value instanceof \Magento\Framework\Stdlib\DateTime\DateInterface) {
+        if ($value instanceof \DateTimeInterface) {
             $this->_value = $value;
             return $this;
         }
         if (preg_match('/^[0-9]+$/', $value)) {
-            $this->_value = new \Magento\Framework\Stdlib\DateTime\Date($this->_toTimestamp($value));
-            //$this->_value = new \Magento\Framework\Stdlib\DateTime\Date((int)value);
+            $this->_value = (new \DateTime())->setTimestamp($this->_toTimestamp($value));
             return $this;
         }
-        // last check, if input format was set
-        if (null === $format) {
-            $format = DateTime::DATETIME_INTERNAL_FORMAT;
-            if ($this->getInputFormat()) {
-                $format = $this->getInputFormat();
-            }
-        }
-        // last check, if locale was set
-        if (null === $locale) {
-            if (!($locale = $this->getLocale())) {
-                $locale = null;
-            }
-        }
+
         try {
-            $this->_value = new \Magento\Framework\Stdlib\DateTime\Date($value, $format, $locale);
+            $this->_value = new \DateTime($value, new \DateTimeZone($this->localeDate->getConfigTimezone()));
         } catch (\Exception $e) {
             $this->_value = '';
         }
@@ -127,7 +100,7 @@ class Date extends AbstractElement
      * Get date value as string.
      * Format can be specified, or it will be taken from $this->getFormat()
      *
-     * @param string $format (compatible with \Magento\Framework\Stdlib\DateTime\Date
+     * @param string $format (compatible with \DateTime)
      * @return string
      */
     public function getValue($format = null)
@@ -140,13 +113,20 @@ class Date extends AbstractElement
             $format .= ($format && $this->getTimeFormat()) ? ' ' : '';
             $format .= $this->getTimeFormat() ? $this->getTimeFormat() : '';
         }
-        return $this->_value->toString($format);
+        return $this->localeDate->formatDateTime(
+            $this->_value,
+            null,
+            null,
+            null,
+            $this->_value->getTimezone(),
+            $format
+        );
     }
 
     /**
      * Get value instance, if any
      *
-     * @return \Magento\Framework\Stdlib\DateTime\Date
+     * @return \DateTime
      */
     public function getValueInstance()
     {
@@ -159,8 +139,8 @@ class Date extends AbstractElement
     /**
      * Output the input field and assign calendar instance to it.
      * In order to output the date:
-     * - the value must be instantiated (\Magento\Framework\Stdlib\DateTime\Date)
-     * - output format must be set (compatible with \Magento\Framework\Stdlib\DateTime\Date)
+     * - the value must be instantiated (\DateTime)
+     * - output format must be set (compatible with \DateTime)
      *
      * @throws \Exception
      * @return string
@@ -179,16 +159,16 @@ class Date extends AbstractElement
 
         $dataInit = 'data-mage-init="' . $this->_escape(
             json_encode(
-                array(
-                    'calendar' => array(
+                [
+                    'calendar' => [
                         'dateFormat' => $dateFormat,
                         'showsTime' => !empty($timeFormat),
                         'timeFormat' => $timeFormat,
                         'buttonImage' => $this->getImage(),
                         'buttonText' => 'Select Date',
-                        'disabled' => $this->getDisabled()
-                    )
-                )
+                        'disabled' => $this->getDisabled(),
+                    ],
+                ]
             )
         ) . '"';
 

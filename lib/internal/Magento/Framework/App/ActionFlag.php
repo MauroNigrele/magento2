@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\App;
 
@@ -33,7 +15,7 @@ class ActionFlag
     /**
      * @var array
      */
-    protected $_flags = array();
+    protected $_flags = [];
 
     /**
      * @param RequestInterface $request
@@ -76,7 +58,7 @@ class ActionFlag
         if ('' === $flag) {
             return isset(
                 $this->_flags[$this->_getControllerKey()]
-            ) ? $this->_flags[$this->_getControllerKey()] : array();
+            ) ? $this->_flags[$this->_getControllerKey()] : [];
         } elseif (isset($this->_flags[$this->_getControllerKey()][$action][$flag])) {
             return $this->_flags[$this->_getControllerKey()][$action][$flag];
         } else {
@@ -91,6 +73,6 @@ class ActionFlag
      */
     protected function _getControllerKey()
     {
-        return $this->_request->getRequestedRouteName() . '_' . $this->_request->getRequestedControllerName();
+        return $this->_request->getRouteName() . '_' . $this->_request->getControllerName();
     }
 }

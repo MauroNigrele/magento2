@@ -1,53 +1,54 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Controller\Guest;
 
 use Magento\Framework\App\Action;
+use Magento\Sales\Helper\Guest as GuestHelper;
+use Magento\Framework\View\Result\PageFactory;
+use Magento\Framework\Controller\ResultInterface;
 
-class View extends \Magento\Sales\Controller\AbstractController\View
+class View extends Action\Action
 {
     /**
-     * @param Action\Context $context
-     * @param OrderLoader $orderLoader
+     * @var \Magento\Sales\Helper\Guest
      */
-    public function __construct(Action\Context $context, OrderLoader $orderLoader)
-    {
-        parent::__construct($context, $orderLoader);
+    protected $guestHelper;
+
+    /**
+     * @var \Magento\Framework\View\Result\PageFactory
+     */
+    protected $resultPageFactory;
+
+    /**
+     * @param \Magento\Framework\App\Action\Context $context
+     * @param \Magento\Sales\Helper\Guest $guestHelper
+     * @param \Magento\Framework\View\Result\PageFactory $resultPageFactory
+     */
+    public function __construct(
+        Action\Context $context,
+        GuestHelper $guestHelper,
+        PageFactory $resultPageFactory
+    ) {
+        $this->guestHelper = $guestHelper;
+        $this->resultPageFactory = $resultPageFactory;
+        parent::__construct($context);
     }
 
     /**
-     * {@inheritdoc}
+     * @return \Magento\Framework\Controller\ResultInterface
      */
     public function execute()
     {
-        if (!$this->orderLoader->load($this->_request, $this->_response)) {
-            return;
+        $result = $this->guestHelper->loadValidOrder($this->getRequest());
+        if ($result instanceof ResultInterface) {
+            return $result;
         }
-
-        $this->_view->loadLayout();
-        $this->_objectManager->get('Magento\Sales\Helper\Guest')->getBreadcrumbs();
-        $this->_view->renderLayout();
+        /** @var \Magento\Framework\View\Result\Page $resultPage */
+        $resultPage = $this->resultPageFactory->create();
+        $this->guestHelper->getBreadcrumbs($resultPage);
+        return $resultPage;
     }
 }

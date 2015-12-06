@@ -1,39 +1,20 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Store\Test\Handler\Store;
 
-use Mtf\System\Config;
-use Mtf\Fixture\FixtureInterface;
-use Mtf\Util\Protocol\CurlInterface;
-use Mtf\Util\Protocol\CurlTransport;
-use Mtf\Util\Protocol\CurlTransport\BackendDecorator;
-use Mtf\Handler\Curl as AbstractCurl;
+use Magento\Mtf\Fixture\FixtureInterface;
+use Magento\Mtf\Handler\Curl as AbstractCurl;
+use Magento\Mtf\Util\Protocol\CurlInterface;
+use Magento\Mtf\Util\Protocol\CurlTransport;
+use Magento\Mtf\Util\Protocol\CurlTransport\BackendDecorator;
 
 /**
  * Class Curl
- * Curl handler for creating Store view.
+ * Curl handler for creating Store view
  */
 class Curl extends AbstractCurl implements StoreInterface
 {
@@ -51,11 +32,11 @@ class Curl extends AbstractCurl implements StoreInterface
      */
     protected $mappingData = [
         'group_id' => [
-            'Main Website Store' => 1
+            'Main Website Store' => 1,
         ],
         'is_active' => [
             'Enabled' => 1,
-            'Disabled' => 0
+            'Disabled' => 0,
         ],
     ];
 
@@ -70,8 +51,8 @@ class Curl extends AbstractCurl implements StoreInterface
     {
         $data = $this->prepareData($fixture);
         $url = $_ENV['app_backend_url'] . $this->saveUrl;
-        $curl = new BackendDecorator(new CurlTransport(), new Config());
-        $curl->write(CurlInterface::POST, $url, '1.0', [], $data);
+        $curl = new BackendDecorator(new CurlTransport(), $this->_configuration);
+        $curl->write($url, $data);
         $response = $curl->read();
         $curl->close();
         if (!strpos($response, 'data-ui-id="messages-message-success"')) {
@@ -89,10 +70,13 @@ class Curl extends AbstractCurl implements StoreInterface
      */
     protected function prepareData(FixtureInterface $fixture)
     {
-        $data['store'] = $this->replaceMappingData($fixture->getData());
-        $data['store_action'] = isset($data['store_action']) ? $data['store_action'] : 'add';
-        $data['store_type'] = isset($data['store_type']) ? $data['store_type'] : 'store';
+        $data = [
+            'store' => $this->replaceMappingData($fixture->getData()),
+            'store_action' => 'add',
+            'store_type' => 'store',
+        ];
         $data['store']['group_id'] = $fixture->getDataFieldConfig('group_id')['source']->getStoreGroup()->getGroupId();
+        $data['store']['store_id'] = isset($data['store']['store_id']) ? $data['store']['store_id'] : '';
 
         return $data;
     }
@@ -108,9 +92,9 @@ class Curl extends AbstractCurl implements StoreInterface
     {
         //Set pager limit to 2000 in order to find created store view by name
         $url = $_ENV['app_backend_url'] . 'admin/system_store/index/sort/store_title/dir/asc/limit/2000';
-        $curl = new BackendDecorator(new CurlTransport(), new Config);
+        $curl = new BackendDecorator(new CurlTransport(), $this->_configuration);
         $curl->addOption(CURLOPT_HEADER, 1);
-        $curl->write(CurlInterface::POST, $url, '1.0');
+        $curl->write($url, [], CurlInterface::GET);
         $response = $curl->read();
 
         $expectedUrl = '/admin/system_store/editStore/store_id/';
@@ -123,22 +107,5 @@ class Curl extends AbstractCurl implements StoreInterface
         }
 
         return empty($matches[1]) ? null : $matches[1];
-    }
-
-    /**
-     * Encoded filter parameters
-     *
-     * @param array $filter
-     * @return string
-     */
-    protected function encodeFilter(array $filter)
-    {
-        $result = [];
-        foreach ($filter as $name => $value) {
-            $result[] = "{$name}={$value}";
-        }
-        $result = implode('&', $result);
-
-        return base64_encode($result);
     }
 }

@@ -1,115 +1,79 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Test\Constraint;
 
-use Mtf\Fixture\FixtureFactory;
-use Mtf\Util\Protocol\CurlTransport;
-use Mtf\Constraint\AbstractConstraint;
 use Magento\Catalog\Test\Fixture\CatalogAttributeSet;
+use Magento\Catalog\Test\Fixture\CatalogProductSimple;
+use Magento\Mtf\Fixture\InjectableFixture;
+use Magento\Mtf\Constraint\AbstractConstraint;
 use Magento\Catalog\Test\Fixture\CatalogProductAttribute;
 use Magento\Catalog\Test\Page\Adminhtml\CatalogProductEdit;
 use Magento\Catalog\Test\Page\Adminhtml\CatalogProductIndex;
-use Magento\Catalog\Test\Page\Adminhtml\CatalogProductSetEdit;
-use Magento\Catalog\Test\Page\Adminhtml\CatalogProductSetIndex;
+use Magento\Mtf\ObjectManager;
 
 /**
- * Class AssertAddedProductAttributeOnProductForm
- * Check attribute on product form
+ * Check attribute on product form.
  */
 class AssertAddedProductAttributeOnProductForm extends AbstractConstraint
 {
     /**
-     * Constraint severeness
-     *
-     * @var string
-     */
-    protected $severeness = 'high';
-
-    /**
      * Add this attribute to Default attribute Template. Create product and Assert that created attribute
-     * is displayed on product form (Products > Inventory > Catalog)
+     * is displayed on product form (Products > Inventory > Catalog).
      *
-     * @param FixtureFactory $fixtureFactory
-     * @param CatalogProductSetIndex $productSet
-     * @param CatalogProductSetEdit $productSetEdit
-     * @param CatalogAttributeSet $productTemplate
+     * @param InjectableFixture $product
      * @param CatalogProductIndex $productGrid
-     * @param CatalogProductAttribute $productAttributeOriginal
      * @param CatalogProductEdit $productEdit
-     * @param CatalogProductAttribute|null $productAttribute
+     * @param CatalogProductAttribute $attribute
+     * @param CatalogAttributeSet $attributeSet
+     * @param CatalogProductAttribute $productAttributeOriginal
+     * @throws \Exception
      * @return void
      */
-    public function processAssert
-    (
-        FixtureFactory $fixtureFactory,
-        CatalogProductSetIndex $productSet,
-        CatalogProductSetEdit $productSetEdit,
-        CatalogAttributeSet $productTemplate,
+    public function processAssert(
+        InjectableFixture $product,
         CatalogProductIndex $productGrid,
         CatalogProductEdit $productEdit,
-        CatalogProductAttribute $productAttribute,
+        CatalogProductAttribute $attribute,
+        CatalogAttributeSet $attributeSet,
         CatalogProductAttribute $productAttributeOriginal = null
     ) {
-        $filterAttribute = [
-            'set_name' => $productTemplate->getAttributeSetName(),
-        ];
-        $productSet->open();
-        $productSet->getGrid()->searchAndOpen($filterAttribute);
-
-        $attributeData = ($productAttributeOriginal !== null)
-            ? array_merge($productAttribute->getData(), $productAttributeOriginal->getData())
-            : $productAttribute->getData();
-
-        $productSetEdit->getAttributeSetEditBlock()->moveAttribute($attributeData, 'Product Details');
-        $productSetEdit->getPageActions()->save();
-
-        $product = $fixtureFactory->createByCode(
-            'catalogProductSimple',
-            [
-                'dataSet' => 'product_with_category',
-                'data' => [
-                    'attribute_set_id' => ['attribute_set' => $productTemplate],
-                ],
-            ]
-        );
-        $product->persist();
-
-        $filterProduct = [
-            'sku' => $product->getSku(),
-        ];
+        if (!$product->hasData('sku')) {
+            $product = $this->createProductWithAttributeSet($productAttributeOriginal, $attributeSet);
+        }
+        $filterProduct = ['sku' => $product->getSku()];
         $productGrid->open();
         $productGrid->getProductGrid()->searchAndOpen($filterProduct);
 
         $catalogProductAttribute = ($productAttributeOriginal !== null)
-            ? array_merge($productAttributeOriginal->getData(), $productAttribute->getData())
-            : $productAttribute->getData();
+            ? array_merge($productAttributeOriginal->getData(), $attribute->getData())
+            : $attribute->getData();
 
         \PHPUnit_Framework_Assert::assertTrue(
             $productEdit->getProductForm()->checkAttributeLabel($catalogProductAttribute),
             "Product Attribute is absent on Product form."
         );
+    }
+
+    /**
+     * Create Product With AttributeSet.
+     *
+     * @param CatalogProductAttribute $attribute
+     * @param CatalogAttributeSet $attributeSet
+     * @return CatalogProductSimple
+     */
+    protected function createProductWithAttributeSet(
+        CatalogProductAttribute $attribute,
+        CatalogAttributeSet $attributeSet
+    ) {
+        $product = ObjectManager::getInstance()->create(
+            'Magento\Catalog\Test\TestStep\AddAttributeToAttributeSetStep',
+            ['attribute' => $attribute, 'attributeSet' => $attributeSet]
+        )->run();
+        return $product['product'];
     }
 
     /**

@@ -94,7 +94,6 @@ Debug,Debug
 "3D Secure","3D Secure"
 "Severe 3D Secure Card Validation","Severe 3D Secure Card Validation"
 "Severe Validation Removes Chargeback Liability on Merchant","Severe Validation Removes Chargeback Liability on Merchant"
-"Centinel API URL","Centinel API URL"
 "If you leave this empty, we'll use a default value. The custom URL may be provided by CardinalCommerce agreement.","If you leave this empty, we'll use a default value. The custom URL may be provided by CardinalCommerce agreement."
 "Authorize.net Direct Post","Authorize.net Direct Post"
 "Merchant MD5","Merchant MD5"

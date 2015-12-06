@@ -1,27 +1,12 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\View\Utility;
+
+use Magento\Framework\App\Bootstrap;
+use Magento\Framework\App\Filesystem\DirectoryList;
 
 class LayoutTest extends \PHPUnit_Framework_TestCase
 {
@@ -33,11 +18,11 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         \Magento\TestFramework\Helper\Bootstrap::getInstance()->reinitialize(
-            array(
-                \Magento\Framework\App\Filesystem::PARAM_APP_DIRS => array(
-                    \Magento\Framework\App\Filesystem::APP_DIR => array('path' => BP . '/dev/tests/integration')
-                )
-            )
+            [
+                Bootstrap::INIT_PARAM_FILESYSTEM_DIR_PATHS => [
+                    DirectoryList::APP => ['path' => BP . '/dev/tests/integration'],
+                ],
+            ]
         );
         $this->_utility = new \Magento\Framework\View\Utility\Layout($this);
     }
@@ -84,15 +69,15 @@ class LayoutTest extends \PHPUnit_Framework_TestCase
 
     public function getLayoutFromFixtureDataProvider()
     {
-        return array(
-            'single fixture file' => array(
+        return [
+            'single fixture file' => [
                 __DIR__ . '/_files/layout/handle_two.xml',
-                __DIR__ . '/_files/layout_merged/single_handle.xml'
-            ),
-            'multiple fixture files' => array(
+                __DIR__ . '/_files/layout_merged/single_handle.xml',
+            ],
+            'multiple fixture files' => [
                 glob(__DIR__ . '/_files/layout/*.xml'),
-                __DIR__ . '/_files/layout_merged/multiple_handles.xml'
-            )
-        );
+                __DIR__ . '/_files/layout_merged/multiple_handles.xml',
+            ]
+        ];
     }
 }

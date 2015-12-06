@@ -2,26 +2,8 @@
 /**
  * DB helper class for MySql Magento DB Adapter
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Framework\DB;
@@ -37,26 +19,26 @@ class Helper extends \Magento\Framework\DB\Helper\AbstractHelper
      */
     protected function _prepareOrder(\Magento\Framework\DB\Select $select, $autoReset = false)
     {
-        $selectOrders = $select->getPart(\Zend_Db_Select::ORDER);
+        $selectOrders = $select->getPart(\Magento\Framework\DB\Select::ORDER);
         if (!$selectOrders) {
-            return array();
+            return [];
         }
 
-        $orders = array();
+        $orders = [];
         foreach ($selectOrders as $term) {
             if (is_array($term)) {
                 if (!is_numeric($term[0])) {
-                    $orders[] = sprintf('%s %s', $this->_getReadAdapter()->quoteIdentifier($term[0], true), $term[1]);
+                    $orders[] = sprintf('%s %s', $this->getConnection()->quoteIdentifier($term[0], true), $term[1]);
                 }
             } else {
                 if (!is_numeric($term)) {
-                    $orders[] = $this->_getReadAdapter()->quoteIdentifier($term, true);
+                    $orders[] = $this->getConnection()->quoteIdentifier($term, true);
                 }
             }
         }
 
         if ($autoReset) {
-            $select->reset(\Zend_Db_Select::ORDER);
+            $select->reset(\Magento\Framework\DB\Select::ORDER);
         }
 
         return $orders;
@@ -97,18 +79,18 @@ class Helper extends \Magento\Framework\DB\Helper\AbstractHelper
      */
     protected function _prepareGroup(\Magento\Framework\DB\Select $select, $autoReset = false)
     {
-        $selectGroups = $select->getPart(\Zend_Db_Select::GROUP);
+        $selectGroups = $select->getPart(\Magento\Framework\DB\Select::GROUP);
         if (!$selectGroups) {
-            return array();
+            return [];
         }
 
-        $groups = array();
+        $groups = [];
         foreach ($selectGroups as $term) {
-            $groups[] = $this->_getReadAdapter()->quoteIdentifier($term, true);
+            $groups[] = $this->getConnection()->quoteIdentifier($term, true);
         }
 
         if ($autoReset) {
-            $select->reset(\Zend_Db_Select::GROUP);
+            $select->reset(\Magento\Framework\DB\Select::GROUP);
         }
 
         return $groups;
@@ -124,13 +106,13 @@ class Helper extends \Magento\Framework\DB\Helper\AbstractHelper
      */
     protected function _prepareHaving(\Magento\Framework\DB\Select $select, $autoReset = false)
     {
-        $selectHavings = $select->getPart(\Zend_Db_Select::HAVING);
+        $selectHavings = $select->getPart(\Magento\Framework\DB\Select::HAVING);
         if (!$selectHavings) {
-            return array();
+            return [];
         }
 
-        $havings = array();
-        $columns = $select->getPart(\Zend_Db_Select::COLUMNS);
+        $havings = [];
+        $columns = $select->getPart(\Magento\Framework\DB\Select::COLUMNS);
         foreach ($columns as $columnEntry) {
             $correlationName = (string)$columnEntry[1];
             $column          = $columnEntry[2];
@@ -154,7 +136,7 @@ class Helper extends \Magento\Framework\DB\Helper\AbstractHelper
         }
 
         if ($autoReset) {
-            $select->reset(\Zend_Db_Select::HAVING);
+            $select->reset(\Magento\Framework\DB\Select::HAVING);
         }
 
         return $havings;
@@ -168,10 +150,10 @@ class Helper extends \Magento\Framework\DB\Helper\AbstractHelper
      * @param array $columnList
      * @return string
      */
-    protected function _assembleLimit($query, $limitCount, $limitOffset, $columnList = array())
+    protected function _assembleLimit($query, $limitCount, $limitOffset, $columnList = [])
     {
         if ($limitCount !== null) {
-              $limitCount = intval($limitCount);
+            $limitCount = intval($limitCount);
             if ($limitCount <= 0) {
                 //throw new \Exception("LIMIT argument count={$limitCount} is not valid");
             }
@@ -182,7 +164,7 @@ class Helper extends \Magento\Framework\DB\Helper\AbstractHelper
             }
 
             if ($limitOffset + $limitCount != $limitOffset + 1) {
-                $columns = array();
+                $columns = [];
                 foreach ($columnList as $columnEntry) {
                     $columns[] = $columnEntry[2] ? $columnEntry[2] : $columnEntry[1];
                 }
@@ -200,16 +182,18 @@ class Helper extends \Magento\Framework\DB\Helper\AbstractHelper
      * @param string|null $groupByCondition OPTIONAL
      * @return mixed|array
      * @throws \Zend_Db_Exception
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function prepareColumnsList(\Magento\Framework\DB\Select $select, $groupByCondition = null)
     {
-        if (!count($select->getPart(\Zend_Db_Select::FROM))) {
-            return $select->getPart(\Zend_Db_Select::COLUMNS);
+        if (!count($select->getPart(\Magento\Framework\DB\Select::FROM))) {
+            return $select->getPart(\Magento\Framework\DB\Select::COLUMNS);
         }
 
-        $columns          = $select->getPart(\Zend_Db_Select::COLUMNS);
-        $tables           = $select->getPart(\Zend_Db_Select::FROM);
-        $preparedColumns  = array();
+        $columns          = $select->getPart(\Magento\Framework\DB\Select::COLUMNS);
+        $tables           = $select->getPart(\Magento\Framework\DB\Select::FROM);
+        $preparedColumns  = [];
 
         foreach ($columns as $columnEntry) {
             list($correlationName, $column, $alias) = $columnEntry;
@@ -218,24 +202,24 @@ class Helper extends \Magento\Framework\DB\Helper\AbstractHelper
                     if (preg_match('/(^|[^a-zA-Z_])^(SELECT)?(SUM|MIN|MAX|AVG|COUNT)\s*\(/i', $column)) {
                         $column = new \Zend_Db_Expr($column);
                     }
-                    $preparedColumns[strtoupper($alias)] = array(null, $column, $alias);
+                    $preparedColumns[strtoupper($alias)] = [null, $column, $alias];
                 } else {
                     throw new \Zend_Db_Exception("Can't prepare expression without alias");
                 }
             } else {
-                if ($column == \Zend_Db_Select::SQL_WILDCARD) {
+                if ($column == \Magento\Framework\DB\Select::SQL_WILDCARD) {
                     if ($tables[$correlationName]['tableName'] instanceof \Zend_Db_Expr) {
                         throw new \Zend_Db_Exception(
                             "Can't prepare expression when tableName is instance of \Zend_Db_Expr"
                         );
                     }
-                    $tableColumns = $this->_getReadAdapter()->describeTable($tables[$correlationName]['tableName']);
+                    $tableColumns = $this->getConnection()->describeTable($tables[$correlationName]['tableName']);
                     foreach (array_keys($tableColumns) as $col) {
-                        $preparedColumns[strtoupper($col)] = array($correlationName, $col, null);
+                        $preparedColumns[strtoupper($col)] = [$correlationName, $col, null];
                     }
                 } else {
-                    $columnKey = is_null($alias) ? $column : $alias;
-                    $preparedColumns[strtoupper($columnKey)] = array($correlationName, $column, $alias);
+                    $columnKey = $alias === null ? $column : $alias;
+                    $preparedColumns[strtoupper($columnKey)] = [$correlationName, $column, $alias];
                 }
             }
         }
@@ -263,18 +247,18 @@ class Helper extends \Magento\Framework\DB\Helper\AbstractHelper
         $additionalWhere = ''
     ) {
         if (is_array($fields)) {
-            $fieldExpr = $this->_getReadAdapter()->getConcatSql($fields, $fieldsDelimiter);
+            $fieldExpr = $this->getConnection()->getConcatSql($fields, $fieldsDelimiter);
         } else {
             $fieldExpr = $fields;
         }
         if ($additionalWhere) {
-            $fieldExpr = $this->_getReadAdapter()->getCheckSql($additionalWhere, $fieldExpr, "''");
+            $fieldExpr = $this->getConnection()->getCheckSql($additionalWhere, $fieldExpr, "''");
         }
         $separator = '';
         if ($groupConcatDelimiter) {
             $separator = sprintf(" SEPARATOR '%s'", $groupConcatDelimiter);
         }
-        $select->columns(array($fieldAlias => new \Zend_Db_Expr(sprintf('GROUP_CONCAT(%s%s)', $fieldExpr, $separator))));
+        $select->columns([$fieldAlias => new \Zend_Db_Expr(sprintf('GROUP_CONCAT(%s%s)', $fieldExpr, $separator))]);
         return $select;
     }
 
@@ -302,9 +286,9 @@ class Helper extends \Magento\Framework\DB\Helper\AbstractHelper
      *
      * @see escapeLikeValue()
      */
-    public function addLikeEscape($value, $options = array())
+    public function addLikeEscape($value, $options = [])
     {
         $value = $this->escapeLikeValue($value, $options);
-        return new \Zend_Db_Expr($this->_getReadAdapter()->quote($value));
+        return new \Zend_Db_Expr($this->getConnection()->quote($value));
     }
 }

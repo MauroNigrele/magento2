@@ -1,35 +1,17 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\UrlRewrite\Test\TestCase;
 
+use Magento\Catalog\Test\Fixture\Category;
 use Magento\UrlRewrite\Test\Fixture\UrlRewrite;
-use Magento\UrlRewrite\Test\Page\Adminhtml\UrlrewriteEdit;
-use Magento\UrlRewrite\Test\Page\Adminhtml\UrlrewriteIndex;
-use Mtf\Fixture\FixtureFactory;
-use Magento\Catalog\Test\Fixture\CatalogCategory;
-use Mtf\TestCase\Injectable;
+use Magento\UrlRewrite\Test\Page\Adminhtml\UrlRewriteEdit;
+use Magento\UrlRewrite\Test\Page\Adminhtml\UrlRewriteIndex;
+use Magento\Mtf\Fixture\FixtureFactory;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
  * Test Creation for Create Category Rewrites Entity
@@ -39,7 +21,7 @@ use Mtf\TestCase\Injectable;
  *
  * Test Flow:
  * 1. Login to backend as Admin
- * 2. Go to the Marketing-> SEO & Search->URL Redirects
+ * 2. Go to the Marketing-> SEO & Search->URL Rewrites
  * 3. Click "+" button
  * 4. Select "For Category" in Create URL Rewrite dropdown
  * 5. Select Category in "Category tree"
@@ -47,43 +29,49 @@ use Mtf\TestCase\Injectable;
  * 7. Save Rewrite
  * 8. Verify created rewrite
  *
- * @group URL_Rewrites_(MX)
+ * @group URL_Rewrites_(PS)
  * @ZephyrId MAGETWO-24280
  */
 class CreateCategoryRewriteEntityTest extends Injectable
 {
+    /* tags */
+    const MVP = 'yes';
+    const DOMAIN = 'PS';
+    const TEST_TYPE = 'acceptance_test';
+    /* end tags */
+
     /**
      * Page of url rewrite edit category
      *
-     * @var UrlrewriteEdit
+     * @var UrlRewriteEdit
      */
     protected $urlRewriteEdit;
 
     /**
      * Main page of url rewrite
      *
-     * @var UrlrewriteIndex
+     * @var UrlRewriteIndex
      */
     protected $urlRewriteIndex;
 
     /**
      * Inject page
      *
-     * @param UrlrewriteEdit $urlRewriteEdit
-     * @param UrlrewriteIndex $urlRewriteIndex
+     * @param UrlRewriteEdit $urlRewriteEdit
+     * @param UrlRewriteIndex $urlRewriteIndex
      * @param FixtureFactory $fixtureFactory
      * @return array
      */
     public function __inject(
-        UrlrewriteEdit $urlRewriteEdit,
+        UrlRewriteEdit $urlRewriteEdit,
         UrlRewriteIndex $urlRewriteIndex,
         FixtureFactory $fixtureFactory
     ) {
         $this->urlRewriteEdit = $urlRewriteEdit;
         $this->urlRewriteIndex = $urlRewriteIndex;
         $category = $fixtureFactory->createByCode(
-            'catalogCategory',
-            ['dataSet' => 'default_subcategory']
+            'category',
+            ['dataset' => 'default_subcategory']
         );
         $category->persist();
         return ['category' => $category];
@@ -93,15 +81,16 @@ class CreateCategoryRewriteEntityTest extends Injectable
      * Test check create category rewrites
      *
      * @param UrlRewrite $urlRewrite
-     * @param CatalogCategory $category
+     * @param Category $category
      * @return void
      */
-    public function testCreateCategoryRewrite(UrlRewrite $urlRewrite, CatalogCategory $category)
+    public function test(UrlRewrite $urlRewrite, Category $category)
     {
         //Steps
         $this->urlRewriteIndex->open();
         $this->urlRewriteIndex->getPageActionsBlock()->addNew();
-        $this->urlRewriteEdit->getTreeBlock()->selectCategory($category->getName());
+        $this->urlRewriteEdit->getFormBlock()->fill($urlRewrite);
+        $this->urlRewriteEdit->getTreeBlock()->selectCategory($category);
         $this->urlRewriteEdit->getFormBlock()->fill($urlRewrite);
         $this->urlRewriteEdit->getPageMainActions()->save();
     }

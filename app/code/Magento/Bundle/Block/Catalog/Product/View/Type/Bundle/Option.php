@@ -1,29 +1,12 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-namespace Magento\Bundle\Block\Catalog\Product\View\Type\Bundle;
 
-use Magento\Bundle\Model\Product\Price;
+// @codingStandardsIgnoreFile
+
+namespace Magento\Bundle\Block\Catalog\Product\View\Type\Bundle;
 
 /**
  * Bundle option renderer
@@ -45,9 +28,9 @@ class Option extends \Magento\Bundle\Block\Catalog\Product\Price
     protected $_showSingle;
 
     /**
-     * @var \Magento\Core\Helper\Data
+     * @var \Magento\Framework\Pricing\Helper\Data
      */
-    protected $_coreHelper;
+    protected $pricingHelper;
 
     /**
      * @var \Magento\Tax\Helper\Data
@@ -64,11 +47,11 @@ class Option extends \Magento\Bundle\Block\Catalog\Product\Price
      * @param \Magento\Framework\Json\EncoderInterface $jsonEncoder
      * @param \Magento\Catalog\Helper\Data $catalogData
      * @param \Magento\Framework\Registry $registry
-     * @param \Magento\Framework\Stdlib\String $string
+     * @param \Magento\Framework\Stdlib\StringUtils $string
      * @param \Magento\Framework\Math\Random $mathRandom
      * @param \Magento\Checkout\Helper\Cart $cartHelper
      * @param \Magento\Tax\Helper\Data $taxData
-     * @param \Magento\Core\Helper\Data $coreHelper
+     * @param \Magento\Framework\Pricing\Helper\Data $pricingHelper
      * @param array $data
      *
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
@@ -78,14 +61,14 @@ class Option extends \Magento\Bundle\Block\Catalog\Product\Price
         \Magento\Framework\Json\EncoderInterface $jsonEncoder,
         \Magento\Catalog\Helper\Data $catalogData,
         \Magento\Framework\Registry $registry,
-        \Magento\Framework\Stdlib\String $string,
+        \Magento\Framework\Stdlib\StringUtils $string,
         \Magento\Framework\Math\Random $mathRandom,
         \Magento\Checkout\Helper\Cart $cartHelper,
         \Magento\Tax\Helper\Data $taxData,
-        \Magento\Core\Helper\Data $coreHelper,
-        array $data = array()
+        \Magento\Framework\Pricing\Helper\Data $pricingHelper,
+        array $data = []
     ) {
-        $this->_coreHelper = $coreHelper;
+        $this->pricingHelper = $pricingHelper;
         $this->_catalogHelper = $catalogData;
         $this->_taxHelper = $taxData;
         parent::__construct(
@@ -147,7 +130,7 @@ class Option extends \Magento\Bundle\Block\Catalog\Product\Price
             $canChangeQty = $selections[0]->getSelectionCanChangeQty();
         }
 
-        return array($defaultQty, $canChangeQty);
+        return [$defaultQty, $canChangeQty];
     }
 
     /**
@@ -158,7 +141,7 @@ class Option extends \Magento\Bundle\Block\Catalog\Product\Price
     protected function _getSelectedOptions()
     {
         if (is_null($this->_selectedOptions)) {
-            $this->_selectedOptions = array();
+            $this->_selectedOptions = [];
             $option = $this->getOption();
 
             if ($this->getProduct()->hasPreconfiguredValues()) {
@@ -263,7 +246,7 @@ class Option extends \Magento\Bundle\Block\Catalog\Product\Price
                 1
             );
             if (is_numeric($price)) {
-                $price = $this->_coreHelper->currencyByStore($price, $store, false);
+                $price = $this->pricingHelper->currencyByStore($price, $store, false);
             }
         }
         return is_numeric($price) ? $price : 0;
@@ -290,48 +273,11 @@ class Option extends \Magento\Bundle\Block\Catalog\Product\Price
      * @param int $elementId
      * @param int $containerId
      * @return string
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function setValidationContainer($elementId, $containerId)
     {
         return;
-    }
-
-    /**
-     * Format price string
-     *
-     * @param float $price
-     * @param bool $includeContainer
-     * @return string
-     * @deprecated
-     */
-    public function formatPriceString($price, $includeContainer = true)
-    {
-        $catalogHelper = $this->_catalogHelper;
-        $taxHelper = $this->_taxHelper;
-        $coreHelper = $this->_coreHelper;
-        $currentProduct = $this->getProduct();
-        if ($currentProduct->getPriceType() == Price::PRICE_TYPE_DYNAMIC && $this->getFormatProduct()) {
-            $product = $this->getFormatProduct();
-        } else {
-            $product = $currentProduct;
-        }
-
-        $priceTax = $catalogHelper->getTaxPrice($product, $price);
-        $priceIncTax = $catalogHelper->getTaxPrice($product, $price, true);
-
-        $formatted = $coreHelper->currencyByStore($priceTax, $product->getStore(), true, $includeContainer);
-        if ($taxHelper->displayBothPrices() && $priceTax != $priceIncTax) {
-            $formatted .= ' (+' . $coreHelper->currencyByStore(
-                $priceIncTax,
-                $product->getStore(),
-                true,
-                $includeContainer
-            ) . ' ' . __(
-                'Incl. Tax'
-            ) . ')';
-        }
-
-        return $formatted;
     }
 
     /**
@@ -343,6 +289,7 @@ class Option extends \Magento\Bundle\Block\Catalog\Product\Price
     public function setOption(\Magento\Bundle\Model\Option $option)
     {
         $this->_selectedOptions = null;
+        $this->_showSingle = null;
         return parent::setOption($option);
     }
 

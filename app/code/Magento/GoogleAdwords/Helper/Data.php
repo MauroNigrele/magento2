@@ -2,26 +2,8 @@
 /**
  * Google AdWords Data Helper
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\GoogleAdwords\Helper;
 
@@ -86,35 +68,19 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     /**#@-*/
 
     /**
-     * @var \Magento\Framework\App\Config\ScopeConfigInterface
-     */
-    protected $_config;
-
-    /**
-     * @var \Magento\Framework\App\Config\ScopeConfigInterface
-     */
-    protected $_scopeConfig;
-
-    /**
      * @var \Magento\Framework\Registry
      */
     protected $_registry;
 
     /**
      * @param \Magento\Framework\App\Helper\Context $context
-     * @param \Magento\Framework\App\Config\ScopeConfigInterface $config
-     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param \Magento\Framework\Registry $registry
      */
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
-        \Magento\Framework\App\Config\ScopeConfigInterface $config,
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Framework\Registry $registry
     ) {
         parent::__construct($context);
-        $this->_config = $config;
-        $this->_scopeConfig = $scopeConfig;
         $this->_registry = $registry;
     }
 
@@ -125,7 +91,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function isGoogleAdwordsActive()
     {
-        return $this->_scopeConfig->isSetFlag(
+        return $this->scopeConfig->isSetFlag(
             self::XML_PATH_ACTIVE,
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE
         ) &&
@@ -143,7 +109,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getLanguageCodes()
     {
-        return (array)$this->_config->getValue(self::XML_PATH_LANGUAGES, 'default');
+        return (array)$this->scopeConfig->getValue(self::XML_PATH_LANGUAGES, 'default');
     }
 
     /**
@@ -154,7 +120,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function convertLanguageCodeToLocaleCode($language)
     {
-        $convertArray = (array)$this->_config->getValue(self::XML_PATH_LANGUAGE_CONVERT, 'default');
+        $convertArray = (array)$this->scopeConfig->getValue(self::XML_PATH_LANGUAGE_CONVERT, 'default');
         return isset($convertArray[$language]) ? $convertArray[$language] : $language;
     }
 
@@ -165,7 +131,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getConversionJsSrc()
     {
-        return (string)$this->_config->getValue(self::XML_PATH_CONVERSION_JS_SRC, 'default');
+        return (string)$this->scopeConfig->getValue(self::XML_PATH_CONVERSION_JS_SRC, 'default');
     }
 
     /**
@@ -176,7 +142,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     public function getConversionImgSrc()
     {
         return sprintf(
-            $this->_config->getValue(self::XML_PATH_CONVERSION_IMG_SRC, 'default'),
+            $this->scopeConfig->getValue(self::XML_PATH_CONVERSION_IMG_SRC, 'default'),
             $this->getConversionId(),
             $this->getConversionLabel()
         );
@@ -189,7 +155,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getConversionId()
     {
-        return (int)$this->_scopeConfig->getValue(
+        return (int)$this->scopeConfig->getValue(
             self::XML_PATH_CONVERSION_ID,
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE
         );
@@ -202,7 +168,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getConversionLanguage()
     {
-        return $this->_scopeConfig->getValue(
+        return $this->scopeConfig->getValue(
             self::XML_PATH_CONVERSION_LANGUAGE,
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE
         );
@@ -215,7 +181,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getConversionFormat()
     {
-        return $this->_scopeConfig->getValue(
+        return $this->scopeConfig->getValue(
             self::XML_PATH_CONVERSION_FORMAT,
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE
         );
@@ -228,7 +194,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getConversionColor()
     {
-        return $this->_scopeConfig->getValue(
+        return $this->scopeConfig->getValue(
             self::XML_PATH_CONVERSION_COLOR,
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE
         );
@@ -241,7 +207,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getConversionLabel()
     {
-        return $this->_scopeConfig->getValue(
+        return $this->scopeConfig->getValue(
             self::XML_PATH_CONVERSION_LABEL,
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE
         );
@@ -254,7 +220,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getConversionValueType()
     {
-        return $this->_scopeConfig->getValue(
+        return $this->scopeConfig->getValue(
             self::XML_PATH_CONVERSION_VALUE_TYPE,
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE
         );
@@ -277,7 +243,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getConversionValueConstant()
     {
-        return (double)$this->_scopeConfig->getValue(
+        return (double)$this->scopeConfig->getValue(
             self::XML_PATH_CONVERSION_VALUE,
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE
         );

@@ -1,27 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Locale;
+
+use Magento\Framework\Locale\Bundle\DataBundle;
 
 class Format implements \Magento\Framework\Locale\FormatInterface
 {
@@ -36,15 +20,23 @@ class Format implements \Magento\Framework\Locale\FormatInterface
     protected $_localeResolver;
 
     /**
+     * @var \Magento\Directory\Model\CurrencyFactory
+     */
+    protected $currencyFactory;
+
+    /**
      * @param \Magento\Framework\App\ScopeResolverInterface $scopeResolver
      * @param ResolverInterface $localeResolver
+     * @param \Magento\Directory\Model\CurrencyFactory $currencyFactory
      */
     public function __construct(
         \Magento\Framework\App\ScopeResolverInterface $scopeResolver,
-        \Magento\Framework\Locale\ResolverInterface $localeResolver
+        \Magento\Framework\Locale\ResolverInterface $localeResolver,
+        \Magento\Directory\Model\CurrencyFactory $currencyFactory
     ) {
         $this->_scopeResolver = $scopeResolver;
         $this->_localeResolver = $localeResolver;
+        $this->currencyFactory = $currencyFactory;
     }
 
     /**
@@ -66,7 +58,7 @@ class Format implements \Magento\Framework\Locale\FormatInterface
      */
     public function getNumber($value)
     {
-        if (is_null($value)) {
+        if ($value === null) {
             return null;
         }
 
@@ -75,7 +67,7 @@ class Format implements \Magento\Framework\Locale\FormatInterface
         }
 
         //trim spaces and apostrophes
-        $value = str_replace(array('\'', ' '), '', $value);
+        $value = str_replace(['\'', ' '], '', $value);
 
         $separatorComa = strpos($value, ',');
         $separatorDot = strpos($value, '.');
@@ -97,12 +89,27 @@ class Format implements \Magento\Framework\Locale\FormatInterface
     /**
      * Functions returns array with price formatting info
      *
+     * @param string $localeCode Locale code.
+     * @param string $currencyCode Currency code.
      * @return array
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
-    public function getPriceFormat()
+    public function getPriceFormat($localeCode = null, $currencyCode = null)
     {
-        $format = \Zend_Locale_Data::getContent($this->_localeResolver->getLocaleCode(), 'currencynumber');
-        $symbols = \Zend_Locale_Data::getList($this->_localeResolver->getLocaleCode(), 'symbols');
+        $localeCode = $localeCode ?: $this->_localeResolver->getLocale();
+        if ($currencyCode) {
+            $currency = $this->currencyFactory->create()->load($currencyCode);
+        } else {
+            $currency = $this->_scopeResolver->getScope()->getCurrentCurrency();
+        }
+        $localeData = (new DataBundle())->get($localeCode);
+        $format = $localeData['NumberElements']['latn']['patterns']['currencyFormat']
+            ?: explode(';', $localeData['NumberPatterns'][1])[0];
+        $decimalSymbol = $localeData['NumberElements']['latn']['symbols']['decimal']
+            ?: $localeData['NumberElements'][0];
+        $groupSymbol = $localeData['NumberElements']['latn']['symbols']['group']
+            ?: $localeData['NumberElements'][1];
 
         $pos = strpos($format, ';');
         if ($pos !== false) {
@@ -130,16 +137,16 @@ class Format implements \Magento\Framework\Locale\FormatInterface
         }
         $integerRequired = strpos($format, '.') - strpos($format, '0');
 
-        $result = array(
+        $result = [
             //TODO: change interface
-            'pattern' => $this->_scopeResolver->getScope()->getCurrentCurrency()->getOutputFormat(),
+            'pattern' => $currency->getOutputFormat(),
             'precision' => $totalPrecision,
             'requiredPrecision' => $requiredPrecision,
-            'decimalSymbol' => $symbols['decimal'],
-            'groupSymbol' => $symbols['group'],
+            'decimalSymbol' => $decimalSymbol,
+            'groupSymbol' => $groupSymbol,
             'groupLength' => $group,
-            'integerRequired' => $integerRequired
-        );
+            'integerRequired' => $integerRequired,
+        ];
 
         return $result;
     }

@@ -1,30 +1,13 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Controller\AbstractController;
 
-use \Magento\Framework\App\Action;
+use Magento\Framework\App\Action;
+use Magento\Framework\Registry;
 
 abstract class Reorder extends Action\Action
 {
@@ -34,19 +17,19 @@ abstract class Reorder extends Action\Action
     protected $orderLoader;
 
     /**
-     * @var \Magento\Framework\Registry
+     * @var Registry
      */
     protected $_coreRegistry;
 
     /**
      * @param Action\Context $context
      * @param OrderLoaderInterface $orderLoader
-     * @param \Magento\Framework\Registry $registry
+     * @param Registry $registry
      */
     public function __construct(
         Action\Context $context,
         OrderLoaderInterface $orderLoader,
-        \Magento\Framework\Registry $registry
+        Registry $registry
     ) {
         $this->orderLoader = $orderLoader;
         $this->_coreRegistry = $registry;
@@ -56,14 +39,17 @@ abstract class Reorder extends Action\Action
     /**
      * Action for reorder
      *
-     * @return void
+     * @return \Magento\Framework\Controller\ResultInterface
      */
     public function execute()
     {
-        if (!$this->orderLoader->load($this->_request, $this->_response)) {
-            return;
+        $result = $this->orderLoader->load($this->_request);
+        if ($result instanceof \Magento\Framework\Controller\ResultInterface) {
+            return $result;
         }
         $order = $this->_coreRegistry->registry('current_order');
+        /** @var \Magento\Framework\Controller\Result\Redirect $resultRedirect */
+        $resultRedirect = $this->resultRedirectFactory->create();
 
         /* @var $cart \Magento\Checkout\Model\Cart */
         $cart = $this->_objectManager->get('Magento\Checkout\Model\Cart');
@@ -71,20 +57,20 @@ abstract class Reorder extends Action\Action
         foreach ($items as $item) {
             try {
                 $cart->addOrderItem($item);
-            } catch (\Magento\Framework\Model\Exception $e) {
+            } catch (\Magento\Framework\Exception\LocalizedException $e) {
                 if ($this->_objectManager->get('Magento\Checkout\Model\Session')->getUseNotice(true)) {
                     $this->messageManager->addNotice($e->getMessage());
                 } else {
                     $this->messageManager->addError($e->getMessage());
                 }
-                $this->_redirect('*/*/history');
+                return $resultRedirect->setPath('*/*/history');
             } catch (\Exception $e) {
-                $this->messageManager->addException($e, __('We cannot add this item to your shopping cart.'));
-                $this->_redirect('checkout/cart');
+                $this->messageManager->addException($e, __('We can\'t add this item to your shopping cart right now.'));
+                return $resultRedirect->setPath('checkout/cart');
             }
         }
 
         $cart->save();
-        $this->_redirect('checkout/cart');
+        return $resultRedirect->setPath('checkout/cart');
     }
 }

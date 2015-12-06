@@ -1,28 +1,12 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\View\Design\Fallback\Rule;
 
+use Magento\Framework\Component\ComponentRegistrar;
+use Magento\Framework\Component\ComponentRegistrarInterface;
 use Magento\Framework\View\Design\ThemeInterface;
 
 /**
@@ -40,13 +24,22 @@ class Theme implements RuleInterface
     protected $rule;
 
     /**
+     * Component registrar
+     *
+     * @var ComponentRegistrarInterface
+     */
+    private $componentRegistrar;
+
+    /**
      * Constructors
      *
      * @param RuleInterface $rule
+     * @param ComponentRegistrarInterface $componentRegistrar
      */
-    public function __construct(RuleInterface $rule)
+    public function __construct(RuleInterface $rule, ComponentRegistrarInterface $componentRegistrar)
     {
         $this->rule = $rule;
+        $this->componentRegistrar = $componentRegistrar;
     }
 
     /**
@@ -63,13 +56,16 @@ class Theme implements RuleInterface
                 'Parameter "theme" should be specified and should implement the theme interface.'
             );
         }
-        $result = array();
+        $result = [];
         /** @var $theme ThemeInterface */
         $theme = $params['theme'];
         unset($params['theme']);
         while ($theme) {
-            if ($theme->getThemePath()) {
-                $params['theme_path'] = $theme->getThemePath();
+            if ($theme->getFullPath()) {
+                $params['theme_dir'] = $this->componentRegistrar->getPath(
+                    ComponentRegistrar::THEME,
+                    $theme->getFullPath()
+                );
                 $result = array_merge($result, $this->rule->getPatternDirs($params));
             }
             $theme = $theme->getParentTheme();

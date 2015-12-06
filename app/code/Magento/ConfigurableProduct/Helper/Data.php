@@ -1,30 +1,12 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\ConfigurableProduct\Helper;
 
-use \Magento\Catalog\Model\Product;
+use Magento\Catalog\Model\Product;
 
 /**
  * Class Data
@@ -49,6 +31,44 @@ class Data
     }
 
     /**
+     * Retrieve collection of gallery images
+     *
+     * @param \Magento\Catalog\Api\Data\ProductInterface $product
+     * @return \Magento\Catalog\Model\Product\Image[]|null
+     */
+    public function getGalleryImages(\Magento\Catalog\Api\Data\ProductInterface $product)
+    {
+        $images = $product->getMediaGalleryImages();
+        if ($images instanceof \Magento\Framework\Data\Collection) {
+            foreach ($images as $image) {
+                /** @var $image \Magento\Catalog\Model\Product\Image */
+                $image->setData(
+                    'small_image_url',
+                    $this->imageHelper->init($product, 'product_page_image_small')
+                        ->setImageFile($image->getFile())
+                        ->getUrl()
+                );
+                $image->setData(
+                    'medium_image_url',
+                    $this->imageHelper->init($product, 'product_page_image_medium')
+                        ->constrainOnly(true)->keepAspectRatio(true)->keepFrame(false)
+                        ->setImageFile($image->getFile())
+                        ->getUrl()
+                );
+                $image->setData(
+                    'large_image_url',
+                    $this->imageHelper->init($product, 'product_page_image_large')
+                        ->constrainOnly(true)->keepAspectRatio(true)->keepFrame(false)
+                        ->setImageFile($image->getFile())
+                        ->getUrl()
+                );
+            }
+        }
+
+        return $images;
+    }
+
+    /**
      * Get Options for Configurable Product Options
      *
      * @param \Magento\Catalog\Model\Product $currentProduct
@@ -57,27 +77,32 @@ class Data
      */
     public function getOptions($currentProduct, $allowedProducts)
     {
-        $options = array();
-        $baseImageUrl = (string)$this->imageHelper->init($currentProduct, 'image');
-
+        $options = [];
         foreach ($allowedProducts as $product) {
             $productId = $product->getId();
-            $image = (string)$this->imageHelper->init($product, 'image');
-
+            $images = $this->getGalleryImages($product);
+            if ($images) {
+                foreach ($images as $image) {
+                    $options['images'][$productId][] =
+                        [
+                            'thumb' => $image->getData('small_image_url'),
+                            'img' => $image->getData('medium_image_url'),
+                            'full' => $image->getData('large_image_url'),
+                            'caption' => $image->getLabel(),
+                            'position' => $image->getPosition(),
+                            'isMain' => $image->getFile() == $product->getImage(),
+                        ];
+                }
+            }
             foreach ($this->getAllowAttributes($currentProduct) as $attribute) {
                 $productAttribute = $attribute->getProductAttribute();
                 $productAttributeId = $productAttribute->getId();
                 $attributeValue = $product->getData($productAttribute->getAttributeCode());
 
                 $options[$productAttributeId][$attributeValue][] = $productId;
-                $imageUrl = (!$product->getImage() || $product->getImage() === 'no_selection')
-                    ? $baseImageUrl
-                    : (string)$image;
-                $options['images'][$productAttributeId][$attributeValue][$productId] = $imageUrl;
+                $options['index'][$productId][$productAttributeId] = $attributeValue;
             }
         }
-        $options['baseImage'] = $baseImageUrl;
-
         return $options;
     }
 

@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\DB\Adapter;
 
@@ -93,21 +75,21 @@ interface AdapterInterface
     /**
      * Begin new DB transaction for connection
      *
-     * @return \Magento\Framework\DB\Adapter\Pdo\Mysql
+     * @return \Magento\Framework\DB\Adapter\AdapterInterface
      */
     public function beginTransaction();
 
     /**
      * Commit DB transaction
      *
-     * @return \Magento\Framework\DB\Adapter\Pdo\Mysql
+     * @return \Magento\Framework\DB\Adapter\AdapterInterface
      */
     public function commit();
 
     /**
      * Roll-back DB transaction
      *
-     * @return \Magento\Framework\DB\Adapter\Pdo\Mysql
+     * @return \Magento\Framework\DB\Adapter\AdapterInterface
      */
     public function rollBack();
 
@@ -146,6 +128,16 @@ interface AdapterInterface
      * @return \Zend_Db_Statement_Interface
      */
     public function createTemporaryTable(Table $table);
+
+    /**
+     * Create temporary table from other table
+     *
+     * @param string $temporaryTableName
+     * @param string $originTableName
+     * @param bool $ifNotExists
+     * @return \Zend_Db_Statement_Interface
+     */
+    public function createTemporaryTableLike($temporaryTableName, $originTableName, $ifNotExists = false);
 
     /**
      * Drop temporary table from database
@@ -240,7 +232,7 @@ interface AdapterInterface
      * @param array|string $definition
      * @param boolean $flushData
      * @param string $schemaName
-     * @return \Magento\Framework\DB\Adapter\Pdo\Mysql
+     * @return \Magento\Framework\DB\Adapter\AdapterInterface
      */
     public function modifyColumnByDdl($tableName, $columnName, $definition, $flushData = false, $schemaName = null);
 
@@ -393,7 +385,6 @@ interface AdapterInterface
         $refTableName,
         $refColumnName,
         $onDelete = self::FK_ACTION_CASCADE,
-        $onUpdate = self::FK_ACTION_CASCADE,
         $purge = false,
         $schemaName = null,
         $refSchemaName = null
@@ -449,7 +440,7 @@ interface AdapterInterface
      * @param array $fields update fields pairs or values
      * @return int The number of affected rows.
      */
-    public function insertOnDuplicate($table, array $data, array $fields = array());
+    public function insertOnDuplicate($table, array $data, array $fields = []);
 
     /**
      * Inserts a table multiply rows with specified data.
@@ -521,41 +512,33 @@ interface AdapterInterface
      * Prepares and executes an SQL statement with bound data.
      *
      * @param  mixed  $sql  The SQL statement with placeholders.
-     *                      May be a string or \Zend_Db_Select.
+     *                      May be a string or \Magento\Framework\DB\Select.
      * @param  mixed  $bind An array of data or data itself to bind to the placeholders.
      * @return \Zend_Db_Statement_Interface
      */
-    public function query($sql, $bind = array());
-
-    /**
-     * Executes a SQL statement(s)
-     *
-     * @param string $sql
-     * @return \Magento\Framework\DB\Adapter\AdapterInterface
-     */
-    public function multiQuery($sql);
+    public function query($sql, $bind = []);
 
     /**
      * Fetches all SQL result rows as a sequential array.
      * Uses the current fetchMode for the adapter.
      *
-     * @param string|\Zend_Db_Select $sql  An SQL SELECT statement.
+     * @param string|\Magento\Framework\DB\Select $sql  An SQL SELECT statement.
      * @param mixed                 $bind Data to bind into SELECT placeholders.
      * @param mixed                 $fetchMode Override current fetch mode.
      * @return array
      */
-    public function fetchAll($sql, $bind = array(), $fetchMode = null);
+    public function fetchAll($sql, $bind = [], $fetchMode = null);
 
     /**
      * Fetches the first row of the SQL result.
      * Uses the current fetchMode for the adapter.
      *
-     * @param string|\Zend_Db_Select $sql An SQL SELECT statement.
+     * @param string|\Magento\Framework\DB\Select $sql An SQL SELECT statement.
      * @param mixed $bind Data to bind into SELECT placeholders.
      * @param mixed                 $fetchMode Override current fetch mode.
      * @return array
      */
-    public function fetchRow($sql, $bind = array(), $fetchMode = null);
+    public function fetchRow($sql, $bind = [], $fetchMode = null);
 
     /**
      * Fetches all SQL result rows as an associative array.
@@ -566,22 +549,22 @@ interface AdapterInterface
      * rows with duplicate values in the first column will
      * overwrite previous data.
      *
-     * @param string|\Zend_Db_Select $sql An SQL SELECT statement.
+     * @param string|\Magento\Framework\DB\Select $sql An SQL SELECT statement.
      * @param mixed $bind Data to bind into SELECT placeholders.
      * @return array
      */
-    public function fetchAssoc($sql, $bind = array());
+    public function fetchAssoc($sql, $bind = []);
 
     /**
      * Fetches the first column of all SQL result rows as an array.
      *
      * The first column in each row is used as the array key.
      *
-     * @param string|\Zend_Db_Select $sql An SQL SELECT statement.
+     * @param string|\Magento\Framework\DB\Select $sql An SQL SELECT statement.
      * @param mixed $bind Data to bind into SELECT placeholders.
      * @return array
      */
-    public function fetchCol($sql, $bind = array());
+    public function fetchCol($sql, $bind = []);
 
     /**
      * Fetches all SQL result rows as an array of key-value pairs.
@@ -589,20 +572,20 @@ interface AdapterInterface
      * The first column is the key, the second column is the
      * value.
      *
-     * @param string|\Zend_Db_Select $sql An SQL SELECT statement.
+     * @param string|\Magento\Framework\DB\Select $sql An SQL SELECT statement.
      * @param mixed $bind Data to bind into SELECT placeholders.
      * @return array
      */
-    public function fetchPairs($sql, $bind = array());
+    public function fetchPairs($sql, $bind = []);
 
     /**
      * Fetches the first column of the first row of the SQL result.
      *
-     * @param string|\Zend_Db_Select $sql An SQL SELECT statement.
+     * @param string|\Magento\Framework\DB\Select $sql An SQL SELECT statement.
      * @param mixed $bind Data to bind into SELECT placeholders.
      * @return string
      */
-    public function fetchOne($sql, $bind = array());
+    public function fetchOne($sql, $bind = []);
 
     /**
      * Safely quotes a value for an SQL statement.
@@ -684,7 +667,7 @@ interface AdapterInterface
     /**
      * Format Date to internal database date format
      *
-     * @param int|string|\Magento\Framework\Stdlib\DateTime\DateInterface $date
+     * @param int|string|\DateTime $date
      * @param boolean $includeTime
      * @return \Zend_Db_Expr
      */
@@ -707,10 +690,10 @@ interface AdapterInterface
     /**
      * Set cache adapter
      *
-     * @param \Magento\Framework\Cache\FrontendInterface $adapter
+     * @param \Magento\Framework\Cache\FrontendInterface $cacheAdapter
      * @return \Magento\Framework\DB\Adapter\AdapterInterface
      */
-    public function setCacheAdapter(\Magento\Framework\Cache\FrontendInterface $adapter);
+    public function setCacheAdapter(\Magento\Framework\Cache\FrontendInterface $cacheAdapter);
 
     /**
      * Allow DDL caching
@@ -945,6 +928,17 @@ interface AdapterInterface
      */
     public function getTableName($tableName);
 
+
+    /**
+     * Build a trigger name based on table name and trigger details
+     *
+     * @param string $tableName  The table that is the subject of the trigger
+     * @param string $time  Either "before" or "after"
+     * @param string $event  The DB level event which activates the trigger, i.e. "update" or "insert"
+     * @return string
+     */
+    public function getTriggerName($tableName, $time, $event);
+
     /**
      * Retrieve valid index name
      * Check index name length and allowed symbols
@@ -995,7 +989,7 @@ interface AdapterInterface
      * @param int|bool $mode
      * @return string
      */
-    public function insertFromSelect(\Magento\Framework\DB\Select $select, $table, array $fields = array(), $mode = false);
+    public function insertFromSelect(\Magento\Framework\DB\Select $select, $table, array $fields = [], $mode = false);
 
     /**
      * Get insert queries in array for insert by range with step parameter
@@ -1004,7 +998,7 @@ interface AdapterInterface
      * @param \Magento\Framework\DB\Select $select
      * @param int $stepCount
      * @return \Magento\Framework\DB\Select[]
-     * @throws \Magento\Framework\DB\DBException
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function selectsByRange($rangeField, \Magento\Framework\DB\Select $select, $stepCount = 100);
 

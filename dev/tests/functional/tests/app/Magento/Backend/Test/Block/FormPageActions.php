@@ -1,30 +1,12 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Backend\Test\Block;
 
-use Mtf\Client\Element\Locator;
+use Magento\Mtf\Client\Locator;
 
 /**
  * Class FormPageActions
@@ -67,14 +49,7 @@ class FormPageActions extends PageActions
      *
      * @var string
      */
-    protected $deleteButton = '#delete';
-
-    /**
-     * "Publish" button
-     *
-     * @var string
-     */
-    protected $publishButton = '#publish_button';
+    protected $deleteButton = '.delete';
 
     /**
      * Magento loader
@@ -103,6 +78,7 @@ class FormPageActions extends PageActions
      */
     public function reset()
     {
+        $this->waitBeforeClick();
         $this->_rootElement->find($this->resetButton)->click();
     }
 
@@ -111,6 +87,7 @@ class FormPageActions extends PageActions
      */
     public function saveAndContinue()
     {
+        $this->waitBeforeClick();
         $this->_rootElement->find($this->saveAndContinueButton)->click();
         $this->waitForElementNotVisible('.popup popup-loading');
         $this->waitForElementNotVisible('.loader');
@@ -121,6 +98,7 @@ class FormPageActions extends PageActions
      */
     public function save()
     {
+        $this->waitBeforeClick();
         $this->_rootElement->find($this->saveButton)->click();
         $this->waitForElementNotVisible($this->loader, Locator::SELECTOR_XPATH);
         $this->waitForElementNotVisible($this->loaderOld, Locator::SELECTOR_XPATH);
@@ -132,7 +110,6 @@ class FormPageActions extends PageActions
     public function delete()
     {
         $this->_rootElement->find($this->deleteButton)->click();
-        $this->_rootElement->acceptAlert();
     }
 
     /**
@@ -146,12 +123,14 @@ class FormPageActions extends PageActions
     }
 
     /**
-     * Click 'Publish' button
+     * Wait for User before click on any Button which calls JS validation on correspondent form.
+     * See details in MAGETWO-31121.
      *
      * @return void
      */
-    public function publish()
+    protected function waitBeforeClick()
     {
-        $this->_rootElement->find($this->publishButton)->click();
+        time_nanosleep(0, 600000000);
+        usleep(500000);
     }
 }

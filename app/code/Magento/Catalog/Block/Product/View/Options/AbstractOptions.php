@@ -1,27 +1,8 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 
 /**
  * Product options abstract type block
@@ -49,9 +30,9 @@ abstract class AbstractOptions extends \Magento\Framework\View\Element\Template
     protected $_option;
 
     /**
-     * @var \Magento\Core\Helper\Data
+     * @var \Magento\Framework\Pricing\Helper\Data
      */
-    protected $_coreHelper;
+    protected $pricingHelper;
 
     /**
      * @var \Magento\Catalog\Helper\Data
@@ -60,17 +41,17 @@ abstract class AbstractOptions extends \Magento\Framework\View\Element\Template
 
     /**
      * @param \Magento\Framework\View\Element\Template\Context $context
-     * @param \Magento\Core\Helper\Data $coreHelper
+     * @param \Magento\Framework\Pricing\Helper\Data $pricingHelper
      * @param \Magento\Catalog\Helper\Data $catalogData,
      * @param array $data
      */
     public function __construct(
         \Magento\Framework\View\Element\Template\Context $context,
-        \Magento\Core\Helper\Data $coreHelper,
+        \Magento\Framework\Pricing\Helper\Data $pricingHelper,
         \Magento\Catalog\Helper\Data $catalogData,
-        array $data = array()
+        array $data = []
     ) {
-        $this->_coreHelper = $coreHelper;
+        $this->pricingHelper = $pricingHelper;
         $this->_catalogHelper = $catalogData;
         parent::__construct($context, $data);
     }
@@ -126,10 +107,10 @@ abstract class AbstractOptions extends \Magento\Framework\View\Element\Template
     {
         if ($option = $this->getOption()) {
             return $this->_formatPrice(
-                array(
+                [
                     'is_percent' => $option->getPriceType() == 'percent',
-                    'pricing_value' => $option->getPrice($option->getPriceType() == 'percent')
-                )
+                    'pricing_value' => $option->getPrice($option->getPriceType() == 'percent'),
+                ]
             );
         }
         return '';
@@ -181,7 +162,7 @@ abstract class AbstractOptions extends \Magento\Framework\View\Element\Template
      */
     public function getPrice($price, $includingTax = null)
     {
-        if (!is_null($includingTax)) {
+        if ($includingTax !== null) {
             $price = $this->_catalogHelper->getTaxPrice($this->getProduct(), $price, true);
         } else {
             $price = $this->_catalogHelper->getTaxPrice($this->getProduct(), $price);
@@ -198,6 +179,6 @@ abstract class AbstractOptions extends \Magento\Framework\View\Element\Template
     public function getCurrencyPrice($price)
     {
         $store = $this->getProduct()->getStore();
-        return $this->_coreHelper->currencyByStore($price, $store, false);
+        return $this->pricingHelper->currencyByStore($price, $store, false);
     }
 }

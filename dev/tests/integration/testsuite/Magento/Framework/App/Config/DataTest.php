@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\App\Config;
 
@@ -61,7 +43,7 @@ class DataTest extends \PHPUnit_Framework_TestCase
     protected static function _refreshConfiguration()
     {
         \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get('Magento\Framework\App\CacheInterface')
-            ->clean(array(\Magento\Framework\App\Config::CACHE_TAG));
+            ->clean([\Magento\Framework\App\Config::CACHE_TAG]);
         \Magento\TestFramework\Helper\Bootstrap::getInstance()->reinitialize();
     }
 
@@ -76,7 +58,7 @@ class DataTest extends \PHPUnit_Framework_TestCase
     {
         // load the model
         $collection = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
-            'Magento\Core\Model\Resource\Config\Data\Collection'
+            'Magento\Config\Model\ResourceModel\Config\Data\Collection'
         );
         $collection->addFieldToFilter(
             'path',
@@ -115,16 +97,16 @@ class DataTest extends \PHPUnit_Framework_TestCase
     public function testGetFieldsetDataValue()
     {
         $this->assertNull($this->_model->getFieldsetDataValue('key'));
-        $this->_model->setFieldsetData(array('key' => 'value'));
+        $this->_model->setFieldsetData(['key' => 'value']);
         $this->assertEquals('value', $this->_model->getFieldsetDataValue('key'));
     }
 
     public function testCRUD()
     {
         $this->_model->setData(
-            array('scope' => 'default', 'scope_id' => 0, 'path' => 'test/config/path', 'value' => 'test value')
+            ['scope' => 'default', 'scope_id' => 0, 'path' => 'test/config/path', 'value' => 'test value']
         );
-        $crud = new \Magento\TestFramework\Entity($this->_model, array('value' => 'new value'));
+        $crud = new \Magento\TestFramework\Entity($this->_model, ['value' => 'new value']);
         $crud->testCrud();
     }
 

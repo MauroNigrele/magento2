@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -41,32 +23,41 @@ class Template implements \Zend_Filter_Interface
 
     const CONSTRUCTION_IF_PATTERN = '/{{if\s*(.*?)}}(.*?)({{else}}(.*?))?{{\\/if\s*}}/si';
 
+    const CONSTRUCTION_TEMPLATE_PATTERN = '/{{(template)(.*?)}}/si';
+
     /**#@-*/
+
+    /**
+     * Callbacks that will be applied after filtering
+     *
+     * @var array
+     */
+    private $afterFilterCallbacks = [];
 
     /**
      * Assigned template variables
      *
      * @var array
      */
-    protected $_templateVars = array();
+    protected $templateVars = [];
 
     /**
-     * Include processor
+     * Template processor
      *
      * @var callable|null
      */
-    protected $_includeProcessor = null;
+    protected $templateProcessor = null;
 
     /**
-     * @var \Magento\Framework\Stdlib\String
+     * @var \Magento\Framework\Stdlib\StringUtils
      */
     protected $string;
 
     /**
-     * @param \Magento\Framework\Stdlib\String $string
+     * @param \Magento\Framework\Stdlib\StringUtils $string
      * @param array $variables
      */
-    public function __construct(\Magento\Framework\Stdlib\String $string, $variables = array())
+    public function __construct(\Magento\Framework\Stdlib\StringUtils $string, $variables = [])
     {
         $this->string = $string;
         $this->setVariables($variables);
@@ -81,31 +72,31 @@ class Template implements \Zend_Filter_Interface
     public function setVariables(array $variables)
     {
         foreach ($variables as $name => $value) {
-            $this->_templateVars[$name] = $value;
+            $this->templateVars[$name] = $value;
         }
         return $this;
     }
 
     /**
-     * Sets the processor of includes.
+     * Sets the processor for template directive.
      *
      * @param callable $callback it must return string
      * @return $this
      */
-    public function setIncludeProcessor(array $callback)
+    public function setTemplateProcessor(callable $callback)
     {
-        $this->_includeProcessor = $callback;
+        $this->templateProcessor = $callback;
         return $this;
     }
 
     /**
-     * Sets the processor of includes.
+     * Sets the processor for template directive.
      *
      * @return callable|null
      */
-    public function getIncludeProcessor()
+    public function getTemplateProcessor()
     {
-        return is_callable($this->_includeProcessor) ? $this->_includeProcessor : null;
+        return is_callable($this->templateProcessor) ? $this->templateProcessor : null;
     }
 
     /**
@@ -114,17 +105,19 @@ class Template implements \Zend_Filter_Interface
      * @param string $value
      * @return string
      * @throws \Exception
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function filter($value)
     {
-        // "depend" and "if" operands should be first
-        foreach (array(
+        // "depend", "if", and "template" directives should be first
+        foreach ([
                      self::CONSTRUCTION_DEPEND_PATTERN => 'dependDirective',
-                     self::CONSTRUCTION_IF_PATTERN => 'ifDirective'
-                 ) as $pattern => $directive) {
+                     self::CONSTRUCTION_IF_PATTERN => 'ifDirective',
+                     self::CONSTRUCTION_TEMPLATE_PATTERN => 'templateDirective',
+                 ] as $pattern => $directive) {
             if (preg_match_all($pattern, $value, $constructions, PREG_SET_ORDER)) {
                 foreach ($constructions as $construction) {
-                    $callback = array($this, $directive);
+                    $callback = [$this, $directive];
                     if (!is_callable($callback)) {
                         continue;
                     }
@@ -140,7 +133,7 @@ class Template implements \Zend_Filter_Interface
 
         if (preg_match_all(self::CONSTRUCTION_PATTERN, $value, $constructions, PREG_SET_ORDER)) {
             foreach ($constructions as $construction) {
-                $callback = array($this, $construction[1] . 'Directive');
+                $callback = [$this, $construction[1] . 'Directive'];
                 if (!is_callable($callback)) {
                     continue;
                 }
@@ -152,7 +145,55 @@ class Template implements \Zend_Filter_Interface
                 $value = str_replace($construction[0], $replacedValue, $value);
             }
         }
+
+        $value = $this->afterFilter($value);
         return $value;
+    }
+
+    /**
+     * Runs callbacks that have been added to filter content after directive processing is finished.
+     *
+     * @param string $value
+     * @return string
+     */
+    protected function afterFilter($value)
+    {
+        foreach ($this->afterFilterCallbacks as $callback) {
+            $value = call_user_func($callback, $value);
+        }
+        // Since a single instance of this class can be used to filter content multiple times, reset callbacks to
+        // prevent callbacks running for unrelated content (e.g., email subject and email body)
+        $this->resetAfterFilterCallbacks();
+        return $value;
+    }
+
+    /**
+     * Adds a callback to run after main filtering has happened. Callback must accept a single argument and return
+     * a string of the processed value.
+     *
+     * @param callable $afterFilterCallback
+     * @return $this
+     */
+    public function addAfterFilterCallback(callable $afterFilterCallback)
+    {
+        // Only add callback if it doesn't already exist
+        if (in_array($afterFilterCallback, $this->afterFilterCallbacks)) {
+            return $this;
+        }
+
+        $this->afterFilterCallbacks[] = $afterFilterCallback;
+        return $this;
+    }
+
+    /**
+     * Resets the after filter callbacks
+     *
+     * @return $this
+     */
+    protected function resetAfterFilterCallbacks()
+    {
+        $this->afterFilterCallbacks = [];
+        return $this;
     }
 
     /**
@@ -161,32 +202,41 @@ class Template implements \Zend_Filter_Interface
      */
     public function varDirective($construction)
     {
-        if (count($this->_templateVars) == 0) {
+        if (count($this->templateVars) == 0) {
             // If template prepossessing
             return $construction[0];
         }
 
-        $replacedValue = $this->_getVariable($construction[2], '');
+        $replacedValue = $this->getVariable($construction[2], '');
         return $replacedValue;
     }
 
     /**
+     * Allows templates to be included inside other templates
+     *
+     * Usage:
+     *
+     *     {{template config_path="<PATH>"}}
+     *
+     * <PATH> equals the XPATH to the system configuration value that contains the value of the template.
+     * This directive is useful to include things like a global header/footer.
+     *
      * @param string[] $construction
      * @return mixed
      */
-    public function includeDirective($construction)
+    public function templateDirective($construction)
     {
-        // Processing of {include template=... [...]} statement
-        $includeParameters = $this->_getIncludeParameters($construction[2]);
-        if (!isset($includeParameters['template']) or !$this->getIncludeProcessor()) {
+        // Processing of {template config_path=... [...]} statement
+        $templateParameters = $this->getParameters($construction[2]);
+        if (!isset($templateParameters['config_path']) or !$this->getTemplateProcessor()) {
             // Not specified template or not set include processor
-            $replacedValue = '{Error in include processing}';
+            $replacedValue = '{Error in template processing}';
         } else {
             // Including of template
-            $templateCode = $includeParameters['template'];
-            unset($includeParameters['template']);
-            $includeParameters = array_merge_recursive($includeParameters, $this->_templateVars);
-            $replacedValue = call_user_func($this->getIncludeProcessor(), $templateCode, $includeParameters);
+            $configPath = $templateParameters['config_path'];
+            unset($templateParameters['config_path']);
+            $templateParameters = array_merge_recursive($templateParameters, $this->templateVars);
+            $replacedValue = call_user_func($this->getTemplateProcessor(), $configPath, $templateParameters);
         }
         return $replacedValue;
     }
@@ -197,12 +247,12 @@ class Template implements \Zend_Filter_Interface
      */
     public function dependDirective($construction)
     {
-        if (count($this->_templateVars) == 0) {
+        if (count($this->templateVars) == 0) {
             // If template processing
             return $construction[0];
         }
 
-        if ($this->_getVariable($construction[1], '') == '') {
+        if ($this->getVariable($construction[1], '') == '') {
             return '';
         } else {
             return $construction[2];
@@ -215,11 +265,11 @@ class Template implements \Zend_Filter_Interface
      */
     public function ifDirective($construction)
     {
-        if (count($this->_templateVars) == 0) {
+        if (count($this->templateVars) == 0) {
             return $construction[0];
         }
 
-        if ($this->_getVariable($construction[1], '') == '') {
+        if ($this->getVariable($construction[1], '') == '') {
             if (isset($construction[3]) && isset($construction[4])) {
                 return $construction[4];
             }
@@ -230,19 +280,19 @@ class Template implements \Zend_Filter_Interface
     }
 
     /**
-     * Return associative array of include construction.
+     * Return associative array of parameters.
      *
      * @param string $value raw parameters
      * @return array
      */
-    protected function _getIncludeParameters($value)
+    protected function getParameters($value)
     {
-        $tokenizer = new \Magento\Framework\Filter\Template\Tokenizer\Parameter();
+        $tokenizer = new Template\Tokenizer\Parameter();
         $tokenizer->setString($value);
         $params = $tokenizer->tokenize();
         foreach ($params as $key => $value) {
             if (substr($value, 0, 1) === '$') {
-                $params[$key] = $this->_getVariable(substr($value, 1), null);
+                $params[$key] = $this->getVariable(substr($value, 1), null);
             }
         }
         return $params;
@@ -254,22 +304,23 @@ class Template implements \Zend_Filter_Interface
      * @param string $value raw parameters
      * @param string $default default value
      * @return string
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
-    protected function _getVariable($value, $default = '{no_value_defined}')
+    protected function getVariable($value, $default = '{no_value_defined}')
     {
         \Magento\Framework\Profiler::start('email_template_processing_variables');
-        $tokenizer = new \Magento\Framework\Filter\Template\Tokenizer\Variable();
+        $tokenizer = new Template\Tokenizer\Variable();
         $tokenizer->setString($value);
         $stackVars = $tokenizer->tokenize();
         $result = $default;
         $last = 0;
         for ($i = 0; $i < count($stackVars); $i++) {
-            if ($i == 0 && isset($this->_templateVars[$stackVars[$i]['name']])) {
+            if ($i == 0 && isset($this->templateVars[$stackVars[$i]['name']])) {
                 // Getting of template value
-                $stackVars[$i]['variable'] =& $this->_templateVars[$stackVars[$i]['name']];
-            } elseif (isset(
-                $stackVars[$i - 1]['variable']
-                ) && $stackVars[$i - 1]['variable'] instanceof \Magento\Framework\Object
+                $stackVars[$i]['variable'] = & $this->templateVars[$stackVars[$i]['name']];
+            } elseif (
+                    isset($stackVars[$i - 1]['variable'])
+                    && $stackVars[$i - 1]['variable'] instanceof \Magento\Framework\DataObject
             ) {
                 // If object calling methods or getting properties
                 if ($stackVars[$i]['type'] == 'property') {
@@ -282,17 +333,13 @@ class Template implements \Zend_Filter_Interface
                     );
                 } elseif ($stackVars[$i]['type'] == 'method') {
                     // Calling of object method
-                    if (method_exists(
-                        $stackVars[$i - 1]['variable'],
-                        $stackVars[$i]['name']
-                    ) || substr(
-                        $stackVars[$i]['name'],
-                        0,
-                        3
-                    ) == 'get'
+                    if (
+                            method_exists($stackVars[$i - 1]['variable'], $stackVars[$i]['name'])
+                            || substr($stackVars[$i]['name'], 0, 3) == 'get'
                     ) {
+                        $stackVars[$i]['args'] = $this->getStackArgs($stackVars[$i]['args']);
                         $stackVars[$i]['variable'] = call_user_func_array(
-                            array($stackVars[$i - 1]['variable'], $stackVars[$i]['name']),
+                            [$stackVars[$i - 1]['variable'], $stackVars[$i]['name']],
                             $stackVars[$i]['args']
                         );
                     }
@@ -307,5 +354,23 @@ class Template implements \Zend_Filter_Interface
         }
         \Magento\Framework\Profiler::stop('email_template_processing_variables');
         return $result;
+    }
+
+    /**
+     * Loops over a set of stack args to process variables into array argument values
+     *
+     * @param array $stack
+     * @return array
+     */
+    protected function getStackArgs($stack)
+    {
+        foreach ($stack as $i => $value) {
+            if (is_array($value)) {
+                $stack[$i] = $this->getStackArgs($value);
+            } elseif (substr($value, 0, 1) === '$') {
+                $stack[$i] = $this->getVariable(substr($value, 1), null);
+            }
+        }
+        return $stack;
     }
 }

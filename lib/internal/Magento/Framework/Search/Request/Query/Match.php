@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Search\Request\Query;
 
@@ -31,9 +13,18 @@ use Magento\Framework\Search\Request\QueryInterface;
 class Match implements QueryInterface
 {
     /**
+     * Name
+     *
      * @var string
      */
     protected $name;
+
+    /**
+     * Value
+     *
+     * @var string
+     */
+    protected $value;
 
     /**
      * Boost
@@ -46,28 +37,40 @@ class Match implements QueryInterface
      * Match query array
      * Possible structure:
      * array(
-     *     ['field' => 'some_field', 'value' => 'some_value', 'boost' => 'some_boost'],
-     *     ['field' => 'some_field', 'value' => 'some_value', 'boost' => 'some_boost'],
+     *     ['field' => 'some_field', 'boost' => 'some_boost'],
+     *     ['field' => 'some_field', 'boost' => 'some_boost'],
      * )
      *
      * @var array
      */
-    protected $matches = array();
+    protected $matches = [];
 
     /**
      * @param string $name
+     * @param string $value
      * @param int|null $boost
      * @param array $matches
+     * @codeCoverageIgnore
      */
-    public function __construct($name, $boost, array $matches)
+    public function __construct($name, $value, $boost, array $matches)
     {
         $this->name = $name;
+        $this->value = $value;
         $this->boost = $boost;
         $this->matches = $matches;
     }
 
     /**
+     * @return string
+     */
+    public function getValue()
+    {
+        return $this->value;
+    }
+
+    /**
      * {@inheritdoc}
+     * @codeCoverageIgnore
      */
     public function getType()
     {
@@ -76,6 +79,7 @@ class Match implements QueryInterface
 
     /**
      * {@inheritdoc}
+     * @codeCoverageIgnore
      */
     public function getName()
     {
@@ -84,6 +88,7 @@ class Match implements QueryInterface
 
     /**
      * {@inheritdoc}
+     * @codeCoverageIgnore
      */
     public function getBoost()
     {
@@ -94,6 +99,7 @@ class Match implements QueryInterface
      * Get Matches
      *
      * @return array
+     * @codeCoverageIgnore
      */
     public function getMatches()
     {

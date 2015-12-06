@@ -1,64 +1,40 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 ?>
 
 <?php
 /**
- * @see \Magento\Downloadable\Block\Adminhtml\Catalog\Product\Edit\Tab\Downloadable
+ * @var $block \Magento\Downloadable\Block\Adminhtml\Catalog\Product\Edit\Tab\Downloadable
  */
 ?>
-<script type="text/javascript">
+<script>
 require([
     'jquery',
+    'uiRegistry',
+    'mage/template',
+    'Magento_Ui/js/modal/alert',
     'mage/mage',
     'prototype'
-], function(jQuery){
+], function (jQuery, registry, mageTemplate, alert) {
 
 //<![CDATA[>
 var uploaderTemplate = '<div class="no-display" id="[[idName]]-template">' +
-                                '<div id="{{id}}" class="file-row file-row-narrow">' +
-                                    '<span class="file-info">' +
-                                        '<span class="file-info-name">{{name}}</span>' +
-                                        ' ' +
-                                        '<span class="file-info-size">({{size}})</span>' +
-                                    '</span>' +
-                                    '<div class="progressbar-container">' +
-                                        '<div class="progressbar upload-progress" style="width: 0%;"></div>' +
-                                    '</div>' +
-                                    '<div class="clear"></div>' +
-                                '</div>' +
                             '</div>' +
                                 '<div class="no-display" id="[[idName]]-template-progress">' +
-                                '{{percent}}% {{uploaded}} / {{total}}' +
-                                '</div>';
-
-    var fileListTemplate = '<span class="file-info">' +
-                                '<span class="file-info-name">{{name}}</span>' +
+                                '<%- data.percent %>% <%- data.uploaded %> / <%- data.total %>' +
+                                '</div>',
+    
+    fileListTemplate = '<span class="file-info">' +
+                                '<span class="file-info-name"><%= data.name %></span>' +
                                 ' ' +
-                                '<span class="file-info-size">({{size}})</span>' +
+                                '<span class="file-info-size">(<%- data.size %>)</span>' +
                             '</span>';
-
     window.Downloadable = {
         uploaderObj : $H({}),
         objCount : 0,
@@ -75,7 +51,9 @@ var uploaderTemplate = '<div class="no-display" id="[[idName]]-template">' +
                 try {
                     console.log(e);
                 } catch (e2) {
-                    alert(e.name + '\n' + e.message);
+                    alert({
+                        content: e.name + '\n' + e.message
+                    });
                 }
             }
         },
@@ -86,7 +64,9 @@ var uploaderTemplate = '<div class="no-display" id="[[idName]]-template">' +
                 try {
                     console.log(e);
                 } catch (e2) {
-                    alert(e.name + '\n' + e.message);
+                    alert({
+                        content: e.name + '\n' + e.message
+                    });
                 }
             }
         },
@@ -104,7 +84,9 @@ var uploaderTemplate = '<div class="no-display" id="[[idName]]-template">' +
                 try {
                     console.log(e);
                 } catch (e2) {
-                    alert(e.name + '\n' + e.message);
+                    alert({
+                        content: e.name + '\n' + e.message
+                    });
                 }
             }
         }
@@ -131,7 +113,7 @@ var uploaderTemplate = '<div class="no-display" id="[[idName]]-template">' +
             this.idName = idName;
             this.config = config;
             uploaderTemplate = new Template(this.uploaderText, this.uploaderSyntax);
-            <?php if (!$this->isReadonly()):?>
+            <?php if (!$block->isReadonly()):?>
             Element.insert(
                 elmContainer,
                 {'top' : uploaderTemplate.evaluate({
@@ -141,8 +123,9 @@ var uploaderTemplate = '<div class="no-display" id="[[idName]]-template">' +
                     })
                 }
             );
-            if ($(this.idName+'_save')) {
-                $(this.idName+'_save').value = this.fileValue.toJSON
+            var elementSave = $(this.idName+'_save');
+            if (elementSave) {
+                elementSave.value = this.fileValue.toJSON
                    ? this.fileValue.toJSON()
                    : Object.toJSON(this.fileValue);
             }
@@ -154,7 +137,7 @@ var uploaderTemplate = '<div class="no-display" id="[[idName]]-template">' +
             new Downloadable.FileList(this.idName, null);
             <?php endif;?>
         }
-    }
+    };
 
     Downloadable.FileList = Class.create();
     Downloadable.FileList.prototype = {
@@ -163,14 +146,13 @@ var uploaderTemplate = '<div class="no-display" id="[[idName]]-template">' +
         container: null,
         uploader: null,
         fileListTemplate: fileListTemplate,
-        templatePattern : /(^|.|\r|\n)({{(\w+)}})/,
         listTemplate : null,
         initialize: function (containerId, uploader) {
             this.containerId  = containerId,
             this.container = $(this.containerId);
             this.uploader = uploader;
             this.file = this.getElement('save').value.evalJSON();
-            this.listTemplate = new Template(this.fileListTemplate, this.templatePattern);
+            this.listTemplate = mageTemplate(this.fileListTemplate);
             this.updateFiles();
         },
         handleFileRemoveAll: function(fileId) {
@@ -202,45 +184,64 @@ var uploaderTemplate = '<div class="no-display" id="[[idName]]-template">' +
                 : Object.toJSON(this.file);
             this.file.each(function(row){
                 row.size = byteConvert(row.size);
-                $(this.containerId + '-old').innerHTML = this.listTemplate.evaluate(row);
+                $(this.containerId + '-old').innerHTML = this.listTemplate({data: row});
                 $(this.containerId + '-new').hide();
                 $(this.containerId + '-old').show();
             }.bind(this));
         }
-    }
+    };
 
     var alertAlreadyDisplayed = false;
 
-    window.fileListTemplate = fileListTemplate;
     window.uploaderTemplate = uploaderTemplate;
 
     window.alertAlreadyDisplayed = alertAlreadyDisplayed;
 
-	jQuery.mage.extend('validation', 'validation', 'Magento_Downloadable/product/validation-rules');
+    registry.set('downloadable', Downloadable);
 //]]>
 
 });
 </script>
 
-<div id="alert_messages_block"><?php echo $this->getMessageHtml() ?></div>
-
-<div class="entry-edit">
-<?php echo $this->getChildHtml('accordion') ?>
+<div data-tab-type="tab_content_downloadableInfo" id="<?php /* @escapeNotVerified */ echo $block->getId() ?>_content"
+    <?php /* @escapeNotVerified */ echo $block->getUiId('tab', 'content', $block->getId()) ?>
+>
+<div id="alert_messages_block"><?php echo $block->getMessageHtml() ?></div>
+<div class="admin__field admin__field-option admin__field-is-downloaodable">
+    <input type="checkbox" data-action="change-type-product-downloadable"  class="admin__control-checkbox"
+           name="is_downloadable" id="is-downloaodable" <?= $block->isDownloadable() ? 'checked="checked"' : ''?> />
+    <label class="admin__field-label" for="is-downloaodable">
+        <span><?= /* @noEscape */ __('Is this downloadable Product?'); ?></span>
+    </label>
+</div>
+<div class="entry-edit" id="product_info_tabs_downloadable_items">
+    <?php echo $block->getChildHtml() ?>
 </div>
 <div style="display:none">
     <div id="custom-advice-container"></div>
 </div>
-<?php if ($this->isReadonly()): ?>
-<script type="text/javascript">
-require(['prototype'], function(){
+<?php if ($block->isReadonly()): ?>
+    <script>
+        require(['prototype'], function(){
 
-$(<?= $this->getContentTabId(); ?>).select('input', 'select', 'textarea', 'button').each(function (item){
-    item.disabled = true;
-    if (item.tagName.toLowerCase() == 'button') {
-        item.addClassName('disabled');
-    }
-});
+        $(<?= /* @escapeNotVerified */  $block->getContentTabId(); ?>).select('input', 'select', 'textarea', 'button').each(function (item){
+            item.disabled = true;
+            if (item.tagName.toLowerCase() == 'button') {
+                item.addClassName('disabled');
+            }
+        });
 
-});
-</script>
+        });
+    </script>
 <?php endif; ?>
+</div>
+<script type="text/x-magento-init">
+    {
+        "*": {
+            "Magento_Downloadable/downloadable-type-handler": {
+                "isDownloadable": "<?= /* @noEscape */ $block->isDownloadable() ? 'true' : 'false' ?>",
+                "tabId": "<?= /* @noEscape */ $block->getTabId()?>"
+            }
+        }
+    }
+</script>

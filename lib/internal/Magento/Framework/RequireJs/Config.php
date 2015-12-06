@@ -1,28 +1,13 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 namespace Magento\Framework\RequireJs;
+
+use Magento\Framework\Filesystem\DriverPool;
+use Magento\Framework\Filesystem\File\ReadFactory;
+use Magento\Framework\View\Asset\Minification;
 
 /**
  * Provider of RequireJs config information
@@ -40,15 +25,36 @@ class Config
     const CONFIG_FILE_NAME = 'requirejs-config.js';
 
     /**
-     * Path to normalization plugin in RequireJs format
+     * File name of RequireJs mixins
      */
-    const NORMALIZE_PLUGIN_PATH = 'mage/requirejs/plugin/id-normalizer';
+    const MIXINS_FILE_NAME = 'mage/requirejs/mixins.js';
+
+    /**
+     * File name of RequireJs
+     */
+    const REQUIRE_JS_FILE_NAME = 'requirejs/require.js';
+
+    /**
+     * File name of StaticJs
+     */
+    const STATIC_FILE_NAME = 'mage\requirejs\static.js';
+
+    /**
+     * File name of minified files resolver
+     */
+    const MIN_RESOLVER_FILENAME = 'requirejs-min-resolver.js';
+
+    /**
+     * File name of StaticJs
+     */
+    const BUNDLE_JS_DIR = 'js/bundle';
 
     /**
      * Template for combined RequireJs config file
      */
     const FULL_CONFIG_TEMPLATE = <<<config
 (function(require){
+%base%
 %function%
 
 %usages%
@@ -61,11 +67,10 @@ config;
     const PARTIAL_CONFIG_TEMPLATE = <<<config
 (function() {
 %config%
-require.config(mageUpdateConfigPaths(config, '%context%'))
+require.config(config);
 })();
 
 config;
-
 
     /**
      * @var \Magento\Framework\RequireJs\Config\File\Collector\Aggregated
@@ -78,9 +83,9 @@ config;
     private $design;
 
     /**
-     * @var \Magento\Framework\Filesystem\Directory\ReadInterface
+     * @var \Magento\Framework\Filesystem\File\ReadFactory
      */
-    private $baseDir;
+    private $readFactory;
 
     /**
      * @var \Magento\Framework\View\Asset\ContextInterface
@@ -88,21 +93,37 @@ config;
     private $staticContext;
 
     /**
+     * @var \Magento\Framework\Code\Minifier\AdapterInterface
+     */
+    private $minifyAdapter;
+
+    /**
+     * @var Minification
+     */
+    private $minification;
+
+    /**
      * @param \Magento\Framework\RequireJs\Config\File\Collector\Aggregated $fileSource
      * @param \Magento\Framework\View\DesignInterface $design
-     * @param \Magento\Framework\App\Filesystem $appFilesystem
+     * @param ReadFactory $readFactory
      * @param \Magento\Framework\View\Asset\Repository $assetRepo
+     * @param \Magento\Framework\Code\Minifier\AdapterInterface $minifyAdapter
+     * @param Minification $minification
      */
     public function __construct(
         \Magento\Framework\RequireJs\Config\File\Collector\Aggregated $fileSource,
         \Magento\Framework\View\DesignInterface $design,
-        \Magento\Framework\App\Filesystem $appFilesystem,
-        \Magento\Framework\View\Asset\Repository $assetRepo
+        ReadFactory $readFactory,
+        \Magento\Framework\View\Asset\Repository $assetRepo,
+        \Magento\Framework\Code\Minifier\AdapterInterface $minifyAdapter,
+        Minification $minification
     ) {
         $this->fileSource = $fileSource;
         $this->design = $design;
-        $this->baseDir = $appFilesystem->getDirectoryRead(\Magento\Framework\App\Filesystem::ROOT_DIR);
+        $this->readFactory = $readFactory;
         $this->staticContext = $assetRepo->getStaticViewFileContext();
+        $this->minifyAdapter = $minifyAdapter;
+        $this->minification = $minification;
     }
 
     /**
@@ -112,25 +133,29 @@ config;
      */
     public function getConfig()
     {
-        $functionSource = __DIR__ . '/paths-updater.js';
-        $functionDeclaration = $this->baseDir->readFile($this->baseDir->getRelativePath($functionSource));
-
         $distributedConfig = '';
+        $baseConfig = $this->getBaseConfig();
         $customConfigFiles = $this->fileSource->getFiles($this->design->getDesignTheme(), self::CONFIG_FILE_NAME);
         foreach ($customConfigFiles as $file) {
-            $config = $this->baseDir->readFile($this->baseDir->getRelativePath($file->getFilename()));
+            /** @var $fileReader \Magento\Framework\Filesystem\File\Read */
+            $fileReader = $this->readFactory->create($file->getFileName(), DriverPool::FILE);
+            $config = $fileReader->readAll($file->getName());
             $distributedConfig .= str_replace(
-                array('%config%', '%context%'),
-                array($config, $file->getModule()),
+                ['%config%', '%context%'],
+                [$config, $file->getModule()],
                 self::PARTIAL_CONFIG_TEMPLATE
             );
         }
 
         $fullConfig = str_replace(
-            array('%function%', '%usages%'),
-            array($functionDeclaration, $distributedConfig),
+            ['%function%', '%base%', '%usages%'],
+            [$distributedConfig, $baseConfig],
             self::FULL_CONFIG_TEMPLATE
         );
+
+        if ($this->minification->isEnabled('js')) {
+            $fullConfig = $this->minifyAdapter->minify($fullConfig);
+        }
 
         return $fullConfig;
     }
@@ -142,7 +167,27 @@ config;
      */
     public function getConfigFileRelativePath()
     {
-        return self::DIR_NAME . '/' . $this->staticContext->getPath() . '/' . self::CONFIG_FILE_NAME;
+        return self::DIR_NAME . '/' . $this->staticContext->getConfigPath() . '/' . $this->getConfigFileName();
+    }
+
+    /**
+     * Get path to config file relative to directory, where all config files with different context are located
+     *
+     * @return string
+     */
+    public function getMixinsFileRelativePath()
+    {
+        return $this->staticContext->getPath() . '/' . self::MIXINS_FILE_NAME;
+    }
+
+    /**
+     * Get path to config file relative to directory, where all config files with different context are located
+     *
+     * @return string
+     */
+    public function getRequireJsFileRelativePath()
+    {
+        return $this->staticContext->getConfigPath() . '/' . self::REQUIRE_JS_FILE_NAME;
     }
 
     /**
@@ -152,16 +197,62 @@ config;
      */
     public function getBaseConfig()
     {
-        $config = array(
+        $config = [
             'baseUrl' => $this->staticContext->getBaseUrl() . $this->staticContext->getPath(),
-            'paths' => array(
-                'magento' => self::NORMALIZE_PLUGIN_PATH,
-            ),
-            //Disable the timeout, so that normalizer plugin and other JS modules are waited to be loaded
-            // independent of server load time and network speed
-            'waitSeconds' => 0,
-        );
-        $config = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-        return "require.config($config);\n";
+        ];
+        $config = json_encode($config, JSON_UNESCAPED_SLASHES);
+        $result = "require.config($config);";
+        return $result;
+    }
+
+    /**
+     * Get path to '.min' files resolver relative to config files directory
+     *
+     * @return string
+     */
+    public function getMinResolverRelativePath()
+    {
+        return
+            $this->staticContext->getConfigPath() .
+            '/' .
+            $this->minification->addMinifiedSign(self::MIN_RESOLVER_FILENAME);
+    }
+
+    /**
+     * @return string
+     */
+    protected function getConfigFileName()
+    {
+        return $this->minification->addMinifiedSign(self::CONFIG_FILE_NAME);
+    }
+
+    /**
+     * @return string
+     */
+    public function getMinResolverCode()
+    {
+        $excludes = [];
+        foreach ($this->minification->getExcludes('js') as $expression) {
+            $excludes[] = '!url.match(/' . str_replace('/', '\/', $expression) . '/)';
+        }
+        $excludesCode = empty($excludes) ? 'true' : implode('&&', $excludes);
+
+        $result = <<<code
+    if (!require.s.contexts._.__load) {
+        require.s.contexts._.__load = require.s.contexts._.load;
+        require.s.contexts._.load = function(id, url) {
+            if ({$excludesCode}) {
+                url = url.replace(/(\.min)?\.js$/, '.min.js');
+            }
+            return require.s.contexts._.__load.apply(require.s.contexts._, [id, url]);
+        }
+    }
+
+code;
+
+        if ($this->minification->isEnabled('js')) {
+            $result = $this->minifyAdapter->minify($result);
+        }
+        return $result;
     }
 }

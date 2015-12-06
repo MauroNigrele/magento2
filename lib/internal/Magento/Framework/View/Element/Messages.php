@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\View\Element;
 
@@ -63,19 +45,19 @@ class Messages extends Template
      *
      * @var array
      */
-    protected $usedStorageTypes = array();
+    protected $usedStorageTypes = [];
 
     /**
      * Grouped message types
      *
      * @var string[]
      */
-    protected $messageTypes = array(
+    protected $messageTypes = [
         MessageInterface::TYPE_ERROR,
         MessageInterface::TYPE_WARNING,
         MessageInterface::TYPE_NOTICE,
-        MessageInterface::TYPE_SUCCESS
-    );
+        MessageInterface::TYPE_SUCCESS,
+    ];
 
     /**
      * Message singleton
@@ -99,12 +81,18 @@ class Messages extends Template
     protected $messageManager;
 
     /**
+     * @var Message\InterpretationStrategyInterface
+     */
+    private $interpretationStrategy;
+
+    /**
      * Constructor
      *
      * @param Template\Context $context
      * @param \Magento\Framework\Message\Factory $messageFactory
      * @param \Magento\Framework\Message\CollectionFactory $collectionFactory
      * @param \Magento\Framework\Message\ManagerInterface $messageManager
+     * @param Message\InterpretationStrategyInterface $interpretationStrategy
      * @param array $data
      */
     public function __construct(
@@ -112,26 +100,14 @@ class Messages extends Template
         \Magento\Framework\Message\Factory $messageFactory,
         \Magento\Framework\Message\CollectionFactory $collectionFactory,
         \Magento\Framework\Message\ManagerInterface $messageManager,
-        array $data = array()
+        Message\InterpretationStrategyInterface $interpretationStrategy,
+        array $data = []
     ) {
         $this->messageFactory = $messageFactory;
         $this->collectionFactory = $collectionFactory;
         $this->messageManager = $messageManager;
-        $this->_isScopePrivate = true;
         parent::__construct($context, $data);
-    }
-
-    /**
-     * Preparing global layout
-     *
-     * @return $this
-     */
-    protected function _prepareLayout()
-    {
-        $this->addStorageType($this->messageManager->getDefaultGroup());
-        $this->addMessages($this->messageManager->getMessages(true));
-        parent::_prepareLayout();
-        return $this;
+        $this->interpretationStrategy = $interpretationStrategy;
     }
 
     /**
@@ -237,7 +213,7 @@ class Messages extends Template
      * Retrieve messages array by message type
      *
      * @param   string $type
-     * @return  array
+     * @return  MessageInterface[]
      */
     public function getMessagesByType($type)
     {
@@ -269,17 +245,17 @@ class Messages extends Template
     /**
      * Dispatch render after event
      *
-     * @param null|string|array|\Magento\Framework\Object &$html
+     * @param null|string|array|\Magento\Framework\DataObject &$html
      * @return void
      */
     protected function _dispatchRenderGroupedAfterEvent(&$html)
     {
-        $transport = new \Magento\Framework\Object(array('output' => $html));
-        $params = array(
+        $transport = new \Magento\Framework\DataObject(['output' => $html]);
+        $params = [
             'element_name' => $this->getNameInLayout(),
             'layout' => $this->getLayout(),
-            'transport' => $transport
-        );
+            'transport' => $transport,
+        ];
         $this->_eventManager->dispatch('view_message_block_render_grouped_html_after', $params);
         $html = $transport->getData('output');
     }
@@ -299,9 +275,10 @@ class Messages extends Template
                 }
 
                 foreach ($messages as $message) {
-                    $html .= '<' . $this->secondLevelTagName . ' class="message ' . $type . '">';
+                    $html .= '<' . $this->secondLevelTagName . ' class="message ' . 'message-' . $type . ' ' . $type .
+                        '">';
                     $html .= '<' . $this->contentWrapTagName . $this->getUiId('message', $type) . '>';
-                    $html .= $message->getText();
+                    $html .= $this->interpretationStrategy->interpret($message);
                     $html .= '</' . $this->contentWrapTagName . '>';
                     $html .= '</' . $this->secondLevelTagName . '>';
                 }
@@ -357,7 +334,7 @@ class Messages extends Template
      */
     public function getCacheKeyInfo()
     {
-        return array('storage_types' => serialize($this->usedStorageTypes));
+        return ['storage_types' => serialize($this->usedStorageTypes)];
     }
 
     /**

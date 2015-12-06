@@ -1,26 +1,8 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Checkout\Controller\Cart;
 
@@ -29,7 +11,9 @@ class UpdateItemOptions extends \Magento\Checkout\Controller\Cart
     /**
      * Update product configuration for a cart item
      *
-     * @return void
+     * @return \Magento\Framework\Controller\Result\Redirect
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function execute()
     {
@@ -37,27 +21,27 @@ class UpdateItemOptions extends \Magento\Checkout\Controller\Cart
         $params = $this->getRequest()->getParams();
 
         if (!isset($params['options'])) {
-            $params['options'] = array();
+            $params['options'] = [];
         }
         try {
             if (isset($params['qty'])) {
                 $filter = new \Zend_Filter_LocalizedToNormalized(
-                    array('locale' => $this->_objectManager->get('Magento\Framework\Locale\ResolverInterface')->getLocaleCode())
+                    ['locale' => $this->_objectManager->get('Magento\Framework\Locale\ResolverInterface')->getLocale()]
                 );
                 $params['qty'] = $filter->filter($params['qty']);
             }
 
             $quoteItem = $this->cart->getQuote()->getItemById($id);
             if (!$quoteItem) {
-                throw new \Magento\Framework\Model\Exception(__("We can't find the quote item."));
+                throw new \Magento\Framework\Exception\LocalizedException(__('We can\'t find the quote item.'));
             }
 
-            $item = $this->cart->updateItem($id, new \Magento\Framework\Object($params));
+            $item = $this->cart->updateItem($id, new \Magento\Framework\DataObject($params));
             if (is_string($item)) {
-                throw new \Magento\Framework\Model\Exception($item);
+                throw new \Magento\Framework\Exception\LocalizedException(__($item));
             }
             if ($item->getHasError()) {
-                throw new \Magento\Framework\Model\Exception($item->getMessage());
+                throw new \Magento\Framework\Exception\LocalizedException(__($item->getMessage()));
             }
 
             $related = $this->getRequest()->getParam('related_product');
@@ -67,23 +51,22 @@ class UpdateItemOptions extends \Magento\Checkout\Controller\Cart
 
             $this->cart->save();
 
-            $this->_checkoutSession->setCartWasUpdated(true);
-
             $this->_eventManager->dispatch(
                 'checkout_cart_update_item_complete',
-                array('item' => $item, 'request' => $this->getRequest(), 'response' => $this->getResponse())
+                ['item' => $item, 'request' => $this->getRequest(), 'response' => $this->getResponse()]
             );
             if (!$this->_checkoutSession->getNoCartRedirect(true)) {
                 if (!$this->cart->getQuote()->getHasError()) {
                     $message = __(
                         '%1 was updated in your shopping cart.',
-                        $this->_objectManager->get('Magento\Framework\Escaper')->escapeHtml($item->getProduct()->getName())
+                        $this->_objectManager->get('Magento\Framework\Escaper')
+                            ->escapeHtml($item->getProduct()->getName())
                     );
                     $this->messageManager->addSuccess($message);
                 }
-                $this->_goBack();
+                return $this->_goBack($this->_url->getUrl('checkout/cart'));
             }
-        } catch (\Magento\Framework\Model\Exception $e) {
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
             if ($this->_checkoutSession->getUseNotice(true)) {
                 $this->messageManager->addNotice($e->getMessage());
             } else {
@@ -95,16 +78,16 @@ class UpdateItemOptions extends \Magento\Checkout\Controller\Cart
 
             $url = $this->_checkoutSession->getRedirectUrl(true);
             if ($url) {
-                $this->getResponse()->setRedirect($url);
+                return $this->resultRedirectFactory->create()->setUrl($url);
             } else {
                 $cartUrl = $this->_objectManager->get('Magento\Checkout\Helper\Cart')->getCartUrl();
-                $this->getResponse()->setRedirect($this->_redirect->getRedirectUrl($cartUrl));
+                return $this->resultRedirectFactory->create()->setUrl($this->_redirect->getRedirectUrl($cartUrl));
             }
         } catch (\Exception $e) {
-            $this->messageManager->addException($e, __('We cannot update the item.'));
-            $this->_objectManager->get('Magento\Framework\Logger')->logException($e);
-            $this->_goBack();
+            $this->messageManager->addException($e, __('We can\'t update the item right now.'));
+            $this->_objectManager->get('Psr\Log\LoggerInterface')->critical($e);
+            return $this->_goBack();
         }
-        $this->_redirect('*/*');
+        return $this->resultRedirectFactory->create()->setPath('*/*');
     }
 }

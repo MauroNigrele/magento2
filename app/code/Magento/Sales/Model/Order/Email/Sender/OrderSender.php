@@ -1,35 +1,23 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Model\Order\Email\Sender;
 
-use Magento\Sales\Model\Order\Email\Sender;
-use Magento\Sales\Model\Order;
-use Magento\Sales\Model\Resource\Order as OrderResource;
 use Magento\Payment\Helper\Data as PaymentHelper;
-use Magento\Sales\Model\Order\Email\Container\Template;
+use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Email\Container\OrderIdentity;
+use Magento\Sales\Model\Order\Email\Container\Template;
+use Magento\Sales\Model\Order\Email\Sender;
+use Magento\Sales\Model\ResourceModel\Order as OrderResource;
+use Magento\Sales\Model\Order\Address\Renderer;
+use Magento\Framework\Event\ManagerInterface;
 
+/**
+ * Class OrderSender
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 class OrderSender extends Sender
 {
     /**
@@ -43,38 +31,84 @@ class OrderSender extends Sender
     protected $orderResource;
 
     /**
+     * Global configuration storage.
+     *
+     * @var \Magento\Framework\App\Config\ScopeConfigInterface
+     */
+    protected $globalConfig;
+
+    /**
+     * @var Renderer
+     */
+    protected $addressRenderer;
+
+    /**
+     * Application Event Dispatcher
+     *
+     * @var ManagerInterface
+     */
+    protected $eventManager;
+
+    /**
      * @param Template $templateContainer
      * @param OrderIdentity $identityContainer
      * @param Order\Email\SenderBuilderFactory $senderBuilderFactory
+     * @param \Psr\Log\LoggerInterface $logger
      * @param PaymentHelper $paymentHelper
      * @param OrderResource $orderResource
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $globalConfig
+     * @param Renderer $addressRenderer
+     * @param ManagerInterface $eventManager
      */
     public function __construct(
         Template $templateContainer,
         OrderIdentity $identityContainer,
         \Magento\Sales\Model\Order\Email\SenderBuilderFactory $senderBuilderFactory,
+        \Psr\Log\LoggerInterface $logger,
+        Renderer $addressRenderer,
         PaymentHelper $paymentHelper,
-        OrderResource $orderResource
+        OrderResource $orderResource,
+        \Magento\Framework\App\Config\ScopeConfigInterface $globalConfig,
+        ManagerInterface $eventManager
     ) {
-        parent::__construct($templateContainer, $identityContainer, $senderBuilderFactory);
+        parent::__construct($templateContainer, $identityContainer, $senderBuilderFactory, $logger, $addressRenderer);
         $this->paymentHelper = $paymentHelper;
         $this->orderResource = $orderResource;
+        $this->globalConfig = $globalConfig;
+        $this->addressRenderer = $addressRenderer;
+        $this->eventManager = $eventManager;
     }
 
     /**
-     * Send email to customer
+     * Sends order email to the customer.
+     *
+     * Email will be sent immediately in two cases:
+     *
+     * - if asynchronous email sending is disabled in global settings
+     * - if $forceSyncMode parameter is set to TRUE
+     *
+     * Otherwise, email will be sent later during running of
+     * corresponding cron job.
      *
      * @param Order $order
+     * @param bool $forceSyncMode
      * @return bool
      */
-    public function send(Order $order)
+    public function send(Order $order, $forceSyncMode = false)
     {
-        $result = $this->checkAndSend($order);
-        if ($result) {
-            $order->setEmailSent(true);
-            $this->orderResource->saveAttribute($order, 'email_sent');
+        $order->setSendEmail(true);
+
+        if (!$this->globalConfig->getValue('sales_email/general/async_sending') || $forceSyncMode) {
+            if ($this->checkAndSend($order)) {
+                $order->setEmailSent(true);
+                $this->orderResource->saveAttribute($order, ['send_email', 'email_sent']);
+                return true;
+            }
         }
-        return $result;
+
+        $this->orderResource->saveAttribute($order, 'send_email');
+
+        return false;
     }
 
     /**
@@ -85,14 +119,22 @@ class OrderSender extends Sender
      */
     protected function prepareTemplate(Order $order)
     {
-        $this->templateContainer->setTemplateVars(
-            [
-                'order' => $order,
-                'billing' => $order->getBillingAddress(),
-                'payment_html' => $this->getPaymentHtml($order),
-                'store' => $order->getStore()
-            ]
+        $transport = [
+            'order' => $order,
+            'billing' => $order->getBillingAddress(),
+            'payment_html' => $this->getPaymentHtml($order),
+            'store' => $order->getStore(),
+            'formattedShippingAddress' => $this->getFormattedShippingAddress($order),
+            'formattedBillingAddress' => $this->getFormattedBillingAddress($order),
+        ];
+
+        $this->eventManager->dispatch(
+            'email_order_set_template_vars_before',
+            ['sender' => $this, 'transport' => $transport]
         );
+
+        $this->templateContainer->setTemplateVars($transport);
+
         parent::prepareTemplate($order);
     }
 

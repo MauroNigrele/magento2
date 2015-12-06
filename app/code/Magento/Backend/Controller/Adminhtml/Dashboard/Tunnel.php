@@ -1,37 +1,40 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Backend\Controller\Adminhtml\Dashboard;
 
+use Magento\Backend\App\Action;
+use Magento\Framework\Controller\Result;
+use Magento\Framework\Encryption\Helper\Security;
+
 class Tunnel extends \Magento\Backend\Controller\Adminhtml\Dashboard
 {
+    /**
+     * @var \Magento\Framework\Controller\Result\RawFactory
+     */
+    protected $resultRawFactory;
+
+    /**
+     * @param Action\Context $context
+     * @param \Magento\Framework\Controller\Result\RawFactory $resultRawFactory
+     */
+    public function __construct(
+        Action\Context $context,
+        Result\RawFactory $resultRawFactory
+    ) {
+        parent::__construct($context);
+        $this->resultRawFactory = $resultRawFactory;
+    }
+
     /**
      * Forward request for a graph image to the web-service
      *
      * This is done in order to include the image to a HTTPS-page regardless of web-service settings
      *
-     * @return void
+     * @return  \Magento\Framework\Controller\Result\Raw
      */
     public function execute()
     {
@@ -39,12 +42,18 @@ class Tunnel extends \Magento\Backend\Controller\Adminhtml\Dashboard
         $httpCode = 400;
         $gaData = $this->_request->getParam('ga');
         $gaHash = $this->_request->getParam('h');
+        /** @var \Magento\Framework\Controller\Result\Raw $resultRaw */
+        $resultRaw = $this->resultRawFactory->create();
         if ($gaData && $gaHash) {
             /** @var $helper \Magento\Backend\Helper\Dashboard\Data */
             $helper = $this->_objectManager->get('Magento\Backend\Helper\Dashboard\Data');
             $newHash = $helper->getChartDataHash($gaData);
-            if ($newHash == $gaHash) {
-                $params = json_decode(base64_decode(urldecode($gaData)), true);
+            if (Security::compareStrings($newHash, $gaHash)) {
+                $params = null;
+                $paramsJson = base64_decode(urldecode($gaData));
+                if ($paramsJson) {
+                    $params = json_decode($paramsJson, true);
+                }
                 if ($params) {
                     try {
                         /** @var $httpClient \Magento\Framework\HTTP\ZendClient */
@@ -54,35 +63,27 @@ class Tunnel extends \Magento\Backend\Controller\Adminhtml\Dashboard
                         )->setParameterGet(
                             $params
                         )->setConfig(
-                            array('timeout' => 5)
+                            ['timeout' => 5]
                         )->request(
                             'GET'
                         );
 
                         $headers = $response->getHeaders();
 
-                        $this->_response->setHeader(
-                            'Content-type',
-                            $headers['Content-type']
-                        )->setBody(
-                            $response->getBody()
-                        );
-                        return;
+                        $resultRaw->setHeader('Content-type', $headers['Content-type'])
+                            ->setContents($response->getBody());
+                        return $resultRaw;
                     } catch (\Exception $e) {
-                        $this->_objectManager->get('Magento\Framework\Logger')->logException($e);
+                        $this->_objectManager->get('Psr\Log\LoggerInterface')->critical($e);
                         $error = __('see error log for details');
                         $httpCode = 503;
                     }
                 }
             }
         }
-        $this->_response->setBody(
-            __('Service unavailable: %1', $error)
-        )->setHeader(
-            'Content-Type',
-            'text/plain; charset=UTF-8'
-        )->setHttpResponseCode(
-            $httpCode
-        );
+        $resultRaw->setHeader('Content-Type', 'text/plain; charset=UTF-8')
+            ->setHttpResponseCode($httpCode)
+            ->setContents(__('Service unavailable: %1', $error));
+        return $resultRaw;
     }
 }

@@ -1,33 +1,15 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Wishlist\Controller\Index;
 
-use Magento\Wishlist\Controller\IndexInterface;
 use Magento\Framework\App\Action;
+use Magento\Framework\App\Filesystem\DirectoryList;
+use Magento\Framework\Controller\ResultFactory;
 
-class DownloadCustomOption extends Action\Action implements IndexInterface
+class DownloadCustomOption extends \Magento\Wishlist\Controller\AbstractIndex
 {
     /**
      * @var \Magento\Framework\App\Response\Http\FileFactory
@@ -49,7 +31,9 @@ class DownloadCustomOption extends Action\Action implements IndexInterface
     /**
      * Custom options download action
      *
-     * @return void
+     * @return \Magento\Framework\Controller\Result\Forward
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.ExitExpression)
      */
     public function execute()
     {
@@ -58,9 +42,11 @@ class DownloadCustomOption extends Action\Action implements IndexInterface
         )->load(
             $this->getRequest()->getParam('id')
         );
-
+        /** @var \Magento\Framework\Controller\Result\Forward $resultForward */
+        $resultForward = $this->resultFactory->create(ResultFactory::TYPE_FORWARD);
         if (!$option->getId()) {
-            return $this->_forward('noroute');
+            $resultForward->forward('noroute');
+            return $resultForward;
         }
 
         $optionId = null;
@@ -71,7 +57,8 @@ class DownloadCustomOption extends Action\Action implements IndexInterface
                 $option->getCode()
             );
             if ((int)$optionId != $optionId) {
-                return $this->_forward('noroute');
+                $resultForward->forward('noroute');
+                return $resultForward;
             }
         }
         $productOption = $this->_objectManager->create('Magento\Catalog\Model\Product\Option')->load($optionId);
@@ -81,28 +68,24 @@ class DownloadCustomOption extends Action\Action implements IndexInterface
             $productOption->getProductId() != $option->getProductId() ||
             $productOption->getType() != 'file'
         ) {
-            return $this->_forward('noroute');
+            $resultForward->forward('noroute');
+            return $resultForward;
         }
 
         try {
             $info = unserialize($option->getValue());
-            $filePath = $this->_objectManager->get(
-                'Magento\Framework\App\Filesystem'
-            )->getPath(
-                \Magento\Framework\App\Filesystem::ROOT_DIR
-            ) . $info['quote_path'];
             $secretKey = $this->getRequest()->getParam('key');
 
             if ($secretKey == $info['secret_key']) {
                 $this->_fileResponseFactory->create(
                     $info['title'],
-                    array('value' => $filePath, 'type' => 'filename'),
-                    \Magento\Framework\App\Filesystem::ROOT_DIR
+                    ['value' => $info['quote_path'], 'type' => 'filename'],
+                    DirectoryList::ROOT
                 );
             }
         } catch (\Exception $e) {
-            $this->_forward('noroute');
+            $resultForward->forward('noroute');
+            return $resultForward;
         }
-        exit(0);
     }
 }

@@ -1,31 +1,13 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Wishlist\Controller\Index;
 
 use Magento\Customer\Model\Session as CustomerSession;
-use Magento\Framework\App\Action\NotFoundException;
+use Magento\Framework\Exception\NotFoundException;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\Response\RedirectInterface;
@@ -76,11 +58,11 @@ class Plugin
      * @param \Magento\Framework\App\ActionInterface $subject
      * @param RequestInterface $request
      * @return void
-     * @throws \Magento\Framework\App\Action\NotFoundException
+     * @throws \Magento\Framework\Exception\NotFoundException
      */
     public function beforeDispatch(\Magento\Framework\App\ActionInterface $subject, RequestInterface $request)
     {
-        if ($this->authenticationState->isEnabled() && !$this->customerSession->authenticate($subject)) {
+        if ($this->authenticationState->isEnabled() && !$this->customerSession->authenticate()) {
             $subject->getActionFlag()->set('', 'no-dispatch', true);
             if (!$this->customerSession->getBeforeWishlistUrl()) {
                 $this->customerSession->setBeforeWishlistUrl($this->redirector->getRefererUrl());
@@ -88,7 +70,7 @@ class Plugin
             $this->customerSession->setBeforeWishlistRequest($request->getParams());
         }
         if (!$this->config->isSetFlag('wishlist/general/active')) {
-            throw new NotFoundException();
+            throw new NotFoundException(__('Page not found.'));
         }
     }
 }

@@ -1,37 +1,17 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\User\Test\TestCase;
 
-use Magento\User\Test\Fixture\AdminUserRole;
-use Magento\User\Test\Page\Adminhtml\UserRoleIndex;
+use Magento\User\Test\Fixture\Role;
 use Magento\User\Test\Page\Adminhtml\UserRoleEditRole;
-use Mtf\TestCase\Injectable;
+use Magento\User\Test\Page\Adminhtml\UserRoleIndex;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
- * Test Creation for CreateAdminUserRolesEntity
- *
  * Test Flow:
  * 1. Log in as default admin user
  * 2. Go to System>Permissions>User Roles
@@ -40,31 +20,38 @@ use Mtf\TestCase\Injectable;
  * 5. Save role
  * 6. Perform assertions
  *
- * @group ACL_(MX)
+ * @group ACL_(PS)
  * @ZephyrId MAGETWO-23413
  */
 class CreateAdminUserRoleEntityTest extends Injectable
 {
+    /* tags */
+    const MVP = 'no';
+    const DOMAIN = 'PS';
+    /* end tags */
+
     /**
+     * UserRoleIndex page.
+     *
      * @var UserRoleIndex
      */
     protected $userRoleIndex;
 
     /**
+     * UserRoleEditRole page.
+     *
      * @var UserRoleEditRole
      */
     protected $userRoleEditRole;
 
     /**
-     * Setup data for test
+     * Setup data for test.
      *
      * @param UserRoleIndex $userRoleIndex
      * @param UserRoleEditRole $userRoleEditRole
      */
-    public function __inject(
-        UserRoleIndex $userRoleIndex,
-        UserRoleEditRole $userRoleEditRole
-    ) {
+    public function __inject(UserRoleIndex $userRoleIndex, UserRoleEditRole $userRoleEditRole)
+    {
         $this->userRoleIndex = $userRoleIndex;
         $this->userRoleEditRole = $userRoleEditRole;
     }
@@ -72,9 +59,9 @@ class CreateAdminUserRoleEntityTest extends Injectable
     /**
      * Runs Create Admin User Role Entity test.
      *
-     * @param AdminUserRole $role
+     * @param Role $role
      */
-    public function testCreateUserRole(AdminUserRole $role)
+    public function testCreateUserRole(Role $role)
     {
         //Steps
         $this->userRoleIndex->open();

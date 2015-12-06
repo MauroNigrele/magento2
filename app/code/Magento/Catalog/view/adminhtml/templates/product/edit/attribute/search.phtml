@@ -1,56 +1,40 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
-/** @var $this \Magento\Catalog\Block\Adminhtml\Product\Edit\Tab\Attributes\Search */
+// @codingStandardsIgnoreFile
+
+/** @var $block \Magento\Catalog\Block\Adminhtml\Product\Edit\Tab\Attributes\Search */
 ?>
 <div id="product-attribute-search-container" class="suggest-expandable attribute-selector">
     <div class="action-dropdown">
-        <button class="action-toggle action-choose" data-toggle="dropdown">
-            <span><?php echo __('Add Attribute') ?></span>
+        <button type="button" class="action-toggle action-choose" data-mage-init='{"dropdown":{}}' data-toggle="dropdown">
+            <span><?php /* @escapeNotVerified */ echo __('Add Attribute') ?></span>
         </button>
         <div class="dropdown-menu">
             <input data-role="product-attribute-search"
-                   data-group="<?php echo $this->escapeHtml($this->getGroupCode()); ?>"
+                   data-group="<?php echo $block->escapeHtml($block->getGroupCode()); ?>"
                    class="search" type="text"
-                   placeholder="start typing to search attribute"/>
+                   placeholder="<?php /* @noEscape */ echo __('start typing to search attribute'); ?>" />
         </div>
     </div>
 
-<script data-template-for="product-attribute-search" type="text/x-jquery-tmpl">
+<script data-template-for="product-attribute-search-<?php /* @escapeNotVerified */ echo $block->getGroupId(); ?>" type="text/x-magento-template">
     <ul data-mage-init='{"menu":[]}'>
-        {{if items.length}}
-        {{each items}}
-        <li {{html optionData($value)}}><a href="#">${$value.label}</a></li>
-        {{/each}}
-        {{else}}<span class="mage-suggest-no-records">${noRecordsText}</span>{{/if}}
+        <% if (data.items.length) { %>
+        <% _.each(data.items, function(value){ %>
+        <li <%= data.optionData(value) %>><a href="#"><%- value.label %></a></li>
+        <% }); %>
+        <% } else { %><span class="mage-suggest-no-records"><%- data.noRecordsText %></span><% } %>
     </ul>
-    <div class="actions"><?php echo $this->getAttributeCreate()?></div>
+    <div class="actions"><?php /* @escapeNotVerified */ echo $block->getAttributeCreate()?></div>
 </script>
 
-<script type="text/javascript">
+<script>
     require(["jquery","mage/mage","mage/backend/suggest"], function($) {
-        var $suggest = $('[data-role="product-attribute-search"][data-group="<?php echo $this->escapeHtml($this->getGroupCode()); ?>"]');
+        var $suggest = $('[data-role="product-attribute-search"][data-group="<?php echo $block->escapeHtml($block->getGroupCode()); ?>"]');
 
         $suggest.on('suggestclose', function(e) {
             $suggest.closest('.dropdown-menu').siblings('[data-toggle=dropdown]').trigger('close.dropdown');
@@ -66,19 +50,20 @@
                 data: {'template_id': data.id}
             });
         });
-        $suggest.mage('suggest',<?php echo $this->helper('Magento\Core\Helper\Data')->jsonEncode($this->getSelectorOptions())?>)
+
+        $suggest.mage('suggest', <?php /* @escapeNotVerified */ echo $this->helper('Magento\Framework\Json\Helper\Data')->jsonEncode($block->getSelectorOptions())?>)
             .on('suggestselect', function (e, ui) {
                 $(this).val('');
                 var templateId = $('#attribute_set_id').val();
                 if (ui.item.id) {
                     $.ajax({
-                        url: '<?php echo $this->getAddAttributeUrl()?>',
+                        url: '<?php /* @escapeNotVerified */ echo $block->getAddAttributeUrl()?>',
                         type: 'POST',
                         dataType: 'json',
                         data: {attribute_id: ui.item.id, template_id: templateId, group: $(this).data('group')},
                         showLoader: true
                     }).done(function() {
-                        setTimeout(function() { //do defered
+                        setTimeout(function() { //do deferred
                             $('[data-form=edit-product]').trigger('changeAttributeSet', {id: templateId});
                         }, 10);
                     });

@@ -1,84 +1,147 @@
 <?php
 /**
- * List of application active application modules.
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Module;
 
-use Magento\Framework\Config\CacheInterface;
-use Magento\Framework\Module\Declaration\Reader\Filesystem;
+use Magento\Framework\App\DeploymentConfig;
+use Magento\Framework\Config\ConfigOptionsListConstants;
 
-class ModuleList implements \Magento\Framework\Module\ModuleListInterface
+/**
+ * A list of modules in the Magento application
+ *
+ * Encapsulates information about whether modules are enabled or not.
+ * Represents only enabled modules through its interface
+ */
+class ModuleList implements ModuleListInterface
 {
     /**
-     * Configuration data
+     * Deployment configuration
      *
-     * @var array
+     * @var DeploymentConfig
      */
-    protected $_data;
+    private $config;
 
     /**
-     * Configuration scope
+     * Loader of module information from source code
      *
-     * @var string
+     * @var ModuleList\Loader
      */
-    protected $_scope = 'global';
+    private $loader;
 
     /**
-     * @param Filesystem $reader
-     * @param CacheInterface $cache
-     * @param string $cacheId
+     * An associative array of modules
+     *
+     * The possible values are 1 (enabled) or 0 (disabled)
+     *
+     * @var int[]
      */
-    public function __construct(Filesystem $reader, CacheInterface $cache, $cacheId = 'modules_declaration_cache')
+    private $configData;
+
+    /**
+     * Enumeration of the enabled module names
+     *
+     * @var string[]
+     */
+    private $enabled;
+
+    /**
+     * Constructor
+     *
+     * @param DeploymentConfig $config
+     * @param ModuleList\Loader $loader
+     */
+    public function __construct(DeploymentConfig $config, ModuleList\Loader $loader)
     {
-        $data = $cache->load($this->_scope . '::' . $cacheId);
-        if (!$data) {
-            $data = $reader->read($this->_scope);
-            $cache->save(serialize($data), $this->_scope . '::' . $cacheId);
-        } else {
-            $data = unserialize($data);
+        $this->config = $config;
+        $this->loader = $loader;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * Note that this triggers loading definitions of all existing modules in the system.
+     * Use this method only when you actually need modules' declared meta-information.
+     *
+     * @see getNames()
+     */
+    public function getAll()
+    {
+        if (null === $this->enabled) {
+            $all = $this->loader->load();
+            if (empty($all)) {
+                return []; // don't record erroneous value into memory
+            }
+            $this->enabled = [];
+            foreach ($all as $key => $value) {
+                if ($this->has($key)) {
+                    $this->enabled[$key] = $value;
+                }
+            }
         }
-        $this->_data = $data;
+        return $this->enabled;
     }
 
     /**
-     * Get configuration of all declared active modules
-     *
-     * @return array
+     * {@inheritdoc}
+     * @see has()
      */
-    public function getModules()
+    public function getOne($name)
     {
-        return $this->_data;
+        $enabled = $this->getAll();
+        return isset($enabled[$name]) ? $enabled[$name] : null;
     }
 
     /**
-     * Get module configuration
-     *
-     * @param string $moduleName
-     * @return array|null
+     * {@inheritdoc}
      */
-    public function getModule($moduleName)
+    public function getNames()
     {
-        return isset($this->_data[$moduleName]) ? $this->_data[$moduleName] : null;
+        $this->loadConfigData();
+        if (!$this->configData) {
+            return [];
+        }
+        $result = array_keys(array_filter($this->configData));
+        return $result;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function has($name)
+    {
+        $this->loadConfigData();
+        if (!$this->configData) {
+            return false;
+        }
+        return !empty($this->configData[$name]);
+    }
+
+    /**
+     * Checks if module list information is available.
+     *
+     * @return bool
+     */
+    public function isModuleInfoAvailable()
+    {
+        $this->loadConfigData();
+        if ($this->configData) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Loads configuration data only
+     *
+     * @return void
+     */
+    private function loadConfigData()
+    {
+        $this->config->resetData();
+        if (null === $this->configData && null !== $this->config->get(ConfigOptionsListConstants::KEY_MODULES)) {
+            $this->configData = $this->config->get(ConfigOptionsListConstants::KEY_MODULES);
+        }
     }
 }

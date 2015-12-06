@@ -2,45 +2,13 @@
 /**
  * Abstract DB helper class
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\DB\Helper;
 
 abstract class AbstractHelper
 {
-    /**
-     * Read adapter instance
-     *
-     * @var \Magento\Framework\DB\Adapter\AdapterInterface
-     */
-    protected $_readAdapter;
-
-    /**
-     * Write adapter instance
-     *
-     * @var \Magento\Framework\DB\Adapter\AdapterInterface
-     */
-    protected $_writeAdapter;
-
     /**
      * Resource helper module prefix
      *
@@ -49,62 +17,32 @@ abstract class AbstractHelper
     protected $_modulePrefix;
 
     /**
-     * @var \Magento\Framework\App\Resource
+     * @var \Magento\Framework\App\ResourceConnection
      */
     protected $_resource;
 
     /**
      * Initialize resource helper instance
      *
-     * @param \Magento\Framework\App\Resource $resource
+     * @param \Magento\Framework\App\ResourceConnection $resource
      * @param string $modulePrefix
      */
-    public function __construct(\Magento\Framework\App\Resource $resource, $modulePrefix)
+    public function __construct(\Magento\Framework\App\ResourceConnection $resource, $modulePrefix)
     {
         $this->_resource = $resource;
         $this->_modulePrefix = (string)$modulePrefix;
     }
 
     /**
-     * Retrieve connection for read data
-     *
-     * @return \Magento\Framework\DB\Adapter\AdapterInterface
-     */
-    protected function _getReadAdapter()
-    {
-        if (null === $this->_readAdapter) {
-            $this->_readAdapter = $this->_getConnection('read');
-        }
-
-        return $this->_readAdapter;
-    }
-
-    /**
-     * Retrieve connection for write data
-     *
-     * @return \Magento\Framework\DB\Adapter\AdapterInterface
-     */
-    protected function _getWriteAdapter()
-    {
-        if (null === $this->_writeAdapter) {
-            $this->_writeAdapter = $this->_getConnection('write');
-        }
-
-        return $this->_writeAdapter;
-    }
-
-    /**
      * Retrieves connection to the resource
      *
-     * @param string $name
      * @return \Magento\Framework\DB\Adapter\AdapterInterface
      */
-    protected function _getConnection($name)
+    protected function getConnection()
     {
-        $connection = sprintf('%s_%s', $this->_modulePrefix, $name);
-
-        return $this->_resource->getConnection($connection);
+        return $this->_resource->getConnection($this->_modulePrefix);
     }
+
 
     /**
      * Escapes value, that participates in LIKE, with '\' symbol.
@@ -124,12 +62,12 @@ abstract class AbstractHelper
      * @param array $options
      * @return string
      */
-    public function escapeLikeValue($value, $options = array())
+    public function escapeLikeValue($value, $options = [])
     {
         $value = str_replace('\\', '\\\\', $value);
 
-        $replaceFrom = array();
-        $replaceTo = array();
+        $replaceFrom = [];
+        $replaceTo = [];
         if (empty($options['allow_symbol_mask'])) {
             $replaceFrom[] = '_';
             $replaceTo[] = '\_';
@@ -171,7 +109,7 @@ abstract class AbstractHelper
      *
      * @see escapeLikeValue()
      */
-    abstract public function addLikeEscape($value, $options = array());
+    abstract public function addLikeEscape($value, $options = []);
 
     /**
      * Returns case insensitive LIKE construction.
@@ -184,9 +122,9 @@ abstract class AbstractHelper
      *
      * @see escapeLikeValue()
      */
-    public function getCILike($field, $value, $options = array())
+    public function getCILike($field, $value, $options = [])
     {
-        $quotedField = $this->_getReadAdapter()->quoteIdentifier($field);
+        $quotedField = $this->getConnection()->quoteIdentifier($field);
         return new \Zend_Db_Expr($quotedField . ' LIKE ' . $this->addLikeEscape($value, $options));
     }
 }

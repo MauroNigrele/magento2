@@ -1,26 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 ?>
 <?php
 /**
@@ -29,14 +14,17 @@
 ?>
 
 <div id="category-edit-container" class="category-content">
-    <?php echo $this->getChildHtml('form') ?>
+    <?php echo $block->getChildHtml('form') ?>
 </div>
-<script type="text/javascript">
+<script>
 require([
     "jquery",
-    "js/theme",
+    "tinymce",
+    'Magento_Ui/js/modal/confirm',
+    'Magento_Ui/js/modal/alert',
+    "loadingPopup",
     "mage/backend/floating-header"
-], function(jQuery){
+], function(jQuery, tinyMCE, confirm, alert){
 
 //<![CDATA[
     function categoryReset(url,useAjax){
@@ -53,32 +41,39 @@ require([
     * This routine get categoryId explicitly, so even if currently selected tree node is out of sync
     * with this form, we surely delete same category in the tree and at backend
     */
-    function categoryDelete(url, useAjax, categoryId) {
-        if (confirm('<?php echo __('Are you sure you want to delete this category?') ?>')){
-            if (useAjax){
-                tree.nodeForDelete = categoryId;
-                updateContent(url, {}, true);
-            } else {
-                location.href = url;
+    function categoryDelete(url) {
+        confirm({
+            content: '<?php /* @escapeNotVerified */ echo __('Are you sure you want to delete this category?') ?>',
+            actions: {
+                confirm: function () {
+                    location.href = url;
+                }
             }
-        }
+        });
     }
 
     /**
      * Update category content area
      */
     function updateContent(url, params, refreshTree) {
-        var win = this;
-        var params = jQuery.extend(params || {}, {
+        var node        = tree.getNodeById(tree.currentNodeId),
+            parentNode  = node && node.parentNode,
+            parentId,
+            redirectUrl,
+            params;
+
+        params = jQuery.extend(params || {}, {
             form_key: FORM_KEY
         });
 
         if (params.node_name) {
-            this.tree.getNodeById(tree.currentNodeId).currentNode.setText(params.node_name);
+            node.setText(params.node_name);
         }
 
         (function($){
-            var $categoryContainer = $('#category-edit-container');
+            var $categoryContainer = $('#category-edit-container'),
+                messagesContainer = $('.messages');
+            messagesContainer.html('');
             $.ajax({
                 url: url + (url.match(new RegExp('\\?')) ? '&isAjax=true' : '?isAjax=true' ),
                 data: params,
@@ -92,8 +87,10 @@ require([
                             tinyMCE.execCommand('mceRemoveControl', false, $(element).attr('id'));
                         });
                         $categoryContainer.html('');
-                    } catch(e) {
-                        alert(e.message);
+                    } catch (e) {
+                        alert({
+                            content: e.message
+                        });
                     }
                     $categoryContainer.html(data.content).trigger('contentUpdated');
                     setTimeout(function() {
@@ -101,18 +98,27 @@ require([
                             tinyMCE.execCommand('mceRemoveControl', false, $(element).attr('id'));
                             tinyMCE.execCommand('mceAddControl', true, $(element).attr('id'));
                         });
-                        $('.page-actions').floatingHeader({ 'title': '.category-edit-title'});
+                        $('.page-actions').floatingHeader({
+                            'title': '.category-edit-title'
+                        });
+                        $('body').trigger('contentUpdated');
                         try {
                             if (refreshTree) {
-                                win.refreshTreeArea();
+                                window.refreshTreeArea();
                             }
                         } catch (e) {
-                            alert(e.message);
+                            alert({
+                                content: e.message
+                            });
                         };
                     }, 25);
                 }
+
                 if (data.messages && data.messages.length > 0) {
-                    $('.messages').html(data.messages);
+                    messagesContainer.html(data.messages);
+                }
+                if (data.toolbar) {
+                    $('[data-ui-id="page-actions-toolbar-content-header"]').replaceWith(data.toolbar)
                 }
             });
         })(jQuery);
@@ -123,6 +129,9 @@ require([
      */
     function refreshTreeArea(transport)
     {
+        var config,
+            url;
+
         if (tree && window.editingCategoryBreadcrumbs) {
             // category deleted - delete its node
             if (tree.nodeForDelete) {
@@ -140,24 +149,9 @@ require([
                 tree.addNodeTo = false;
 
                 if (parent) { // Check maybe tree became somehow not synced with ajax and we're trying to add to unknown node
-                    var node = new Ext.tree.AsyncTreeNode(editingCategoryBreadcrumbs[editingCategoryBreadcrumbs.length - 1]);
-                    node.loaded = true;
-                    tree.currentNodeId = node.id;
-                    parent.appendChild(node);
+                    config = editingCategoryBreadcrumbs[editingCategoryBreadcrumbs.length - 1];
 
-                    if (parent.expanded) {
-                        tree.selectCurrentNode();
-                    } else {
-                        var timer;
-                        parent.expand();
-                        var f = function(){
-                            if(parent.expanded){ // done expanding
-                                clearInterval(timer);
-                                tree.selectCurrentNode();
-                            }
-                        };
-                        timer = setInterval(f, 200);
-                    }
+                    window.location.href = tree.buildUrl(config.id);
                 }
             }
 

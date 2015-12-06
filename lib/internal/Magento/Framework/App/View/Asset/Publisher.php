@@ -1,29 +1,12 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Framework\App\View\Asset;
 
+use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\View\Asset;
 
 /**
@@ -32,39 +15,38 @@ use Magento\Framework\View\Asset;
 class Publisher
 {
     /**
-     * @var \Magento\Framework\App\State
-     */
-    protected $appState;
-
-    /**
-     * @var \Magento\Framework\App\Filesystem
+     * @var \Magento\Framework\Filesystem
      */
     protected $filesystem;
 
     /**
-     * @param \Magento\Framework\App\State $appState
-     * @param \Magento\Framework\App\Filesystem $filesystem
+     * @var MaterializationStrategy\Factory
+     */
+    private $materializationStrategyFactory;
+
+    /**
+     * @param \Magento\Framework\Filesystem $filesystem
+     * @param MaterializationStrategy\Factory $materializationStrategyFactory
      */
     public function __construct(
-        \Magento\Framework\App\State $appState,
-        \Magento\Framework\App\Filesystem $filesystem
+        \Magento\Framework\Filesystem $filesystem,
+        MaterializationStrategy\Factory $materializationStrategyFactory
     ) {
-        $this->appState = $appState;
         $this->filesystem = $filesystem;
+        $this->materializationStrategyFactory = $materializationStrategyFactory;
     }
 
     /**
-     * {@inheritdoc}
+     * @param Asset\LocalInterface $asset
+     * @return bool
      */
     public function publish(Asset\LocalInterface $asset)
     {
-        if ($this->appState->getMode() === \Magento\Framework\App\State::MODE_DEVELOPER) {
-            return false;
-        }
-        $dir = $this->filesystem->getDirectoryRead(\Magento\Framework\App\Filesystem::STATIC_VIEW_DIR);
+        $dir = $this->filesystem->getDirectoryRead(DirectoryList::STATIC_VIEW);
         if ($dir->isExist($asset->getPath())) {
             return true;
         }
+
         return $this->publishAsset($asset);
     }
 
@@ -76,10 +58,11 @@ class Publisher
      */
     private function publishAsset(Asset\LocalInterface $asset)
     {
-        $dir = $this->filesystem->getDirectoryWrite(\Magento\Framework\App\Filesystem::STATIC_VIEW_DIR);
-        $rootDir = $this->filesystem->getDirectoryWrite(\Magento\Framework\App\Filesystem::ROOT_DIR);
+        $targetDir = $this->filesystem->getDirectoryWrite(DirectoryList::STATIC_VIEW);
+        $rootDir = $this->filesystem->getDirectoryWrite(DirectoryList::ROOT);
         $source = $rootDir->getRelativePath($asset->getSourceFile());
         $destination = $asset->getPath();
-        return $rootDir->copyFile($source, $destination, $dir);
+        $strategy = $this->materializationStrategyFactory->create($asset);
+        return $strategy->publishFile($rootDir, $targetDir, $source, $destination);
     }
 }

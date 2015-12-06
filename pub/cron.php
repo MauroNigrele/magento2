@@ -2,37 +2,39 @@
 /**
  * Scheduled jobs entry point
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
-use Magento\Framework\App\Bootstrap;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManager;
 
 require dirname(__DIR__) . '/app/bootstrap.php';
-$params = $_SERVER;
-$params[StoreManager::PARAM_RUN_CODE] = 'admin';
-$params[Store::CUSTOM_ENTRY_POINT_PARAM] = true;
-$bootstrap = \Magento\Framework\App\Bootstrap::create(BP, $params);
-/** @var \Magento\Framework\App\Cron $app */
-$app = $bootstrap->createApplication('Magento\Framework\App\Cron', ['parameters' => ['group::']]);
-$bootstrap->run($app);
+
+if (php_sapi_name() === 'cli'){
+    echo "You cannot run this from the command line." . PHP_EOL .
+        "Run \"php bin/magento cron:run\" instead." . PHP_EOL;
+    exit(1);
+} else {
+    $opt = $_GET;
+}
+
+try {
+    if (empty($opt['group'])) {
+        $opt['group'] = 'default';
+    }
+    foreach ($opt as $key => $value) {
+        $opt[$key] = escapeshellarg($value);
+    }
+    $opt['standaloneProcessStarted'] = '0';
+    $params = $_SERVER;
+    $params[StoreManager::PARAM_RUN_CODE] = 'admin';
+    $params[Store::CUSTOM_ENTRY_POINT_PARAM] = true;
+    $bootstrap = \Magento\Framework\App\Bootstrap::create(BP, $params);
+    /** @var \Magento\Framework\App\Cron $app */
+    $app = $bootstrap->createApplication('Magento\Framework\App\Cron', ['parameters' => $opt]);
+    $bootstrap->run($app);
+} catch (\Exception $e) {
+    echo $e;
+    exit(1);
+}

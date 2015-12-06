@@ -2,26 +2,8 @@
 /**
  * Backend block template context
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Backend\Block\Template;
@@ -57,11 +39,15 @@ class Context extends \Magento\Framework\View\Element\Template\Context
     protected $nameBuilder;
 
     /**
+     * @var \Magento\Framework\View\Page\Config
+     */
+    protected $pageConfig;
+
+    /**
      * @param \Magento\Framework\App\RequestInterface $request
      * @param \Magento\Framework\View\LayoutInterface $layout
      * @param \Magento\Framework\Event\ManagerInterface $eventManager
      * @param \Magento\Framework\UrlInterface $urlBuilder
-     * @param \Magento\Framework\TranslateInterface $translator
      * @param \Magento\Framework\App\CacheInterface $cache
      * @param \Magento\Framework\View\DesignInterface $design
      * @param \Magento\Framework\Session\Generic $session
@@ -70,16 +56,19 @@ class Context extends \Magento\Framework\View\Element\Template\Context
      * @param \Magento\Framework\View\Asset\Repository $assetRepo
      * @param \Magento\Framework\View\ConfigInterface $viewConfig
      * @param \Magento\Framework\App\Cache\StateInterface $cacheState
-     * @param \Magento\Framework\Logger $logger
+     * @param \Psr\Log\LoggerInterface $logger
      * @param \Magento\Framework\Escaper $escaper
      * @param \Magento\Framework\Filter\FilterManager $filterManager
      * @param \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate
      * @param \Magento\Framework\Translate\Inline\StateInterface $inlineTranslation
-     * @param \Magento\Framework\App\Filesystem $filesystem
+     * @param \Magento\Framework\Filesystem $filesystem
      * @param \Magento\Framework\View\FileSystem $viewFileSystem
      * @param \Magento\Framework\View\TemplateEnginePool $enginePool
      * @param \Magento\Framework\App\State $appState
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\View\Page\Config $pageConfig
+     * @param \Magento\Framework\View\Element\Template\File\Resolver $resolver
+     * @param \Magento\Framework\View\Element\Template\File\Validator $validator
      * @param \Magento\Framework\AuthorizationInterface $authorization
      * @param \Magento\Backend\Model\Session $backendSession
      * @param \Magento\Framework\Math\Random $mathRandom
@@ -93,7 +82,6 @@ class Context extends \Magento\Framework\View\Element\Template\Context
         \Magento\Framework\View\LayoutInterface $layout,
         \Magento\Framework\Event\ManagerInterface $eventManager,
         \Magento\Framework\UrlInterface $urlBuilder,
-        \Magento\Framework\TranslateInterface $translator,
         \Magento\Framework\App\CacheInterface $cache,
         \Magento\Framework\View\DesignInterface $design,
         \Magento\Framework\Session\Generic $session,
@@ -102,16 +90,19 @@ class Context extends \Magento\Framework\View\Element\Template\Context
         \Magento\Framework\View\Asset\Repository $assetRepo,
         \Magento\Framework\View\ConfigInterface $viewConfig,
         \Magento\Framework\App\Cache\StateInterface $cacheState,
-        \Magento\Framework\Logger $logger,
+        \Psr\Log\LoggerInterface $logger,
         \Magento\Framework\Escaper $escaper,
         \Magento\Framework\Filter\FilterManager $filterManager,
         \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate,
         \Magento\Framework\Translate\Inline\StateInterface $inlineTranslation,
-        \Magento\Framework\App\Filesystem $filesystem,
+        \Magento\Framework\Filesystem $filesystem,
         \Magento\Framework\View\FileSystem $viewFileSystem,
         \Magento\Framework\View\TemplateEnginePool $enginePool,
         \Magento\Framework\App\State $appState,
-        \Magento\Framework\StoreManagerInterface $storeManager,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\View\Page\Config $pageConfig,
+        \Magento\Framework\View\Element\Template\File\Resolver $resolver,
+        \Magento\Framework\View\Element\Template\File\Validator $validator,
         \Magento\Framework\AuthorizationInterface $authorization,
         \Magento\Backend\Model\Session $backendSession,
         \Magento\Framework\Math\Random $mathRandom,
@@ -128,7 +119,6 @@ class Context extends \Magento\Framework\View\Element\Template\Context
             $layout,
             $eventManager,
             $urlBuilder,
-            $translator,
             $cache,
             $design,
             $session,
@@ -146,14 +136,17 @@ class Context extends \Magento\Framework\View\Element\Template\Context
             $viewFileSystem,
             $enginePool,
             $appState,
-            $storeManager
+            $storeManager,
+            $pageConfig,
+            $resolver,
+            $validator
         );
     }
 
     /**
      * Get store manager
      *
-     * @return \Magento\Framework\StoreManagerInterface
+     * @return \Magento\Store\Model\StoreManagerInterface
      */
     public function getStoreManager()
     {

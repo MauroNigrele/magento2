@@ -1,43 +1,28 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Checkout\Controller;
 
-use Magento\Framework\App\Action\NotFoundException;
+use Magento\Customer\Api\AccountManagementInterface;
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Framework\Exception\NotFoundException;
 use Magento\Framework\App\RequestInterface;
-use Magento\Customer\Service\V1\CustomerAccountServiceInterface as CustomerAccountService;
-use Magento\Customer\Service\V1\CustomerMetadataServiceInterface as CustomerMetadataService;
 
-class Onepage extends Action
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
+abstract class Onepage extends Action
 {
     /**
      * @var array
      */
-    protected $_sectionUpdateFunctions = array(
+    protected $_sectionUpdateFunctions = [
         'payment-method' => '_getPaymentMethodsHtml',
         'shipping-method' => '_getShippingMethodsHtml',
-        'review' => '_getReviewHtml'
-    );
+        'review' => '_getReviewHtml',
+    ];
 
     /**
      * @var \Magento\Sales\Model\Order
@@ -57,14 +42,9 @@ class Onepage extends Action
     protected $_translateInline;
 
     /**
-     * @var \Magento\Core\App\Action\FormKeyValidator
+     * @var \Magento\Framework\Data\Form\FormKey\Validator
      */
     protected $_formKeyValidator;
-
-    /**
-     * @var \Magento\Framework\View\LayoutFactory
-     */
-    protected $layoutFactory;
 
     /**
      * @var \Magento\Framework\App\Config\ScopeConfigInterface
@@ -72,33 +52,86 @@ class Onepage extends Action
     protected $scopeConfig;
 
     /**
+     * @var \Magento\Framework\View\LayoutFactory
+     */
+    protected $layoutFactory;
+
+    /**
+     * @var \Magento\Quote\Api\CartRepositoryInterface
+     */
+    protected $quoteRepository;
+
+    /**
+     * @var \Magento\Framework\View\Result\PageFactory
+     */
+    protected $resultPageFactory;
+
+    /**
+     * @var \Magento\Framework\View\Result\LayoutFactory
+     */
+    protected $resultLayoutFactory;
+
+    /**
+     * @var \Magento\Framework\Controller\Result\RawFactory
+     */
+    protected $resultRawFactory;
+
+    /**
+     * @var \Magento\Framework\Controller\Result\JsonFactory
+     */
+    protected $resultJsonFactory;
+
+    /**
      * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
-     * @param CustomerAccountService $customerAccountService
-     * @param CustomerMetadataService $customerMetadataService
+     * @param CustomerRepositoryInterface $customerRepository
+     * @param AccountManagementInterface $accountManagement
      * @param \Magento\Framework\Registry $coreRegistry
      * @param \Magento\Framework\Translate\InlineInterface $translateInline
-     * @param \Magento\Core\App\Action\FormKeyValidator $formKeyValidator
+     * @param \Magento\Framework\Data\Form\FormKey\Validator $formKeyValidator
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param \Magento\Framework\View\LayoutFactory $layoutFactory
+     * @param \Magento\Quote\Api\CartRepositoryInterface $quoteRepository
+     * @param \Magento\Framework\View\Result\PageFactory $resultPageFactory
+     * @param \Magento\Framework\View\Result\LayoutFactory $resultLayoutFactory
+     * @param \Magento\Framework\Controller\Result\RawFactory $resultRawFactory
+     * @param \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
+     *
+     * @codeCoverageIgnore
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
         \Magento\Customer\Model\Session $customerSession,
-        CustomerAccountService $customerAccountService,
-        CustomerMetadataService $customerMetadataService,
+        CustomerRepositoryInterface $customerRepository,
+        AccountManagementInterface $accountManagement,
         \Magento\Framework\Registry $coreRegistry,
         \Magento\Framework\Translate\InlineInterface $translateInline,
-        \Magento\Core\App\Action\FormKeyValidator $formKeyValidator,
+        \Magento\Framework\Data\Form\FormKey\Validator $formKeyValidator,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Magento\Framework\View\LayoutFactory $layoutFactory
+        \Magento\Framework\View\LayoutFactory $layoutFactory,
+        \Magento\Quote\Api\CartRepositoryInterface $quoteRepository,
+        \Magento\Framework\View\Result\PageFactory $resultPageFactory,
+        \Magento\Framework\View\Result\LayoutFactory $resultLayoutFactory,
+        \Magento\Framework\Controller\Result\RawFactory $resultRawFactory,
+        \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
     ) {
         $this->_coreRegistry = $coreRegistry;
         $this->_translateInline = $translateInline;
         $this->_formKeyValidator = $formKeyValidator;
         $this->scopeConfig = $scopeConfig;
         $this->layoutFactory = $layoutFactory;
-        parent::__construct($context, $customerSession, $customerAccountService, $customerMetadataService);
+        $this->quoteRepository = $quoteRepository;
+        $this->resultPageFactory = $resultPageFactory;
+        $this->resultLayoutFactory = $resultLayoutFactory;
+        $this->resultRawFactory = $resultRawFactory;
+        $this->resultJsonFactory = $resultJsonFactory;
+        parent::__construct(
+            $context,
+            $customerSession,
+            $customerRepository,
+            $accountManagement
+        );
     }
 
     /**
@@ -106,32 +139,37 @@ class Onepage extends Action
      *
      * @param RequestInterface $request
      * @return \Magento\Framework\App\ResponseInterface
-     * @throws \Magento\Framework\App\Action\NotFoundException
+     * @throws \Magento\Framework\Exception\NotFoundException
      */
     public function dispatch(RequestInterface $request)
     {
         $this->_request = $request;
-        $this->_preDispatchValidateCustomer();
+        $result = $this->_preDispatchValidateCustomer();
+        if ($result instanceof \Magento\Framework\Controller\ResultInterface) {
+            return $result;
+        }
 
-        /** @var \Magento\Sales\Model\Quote $quote */
+        /** @var \Magento\Quote\Model\Quote $quote */
         $quote = $this->_objectManager->get('Magento\Checkout\Model\Session')->getQuote();
         if ($quote->isMultipleShippingAddresses()) {
             $quote->removeAllAddresses();
         }
 
         if (!$this->_canShowForUnregisteredUsers()) {
-            throw new NotFoundException();
+            throw new NotFoundException(__('Page not found.'));
         }
         return parent::dispatch($request);
     }
 
     /**
-     * @return $this
+     * @return \Magento\Framework\Controller\Result\Raw
      */
     protected function _ajaxRedirectResponse()
     {
-        $this->getResponse()->setHeader('HTTP/1.1', '403 Session Expired')->setHeader('Login-Required', 'true');
-        return $this;
+        $resultRaw = $this->resultRawFactory->create();
+        $resultRaw->setStatusHeader(403, '1.1', 'Session Expired')
+            ->setHeader('Login-Required', 'true');
+        return $resultRaw;
     }
 
     /**
@@ -143,20 +181,13 @@ class Onepage extends Action
     {
         $quote = $this->getOnepage()->getQuote();
         if (!$quote->hasItems() || $quote->getHasError() || !$quote->validateMinimumAmount()) {
-            $this->_ajaxRedirectResponse();
             return true;
         }
         $action = $this->getRequest()->getActionName();
-        if ($this->_objectManager->get(
-            'Magento\Checkout\Model\Session'
-        )->getCartWasUpdated(
-            true
-        ) && !in_array(
-            $action,
-            array('index', 'progress')
-        )
+        if ($this->_objectManager->get('Magento\Checkout\Model\Session')->getCartWasUpdated(true)
+            &&
+            !in_array($action, ['index', 'progress'])
         ) {
-            $this->_ajaxRedirectResponse();
             return true;
         }
 
@@ -184,6 +215,7 @@ class Onepage extends Action
      * Get shipping method step html
      *
      * @return string
+     * @codeCoverageIgnore
      */
     protected function _getShippingMethodsHtml()
     {
@@ -194,6 +226,7 @@ class Onepage extends Action
      * Get payment method step html
      *
      * @return string
+     * @codeCoverageIgnore
      */
     protected function _getPaymentMethodsHtml()
     {
@@ -201,9 +234,27 @@ class Onepage extends Action
     }
 
     /**
+     * Get progress html checkout step
+     *
+     * @param string $checkoutStep
+     * @return mixed
+     */
+    protected function getProgressHtml($checkoutStep = '')
+    {
+        $layout = $this->layoutFactory->create();
+        $layout->getUpdate()->load(['checkout_onepage_progress']);
+        $layout->generateXml();
+        $layout->generateElements();
+
+        $block = $layout->getBlock('progress')->setAttribute('next_step', $checkoutStep);
+        return $block->toHtml();
+    }
+
+    /**
      * Get one page checkout model
      *
      * @return \Magento\Checkout\Model\Type\Onepage
+     * @codeCoverageIgnore
      */
     public function getOnepage()
     {

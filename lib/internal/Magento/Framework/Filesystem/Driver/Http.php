@@ -2,30 +2,12 @@
 /**
  * Origin filesystem driver
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Filesystem\Driver;
 
-use Magento\Framework\Filesystem\FilesystemException;
+use Magento\Framework\Exception\FileSystemException;
 
 /**
  * Class Http
@@ -34,14 +16,18 @@ use Magento\Framework\Filesystem\FilesystemException;
 class Http extends File
 {
     /**
+     * Scheme distinguisher
+     *
      * @var string
      */
     protected $scheme = 'http';
 
     /**
+     * Checks if path exists
+     *
      * @param string $path
      * @return bool
-     * @throws FilesystemException
+     * @throws FileSystemException
      */
     public function isExists($path)
     {
@@ -63,12 +49,13 @@ class Http extends File
      *
      * @param string $path
      * @return array
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function stat($path)
     {
         $headers = array_change_key_case(get_headers($this->getScheme() . $path, 1), CASE_LOWER);
 
-        $result = array(
+        $result = [
             'dev' => 0,
             'ino' => 0,
             'mode' => 0,
@@ -83,8 +70,8 @@ class Http extends File
             'size' => isset($headers['content-length']) ? $headers['content-length'] : 0,
             'type' => isset($headers['content-type']) ? $headers['content-type'] : '',
             'mtime' => isset($headers['last-modified']) ? $headers['last-modified'] : 0,
-            'disposition' => isset($headers['content-disposition']) ? $headers['content-disposition'] : null
-        );
+            'disposition' => isset($headers['content-disposition']) ? $headers['content-disposition'] : null,
+        ];
         return $result;
     }
 
@@ -95,15 +82,18 @@ class Http extends File
      * @param string|null $flags
      * @param resource|null $context
      * @return string
-     * @throws FilesystemException
+     * @throws FileSystemException
      */
     public function fileGetContents($path, $flags = null, $context = null)
     {
         clearstatcache();
         $result = @file_get_contents($this->getScheme() . $path, $flags, $context);
         if (false === $result) {
-            throw new FilesystemException(
-                sprintf('Cannot read contents from file "%s" %s', $path, $this->getWarningMessage())
+            throw new FileSystemException(
+                new \Magento\Framework\Phrase(
+                    'Cannot read contents from file "%1" %2',
+                    [$path, $this->getWarningMessage()]
+                )
             );
         }
         return $result;
@@ -117,14 +107,17 @@ class Http extends File
      * @param string|null $mode
      * @param resource|null $context
      * @return int The number of bytes that were written
-     * @throws FilesystemException
+     * @throws FileSystemException
      */
     public function filePutContents($path, $content, $mode = null, $context = null)
     {
         $result = @file_put_contents($this->getScheme() . $path, $content, $mode, $context);
         if (!$result) {
-            throw new FilesystemException(
-                sprintf('The specified "%s" file could not be written %s', $path, $this->getWarningMessage())
+            throw new FileSystemException(
+                new \Magento\Framework\Phrase(
+                    'The specified "%1" file could not be written %2',
+                    [$path, $this->getWarningMessage()]
+                )
             );
         }
         return $result;
@@ -136,18 +129,20 @@ class Http extends File
      * @param string $path
      * @param string $mode
      * @return resource file
-     * @throws FilesystemException
+     * @throws FileSystemException
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function fileOpen($path, $mode)
     {
-        $urlProp = parse_url($this->getScheme() . $path);
+        $urlProp = $this->parseUrl($this->getScheme() . $path);
 
         if (false === $urlProp) {
-            throw new FilesystemException(__('Please correct the download URL.'));
+            throw new FileSystemException(new \Magento\Framework\Phrase('Please correct the download URL.'));
         }
 
         $hostname = $urlProp['host'];
         $port = 80;
+
         if (isset($urlProp['port'])) {
             $port = (int)$urlProp['port'];
         }
@@ -162,13 +157,7 @@ class Http extends File
             $query = '?' . $urlProp['query'];
         }
 
-        $result = @fsockopen($hostname, $port, $errorNumber, $errorMessage);
-
-        if ($result === false) {
-            throw new FilesystemException(
-                __('Something went wrong connecting to the host. Error#%1 - %2.', $errorNumber, $errorMessage)
-            );
-        }
+        $result = $this->open($hostname, $port);
 
         $headers = 'GET ' .
             $path .
@@ -178,8 +167,7 @@ class Http extends File
             'Host: ' .
             $hostname .
             "\r\n" .
-            'User-Agent: Magento ver/' .
-            \Magento\Framework\AppInterface::VERSION .
+            'User-Agent: Magento' .
             "\r\n" .
             'Connection: close' .
             "\r\n" .
@@ -205,7 +193,7 @@ class Http extends File
      * @param int $length
      * @param string $ending [optional]
      * @return string
-     * @throws FilesystemException
+     * @throws FileSystemException
      */
     public function fileReadLine($resource, $length, $ending = null)
     {
@@ -215,10 +203,13 @@ class Http extends File
     }
 
     /**
+     * Get absolute path
+     *
      * @param string $basePath
      * @param string $path
      * @param string|null $scheme
      * @return string
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function getAbsolutePath($basePath, $path, $scheme = null)
     {
@@ -235,5 +226,38 @@ class Http extends File
     {
         $scheme = $scheme ?: $this->scheme;
         return $scheme ? $scheme . '://' : '';
+    }
+
+    /**
+     * Open a url
+     *
+     * @param string $hostname
+     * @param int $port
+     * @throws \Magento\Framework\Exception\FileSystemException
+     * @return array
+     */
+    protected function open($hostname, $port)
+    {
+        $result = @fsockopen($hostname, $port, $errorNumber, $errorMessage);
+        if ($result === false) {
+            throw new FileSystemException(
+                new \Magento\Framework\Phrase(
+                    'Something went wrong while connecting to the host. Error#%1 - %2.',
+                    [$errorNumber, $errorMessage]
+                )
+            );
+        }
+        return $result;
+    }
+
+    /**
+     * Parse a http url
+     *
+     * @param string $path
+     * @return array
+     */
+    protected function parseUrl($path)
+    {
+        return parse_url($path);
     }
 }

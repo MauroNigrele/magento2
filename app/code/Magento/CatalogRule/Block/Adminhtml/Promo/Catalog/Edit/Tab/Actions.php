@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\CatalogRule\Block\Adminhtml\Promo\Catalog\Edit\Tab;
 
@@ -32,7 +14,8 @@ class Actions extends Generic implements TabInterface
     /**
      * Prepare content for tab
      *
-     * @return string
+     * @return \Magento\Framework\Phrase
+     * @codeCoverageIgnore
      */
     public function getTabLabel()
     {
@@ -42,7 +25,8 @@ class Actions extends Generic implements TabInterface
     /**
      * Prepare title for tab
      *
-     * @return string
+     * @return \Magento\Framework\Phrase
+     * @codeCoverageIgnore
      */
     public function getTabTitle()
     {
@@ -53,6 +37,7 @@ class Actions extends Generic implements TabInterface
      * Returns status flag about this tab can be showen or not
      *
      * @return bool
+     * @codeCoverageIgnore
      */
     public function canShowTab()
     {
@@ -63,6 +48,7 @@ class Actions extends Generic implements TabInterface
      * Returns status flag about this tab hidden or not
      *
      * @return bool
+     * @codeCoverageIgnore
      */
     public function isHidden()
     {
@@ -71,6 +57,7 @@ class Actions extends Generic implements TabInterface
 
     /**
      * @return Form
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      */
     protected function _prepareForm()
     {
@@ -82,82 +69,82 @@ class Actions extends Generic implements TabInterface
 
         $fieldset = $form->addFieldset(
             'action_fieldset',
-            array('legend' => __('Update Prices Using the Following Information'))
+            ['legend' => __('Pricing Structure Rules')]
         );
 
         $fieldset->addField(
             'simple_action',
             'select',
-            array(
+            [
                 'label' => __('Apply'),
                 'name' => 'simple_action',
-                'options' => array(
-                    'by_percent' => __('By Percentage of the Original Price'),
-                    'by_fixed' => __('By Fixed Amount'),
-                    'to_percent' => __('To Percentage of the Original Price'),
-                    'to_fixed' => __('To Fixed Amount')
-                )
-            )
+                'options' => [
+                    'by_percent' => __('Apply as percentage of original'),
+                    'by_fixed' => __('Apply as fixed amount'),
+                    'to_percent' => __('Adjust final price to this percentage'),
+                    'to_fixed' => __('Adjust final price to discount value'),
+                ]
+            ]
         );
 
         $fieldset->addField(
             'discount_amount',
             'text',
-            array(
+            [
                 'name' => 'discount_amount',
                 'required' => true,
                 'class' => 'validate-not-negative-number',
                 'label' => __('Discount Amount')
-            )
+            ]
         );
 
         $fieldset->addField(
             'sub_is_enable',
             'select',
-            array(
+            [
                 'name' => 'sub_is_enable',
-                'label' => __('Enable Discount to Subproducts'),
-                'title' => __('Enable Discount to Subproducts'),
+                'label' => __('Subproduct discounts'),
+                'title' => __('Subproduct discounts'),
                 'onchange' => 'hideShowSubproductOptions(this);',
-                'values' => array(0 => __('No'), 1 => __('Yes'))
-            )
+                'values' => [0 => __('No'), 1 => __('Yes')]
+            ]
         );
 
         $fieldset->addField(
             'sub_simple_action',
             'select',
-            array(
+            [
                 'label' => __('Apply'),
                 'name' => 'sub_simple_action',
-                'options' => array(
-                    'by_percent' => __('By Percentage of the Original Price'),
-                    'by_fixed' => __('By Fixed Amount'),
-                    'to_percent' => __('To Percentage of the Original Price'),
-                    'to_fixed' => __('To Fixed Amount')
-                )
-            )
+                'options' => [
+                    'by_percent' => __('Apply as percentage of original'),
+                    'by_fixed' => __('Apply as fixed amount'),
+                    'to_percent' => __('Adjust final price to this percentage'),
+                    'to_fixed' => __('Adjust final price to discount value'),
+                ]
+            ]
         );
 
         $fieldset->addField(
             'sub_discount_amount',
             'text',
-            array(
+            [
                 'name' => 'sub_discount_amount',
                 'required' => true,
                 'class' => 'validate-not-negative-number',
                 'label' => __('Discount Amount')
-            )
+            ]
         );
 
         $fieldset->addField(
             'stop_rules_processing',
             'select',
-            array(
-                'label' => __('Stop Further Rules Processing'),
-                'title' => __('Stop Further Rules Processing'),
+            [
+                'label' => __('Discard subsequent rules'),
+                'title' => __('Discard subsequent rules'),
                 'name' => 'stop_rules_processing',
-                'options' => array('1' => __('Yes'), '0' => __('No'))
-            )
+                'options' => ['1' => __('Yes'), '0' => __('No')]
+            ]
         );
 
         $form->setValues($model->getData());

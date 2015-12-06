@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\CatalogImportExport\Model\Import\Product\Type;
 
@@ -37,14 +19,15 @@ class AbstractTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
-        $params = array($objectManager->create('Magento\CatalogImportExport\Model\Import\Product'), 'simple');
+        $params = [$objectManager->create('Magento\CatalogImportExport\Model\Import\Product'), 'simple'];
         $this->_model = $this->getMockForAbstractClass(
             'Magento\CatalogImportExport\Model\Import\Product\Type\AbstractType',
-            array(
-                $objectManager->get('Magento\Eav\Model\Resource\Entity\Attribute\Set\CollectionFactory'),
-                $objectManager->get('Magento\Catalog\Model\Resource\Product\Attribute\CollectionFactory'),
+            [
+                $objectManager->get('Magento\Eav\Model\ResourceModel\Entity\Attribute\Set\CollectionFactory'),
+                $objectManager->get('Magento\Catalog\Model\ResourceModel\Product\Attribute\CollectionFactory'),
+                $objectManager->get('Magento\Framework\App\ResourceConnection'),
                 $params
-            )
+            ]
         );
     }
 
@@ -62,33 +45,32 @@ class AbstractTest extends \PHPUnit_Framework_TestCase
 
     public function prepareAttributesWithDefaultValueForSaveDataProvider()
     {
-        return array(
-            'Updating existing product with attributes that don\'t have default values' => array(
-                array('sku' => 'simple_product_1', 'price' => 55, '_attribute_set' => 'Default', '_type' => 'simple'),
+        return [
+            'Updating existing product with attributes that do not have default values' => [
+                ['sku' => 'simple_product_1', 'price' => 55, '_attribute_set' => 'Default', 'product_type' => 'simple'],
                 false,
-                array('price' => 55)
-            ),
-            'Updating existing product with attributes that do have default values' => array(
-                array(
+                ['price' => 55],
+            ],
+            'Updating existing product with attributes that have default values' => [
+                [
                     'sku' => 'simple_product_2',
                     'price' => 65,
                     '_attribute_set' => 'Default',
-                    '_type' => 'simple',
-                    'visibility' => 1,
-                    'msrp_enabled' => 'Yes',
-                    'tax_class_id' => ''
-                ),
+                    'product_type' => 'simple',
+                    'visibility' => 'not visible individually',
+                    'tax_class_id' => '',
+                ],
                 false,
-                array('price' => 65, 'visibility' => 1, 'msrp_enabled' => 1, 'tax_class_id' => '')
-            ),
-            'Adding new product with attributes that don\'t have default values' => array(
-                array(
+                ['price' => 65, 'visibility' => 1, 'tax_class_id' => ''],
+            ],
+            'Adding new product with attributes that do not have default values' => [
+                [
                     'sku' => 'simple_product_3',
-                    '_store' => '',
+                    'store_view_code' => '',
                     '_attribute_set' => 'Default',
-                    '_type' => 'simple',
-                    '_category' => '_root_category',
-                    '_product_websites' => 'base',
+                    'product_type' => 'simple',
+                    'categories' => '_root_category',
+                    'website_code' => '',
                     'name' => 'Simple Product 3',
                     'price' => 150,
                     'status' => 1,
@@ -96,10 +78,10 @@ class AbstractTest extends \PHPUnit_Framework_TestCase
                     'weight' => 1,
                     'description' => 'a',
                     'short_description' => 'a',
-                    'visibility' => 1
-                ),
+                    'visibility' => 'not visible individually',
+                ],
                 true,
-                array(
+                [
                     'name' => 'Simple Product 3',
                     'price' => 150,
                     'status' => 1,
@@ -109,18 +91,17 @@ class AbstractTest extends \PHPUnit_Framework_TestCase
                     'short_description' => 'a',
                     'visibility' => 1,
                     'options_container' => 'container2',
-                    'msrp_enabled' => 2,
-                    'msrp_display_actual_price_type' => 4
-                )
-            ),
-            'Adding new product with attributes that do have default values' => array(
-                array(
+                    'msrp_display_actual_price_type' => 0
+                ],
+            ],
+            'Adding new product with attributes that have default values' => [
+                [
                     'sku' => 'simple_product_4',
-                    '_store' => '',
+                    'store_view_code' => '',
                     '_attribute_set' => 'Default',
-                    '_type' => 'simple',
-                    '_category' => '_root_category',
-                    '_product_websites' => 'base',
+                    'product_type' => 'simple',
+                    'categories' => '_root_category',
+                    'website_code' => 'base',
                     'name' => 'Simple Product 4',
                     'price' => 100,
                     'status' => 1,
@@ -128,12 +109,11 @@ class AbstractTest extends \PHPUnit_Framework_TestCase
                     'weight' => 1,
                     'description' => 'a',
                     'short_description' => 'a',
-                    'visibility' => 2,
-                    'msrp_enabled' => 'Yes',
-                    'msrp_display_actual_price_type' => 'In Cart'
-                ),
+                    'visibility' => 'catalog',
+                    'msrp_display_actual_price_type' => 'In Cart',
+                ],
                 true,
-                array(
+                [
                     'name' => 'Simple Product 4',
                     'price' => 100,
                     'status' => 1,
@@ -143,11 +123,10 @@ class AbstractTest extends \PHPUnit_Framework_TestCase
                     'short_description' => 'a',
                     'visibility' => 2,
                     'options_container' => 'container2',
-                    'msrp_enabled' => 1,
                     'msrp_display_actual_price_type' => 2
-                )
-            )
-        );
+                ],
+            ]
+        ];
     }
 
     /**
@@ -164,42 +143,42 @@ class AbstractTest extends \PHPUnit_Framework_TestCase
 
     public function clearEmptyDataDataProvider()
     {
-        return array(
-            array(
-                array(
+        return [
+            [
+                [
                     'sku' => 'simple1',
-                    '_store' => '',
+                    'store_view_code' => '',
                     '_attribute_set' => 'Default',
-                    '_type' => 'simple',
+                    'product_type' => 'simple',
+                    'name' => 'Simple 01',
+                    'price' => 10,
+                ],
+                [
+                    'sku' => 'simple1',
+                    'store_view_code' => '',
+                    '_attribute_set' => 'Default',
+                    'product_type' => 'simple',
                     'name' => 'Simple 01',
                     'price' => 10
-                ),
-                array(
-                    'sku' => 'simple1',
-                    '_store' => '',
-                    '_attribute_set' => 'Default',
-                    '_type' => 'simple',
-                    'name' => 'Simple 01',
-                    'price' => 10
-                )
-            ),
-            array(
-                array(
+                ],
+            ],
+            [
+                [
                     'sku' => '',
-                    '_store' => 'German',
+                    'store_view_code' => 'German',
                     '_attribute_set' => 'Default',
-                    '_type' => '',
+                    'product_type' => '',
                     'name' => 'Simple 01 German',
-                    'price' => ''
-                ),
-                array(
+                    'price' => '',
+                ],
+                [
                     'sku' => '',
-                    '_store' => 'German',
+                    'store_view_code' => 'German',
                     '_attribute_set' => 'Default',
-                    '_type' => '',
+                    'product_type' => '',
                     'name' => 'Simple 01 German'
-                )
-            )
-        );
+                ]
+            ]
+        ];
     }
 }

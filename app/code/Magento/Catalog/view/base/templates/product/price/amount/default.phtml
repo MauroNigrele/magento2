@@ -1,44 +1,32 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 ?>
 
-<?php /** @var \Magento\Framework\Pricing\Render\Amount $this */ ?>
+<?php /** @var \Magento\Framework\Pricing\Render\Amount $block */ ?>
 
-<span class="price-container <?php echo $this->getAdjustmentCssClasses() ?>">
-    <?php if ($this->getDisplayLabel()): ?>
-        <span class="price-label"><?php echo $this->getDisplayLabel(); ?></span>
+<span class="price-container <?php /* @escapeNotVerified */ echo $block->getAdjustmentCssClasses() ?>"
+        <?php echo $block->getSchema() ? ' itemprop="offers" itemscope itemtype="http://schema.org/Offer"' : '' ?>>
+    <?php if ($block->getDisplayLabel()): ?>
+        <span class="price-label"><?php /* @escapeNotVerified */ echo $block->getDisplayLabel(); ?></span>
     <?php endif; ?>
-    <span id="<?php echo $this->getPriceId() ?>"
-        <?php echo ($this->getPriceDisplayLabel()) ? 'data-label="' . $this->getPriceDisplayLabel() . '"' : '' ?>
-          class="price-wrapper <?php echo $this->getPriceWrapperCss();?>">
-        <span class="price">
-            <?php echo $this->convertAndFormatCurrency($this->getDisplayValue(), (bool) $this->getIncludeContainer()) ?>
-        </span>
+    <span <?php if ($block->getPriceId()): ?> id="<?php /* @escapeNotVerified */ echo $block->getPriceId() ?>"<?php endif;?>
+        <?php echo($block->getPriceDisplayLabel()) ? 'data-label="' . $block->getPriceDisplayLabel() . $block->getPriceDisplayInclExclTaxes() . '"' : '' ?>
+        data-price-amount="<?php /* @escapeNotVerified */ echo $block->getDisplayValue(); ?>"
+        data-price-type="<?php /* @escapeNotVerified */ echo $block->getPriceType(); ?>"
+        class="price-wrapper <?php /* @escapeNotVerified */ echo $block->getPriceWrapperCss(); ?>"
+        <?php echo $block->getSchema() ? ' itemprop="price"' : '' ?>>
+        <?php /* @escapeNotVerified */ echo $block->formatCurrency($block->getDisplayValue(), (bool)$block->getIncludeContainer()) ?>
     </span>
-    <?php if ($this->hasAdjustmentsHtml()): ?>
-        <span class="price-adjustments">
-            <?php echo $this->getAdjustmentsHtml() ?>
-        </span>
+    <?php if ($block->hasAdjustmentsHtml()): ?>
+        <?php echo $block->getAdjustmentsHtml() ?>
+    <?php endif; ?>
+    <?php if ($block->getSchema()): ?>
+        <meta itemprop="priceCurrency" content="<?php /* @escapeNotVerified */ echo $block->getDisplayCurrencyCode()?>" />
     <?php endif; ?>
 </span>

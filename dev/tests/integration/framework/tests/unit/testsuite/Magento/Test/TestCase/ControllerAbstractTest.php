@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Test\TestCase;
 
@@ -35,22 +17,15 @@ class ControllerAbstractTest extends \Magento\TestFramework\TestCase\AbstractCon
 
     protected function setUp()
     {
-        $this->messageManager = $this->getMock('\Magento\Framework\Message\Manager', array(), array(), '', false);
-        $request = new \Magento\TestFramework\Request(
-            $this->getMock('Magento\Framework\App\Route\ConfigInterface', [], [], '', false),
-            $this->getMock('Magento\Framework\App\Request\PathInfoProcessorInterface', [], [], '', false),
-            $this->getMock('Magento\Framework\Stdlib\CookieManager', [], [], '', false)
-        );
-        $response = new \Magento\TestFramework\Response(
-            $this->getMock('Magento\Framework\Stdlib\CookieManager', [], [], '', false),
-            $this->getMock('Magento\Framework\Stdlib\Cookie\CookieMetadataFactory', [], [], '', false),
-            $this->getMock('Magento\Framework\App\Http\Context', [], [], '', false)
-        );
+        $testObjectManager = new \Magento\Framework\TestFramework\Unit\Helper\ObjectManager($this);
 
+        $this->messageManager = $this->getMock('\Magento\Framework\Message\Manager', [], [], '', false);
+        $request = $testObjectManager->getObject('Magento\TestFramework\Request');
+        $response = $testObjectManager->getObject('Magento\TestFramework\Response');
         $this->_objectManager = $this->getMock(
             'Magento\TestFramework\ObjectManager',
-            array('get', 'create'),
-            array(),
+            ['get', 'create'],
+            [],
             '',
             false
         );
@@ -58,11 +33,11 @@ class ControllerAbstractTest extends \Magento\TestFramework\TestCase\AbstractCon
             ->method('get')
             ->will(
                 $this->returnValueMap(
-                    array(
-                        array('Magento\Framework\App\RequestInterface', $request),
-                        array('Magento\Framework\App\ResponseInterface', $response),
-                        array('Magento\Framework\Message\Manager', $this->messageManager),
-                    )
+                    [
+                        ['Magento\Framework\App\RequestInterface', $request],
+                        ['Magento\Framework\App\ResponseInterface', $response],
+                        ['Magento\Framework\Message\Manager', $this->messageManager],
+                    ]
                 )
             );
     }
@@ -78,8 +53,8 @@ class ControllerAbstractTest extends \Magento\TestFramework\TestCase\AbstractCon
         if (!$this->_bootstrap) {
             $this->_bootstrap = $this->getMock(
                 'Magento\TestFramework\Bootstrap',
-                array('getAllOptions'),
-                array(),
+                ['getAllOptions'],
+                [],
                 '',
                 false
             );
@@ -137,7 +112,7 @@ class ControllerAbstractTest extends \Magento\TestFramework\TestCase\AbstractCon
          * which requires fully initialized application environment intentionally not available
          * for unit tests
          */
-        $setRedirectMethod = new \ReflectionMethod('Zend_Controller_Response_Http', 'setRedirect');
+        $setRedirectMethod = new \ReflectionMethod('Magento\Framework\App\Response\Http', 'setRedirect');
         $setRedirectMethod->invoke($this->getResponse(), 'http://magentocommerce.com');
         $this->assertRedirect();
         $this->assertRedirect($this->equalTo('http://magentocommerce.com'));
@@ -152,7 +127,7 @@ class ControllerAbstractTest extends \Magento\TestFramework\TestCase\AbstractCon
     {
         $this->addSessionMessages();
         /** @var \PHPUnit_Framework_MockObject_MockObject|\PHPUnit_Framework_Constraint $constraint */
-        $constraint = $this->getMock('PHPUnit_Framework_Constraint', array('toString', 'matches'));
+        $constraint = $this->getMock('PHPUnit_Framework_Constraint', ['toString', 'matches']);
         $constraint->expects(
             $this->once()
         )->method('matches')
@@ -163,20 +138,20 @@ class ControllerAbstractTest extends \Magento\TestFramework\TestCase\AbstractCon
 
     public function assertSessionMessagesDataProvider()
     {
-        return array(
-            'message waning type filtering' => array(
-                array('some_warning'),
-                \Magento\Framework\Message\MessageInterface::TYPE_WARNING
-            ),
-            'message error type filtering' => array(
-                array('error_one', 'error_two'),
-                \Magento\Framework\Message\MessageInterface::TYPE_ERROR
-            ),
-            'message success type filtering'    => array(
-                array('success!'),
-                \Magento\Framework\Message\MessageInterface::TYPE_SUCCESS
-            ),
-        );
+        return [
+            'message waning type filtering' => [
+                ['some_warning'],
+                \Magento\Framework\Message\MessageInterface::TYPE_WARNING,
+            ],
+            'message error type filtering' => [
+                ['error_one', 'error_two'],
+                \Magento\Framework\Message\MessageInterface::TYPE_ERROR,
+            ],
+            'message success type filtering'    => [
+                ['success!'],
+                \Magento\Framework\Message\MessageInterface::TYPE_SUCCESS,
+            ],
+        ];
     }
 
     public function testAssertSessionMessagesAll()

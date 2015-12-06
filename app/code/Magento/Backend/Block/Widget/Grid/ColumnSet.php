@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Backend\Block\Widget\Grid;
 
@@ -89,7 +71,7 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
      *
      * @var string[]
      */
-    protected $_groupedColumn = array();
+    protected $_groupedColumn = [];
 
     /**
      * @var boolean
@@ -119,13 +101,14 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
      * @param \Magento\Backend\Model\Widget\Grid\SubTotals $subtotals
      * @param \Magento\Backend\Model\Widget\Grid\Totals $totals
      * @param array $data
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function __construct(
         \Magento\Framework\View\Element\Template\Context $context,
         \Magento\Backend\Model\Widget\Grid\Row\UrlGeneratorFactory $generatorFactory,
         \Magento\Backend\Model\Widget\Grid\SubTotals $subtotals,
         \Magento\Backend\Model\Widget\Grid\Totals $totals,
-        array $data = array()
+        array $data = []
     ) {
         $generatorClassName = 'Magento\Backend\Model\Widget\Grid\Row\UrlGenerator';
         if (isset($data['rowUrl'])) {
@@ -135,7 +118,7 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
             }
             $this->_rowUrlGenerator = $generatorFactory->createUrlGenerator(
                 $generatorClassName,
-                array('args' => $rowUrlParams)
+                ['args' => $rowUrlParams]
             );
         }
 
@@ -165,7 +148,6 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
      */
     public function getColumns()
     {
-
         $columns = $this->getLayout()->getChildBlocks($this->getNameInLayout());
         foreach ($columns as $key => $column) {
             if (!$column->isDisplayed()) {
@@ -255,7 +237,7 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
     /**
      * Return row url for js event handlers
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @return string
      */
     public function getRowUrl($item)
@@ -270,7 +252,7 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
     /**
      * Get children of specified item
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @return array
      */
     public function getMultipleRows($item)
@@ -281,7 +263,7 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
     /**
      * Has children of specified item
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @return bool
      */
     public function hasMultipleRows($item)
@@ -305,7 +287,7 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
     /**
      * Check whether subtotal should be rendered
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @return boolean
      */
     public function shouldRenderSubTotal($item)
@@ -326,7 +308,7 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
     /**
      * Retrieve rowspan number
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @param \Magento\Backend\Block\Widget\Grid\Column $column
      * @return int|false
      */
@@ -366,7 +348,7 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
     /**
      * Check whether should render empty cell
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @param \Magento\Backend\Block\Widget\Grid\Column $column
      * @return boolean
      */
@@ -388,7 +370,7 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
     /**
      * Check whether should render cell
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @param \Magento\Backend\Block\Widget\Grid\Column $column
      * @return boolean
      */
@@ -505,6 +487,7 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
      * Retrieve flag is collapsed
      *
      * @return bool
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName)
      */
     public function getIsCollapsed()
     {
@@ -547,6 +530,7 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
      * Return count subtotals
      *
      * @return bool
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName)
      */
     public function getCountSubTotals()
     {
@@ -569,6 +553,7 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
      * Return count totals
      *
      * @return bool
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName)
      */
     public function getCountTotals()
     {
@@ -578,8 +563,8 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
     /**
      * Retrieve subtotal for item
      *
-     * @param \Magento\Framework\Object $item
-     * @return \Magento\Framework\Object
+     * @param \Magento\Framework\DataObject $item
+     * @return \Magento\Framework\DataObject
      */
     public function getSubTotals($item)
     {
@@ -591,7 +576,7 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
     /**
      * Retrieve subtotal items
      *
-     * @return \Magento\Framework\Object
+     * @return \Magento\Framework\DataObject
      */
     public function getTotals()
     {
@@ -603,10 +588,10 @@ class ColumnSet extends \Magento\Framework\View\Element\Template
     /**
      * Update item with first sub-item data
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @return void
      */
-    public function updateItemByFirstMultiRow(\Magento\Framework\Object $item)
+    public function updateItemByFirstMultiRow(\Magento\Framework\DataObject $item)
     {
         $multiRows = $this->getMultipleRows($item);
         if (is_object($multiRows) && $multiRows instanceof \Magento\Framework\Data\Collection) {

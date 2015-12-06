@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Filter;
 
@@ -46,7 +28,7 @@ namespace Magento\Framework\Filter;
 class FilterManager
 {
     /**
-     * @var \Magento\Framework\ObjectManager
+     * @var \Magento\Framework\ObjectManagerInterface
      */
     protected $objectManager;
 
@@ -61,10 +43,10 @@ class FilterManager
     protected $factoryInstances;
 
     /**
-     * @param \Magento\Framework\ObjectManager $objectManger
+     * @param \Magento\Framework\ObjectManagerInterface $objectManger
      * @param FilterManager\Config $config
      */
-    public function __construct(\Magento\Framework\ObjectManager $objectManger, FilterManager\Config $config)
+    public function __construct(\Magento\Framework\ObjectManagerInterface $objectManger, FilterManager\Config $config)
     {
         $this->objectManager = $objectManger;
         $this->config = $config;
@@ -78,7 +60,7 @@ class FilterManager
      * @return \Zend_Filter_Interface
      * @throws \UnexpectedValueException
      */
-    public function get($filterAlias, array $arguments = array())
+    public function get($filterAlias, array $arguments = [])
     {
         $filter = $this->createFilterInstance($filterAlias, $arguments);
         if (!$filter instanceof \Zend_Filter_Interface) {
@@ -139,13 +121,13 @@ class FilterManager
      * @param array $arguments
      * @return \Zend_Filter_Interface
      */
-    public function __call($filterAlias, array $arguments = array())
+    public function __call($filterAlias, array $arguments = [])
     {
         $value = array_shift($arguments);
         if (count($arguments)) {
             $arguments = array_shift($arguments);
             if (!is_array($arguments)) {
-                $arguments = array($arguments);
+                $arguments = [$arguments];
             }
         }
         return $this->createFilterInstance($filterAlias, $arguments)->filter($value);

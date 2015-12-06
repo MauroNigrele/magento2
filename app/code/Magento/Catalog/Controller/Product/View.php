@@ -1,49 +1,73 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Controller\Product;
+
+use Magento\Framework\App\Action\Context;
+use Magento\Framework\View\Result\PageFactory;
 
 class View extends \Magento\Catalog\Controller\Product
 {
     /**
+     * @var \Magento\Catalog\Helper\Product\View
+     */
+    protected $viewHelper;
+
+    /**
+     * @var \Magento\Framework\Controller\Result\ForwardFactory
+     */
+    protected $resultForwardFactory;
+
+    /**
+     * @var \Magento\Framework\View\Result\PageFactory
+     */
+    protected $resultPageFactory;
+
+    /**
+     * Constructor
+     *
+     * @param Context $context
+     * @param \Magento\Catalog\Helper\Product\View $viewHelper
+     * @param \Magento\Framework\Controller\Result\ForwardFactory $resultForwardFactory
+     * @param PageFactory $resultPageFactory
+     */
+    public function __construct(
+        Context $context,
+        \Magento\Catalog\Helper\Product\View $viewHelper,
+        \Magento\Framework\Controller\Result\ForwardFactory $resultForwardFactory,
+        PageFactory $resultPageFactory
+    ) {
+        $this->viewHelper = $viewHelper;
+        $this->resultForwardFactory = $resultForwardFactory;
+        $this->resultPageFactory = $resultPageFactory;
+        parent::__construct($context);
+    }
+
+    /**
      * Redirect if product failed to load
      *
-     * @return void
+     * @return \Magento\Framework\Controller\Result\Redirect|\Magento\Framework\Controller\Result\Forward
      */
     protected function noProductRedirect()
     {
-        if (isset($_GET['store']) && !$this->getResponse()->isRedirect()) {
-            $this->_redirect('');
+        $store = $this->getRequest()->getQuery('store');
+        if (isset($store) && !$this->getResponse()->isRedirect()) {
+            $resultRedirect = $this->resultRedirectFactory->create();
+            return $resultRedirect->setPath('');
         } elseif (!$this->getResponse()->isRedirect()) {
-            $this->_forward('noroute');
+            $resultForward = $this->resultForwardFactory->create();
+            $resultForward->forward('noroute');
+            return $resultForward;
         }
     }
 
     /**
      * Product view action
      *
-     * @return void
+     * @return \Magento\Framework\Controller\Result\Forward|\Magento\Framework\Controller\Result\Redirect
      */
     public function execute()
     {
@@ -55,34 +79,42 @@ class View extends \Magento\Catalog\Controller\Product
         if ($this->getRequest()->isPost() && $this->getRequest()->getParam(self::PARAM_NAME_URL_ENCODED)) {
             $product = $this->_initProduct();
             if (!$product) {
-                $this->noProductRedirect();
+                return $this->noProductRedirect();
             }
             if ($specifyOptions) {
                 $notice = $product->getTypeInstance()->getSpecifyOptionMessage();
                 $this->messageManager->addNotice($notice);
             }
-            $this->getResponse()->setRedirect($this->_redirect->getRedirectUrl());
-            return;
+            if ($this->getRequest()->isAjax()) {
+                $this->getResponse()->representJson(
+                    $this->_objectManager->get('Magento\Framework\Json\Helper\Data')->jsonEncode([
+                        'backUrl' => $this->_redirect->getRedirectUrl()
+                    ])
+                );
+                return;
+            }
+            $resultRedirect = $this->resultRedirectFactory->create();
+            $resultRedirect->setRefererOrBaseUrl();
+            return $resultRedirect;
         }
 
         // Prepare helper and params
-        /** @var \Magento\Catalog\Helper\Product\View $viewHelper */
-        $viewHelper = $this->_objectManager->get('Magento\Catalog\Helper\Product\View');
-
-        $params = new \Magento\Framework\Object();
+        $params = new \Magento\Framework\DataObject();
         $params->setCategoryId($categoryId);
         $params->setSpecifyOptions($specifyOptions);
 
         // Render page
         try {
-            $viewHelper->prepareAndRender($productId, $this, $params);
+            $page = $this->resultPageFactory->create(false, ['isIsolated' => true]);
+            $this->viewHelper->prepareAndRender($page, $productId, $this, $params);
+            return $page;
+        } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+            return $this->noProductRedirect();
         } catch (\Exception $e) {
-            if ($e->getCode() == $viewHelper->ERR_NO_PRODUCT_LOADED) {
-                $this->noProductRedirect();
-            } else {
-                $this->_objectManager->get('Magento\Framework\Logger')->logException($e);
-                $this->_forward('noroute');
-            }
+            $this->_objectManager->get('Psr\Log\LoggerInterface')->critical($e);
+            $resultForward = $this->resultForwardFactory->create();
+            $resultForward->forward('noroute');
+            return $resultForward;
         }
     }
 }

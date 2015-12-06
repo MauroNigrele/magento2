@@ -1,47 +1,29 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Controller\Adminhtml\Order\Creditmemo;
 
-use \Magento\Backend\App\Action;
+use Magento\Backend\App\Action;
 
 class Cancel extends \Magento\Backend\App\Action
 {
+
     /**
-     * @var \Magento\Sales\Controller\Adminhtml\Order\CreditmemoLoader
+     * @var \Magento\Backend\Model\View\Result\ForwardFactory
      */
-    protected $creditmemoLoader;
+    protected $resultForwardFactory;
 
     /**
      * @param Action\Context $context
-     * @param \Magento\Sales\Controller\Adminhtml\Order\CreditmemoLoader $creditmemoLoader
+     * @param \Magento\Backend\Model\View\Result\ForwardFactory $resultForwardFactory
      */
     public function __construct(
         Action\Context $context,
-        \Magento\Sales\Controller\Adminhtml\Order\CreditmemoLoader $creditmemoLoader
+        \Magento\Backend\Model\View\Result\ForwardFactory $resultForwardFactory
     ) {
-        $this->creditmemoLoader = $creditmemoLoader;
+        $this->resultForwardFactory = $resultForwardFactory;
         parent::__construct($context);
     }
 
@@ -56,35 +38,30 @@ class Cancel extends \Magento\Backend\App\Action
     /**
      * Cancel creditmemo action
      *
-     * @return void
+     * @return \Magento\Backend\Model\View\Result\Redirect|\Magento\Backend\Model\View\Result\Forward
      */
     public function execute()
     {
-        $this->creditmemoLoader->setOrderId($this->getRequest()->getParam('order_id'));
-        $this->creditmemoLoader->setCreditmemoId($this->getRequest()->getParam('creditmemo_id'));
-        $this->creditmemoLoader->setCreditmemo($this->getRequest()->getParam('creditmemo'));
-        $this->creditmemoLoader->setInvoiceId($this->getRequest()->getParam('invoice_id'));
-        $creditmemo = $this->creditmemoLoader->load();
-        if ($creditmemo) {
+        $creditmemoId = $this->getRequest()->getParam('creditmemo_id');
+        if ($creditmemoId) {
             try {
-                $creditmemo->cancel();
-                $transactionSave = $this->_objectManager->create('Magento\Framework\DB\Transaction');
-                $transactionSave->addObject($creditmemo);
-                $transactionSave->addObject($creditmemo->getOrder());
-
-                if ($creditmemo->getInvoice()) {
-                    $transactionSave->addObject($creditmemo->getInvoice());
-                }
-                $transactionSave->save();
+                $creditmemoManagement = $this->_objectManager->create(
+                    'Magento\Sales\Api\CreditmemoManagementInterface'
+                );
+                $creditmemoManagement->cancel($creditmemoId);
                 $this->messageManager->addSuccess(__('The credit memo has been canceled.'));
-            } catch (\Magento\Framework\Model\Exception $e) {
+            } catch (\Magento\Framework\Exception\LocalizedException $e) {
                 $this->messageManager->addError($e->getMessage());
             } catch (\Exception $e) {
-                $this->messageManager->addError(__('You canceled the credit memo.'));
+                $this->messageManager->addError(__('Credit memo has not been canceled.'));
             }
-            $this->_redirect('sales/*/view', array('creditmemo_id' => $creditmemo->getId()));
+            $resultRedirect = $this->resultRedirectFactory->create();
+            $resultRedirect->setPath('sales/*/view', ['creditmemo_id' => $creditmemoId]);
+            return $resultRedirect;
         } else {
-            $this->_forward('noroute');
+            $resultForward = $this->resultForwardFactory->create();
+            $resultForward->forward('noroute');
+            return $resultForward;
         }
     }
 }

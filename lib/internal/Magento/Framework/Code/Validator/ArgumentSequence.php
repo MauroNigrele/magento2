@@ -2,31 +2,12 @@
 /**
  * Class constructor validator. Validates arguments sequence
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Code\Validator;
 
 use Magento\Framework\Code\ValidatorInterface;
-use Magento\Framework\Code\ValidationException;
 
 class ArgumentSequence implements ValidatorInterface
 {
@@ -57,7 +38,8 @@ class ArgumentSequence implements ValidatorInterface
      *
      * @param string $className
      * @return bool
-     * @throws ValidationException
+     * @throws \Magento\Framework\Exception\ValidatorException
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function validate($className)
     {
@@ -69,7 +51,7 @@ class ArgumentSequence implements ValidatorInterface
         }
 
         $parent = $class->getParentClass();
-        $parentArguments = array();
+        $parentArguments = [];
         if ($parent) {
             $parentClass = $parent->getName();
             if (0 !== strpos($parentClass, '\\')) {
@@ -77,7 +59,7 @@ class ArgumentSequence implements ValidatorInterface
             }
 
             if (isset($this->_cache[$parentClass])) {
-                $parentCall = $this->_argumentsReader->getParentCall($class, array());
+                $parentCall = $this->_argumentsReader->getParentCall($class, []);
                 if (empty($classArguments) || $parentCall) {
                     $parentArguments = $this->_cache[$parentClass];
                 }
@@ -95,20 +77,19 @@ class ArgumentSequence implements ValidatorInterface
 
         if (false == $this->_checkArgumentSequence($classArguments, $requiredSequence)) {
             $classPath = str_replace('\\', '/', $class->getFileName());
-            throw new ValidationException(
-                'Incorrect argument sequence in class ' .
-                $className .
-                ' in ' .
-                $classPath .
-                PHP_EOL .
-                'Required: $' .
-                implode(
-                    ', $',
-                    array_keys($requiredSequence)
-                ) . PHP_EOL . 'Actual  : $' . implode(
-                    ', $',
-                    array_keys($classArguments)
-                ) . PHP_EOL
+            throw new \Magento\Framework\Exception\ValidatorException(
+                new \Magento\Framework\Phrase(
+                    'Incorrect argument sequence in class %1 in %2%3Required: $%4%5Actual  : $%6%7',
+                    [
+                        $className,
+                        $classPath,
+                        PHP_EOL,
+                        implode(', $', array_keys($requiredSequence)),
+                        PHP_EOL,
+                        implode(', $', array_keys($classArguments)),
+                        PHP_EOL
+                    ]
+                )
             );
         }
 
@@ -124,8 +105,8 @@ class ArgumentSequence implements ValidatorInterface
      */
     protected function _checkArgumentSequence(array $actualSequence, array $requiredSequence)
     {
-        $actualArgumentSequence = array();
-        $requiredArgumentSequence = array();
+        $actualArgumentSequence = [];
+        $requiredArgumentSequence = [];
 
         foreach ($actualSequence as $name => $argument) {
             if (false == $argument['isOptional']) {
@@ -153,10 +134,12 @@ class ArgumentSequence implements ValidatorInterface
      * @param array $classArguments
      * @param array $parentArguments
      * @return array
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
-    protected function _buildsSequence(array $classArguments, array $parentArguments = array())
+    protected function _buildsSequence(array $classArguments, array $parentArguments = [])
     {
-        $output = array();
+        $output = [];
         if (empty($classArguments)) {
             return $parentArguments;
         }
@@ -164,7 +147,7 @@ class ArgumentSequence implements ValidatorInterface
         $classArgumentList = $this->_sortArguments($classArguments);
         $parentArgumentList = $this->_sortArguments($parentArguments);
 
-        $migrated = array();
+        $migrated = [];
         foreach ($parentArgumentList[self::REQUIRED] as $name => $argument) {
             if (!isset($classArgumentList[self::OPTIONAL][$name])) {
                 $output[$name] = isset(
@@ -213,8 +196,8 @@ class ArgumentSequence implements ValidatorInterface
      */
     protected function _sortArguments($arguments)
     {
-        $required = array();
-        $optional = array();
+        $required = [];
+        $optional = [];
 
         foreach ($arguments as $name => $argument) {
             if ($argument['isOptional']) {
@@ -224,7 +207,7 @@ class ArgumentSequence implements ValidatorInterface
             }
         }
 
-        return array(self::REQUIRED => $required, self::OPTIONAL => $optional);
+        return [self::REQUIRED => $required, self::OPTIONAL => $optional];
     }
 
     /**

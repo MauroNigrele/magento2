@@ -1,26 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 namespace Magento\ProductAlert\Block\Email;
 
 use Magento\Framework\Pricing\PriceCurrencyInterface;
@@ -37,7 +22,7 @@ abstract class AbstractEmail extends \Magento\Framework\View\Element\Template
      *
      * @var array
      */
-    protected $_products = array();
+    protected $_products = [];
 
     /**
      * Current Store scope object
@@ -57,17 +42,25 @@ abstract class AbstractEmail extends \Magento\Framework\View\Element\Template
     protected $priceCurrency;
 
     /**
+     * @var \Magento\Catalog\Helper\Image
+     */
+    protected $imageBuilder;
+
+    /**
      * @param \Magento\Framework\View\Element\Template\Context $context
      * @param \Magento\Framework\Filter\Input\MaliciousCode $maliciousCode
      * @param PriceCurrencyInterface $priceCurrency
+     * @param \Magento\Catalog\Block\Product\ImageBuilder $imageBuilder
      * @param array $data
      */
     public function __construct(
         \Magento\Framework\View\Element\Template\Context $context,
         \Magento\Framework\Filter\Input\MaliciousCode $maliciousCode,
         PriceCurrencyInterface $priceCurrency,
-        array $data = array()
+        \Magento\Catalog\Block\Product\ImageBuilder $imageBuilder,
+        array $data = []
     ) {
+        $this->imageBuilder = $imageBuilder;
         $this->priceCurrency = $priceCurrency;
         $this->_maliciousCode = $maliciousCode;
         parent::__construct($context, $data);
@@ -139,7 +132,7 @@ abstract class AbstractEmail extends \Magento\Framework\View\Element\Template
      */
     public function reset()
     {
-        $this->_products = array();
+        $this->_products = [];
     }
 
     /**
@@ -170,7 +163,7 @@ abstract class AbstractEmail extends \Magento\Framework\View\Element\Template
      */
     protected function _getUrlParams()
     {
-        return array('_scope' => $this->getStore(), '_scope_to_url' => true);
+        return ['_scope' => $this->getStore(), '_scope_to_url' => true];
     }
 
     /**
@@ -181,7 +174,7 @@ abstract class AbstractEmail extends \Magento\Framework\View\Element\Template
         return $this->_layout->createBlock(
             'Magento\Framework\Pricing\Render',
             '',
-            ['data'=> ['price_render_handle' => 'catalog_product_prices']]
+            ['data' => ['price_render_handle' => 'catalog_product_prices']]
         );
     }
 
@@ -216,5 +209,21 @@ abstract class AbstractEmail extends \Magento\Framework\View\Element\Template
             );
         }
         return $price;
+    }
+
+    /**
+     * Retrieve product image
+     *
+     * @param \Magento\Catalog\Model\Product $product
+     * @param string $imageId
+     * @param array $attributes
+     * @return \Magento\Catalog\Block\Product\Image
+     */
+    public function getImage($product, $imageId, $attributes = [])
+    {
+        return $this->imageBuilder->setProduct($product)
+            ->setImageId($imageId)
+            ->setAttributes($attributes)
+            ->create();
     }
 }

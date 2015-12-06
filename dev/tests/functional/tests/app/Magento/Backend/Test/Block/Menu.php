@@ -1,40 +1,49 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @spi
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
 namespace Magento\Backend\Test\Block;
 
-use Mtf\Block\Block;
-use Mtf\Client\Element\Locator;
+use Magento\Mtf\Block\Block;
+use Magento\Mtf\Client\Locator;
 
 /**
- * Class Menu
- * Class top menu navigation block
+ * Top menu navigation block.
  */
 class Menu extends Block
 {
     /**
-     * Returns array of parent menu items present on dashboard menu
+     * Main menu selector.
+     *
+     * @var string
+     */
+    protected $mainMenu = './/li[@role="menu-item"]/a[span="%s"]';
+
+    /**
+     * Submenu selector.
+     *
+     * @var string
+     */
+    protected $subMenu = './/li[@role="menu-item" and a[span="%s"]]/div[contains(@class, "submenu")]';
+
+    /**
+     * Submenu item selector.
+     *
+     * @var string
+     */
+    protected $subMenuItem = '//li[@role="menu-item"]//a[span="%s"]';
+
+    /**
+     * Parent menu item.
+     *
+     * @var string
+     */
+    protected $parentMenuLevel = 'li.parent.level-0:nth-of-type(%s)';
+
+    /**
+     * Returns array of parent menu items present on dashboard menu.
      *
      * @return array
      */
@@ -44,14 +53,51 @@ class Menu extends Block
         $menuItems = [];
         $counter = 1;
         $textSelector = 'a span';
-        while ($navigationMenu->find('li.parent.level-0:nth-of-type(' . $counter . ')')->isVisible()) {
+        while ($navigationMenu->find(sprintf($this->parentMenuLevel, $counter))->isVisible()) {
             $menuItems[] = strtolower(
-                $navigationMenu->find('li.parent.level-0:nth-of-type(' . $counter . ')')
+                $navigationMenu->find(sprintf($this->parentMenuLevel, $counter))
                     ->find($textSelector)
                     ->getText()
             );
             $counter++;
         }
         return $menuItems;
+    }
+
+    /**
+     * Open backend page via menu.
+     *
+     * @param string $menuItem
+     * @return void
+     * @throws \Exception
+     */
+    public function navigate($menuItem)
+    {
+        $menuChain = array_map('trim', explode('>', $menuItem));
+        $mainMenu = $menuChain[0];
+        $subMenu = isset($menuChain[1]) ? $menuChain[1] : null;
+
+        // Click on element in main menu
+        $mainMenuElement = $this->_rootElement->find(sprintf($this->mainMenu, $mainMenu), Locator::SELECTOR_XPATH);
+        if (!$mainMenuElement->isVisible()) {
+            throw new \Exception('Main menu item "' . $mainMenu . '" is not visible.');
+        }
+        $mainMenuElement->click();
+
+        // Click on element in submenu
+        if ($subMenu === null) {
+            return;
+        }
+        $subMenuSelector = sprintf($this->subMenu, $mainMenu);
+        $this->waitForElementVisible($subMenuSelector, Locator::SELECTOR_XPATH);
+        $subMenuItem = $subMenuSelector . sprintf($this->subMenuItem, $subMenu);
+        $this->waitForElementVisible($subMenuItem, Locator::SELECTOR_XPATH);
+        // Resolve an issue on with "Offset within element cannot be scrolled into view" on low screen resolution
+        try {
+            $this->_rootElement->find($subMenuItem, Locator::SELECTOR_XPATH)->hover();
+        } catch (\PHPUnit_Extensions_Selenium2TestCase_WebDriverException  $e) {
+        }
+        $this->_rootElement->find($subMenuItem, Locator::SELECTOR_XPATH)->click();
+        $this->waitForElementNotVisible($subMenuSelector, Locator::SELECTOR_XPATH);
     }
 }

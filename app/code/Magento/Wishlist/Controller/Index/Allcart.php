@@ -1,37 +1,18 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Wishlist\Controller\Index;
 
-use Magento\Core\App\Action\FormKeyValidator;
+use Magento\Framework\Data\Form\FormKey\Validator;
+use Magento\Framework\App\Action;
 use Magento\Framework\App\Action\Context;
 use Magento\Wishlist\Controller\WishlistProviderInterface;
 use Magento\Wishlist\Model\ItemCarrier;
-use Magento\Wishlist\Controller\IndexInterface;
-use Magento\Framework\App\Action;
+use Magento\Framework\Controller\ResultFactory;
 
-class Allcart extends Action\Action implements IndexInterface
+class Allcart extends \Magento\Wishlist\Controller\AbstractIndex
 {
     /**
      * @var WishlistProviderInterface
@@ -44,20 +25,20 @@ class Allcart extends Action\Action implements IndexInterface
     protected $itemCarrier;
 
     /**
-     * @var \Magento\Core\App\Action\FormKeyValidator
+     * @var \Magento\Framework\Data\Form\FormKey\Validator
      */
     protected $formKeyValidator;
 
     /**
      * @param Context $context
      * @param WishlistProviderInterface $wishlistProvider
-     * @param FormKeyValidator $formKeyValidator
+     * @param Validator $formKeyValidator
      * @param ItemCarrier $itemCarrier
      */
     public function __construct(
         Context $context,
         WishlistProviderInterface $wishlistProvider,
-        FormKeyValidator $formKeyValidator,
+        Validator $formKeyValidator,
         ItemCarrier $itemCarrier
     ) {
         $this->wishlistProvider = $wishlistProvider;
@@ -69,21 +50,26 @@ class Allcart extends Action\Action implements IndexInterface
     /**
      * Add all items from wishlist to shopping cart
      *
-     * @return void
+     * @return \Magento\Framework\Controller\ResultInterface
      */
     public function execute()
     {
+        /** @var \Magento\Framework\Controller\Result\Forward $resultForward */
+        $resultForward = $this->resultFactory->create(ResultFactory::TYPE_FORWARD);
         if (!$this->formKeyValidator->validate($this->getRequest())) {
-            $this->_forward('noroute');
-            return;
+            $resultForward->forward('noroute');
+            return $resultForward;
         }
 
         $wishlist = $this->wishlistProvider->getWishlist();
         if (!$wishlist) {
-            $this->_forward('noroute');
-            return;
+            $resultForward->forward('noroute');
+            return $resultForward;
         }
+        /** @var \Magento\Framework\Controller\Result\Redirect $resultRedirect */
+        $resultRedirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
         $redirectUrl = $this->itemCarrier->moveAllToCart($wishlist, $this->getRequest()->getParam('qty'));
-        $this->getResponse()->setRedirect($redirectUrl);
+        $resultRedirect->setUrl($redirectUrl);
+        return $resultRedirect;
     }
 }

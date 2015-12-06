@@ -1,63 +1,58 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Customer\Test\TestCase;
 
-use Mtf\TestCase\Injectable;
+use Magento\Customer\Test\Fixture\Address;
+use Magento\Customer\Test\Fixture\Customer;
 use Magento\Customer\Test\Page\Adminhtml\CustomerIndex;
 use Magento\Customer\Test\Page\Adminhtml\CustomerIndexEdit;
-use Magento\Customer\Test\Fixture\AddressInjectable;
-use Magento\Customer\Test\Fixture\CustomerInjectable;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
- * Test Creation for UpdateCustomerBackendEntity
+ * Precondition:
+ * 1. Create customer.
  *
- * General Flow:
- * 1. Login to backend as admin
- * 2. Navigate to CUSTOMERS->All Customers
- * 3. Open from grid test customer
- * 4. Edit some values, if addresses fields are not presented click 'Add New Address' button
- * 5. Click 'Save' button
- * 6. Perform all assertions
+ * Steps:
+ * 1. Login to backend as admin.
+ * 2. Navigate to CUSTOMERS->All Customers.
+ * 3. Open from grid test customer.
+ * 4. Edit some values, if addresses fields are not presented click 'Add New Address' button.
+ * 5. Click 'Save' button.
+ * 6. Perform all assertions.
  *
- * @ticketId MAGETWO-23881
+ * @ZephyrId MAGETWO-23881
  */
 class UpdateCustomerBackendEntityTest extends Injectable
 {
+    /* tags */
+    const MVP = 'yes';
+    const DOMAIN = 'CS';
+    /* end tags */
+
     /**
+     * Customer grid page.
+     *
      * @var CustomerIndex
      */
     protected $customerIndexPage;
 
     /**
+     * Customer edit page.
+     *
      * @var CustomerIndexEdit
      */
     protected $customerIndexEditPage;
 
     /**
+     * Inject pages.
+     *
      * @param CustomerIndex $customerIndexPage
      * @param CustomerIndexEdit $customerIndexEditPage
+     * @return void
      */
     public function __inject(
         CustomerIndex $customerIndexPage,
@@ -68,19 +63,19 @@ class UpdateCustomerBackendEntityTest extends Injectable
     }
 
     /**
-     * @param CustomerInjectable $initialCustomer
-     * @param CustomerInjectable $customer
-     * @param AddressInjectable $address
+     * Run update customer test.
+     *
+     * @param Customer $initialCustomer
+     * @param Customer $customer
+     * @param Address $address [optional]
+     * @return void
      */
     public function testUpdateCustomerBackendEntity(
-        CustomerInjectable $initialCustomer,
-        CustomerInjectable $customer,
-        AddressInjectable $address
+        Customer $initialCustomer,
+        Customer $customer,
+        Address $address = null
     ) {
-        // Prepare data
-        $address = $address->hasData() ? $address : null;
-
-        // Preconditions:
+        // Precondition
         $initialCustomer->persist();
 
         // Steps

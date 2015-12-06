@@ -1,31 +1,13 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\CatalogInventory\Helper;
 
+use Magento\Customer\Api\GroupManagementInterface;
 use Magento\Store\Model\Store;
-use Magento\Customer\Service\V1\CustomerGroupServiceInterface as CustomerGroupService;
 
 /**
  * MinSaleQty value manipulation helper
@@ -45,15 +27,23 @@ class Minsaleqty
     protected $mathRandom;
 
     /**
+     * @var GroupManagementInterface
+     */
+    protected $groupManagement;
+
+    /**
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param \Magento\Framework\Math\Random $mathRandom
+     * @param GroupManagementInterface $groupManagement
      */
     public function __construct(
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Magento\Framework\Math\Random $mathRandom
+        \Magento\Framework\Math\Random $mathRandom,
+        GroupManagementInterface $groupManagement
     ) {
         $this->scopeConfig = $scopeConfig;
         $this->mathRandom = $mathRandom;
+        $this->groupManagement = $groupManagement;
     }
 
     /**
@@ -79,14 +69,14 @@ class Minsaleqty
             $data = (float) $value;
             return (string) $data;
         } elseif (is_array($value)) {
-            $data = array();
+            $data = [];
             foreach ($value as $groupId => $qty) {
                 if (!array_key_exists($groupId, $data)) {
                     $data[$groupId] = $this->fixQty($qty);
                 }
             }
-            if (count($data) == 1 && array_key_exists(CustomerGroupService::CUST_GROUP_ALL, $data)) {
-                return (string) $data[CustomerGroupService::CUST_GROUP_ALL];
+            if (count($data) == 1 && array_key_exists($this->getAllCustomersGroupId(), $data)) {
+                return (string) $data[$this->getAllCustomersGroupId()];
             }
             return serialize($data);
         } else {
@@ -103,11 +93,11 @@ class Minsaleqty
     protected function unserializeValue($value)
     {
         if (is_numeric($value)) {
-            return array(CustomerGroupService::CUST_GROUP_ALL => $this->fixQty($value));
+            return [$this->getAllCustomersGroupId() => $this->fixQty($value)];
         } elseif (is_string($value) && !empty($value)) {
             return unserialize($value);
         } else {
-            return array();
+            return [];
         }
     }
 
@@ -135,30 +125,30 @@ class Minsaleqty
     }
 
     /**
-     * Encode value to be used in \Magento\Backend\Block\System\Config\Form\Field\FieldArray\AbstractFieldArray
+     * Encode value to be used in \Magento\Config\Block\System\Config\Form\Field\FieldArray\AbstractFieldArray
      *
      * @param array $value
      * @return array
      */
     protected function encodeArrayFieldValue(array $value)
     {
-        $result = array();
+        $result = [];
         foreach ($value as $groupId => $qty) {
             $resultId = $this->mathRandom->getUniqueHash('_');
-            $result[$resultId] = array('customer_group_id' => $groupId, 'min_sale_qty' => $this->fixQty($qty));
+            $result[$resultId] = ['customer_group_id' => $groupId, 'min_sale_qty' => $this->fixQty($qty)];
         }
         return $result;
     }
 
     /**
-     * Decode value from used in \Magento\Backend\Block\System\Config\Form\Field\FieldArray\AbstractFieldArray
+     * Decode value from used in \Magento\Config\Block\System\Config\Form\Field\FieldArray\AbstractFieldArray
      *
      * @param array $value
      * @return array
      */
     protected function decodeArrayFieldValue(array $value)
     {
-        $result = array();
+        $result = [];
         unset($value['__empty']);
         foreach ($value as $row) {
             if (!is_array($row)
@@ -184,7 +174,7 @@ class Minsaleqty
     public function getConfigValue($customerGroupId, $store = null)
     {
         $value = $this->scopeConfig->getValue(
-            \Magento\CatalogInventory\Model\Stock\Item::XML_PATH_MIN_SALE_QTY,
+            \Magento\CatalogInventory\Model\Configuration::XML_PATH_MIN_SALE_QTY,
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
             $store
         );
@@ -197,7 +187,7 @@ class Minsaleqty
             if ($groupId == $customerGroupId) {
                 $result = $qty;
                 break;
-            } elseif ($groupId == CustomerGroupService::CUST_GROUP_ALL) {
+            } elseif ($groupId == $this->getAllCustomersGroupId()) {
                 $result = $qty;
             }
         }
@@ -205,7 +195,7 @@ class Minsaleqty
     }
 
     /**
-     * Make value readable by \Magento\Backend\Block\System\Config\Form\Field\FieldArray\AbstractFieldArray
+     * Make value readable by \Magento\Config\Block\System\Config\Form\Field\FieldArray\AbstractFieldArray
      *
      * @param string|array $value
      * @return array
@@ -232,5 +222,15 @@ class Minsaleqty
         }
         $value = $this->serializeValue($value);
         return $value;
+    }
+
+    /**
+     * Return the all customer group id
+     *
+     * @return int
+     */
+    protected function getAllCustomersGroupId()
+    {
+        return $this->groupManagement->getAllCustomersGroup()->getId();
     }
 }

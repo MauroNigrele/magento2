@@ -1,27 +1,12 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Oauth;
+
+use Magento\Framework\Encryption\Helper\Security;
+use Magento\Framework\Phrase;
 
 class Oauth implements OauthInterface
 {
@@ -55,12 +40,13 @@ class Oauth implements OauthInterface
         Helper\Oauth $oauthHelper,
         NonceGeneratorInterface $nonceGenerator,
         TokenProviderInterface $tokenProvider,
-        \Zend_Oauth_Http_Utility $httpUtility
+        \Zend_Oauth_Http_Utility $httpUtility = null
     ) {
         $this->_oauthHelper = $oauthHelper;
         $this->_nonceGenerator = $nonceGenerator;
         $this->_tokenProvider = $tokenProvider;
-        $this->_httpUtility = $httpUtility;
+        // null default to prevent ObjectManagerFactory from injecting, see MAGETWO-30809
+        $this->_httpUtility = $httpUtility ?: new \Zend_Oauth_Http_Utility();
     }
 
     /**
@@ -70,7 +56,7 @@ class Oauth implements OauthInterface
      */
     public static function getSupportedSignatureMethods()
     {
-        return array(self::SIGNATURE_SHA1, self::SIGNATURE_SHA256);
+        return [self::SIGNATURE_SHA1, self::SIGNATURE_SHA256];
     }
 
     /**
@@ -78,11 +64,9 @@ class Oauth implements OauthInterface
      */
     public function getRequestToken($params, $requestUrl, $httpMethod = 'POST')
     {
-        $this->_validateVersionParam($params['oauth_version']);
+        $this->_validateProtocolParams($params);
         $consumer = $this->_tokenProvider->getConsumerByKey($params['oauth_consumer_key']);
         $this->_tokenProvider->validateConsumer($consumer);
-        $this->_nonceGenerator->validateNonce($consumer, $params['oauth_nonce'], $params['oauth_timestamp']);
-
         $this->_validateSignature($params, $consumer->getSecret(), $httpMethod, $requestUrl);
 
         return $this->_tokenProvider->createRequestToken($consumer);
@@ -93,15 +77,15 @@ class Oauth implements OauthInterface
      */
     public function getAccessToken($params, $requestUrl, $httpMethod = 'POST')
     {
-        $required = array(
+        $required = [
             'oauth_consumer_key',
             'oauth_signature',
             'oauth_signature_method',
             'oauth_nonce',
             'oauth_timestamp',
             'oauth_token',
-            'oauth_verifier'
-        );
+            'oauth_verifier',
+        ];
 
         $this->_validateProtocolParams($params, $required);
         $consumer = $this->_tokenProvider->getConsumerByKey($params['oauth_consumer_key']);
@@ -121,14 +105,14 @@ class Oauth implements OauthInterface
      */
     public function validateAccessTokenRequest($params, $requestUrl, $httpMethod = 'POST')
     {
-        $required = array(
+        $required = [
             'oauth_consumer_key',
             'oauth_signature',
             'oauth_signature_method',
             'oauth_nonce',
             'oauth_timestamp',
-            'oauth_token'
-        );
+            'oauth_token',
+        ];
 
         $this->_validateProtocolParams($params, $required);
         $consumer = $this->_tokenProvider->getConsumerByKey($params['oauth_consumer_key']);
@@ -156,14 +140,14 @@ class Oauth implements OauthInterface
         $signatureMethod = self::SIGNATURE_SHA1,
         $httpMethod = 'POST'
     ) {
-        $required = array("oauth_consumer_key", "oauth_consumer_secret", "oauth_token", "oauth_token_secret");
+        $required = ["oauth_consumer_key", "oauth_consumer_secret", "oauth_token", "oauth_token_secret"];
         $this->_checkRequiredParams($params, $required);
         $consumer = $this->_tokenProvider->getConsumerByKey($params['oauth_consumer_key']);
-        $headerParameters = array(
+        $headerParameters = [
             'oauth_nonce' => $this->_nonceGenerator->generateNonce($consumer),
             'oauth_timestamp' => $this->_nonceGenerator->generateTimestamp(),
-            'oauth_version' => '1.0'
-        );
+            'oauth_version' => '1.0',
+        ];
         $headerParameters = array_merge($headerParameters, $params);
         $headerParameters['oauth_signature'] = $this->_httpUtility->sign(
             $params,
@@ -194,8 +178,10 @@ class Oauth implements OauthInterface
     {
         if (!in_array($params['oauth_signature_method'], self::getSupportedSignatureMethods())) {
             throw new OauthInputException(
-                'Signature method %1 is not supported',
-                [$params['oauth_signature_method']]
+                new Phrase(
+                    'Signature method %1 is not supported',
+                    [$params['oauth_signature_method']]
+                )
             );
         }
 
@@ -211,8 +197,8 @@ class Oauth implements OauthInterface
             $requestUrl
         );
 
-        if ($calculatedSign != $params['oauth_signature']) {
-            throw new Exception('Invalid signature');
+        if (!Security::compareStrings($calculatedSign, $params['oauth_signature'])) {
+            throw new Exception(new Phrase('Invalid signature'));
         }
     }
 
@@ -227,7 +213,7 @@ class Oauth implements OauthInterface
     {
         // validate version if specified
         if ('1.0' != $version) {
-            throw new OauthInputException('OAuth version %1 is not supported', [$version]);
+            throw new OauthInputException(new Phrase('OAuth version %1 is not supported', [$version]));
         }
     }
 
@@ -237,9 +223,9 @@ class Oauth implements OauthInterface
      * @param array $protocolParams
      * @param array $requiredParams
      * @return void
-     * @throws Exception|OauthInputException
+     * @throws OauthInputException
      */
-    protected function _validateProtocolParams($protocolParams, $requiredParams)
+    protected function _validateProtocolParams($protocolParams, $requiredParams = [])
     {
         // validate version if specified.
         if (isset($protocolParams['oauth_version'])) {
@@ -248,13 +234,13 @@ class Oauth implements OauthInterface
 
         // Required parameters validation. Default to minimum required params if not provided.
         if (empty($requiredParams)) {
-            $requiredParams = array(
+            $requiredParams = [
                 "oauth_consumer_key",
                 "oauth_signature",
                 "oauth_signature_method",
                 "oauth_nonce",
-                "oauth_timestamp"
-            );
+                "oauth_timestamp",
+            ];
         }
         $this->_checkRequiredParams($protocolParams, $requiredParams);
 
@@ -264,14 +250,16 @@ class Oauth implements OauthInterface
             $protocolParams['oauth_token']
         )
         ) {
-            throw new Exception('Token is not the correct length');
+            throw new OauthInputException(new Phrase('Token is not the correct length'));
         }
 
         // Validate signature method.
         if (!in_array($protocolParams['oauth_signature_method'], self::getSupportedSignatureMethods())) {
             throw new OauthInputException(
-                'Signature method %1 is not supported',
-                [$protocolParams['oauth_signature_method']]
+                new Phrase(
+                    'Signature method %1 is not supported',
+                    [$protocolParams['oauth_signature_method']]
+                )
             );
         }
 
@@ -293,10 +281,14 @@ class Oauth implements OauthInterface
      */
     protected function _checkRequiredParams($protocolParams, $requiredParams)
     {
+        $exception = new OauthInputException();
         foreach ($requiredParams as $param) {
             if (!isset($protocolParams[$param])) {
-                throw new OauthInputException(OauthInputException::REQUIRED_FIELD, ['fieldName' => $param]);
+                $exception->addError(new Phrase(OauthInputException::REQUIRED_FIELD, ['fieldName' => $param]));
             }
+        }
+        if ($exception->wasErrorAdded()) {
+            throw $exception;
         }
     }
 }

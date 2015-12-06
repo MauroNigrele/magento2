@@ -1,35 +1,19 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Tax\Model\Sales\Total\Quote;
 
-use Magento\TestFramework\Helper\Bootstrap;
-use Magento\Tax\Model\Config;
 use Magento\Tax\Model\Calculation;
+use Magento\TestFramework\Helper\Bootstrap;
 
 require_once __DIR__ . '/SetupUtil.php';
 require_once __DIR__ . '/../../../../_files/tax_calculation_data_aggregated.php';
 
+/**
+ * Class TaxTest
+ */
 class TaxTest extends \PHPUnit_Framework_TestCase
 {
     /**
@@ -65,12 +49,8 @@ class TaxTest extends \PHPUnit_Framework_TestCase
         /** @var \Magento\Customer\Model\Customer $customer */
         $customer = $objectManager->create('Magento\Customer\Model\Customer')->load($fixtureCustomerId);
         /** @var \Magento\Customer\Model\Group $customerGroup */
-        $customerGroup = $objectManager->create(
-            'Magento\Customer\Model\Group'
-        )->load(
-            'custom_group',
-            'customer_group_code'
-        );
+        $customerGroup = $objectManager->create('Magento\Customer\Model\Group')
+            ->load('custom_group', 'customer_group_code');
         $customerGroup->setTaxClassId($customerTaxClass->getId())->save();
         $customer->setGroupId($customerGroup->getId())->save();
 
@@ -87,34 +67,25 @@ class TaxTest extends \PHPUnit_Framework_TestCase
         $customerAddress = $objectManager->create('Magento\Customer\Model\Address')->load($fixtureCustomerId);
         /** Set data which corresponds tax class fixture */
         $customerAddress->setCountryId('US')->setRegionId(12)->save();
-        /** @var \Magento\Sales\Model\Quote\Address $quoteShippingAddress */
-        $quoteShippingAddress = $objectManager->create('Magento\Sales\Model\Quote\Address');
-        /** @var \Magento\Customer\Service\V1\CustomerAddressServiceInterface $addressService */
-        $addressService = $objectManager->create('Magento\Customer\Service\V1\CustomerAddressServiceInterface');
-        $quoteShippingAddress->importCustomerAddressData($addressService->getAddress($fixtureCustomerAddressId));
+        /** @var \Magento\Quote\Model\Quote\Address $quoteShippingAddress */
+        $quoteShippingAddress = $objectManager->create('Magento\Quote\Model\Quote\Address');
+        /** @var \Magento\Customer\Api\AddressRepositoryInterface $addressRepository */
+        $addressRepository = $objectManager->create('Magento\Customer\Api\AddressRepositoryInterface');
+        $quoteShippingAddress->importCustomerAddressData($addressRepository->getById($fixtureCustomerAddressId));
 
-        /** @var \Magento\Sales\Model\Quote $quote */
-        $quote = $objectManager->create('Magento\Sales\Model\Quote');
-        $quote->setStoreId(
-            1
-        )->setIsActive(
-            true
-        )->setIsMultiShipping(
-            false
-        )->assignCustomerWithAddressChange(
-            $customer
-        )->setShippingAddress(
-            $quoteShippingAddress
-        )->setBillingAddress(
-            $quoteShippingAddress
-        )->setCheckoutMethod(
-            $customer->getMode()
-        )->setPasswordHash(
-            $customer->encryptPassword($customer->getPassword())
-        )->addProduct(
-            $product->load($product->getId()),
-            2
-        );
+        /** @var \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository */
+        $customerRepository = $objectManager->create('Magento\Customer\Api\CustomerRepositoryInterface');
+        /** @var \Magento\Quote\Model\Quote $quote */
+        $quote = $objectManager->create('Magento\Quote\Model\Quote');
+        $quote->setStoreId(1)
+            ->setIsActive(true)
+            ->setIsMultiShipping(false)
+            ->assignCustomerWithAddressChange($customerRepository->getById($customer->getId()))
+            ->setShippingAddress($quoteShippingAddress)
+            ->setBillingAddress($quoteShippingAddress)
+            ->setCheckoutMethod($customer->getMode())
+            ->setPasswordHash($customer->encryptPassword($customer->getPassword()))
+            ->addProduct($product->load($product->getId()), 2);
 
         /**
          * Execute SUT.
@@ -140,7 +111,7 @@ class TaxTest extends \PHPUnit_Framework_TestCase
     /**
      * Verify fields in quote item
      *
-     * @param \Magento\Sales\Model\Quote\Address\Item $item
+     * @param \Magento\Quote\Model\Quote\Address\Item $item
      * @param array $expectedItemData
      * @return $this
      */
@@ -199,7 +170,7 @@ class TaxTest extends \PHPUnit_Framework_TestCase
     protected function verifyAppliedTaxes($appliedTaxes, $expectedAppliedTaxes)
     {
         foreach ($expectedAppliedTaxes as $taxRateKey => $expectedTaxRate) {
-            $this->assertTrue(isset($appliedTaxes[$taxRateKey]), 'Missing tax rate ' . $taxRateKey );
+            $this->assertTrue(isset($appliedTaxes[$taxRateKey]), 'Missing tax rate ' . $taxRateKey);
             $this->verifyAppliedTax($appliedTaxes[$taxRateKey], $expectedTaxRate);
         }
         return $this;
@@ -208,13 +179,12 @@ class TaxTest extends \PHPUnit_Framework_TestCase
     /**
      * Verify fields in quote address
      *
-     * @param \Magento\Sales\Model\Quote\Address $quoteAddress
+     * @param \Magento\Quote\Model\Quote\Address $quoteAddress
      * @param array $expectedAddressData
      * @return $this
      */
     protected function verifyQuoteAddress($quoteAddress, $expectedAddressData)
     {
-
         foreach ($expectedAddressData as $key => $value) {
             if ($key == 'applied_taxes') {
                 $this->verifyAppliedTaxes($quoteAddress->getAppliedTaxes(), $value);
@@ -229,7 +199,7 @@ class TaxTest extends \PHPUnit_Framework_TestCase
     /**
      * Verify fields in quote address and quote item are correct
      *
-     * @param \Magento\Sales\Model\Quote\Address $quoteAddress
+     * @param \Magento\Quote\Model\Quote\Address $quoteAddress
      * @param array $expectedResults
      * @return $this
      */
@@ -241,7 +211,7 @@ class TaxTest extends \PHPUnit_Framework_TestCase
 
         $quoteItems = $quoteAddress->getAllItems();
         foreach ($quoteItems as $item) {
-            /** @var  \Magento\Sales\Model\Quote\Address\Item $item */
+            /** @var  \Magento\Quote\Model\Quote\Address\Item $item */
             $sku = $item->getProduct()->getSku();
             $expectedItemData = $expectedResults['items_data'][$sku];
             $this->verifyItem($item, $expectedItemData);
@@ -264,8 +234,10 @@ class TaxTest extends \PHPUnit_Framework_TestCase
      */
     public function testTaxCalculation($configData, $quoteData, $expectedResults)
     {
-        /** @var  \Magento\Framework\ObjectManager $objectManager */
+        /** @var  \Magento\Framework\ObjectManagerInterface $objectManager */
         $objectManager = Bootstrap::getObjectManager();
+        /** @var  \Magento\Quote\Model\Quote\TotalsCollector $totalsCollector */
+        $totalsCollector = $objectManager->create('Magento\Quote\Model\Quote\TotalsCollector');
 
         //Setup tax configurations
         $this->setupUtil = new SetupUtil($objectManager);
@@ -273,8 +245,7 @@ class TaxTest extends \PHPUnit_Framework_TestCase
 
         $quote = $this->setupUtil->setupQuote($quoteData);
         $quoteAddress = $quote->getShippingAddress();
-
-        $quoteAddress->collectTotals();
+        $totalsCollector->collectAddressTotals($quote, $quoteAddress);
         $this->verifyResult($quoteAddress, $expectedResults);
     }
 

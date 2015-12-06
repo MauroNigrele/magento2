@@ -1,103 +1,217 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Customer\Controller\Address;
 
+use Magento\Customer\Api\AddressRepositoryInterface;
+use Magento\Customer\Api\Data\AddressInterfaceFactory;
+use Magento\Customer\Api\Data\RegionInterface;
+use Magento\Customer\Api\Data\RegionInterfaceFactory;
+use Magento\Customer\Model\Metadata\FormFactory;
+use Magento\Customer\Model\Session;
+use Magento\Directory\Helper\Data as HelperData;
+use Magento\Directory\Model\RegionFactory;
+use Magento\Framework\Api\DataObjectHelper;
+use Magento\Framework\App\Action\Context;
+use Magento\Framework\Controller\Result\ForwardFactory;
+use Magento\Framework\Data\Form\FormKey\Validator as FormKeyValidator;
 use Magento\Framework\Exception\InputException;
+use Magento\Framework\Reflection\DataObjectProcessor;
+use Magento\Framework\View\Result\PageFactory;
 
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 class FormPost extends \Magento\Customer\Controller\Address
 {
     /**
+     * @var RegionFactory
+     */
+    protected $regionFactory;
+
+    /**
+     * @var HelperData
+     */
+    protected $helperData;
+
+    /**
+     * @param Context $context
+     * @param Session $customerSession
+     * @param FormKeyValidator $formKeyValidator
+     * @param FormFactory $formFactory
+     * @param AddressRepositoryInterface $addressRepository
+     * @param AddressInterfaceFactory $addressDataFactory
+     * @param RegionInterfaceFactory $regionDataFactory
+     * @param DataObjectProcessor $dataProcessor
+     * @param DataObjectHelper $dataObjectHelper
+     * @param ForwardFactory $resultForwardFactory
+     * @param PageFactory $resultPageFactory
+     * @param RegionFactory $regionFactory
+     * @param HelperData $helperData
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
+     */
+    public function __construct(
+        Context $context,
+        Session $customerSession,
+        FormKeyValidator $formKeyValidator,
+        FormFactory $formFactory,
+        AddressRepositoryInterface $addressRepository,
+        AddressInterfaceFactory $addressDataFactory,
+        RegionInterfaceFactory $regionDataFactory,
+        DataObjectProcessor $dataProcessor,
+        DataObjectHelper $dataObjectHelper,
+        ForwardFactory $resultForwardFactory,
+        PageFactory $resultPageFactory,
+        RegionFactory $regionFactory,
+        HelperData $helperData
+    ) {
+        $this->regionFactory = $regionFactory;
+        $this->helperData = $helperData;
+        parent::__construct(
+            $context,
+            $customerSession,
+            $formKeyValidator,
+            $formFactory,
+            $addressRepository,
+            $addressDataFactory,
+            $regionDataFactory,
+            $dataProcessor,
+            $dataObjectHelper,
+            $resultForwardFactory,
+            $resultPageFactory
+        );
+    }
+
+    /**
      * Extract address from request
      *
-     * @return \Magento\Customer\Service\V1\Data\Address
+     * @return \Magento\Customer\Api\Data\AddressInterface
      */
     protected function _extractAddress()
     {
-        $addressId = $this->getRequest()->getParam('id');
-        $existingAddressData = array();
-        if ($addressId) {
-            $existingAddress = $this->_addressService->getAddress($addressId);
-            if ($existingAddress->getId()) {
-                $existingAddressData = \Magento\Customer\Service\V1\Data\AddressConverter::toFlatArray(
-                    $existingAddress
-                );
-            }
-        }
+        $existingAddressData = $this->getExistingAddressData();
 
         /** @var \Magento\Customer\Model\Metadata\Form $addressForm */
         $addressForm = $this->_formFactory->create('customer_address', 'customer_address_edit', $existingAddressData);
         $addressData = $addressForm->extractData($this->getRequest());
         $attributeValues = $addressForm->compactData($addressData);
-        $region = array('region_id' => $attributeValues['region_id'], 'region' => $attributeValues['region']);
-        unset($attributeValues['region'], $attributeValues['region_id']);
+
+        $this->updateRegionData($attributeValues);
+
+        $addressDataObject = $this->addressDataFactory->create();
+        $this->dataObjectHelper->populateWithArray(
+            $addressDataObject,
+            array_merge($existingAddressData, $attributeValues),
+            '\Magento\Customer\Api\Data\AddressInterface'
+        );
+        $addressDataObject->setCustomerId($this->_getSession()->getCustomerId())
+            ->setIsDefaultBilling($this->getRequest()->getParam('default_billing', false))
+            ->setIsDefaultShipping($this->getRequest()->getParam('default_shipping', false));
+
+        return $addressDataObject;
+    }
+
+    /**
+     * Retrieve existing address data
+     *
+     * @return array
+     * @throws \Exception
+     */
+    protected function getExistingAddressData()
+    {
+        $existingAddressData = [];
+        if ($addressId = $this->getRequest()->getParam('id')) {
+            $existingAddress = $this->_addressRepository->getById($addressId);
+            if ($existingAddress->getCustomerId() !== $this->_getSession()->getCustomerId()) {
+                throw new \Exception();
+            }
+            $existingAddressData = $this->_dataProcessor->buildOutputDataArray(
+                $existingAddress,
+                '\Magento\Customer\Api\Data\AddressInterface'
+            );
+            $existingAddressData['region_code'] = $existingAddress->getRegion()->getRegionCode();
+            $existingAddressData['region'] = $existingAddress->getRegion()->getRegion();
+        }
+        return $existingAddressData;
+    }
+
+    /**
+     * Update region data
+     *
+     * @param array $attributeValues
+     * @return void
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     */
+    protected function updateRegionData(&$attributeValues)
+    {
+        if ($this->helperData->isRegionRequired($attributeValues['country_id'])) {
+            $newRegion = $this->regionFactory->create()->load($attributeValues['region_id']);
+            $attributeValues['region_code'] = $newRegion->getCode();
+            $attributeValues['region'] = $newRegion->getDefaultName();
+        } else {
+            $attributeValues['region_id'] = null;
+        }
+
+        $regionData = [
+            RegionInterface::REGION_ID => !empty($attributeValues['region_id']) ? $attributeValues['region_id'] : null,
+            RegionInterface::REGION => !empty($attributeValues['region']) ? $attributeValues['region'] : null,
+            RegionInterface::REGION_CODE => !empty($attributeValues['region_code'])
+                ? $attributeValues['region_code']
+                : null,
+        ];
+
+        $region = $this->regionDataFactory->create();
+        $this->dataObjectHelper->populateWithArray(
+            $region,
+            $regionData,
+            '\Magento\Customer\Api\Data\RegionInterface'
+        );
         $attributeValues['region'] = $region;
-        return $this->_addressBuilder->populateWithArray(
-            array_merge($existingAddressData, $attributeValues)
-        )->setDefaultBilling(
-            $this->getRequest()->getParam('default_billing', false)
-        )->setDefaultShipping(
-            $this->getRequest()->getParam('default_shipping', false)
-        )->create();
     }
 
     /**
      * Process address form save
      *
-     * @return void
+     * @return \Magento\Framework\Controller\Result\Redirect
      */
     public function execute()
     {
+        $redirectUrl = null;
         if (!$this->_formKeyValidator->validate($this->getRequest())) {
-            $this->_redirect('*/*/');
-            return;
+            return $this->resultRedirectFactory->create()->setPath('*/*/');
         }
 
         if (!$this->getRequest()->isPost()) {
-            $this->_getSession()->setAddressFormData($this->getRequest()->getPost());
-            $this->getResponse()->setRedirect($this->_redirect->error($this->_buildUrl('*/*/edit')));
-            return;
+            $this->_getSession()->setAddressFormData($this->getRequest()->getPostValue());
+            return $this->resultRedirectFactory->create()->setUrl(
+                $this->_redirect->error($this->_buildUrl('*/*/edit'))
+            );
         }
-        $customerId = $this->_getSession()->getCustomerId();
+
         try {
             $address = $this->_extractAddress();
-            $this->_addressService->saveAddresses($customerId, array($address));
-            $this->messageManager->addSuccess(__('The address has been saved.'));
-            $url = $this->_buildUrl('*/*/index', array('_secure' => true));
-            $this->getResponse()->setRedirect($this->_redirect->success($url));
-            return;
+            $this->_addressRepository->save($address);
+            $this->messageManager->addSuccess(__('You saved the address.'));
+            $url = $this->_buildUrl('*/*/index', ['_secure' => true]);
+            return $this->resultRedirectFactory->create()->setUrl($this->_redirect->success($url));
         } catch (InputException $e) {
             $this->messageManager->addError($e->getMessage());
             foreach ($e->getErrors() as $error) {
                 $this->messageManager->addError($error->getMessage());
             }
         } catch (\Exception $e) {
-            $this->messageManager->addException($e, __('Cannot save address.'));
+            $redirectUrl = $this->_buildUrl('*/*/index');
+            $this->messageManager->addException($e, __('We can\'t save the address.'));
         }
 
-        $this->_getSession()->setAddressFormData($this->getRequest()->getPost());
-        $url = $this->_buildUrl('*/*/edit', array('id' => $this->getRequest()->getParam('id')));
-        $this->getResponse()->setRedirect($this->_redirect->error($url));
+        $url = $redirectUrl;
+        if (!$redirectUrl) {
+            $this->_getSession()->setAddressFormData($this->getRequest()->getPostValue());
+            $url = $this->_buildUrl('*/*/edit', ['id' => $this->getRequest()->getParam('id')]);
+        }
+
+        return $this->resultRedirectFactory->create()->setUrl($this->_redirect->error($url));
     }
 }

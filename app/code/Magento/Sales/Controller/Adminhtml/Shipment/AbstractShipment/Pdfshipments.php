@@ -1,48 +1,59 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Controller\Adminhtml\Shipment\AbstractShipment;
 
-use \Magento\Framework\App\ResponseInterface;
+use Magento\Backend\App\Action\Context;
+use Magento\Framework\App\ResponseInterface;
+use Magento\Framework\App\Filesystem\DirectoryList;
+use Magento\Framework\App\Response\Http\FileFactory;
+use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
+use Magento\Ui\Component\MassAction\Filter;
+use Magento\Sales\Model\Order\Pdf\Shipment;
+use Magento\Framework\Stdlib\DateTime\DateTime;
+use Magento\Sales\Model\ResourceModel\Order\Shipment\CollectionFactory;
 
-abstract class Pdfshipments extends \Magento\Backend\App\Action
+abstract class Pdfshipments extends \Magento\Sales\Controller\Adminhtml\Order\AbstractMassAction
 {
     /**
-     * @var \Magento\Framework\App\Response\Http\FileFactory
+     * @var FileFactory
      */
-    protected $_fileFactory;
+    protected $fileFactory;
 
     /**
-     * @param \Magento\Backend\App\Action\Context $context
-     * @param \Magento\Framework\App\Response\Http\FileFactory $fileFactory
+     * @var DateTime
+     */
+    protected $dateTime;
+
+    /**
+     * @var Shipment
+     */
+    protected $pdfShipment;
+
+    /**
+     * @param Context $context
+     * @param Filter $filter
+     * @param DateTime $dateTime
+     * @param FileFactory $fileFactory
+     * @param Shipment $shipment
+     * @param CollectionFactory $collectionFactory
      */
     public function __construct(
-        \Magento\Backend\App\Action\Context $context,
-        \Magento\Framework\App\Response\Http\FileFactory $fileFactory
+        Context $context,
+        Filter $filter,
+        DateTime $dateTime,
+        FileFactory $fileFactory,
+        Shipment $shipment,
+        CollectionFactory $collectionFactory
     ) {
-        $this->_fileFactory = $fileFactory;
-        parent::__construct($context);
+        $this->fileFactory = $fileFactory;
+        $this->dateTime = $dateTime;
+        $this->pdfShipment = $shipment;
+        $this->collectionFactory = $collectionFactory;
+        parent::__construct($context, $filter);
     }
 
     /**
@@ -54,34 +65,17 @@ abstract class Pdfshipments extends \Magento\Backend\App\Action
     }
 
     /**
-     * @return ResponseInterface|void
+     * @param AbstractCollection $collection
+     * @return $this|ResponseInterface
+     * @throws \Exception
      */
-    public function execute()
+    public function massAction(AbstractCollection $collection)
     {
-        $shipmentIds = $this->getRequest()->getPost('shipment_ids');
-        if (!empty($shipmentIds)) {
-            $shipments = $this->_objectManager->create(
-                'Magento\Sales\Model\Resource\Order\Shipment\Collection'
-            )->addAttributeToSelect(
-                '*'
-            )->addAttributeToFilter(
-                'entity_id',
-                array('in' => $shipmentIds)
-            )->load();
-            if (!isset($pdf)) {
-                $pdf = $this->_objectManager->create('Magento\Sales\Model\Order\Pdf\Shipment')->getPdf($shipments);
-            } else {
-                $pages = $this->_objectManager->create('Magento\Sales\Model\Order\Pdf\Shipment')->getPdf($shipments);
-                $pdf->pages = array_merge($pdf->pages, $pages->pages);
-            }
-            $date = $this->_objectManager->get('Magento\Framework\Stdlib\DateTime\DateTime')->date('Y-m-d_H-i-s');
-            return $this->_fileFactory->create(
-                'packingslip' . $date . '.pdf',
-                $pdf->render(),
-                \Magento\Framework\App\Filesystem::VAR_DIR,
-                'application/pdf'
-            );
-        }
-        $this->_redirect('sales/*/');
+        return $this->fileFactory->create(
+            sprintf('packingslip%s.pdf', $this->dateTime->date('Y-m-d_H-i-s')),
+            $this->pdfShipment->getPdf($collection)->render(),
+            DirectoryList::VAR_DIR,
+            'application/pdf'
+        );
     }
 }

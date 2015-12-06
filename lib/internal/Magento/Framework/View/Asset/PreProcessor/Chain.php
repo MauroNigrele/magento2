@@ -1,28 +1,12 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Framework\View\Asset\PreProcessor;
+
+use Magento\Framework\View\Asset\LocalInterface;
 
 /**
  * An object that's passed to preprocessors to carry current and original information for processing
@@ -31,7 +15,7 @@ namespace Magento\Framework\View\Asset\PreProcessor;
 class Chain
 {
     /**
-     * @var \Magento\Framework\View\Asset\LocalInterface
+     * @var LocalInterface
      */
     private $asset;
 
@@ -43,7 +27,7 @@ class Chain
     /**
      * @var string
      */
-    private $origContentType;
+    protected $origContentType;
 
     /**
      * @var string
@@ -58,27 +42,44 @@ class Chain
     /**
      * @var string
      */
-    private $targetContentType;
+    protected $targetContentType;
 
     /**
-     * @param \Magento\Framework\View\Asset\LocalInterface $asset
+     * @var null|string
+     */
+    protected $targetAssetPath;
+
+    /**
+     * @var string
+     */
+    protected $origAssetPath;
+
+    /**
+     * @param LocalInterface $asset
      * @param string $origContent
      * @param string $origContentType
+     * @param string $origAssetPath
      */
-    public function __construct(\Magento\Framework\View\Asset\LocalInterface $asset, $origContent, $origContentType)
-    {
+    public function __construct(
+        LocalInterface $asset,
+        $origContent,
+        $origContentType,
+        $origAssetPath
+    ) {
         $this->asset = $asset;
         $this->origContent = $origContent;
         $this->content = $origContent;
         $this->origContentType = $origContentType;
         $this->contentType = $origContentType;
         $this->targetContentType = $asset->getContentType();
+        $this->targetAssetPath = $asset->getPath();
+        $this->origAssetPath = $origAssetPath;
     }
 
     /**
      * Get asset object
      *
-     * @return \Magento\Framework\View\Asset\LocalInterface
+     * @return LocalInterface
      */
     public function getAsset()
     {
@@ -158,6 +159,16 @@ class Chain
     }
 
     /**
+     * Get the target asset path
+     *
+     * @return string
+     */
+    public function getTargetAssetPath()
+    {
+        return $this->targetAssetPath;
+    }
+
+    /**
      * Assert invariants
      *
      * Impose an integrity check to avoid generating mismatching content type and not leaving transient data behind
@@ -182,5 +193,14 @@ class Chain
     public function isChanged()
     {
         return $this->origContentType != $this->contentType || $this->origContent != $this->content;
+    }
+
+    /**
+     * @return string
+     * @codeCoverageIgnore
+     */
+    public function getOrigAssetPath()
+    {
+        return $this->origAssetPath;
     }
 }

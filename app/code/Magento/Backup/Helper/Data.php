@@ -1,29 +1,13 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Backup\Helper;
 
+use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\App\MaintenanceMode;
+use Magento\Framework\Filesystem;
 
 /**
  * Backup data helper
@@ -31,7 +15,7 @@ use Magento\Framework\App\MaintenanceMode;
 class Data extends \Magento\Framework\App\Helper\AbstractHelper
 {
     /**
-     * @var \Magento\Framework\App\Filesystem
+     * @var Filesystem
      */
     protected $_filesystem;
 
@@ -46,33 +30,23 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     protected $_cacheTypeList;
 
     /**
-     * Index resource process collection factory
-     *
-     * @var \Magento\Index\Model\Resource\Process\CollectionFactory
-     */
-    protected $_processFactory;
-
-    /**
      * Construct
      *
      * @param \Magento\Framework\App\Helper\Context $context
-     * @param \Magento\Framework\App\Filesystem $filesystem
+     * @param Filesystem $filesystem
      * @param \Magento\Framework\AuthorizationInterface $authorization
      * @param \Magento\Framework\App\Cache\TypeListInterface $cacheTypeList
-     * @param \Magento\Index\Model\Resource\Process\CollectionFactory $processFactory
      */
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
-        \Magento\Framework\App\Filesystem $filesystem,
+        Filesystem $filesystem,
         \Magento\Framework\AuthorizationInterface $authorization,
-        \Magento\Framework\App\Cache\TypeListInterface $cacheTypeList,
-        \Magento\Index\Model\Resource\Process\CollectionFactory $processFactory
+        \Magento\Framework\App\Cache\TypeListInterface $cacheTypeList
     ) {
         parent::__construct($context);
         $this->_authorization = $authorization;
         $this->_filesystem = $filesystem;
         $this->_cacheTypeList = $cacheTypeList;
-        $this->_processFactory = $processFactory;
     }
 
     /**
@@ -82,12 +56,12 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getBackupTypes()
     {
-        return array(
+        return [
             \Magento\Framework\Backup\Factory::TYPE_DB => __('Database'),
             \Magento\Framework\Backup\Factory::TYPE_MEDIA => __('Database and Media'),
             \Magento\Framework\Backup\Factory::TYPE_SYSTEM_SNAPSHOT => __('System'),
             \Magento\Framework\Backup\Factory::TYPE_SNAPSHOT_WITHOUT_MEDIA => __('System (excluding Media)')
-        );
+        ];
     }
 
     /**
@@ -97,12 +71,12 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getBackupTypesList()
     {
-        return array(
+        return [
             \Magento\Framework\Backup\Factory::TYPE_DB,
             \Magento\Framework\Backup\Factory::TYPE_SYSTEM_SNAPSHOT,
             \Magento\Framework\Backup\Factory::TYPE_SNAPSHOT_WITHOUT_MEDIA,
             \Magento\Framework\Backup\Factory::TYPE_MEDIA
-        );
+        ];
     }
 
     /**
@@ -122,7 +96,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getBackupsDir()
     {
-        return $this->_filesystem->getPath(\Magento\Framework\App\Filesystem::VAR_DIR) . '/backups';
+        return $this->_filesystem->getDirectoryWrite(DirectoryList::VAR_DIR)->getAbsolutePath('backups');
     }
 
     /**
@@ -144,12 +118,12 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getExtensions()
     {
-        return array(
+        return [
             \Magento\Framework\Backup\Factory::TYPE_SYSTEM_SNAPSHOT => 'tgz',
             \Magento\Framework\Backup\Factory::TYPE_SNAPSHOT_WITHOUT_MEDIA => 'tgz',
             \Magento\Framework\Backup\Factory::TYPE_MEDIA => 'tgz',
             \Magento\Framework\Backup\Factory::TYPE_DB => 'gz'
-        );
+        ];
     }
 
     /**
@@ -190,17 +164,18 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getBackupIgnorePaths()
     {
-        return array(
+        return [
             '.git',
             '.svn',
-            $this->_filesystem->getPath(MaintenanceMode::FLAG_DIR) . '/' . MaintenanceMode::FLAG_FILENAME,
-            $this->_filesystem->getPath(\Magento\Framework\App\Filesystem::SESSION_DIR),
-            $this->_filesystem->getPath(\Magento\Framework\App\Filesystem::CACHE_DIR),
-            $this->_filesystem->getPath(\Magento\Framework\App\Filesystem::LOG_DIR),
-            $this->_filesystem->getPath(\Magento\Framework\App\Filesystem::VAR_DIR) . '/full_page_cache',
-            $this->_filesystem->getPath(\Magento\Framework\App\Filesystem::VAR_DIR) . '/locks',
-            $this->_filesystem->getPath(\Magento\Framework\App\Filesystem::VAR_DIR) . '/report'
-        );
+            $this->_filesystem->getDirectoryRead(MaintenanceMode::FLAG_DIR)
+                ->getAbsolutePath(MaintenanceMode::FLAG_FILENAME),
+            $this->_filesystem->getDirectoryRead(DirectoryList::SESSION)->getAbsolutePath(),
+            $this->_filesystem->getDirectoryRead(DirectoryList::CACHE)->getAbsolutePath(),
+            $this->_filesystem->getDirectoryRead(DirectoryList::LOG)->getAbsolutePath(),
+            $this->_filesystem->getDirectoryRead(DirectoryList::VAR_DIR)->getAbsolutePath('full_page_cache'),
+            $this->_filesystem->getDirectoryRead(DirectoryList::VAR_DIR)->getAbsolutePath('locks'),
+            $this->_filesystem->getDirectoryRead(DirectoryList::VAR_DIR)->getAbsolutePath('report'),
+        ];
     }
 
     /**
@@ -210,17 +185,18 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getRollbackIgnorePaths()
     {
-        return array(
+        return [
             '.svn',
             '.git',
-            $this->_filesystem->getPath(MaintenanceMode::FLAG_DIR) . '/' . MaintenanceMode::FLAG_FILENAME,
-            $this->_filesystem->getPath(\Magento\Framework\App\Filesystem::SESSION_DIR),
-            $this->_filesystem->getPath(\Magento\Framework\App\Filesystem::LOG_DIR),
-            $this->_filesystem->getPath(\Magento\Framework\App\Filesystem::VAR_DIR) . '/locks',
-            $this->_filesystem->getPath(\Magento\Framework\App\Filesystem::VAR_DIR) . '/report',
-            $this->_filesystem->getPath(\Magento\Framework\App\Filesystem::ROOT_DIR) . '/errors',
-            $this->_filesystem->getPath(\Magento\Framework\App\Filesystem::ROOT_DIR) . '/index.php'
-        );
+            $this->_filesystem->getDirectoryRead(MaintenanceMode::FLAG_DIR)
+                ->getAbsolutePath(MaintenanceMode::FLAG_FILENAME),
+            $this->_filesystem->getDirectoryRead(DirectoryList::SESSION)->getAbsolutePath(),
+            $this->_filesystem->getDirectoryRead(DirectoryList::LOG)->getAbsolutePath(),
+            $this->_filesystem->getDirectoryRead(DirectoryList::VAR_DIR)->getAbsolutePath('locks'),
+            $this->_filesystem->getDirectoryRead(DirectoryList::VAR_DIR)->getAbsolutePath('report'),
+            $this->_filesystem->getDirectoryRead(DirectoryList::ROOT)->getAbsolutePath('errors'),
+            $this->_filesystem->getDirectoryRead(DirectoryList::ROOT)->getAbsolutePath('index.php'),
+        ];
     }
 
     /**
@@ -231,14 +207,14 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function getCreateSuccessMessageByType($type)
     {
-        $messagesMap = array(
-            \Magento\Framework\Backup\Factory::TYPE_SYSTEM_SNAPSHOT => __('The system backup has been created.'),
+        $messagesMap = [
+            \Magento\Framework\Backup\Factory::TYPE_SYSTEM_SNAPSHOT => __('You created the system backup.'),
             \Magento\Framework\Backup\Factory::TYPE_SNAPSHOT_WITHOUT_MEDIA => __(
-                'The system backup (excluding media) has been created.'
+                'You created the system backup (excluding media).'
             ),
-            \Magento\Framework\Backup\Factory::TYPE_MEDIA => __('The database and media backup has been created.'),
-            \Magento\Framework\Backup\Factory::TYPE_DB => __('The database backup has been created.')
-        );
+            \Magento\Framework\Backup\Factory::TYPE_MEDIA => __('You created the database and media backup.'),
+            \Magento\Framework\Backup\Factory::TYPE_DB => __('You created the database backup.'),
+        ];
 
         if (!isset($messagesMap[$type])) {
             return;
@@ -262,19 +238,6 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
     }
 
     /**
-     * Invalidate Indexer
-     *
-     * @return $this
-     */
-    public function invalidateIndexer()
-    {
-        foreach ($this->_processFactory->create() as $process) {
-            $process->changeStatus(\Magento\Index\Model\Process::STATUS_REQUIRE_REINDEX);
-        }
-        return $this;
-    }
-
-    /**
      * Creates backup's display name from it's name
      *
      * @param string $name
@@ -289,7 +252,7 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
      * Extracts information from backup's filename
      *
      * @param string $filename
-     * @return \Magento\Framework\Object
+     * @return \Magento\Framework\DataObject
      */
     public function extractDataFromFilename($filename)
     {
@@ -315,8 +278,8 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
             $name = substr($name, 1);
         }
 
-        $result = new \Magento\Framework\Object();
-        $result->addData(array('name' => $name, 'type' => $type, 'time' => $time));
+        $result = new \Magento\Framework\DataObject();
+        $result->addData(['name' => $name, 'type' => $type, 'time' => $time]);
 
         return $result;
     }

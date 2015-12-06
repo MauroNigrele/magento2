@@ -1,40 +1,18 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Tax\Test\TestCase;
 
-use Mtf\TestCase\Injectable;
-use Mtf\Fixture\FixtureFactory;
 use Magento\Tax\Test\Fixture\TaxRule;
-use Magento\Tax\Test\Page\Adminhtml\TaxRuleNew;
 use Magento\Tax\Test\Page\Adminhtml\TaxRuleIndex;
-use Magento\Customer\Test\Fixture\AddressInjectable;
+use Magento\Tax\Test\Page\Adminhtml\TaxRuleNew;
+use Magento\Mtf\Fixture\FixtureFactory;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
- * Test Creation for Update TaxRuleEntity
- *
- * Test Flow:
  * Preconditions:
  * 1. 1 simple product is created.
  * 2. Tax Rule is created.
@@ -52,36 +30,41 @@ use Magento\Customer\Test\Fixture\AddressInjectable;
  */
 class UpdateTaxRuleEntityTest extends Injectable
 {
+    /* tags */
+    const MVP = 'yes';
+    const DOMAIN = 'CS';
+    /* end tags */
+
     /**
-     * Tax Rule grid page
+     * Tax Rule grid page.
      *
      * @var TaxRuleIndex
      */
     protected $taxRuleIndexPage;
 
     /**
-     * Tax Rule new and edit page
+     * Tax Rule new and edit page.
      *
      * @var TaxRuleNew
      */
     protected $taxRuleNewPage;
 
     /**
-     * Prepare data
+     * Prepare data.
      *
      * @param FixtureFactory $fixtureFactory
      * @return array
      */
     public function __prepare(FixtureFactory $fixtureFactory)
     {
-        $customer = $fixtureFactory->createByCode('customerInjectable', ['dataSet' => 'johndoe_retailer']);
+        $customer = $fixtureFactory->createByCode('customer', ['dataset' => 'johndoe_retailer']);
         $customer->persist();
 
         return ['customer' => $customer];
     }
 
     /**
-     * Injection data
+     * Injection data.
      *
      * @param TaxRuleIndex $taxRuleIndexPage
      * @param TaxRuleNew $taxRuleNewPage
@@ -94,21 +77,15 @@ class UpdateTaxRuleEntityTest extends Injectable
     }
 
     /**
-     * Update Tax Rule Entity test
+     * Update Tax Rule Entity test.
      *
      * @param TaxRule $initialTaxRule
      * @param TaxRule $taxRule
-     * @param AddressInjectable $address
-     * @param array $shipping
      * @return void
-     *
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function testUpdateTaxRule(
         TaxRule $initialTaxRule,
-        TaxRule $taxRule,
-        AddressInjectable $address,
-        array $shipping
+        TaxRule $taxRule
     ) {
         // Precondition
         $initialTaxRule->persist();
@@ -118,5 +95,15 @@ class UpdateTaxRuleEntityTest extends Injectable
         $this->taxRuleIndexPage->getTaxRuleGrid()->searchAndOpen(['code' => $initialTaxRule->getCode()]);
         $this->taxRuleNewPage->getTaxRuleForm()->fill($taxRule);
         $this->taxRuleNewPage->getFormPageActions()->save();
+    }
+
+    /**
+     * Delete all tax rules.
+     *
+     * @return void
+     */
+    public function tearDown()
+    {
+        $this->objectManager->create('Magento\Tax\Test\TestStep\DeleteAllTaxRulesStep', [])->run();
     }
 }

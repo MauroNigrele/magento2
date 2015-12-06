@@ -1,32 +1,15 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Review\Controller\Product;
 
-use \Magento\Review\Model\Review;
+use Magento\Review\Controller\Product as ProductController;
+use Magento\Framework\Controller\ResultFactory;
+use Magento\Review\Model\Review;
 
-class View extends \Magento\Review\Controller\Product
+class View extends ProductController
 {
     /**
      * Load review model with data by passed id.
@@ -35,47 +18,45 @@ class View extends \Magento\Review\Controller\Product
      * @param int $reviewId
      * @return bool|Review
      */
-    protected function _loadReview($reviewId)
+    protected function loadReview($reviewId)
     {
         if (!$reviewId) {
             return false;
         }
-
-        $review = $this->_reviewFactory->create()->load($reviewId);
-        /* @var $review Review */
+        /** @var \Magento\Review\Model\Review $review */
+        $review = $this->reviewFactory->create()->load($reviewId);
         if (!$review->getId()
             || !$review->isApproved()
-            || !$review->isAvailableOnStore($this->_storeManager->getStore())
+            || !$review->isAvailableOnStore($this->storeManager->getStore())
         ) {
             return false;
         }
-
-        $this->_coreRegistry->register('current_review', $review);
-
+        $this->coreRegistry->register('current_review', $review);
         return $review;
     }
 
     /**
      * Show details of one review
      *
-     * @return void
+     * @return \Magento\Framework\Controller\ResultInterface
      */
     public function execute()
     {
-        $review = $this->_loadReview((int)$this->getRequest()->getParam('id'));
+        $review = $this->loadReview((int)$this->getRequest()->getParam('id'));
+        /** @var \Magento\Framework\Controller\Result\Forward $resultForward */
+        $resultForward = $this->resultFactory->create(ResultFactory::TYPE_FORWARD);
         if (!$review) {
-            $this->_forward('noroute');
-            return;
+            $resultForward->forward('noroute');
+            return $resultForward;
         }
 
-        $product = $this->_loadProduct($review->getEntityPkValue());
+        $product = $this->loadProduct($review->getEntityPkValue());
         if (!$product) {
-            $this->_forward('noroute');
-            return;
+            $resultForward->forward('noroute');
+            return $resultForward;
         }
-
-        $this->_view->loadLayout();
-        $this->_view->getLayout()->initMessages();
-        $this->_view->renderLayout();
+        /** @var \Magento\Framework\View\Result\Page $resultPage */
+        $resultPage = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
+        return $resultPage;
     }
 }

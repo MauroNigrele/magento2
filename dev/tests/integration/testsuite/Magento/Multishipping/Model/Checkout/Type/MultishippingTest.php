@@ -1,23 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Multishipping\Model\Checkout\Type;
 
@@ -35,10 +19,18 @@ class MultishippingTest extends \PHPUnit_Framework_TestCase
     /** @var \Magento\Multishipping\Model\Checkout\Type\Multishipping */
     protected $_multishippingCheckout;
 
+    /**
+     * @var \Magento\Customer\Api\AddressRepositoryInterface
+     */
+    protected $addressRepository;
+
     protected function setUp()
     {
         $this->_multishippingCheckout = Bootstrap::getObjectManager()->create(
             'Magento\Multishipping\Model\Checkout\Type\Multishipping'
+        );
+        $this->addressRepository = Bootstrap::getObjectManager()->create(
+            'Magento\Customer\Api\AddressRepositoryInterface'
         );
         parent::setUp();
     }
@@ -61,7 +53,7 @@ class MultishippingTest extends \PHPUnit_Framework_TestCase
          */
         $fixtureCustomerId = 1;
         $secondFixtureAddressId = 2;
-        $secondFixtureAddressStreet = array('Black str, 48');
+        $secondFixtureAddressStreet = ['Black str, 48'];
         /** @var \Magento\Customer\Model\Customer $customer */
         $customer = Bootstrap::getObjectManager()->create('Magento\Customer\Model\Customer')->load($fixtureCustomerId);
         if ($addressType == self::ADDRESS_TYPE_SHIPPING) {
@@ -76,12 +68,18 @@ class MultishippingTest extends \PHPUnit_Framework_TestCase
 
         /** Execute SUT */
         if ($addressType == self::ADDRESS_TYPE_SHIPPING) {
-            $address = $this->_multishippingCheckout->getCustomerDefaultShippingAddress();
+            $addressId = $this->_multishippingCheckout->getCustomerDefaultShippingAddress();
         } else {
             // billing
-            $address = $this->_multishippingCheckout->getCustomerDefaultBillingAddress();
+            $addressId = $this->_multishippingCheckout->getCustomerDefaultBillingAddress();
         }
-        $this->assertInstanceOf('\Magento\Customer\Service\V1\Data\Address', $address, "Address was not loaded.");
+        $address = $this->addressRepository->getById($addressId);
+
+        $this->assertInstanceOf(
+            '\Magento\Customer\Api\Data\AddressInterface',
+            $address,
+            "Address was not loaded."
+        );
         $this->assertEquals($secondFixtureAddressId, $address->getId(), "Invalid address loaded.");
         $this->assertEquals(
             $secondFixtureAddressStreet,
@@ -93,12 +91,14 @@ class MultishippingTest extends \PHPUnit_Framework_TestCase
         $firstFixtureAddressId = 1;
         if ($addressType == self::ADDRESS_TYPE_SHIPPING) {
             $customer->setDefaultShipping($firstFixtureAddressId)->save();
-            $address = $this->_multishippingCheckout->getCustomerDefaultShippingAddress();
+            $addressId = $this->_multishippingCheckout->getCustomerDefaultShippingAddress();
         } else {
             // billing
             $customer->setDefaultBilling($firstFixtureAddressId)->save();
-            $address = $this->_multishippingCheckout->getCustomerDefaultBillingAddress();
+            $addressId = $this->_multishippingCheckout->getCustomerDefaultBillingAddress();
         }
+        $address = $this->addressRepository->getById($addressId);
+
         $this->assertEquals($secondFixtureAddressId, $address->getId(), "Method results are not cached properly.");
     }
 
@@ -120,7 +120,7 @@ class MultishippingTest extends \PHPUnit_Framework_TestCase
          */
         $fixtureCustomerId = 1;
         $firstFixtureAddressId = 1;
-        $firstFixtureAddressStreet = array('Green str, 67');
+        $firstFixtureAddressStreet = ['Green str, 67'];
         /** @var \Magento\Customer\Model\Customer $customer */
         $customer = Bootstrap::getObjectManager()->create('Magento\Customer\Model\Customer')->load($fixtureCustomerId);
         if ($addressType == self::ADDRESS_TYPE_SHIPPING) {
@@ -135,12 +135,14 @@ class MultishippingTest extends \PHPUnit_Framework_TestCase
 
         /** Execute SUT */
         if ($addressType == self::ADDRESS_TYPE_SHIPPING) {
-            $address = $this->_multishippingCheckout->getCustomerDefaultShippingAddress();
+            $addressId = $this->_multishippingCheckout->getCustomerDefaultShippingAddress();
         } else {
             // billing
-            $address = $this->_multishippingCheckout->getCustomerDefaultBillingAddress();
+            $addressId = $this->_multishippingCheckout->getCustomerDefaultBillingAddress();
         }
-        $this->assertInstanceOf('\Magento\Customer\Service\V1\Data\Address', $address, "Address was not loaded.");
+        $address = $this->addressRepository->getById($addressId);
+
+        $this->assertInstanceOf('\Magento\Customer\Api\Data\AddressInterface', $address, "Address was not loaded.");
         $this->assertEquals($firstFixtureAddressId, $address->getId(), "Invalid address loaded.");
         $this->assertEquals(
             $firstFixtureAddressStreet,
@@ -184,9 +186,9 @@ class MultishippingTest extends \PHPUnit_Framework_TestCase
 
     public function getCustomerDefaultAddressDataProvider()
     {
-        return array(
-            self::ADDRESS_TYPE_SHIPPING => array(self::ADDRESS_TYPE_SHIPPING),
-            self::ADDRESS_TYPE_BILLING => array(self::ADDRESS_TYPE_BILLING)
-        );
+        return [
+            self::ADDRESS_TYPE_SHIPPING => [self::ADDRESS_TYPE_SHIPPING],
+            self::ADDRESS_TYPE_BILLING => [self::ADDRESS_TYPE_BILLING]
+        ];
     }
 }

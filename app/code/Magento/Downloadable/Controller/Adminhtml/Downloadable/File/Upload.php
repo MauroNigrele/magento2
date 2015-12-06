@@ -1,35 +1,73 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Downloadable\Controller\Adminhtml\Downloadable\File;
+
+use Magento\Framework\Controller\ResultFactory;
 
 class Upload extends \Magento\Downloadable\Controller\Adminhtml\Downloadable\File
 {
     /**
+     * @var \Magento\Downloadable\Model\Link
+     */
+    protected $_link;
+
+    /**
+     * @var \Magento\Downloadable\Model\Sample
+     */
+    protected $_sample;
+
+    /**
+     * Downloadable file helper.
+     *
+     * @var \Magento\Downloadable\Helper\File
+     */
+    protected $_fileHelper;
+
+    /**
+     * @var \Magento\MediaStorage\Model\File\UploaderFactory
+     */
+    private $uploaderFactory;
+
+    /**
+     * @var \Magento\MediaStorage\Helper\File\Storage\Database
+     */
+    private $storageDatabase;
+
+    /**
+     *
+     * Copyright © 2015 Magento. All rights reserved.
+     * See COPYING.txt for license details.
+     * @param \Magento\Backend\App\Action\Context $context
+     * @param \Magento\Downloadable\Model\Link $link
+     * @param \Magento\Downloadable\Model\Sample $sample
+     * @param \Magento\Downloadable\Helper\File $fileHelper
+     * @param \Magento\MediaStorage\Model\File\UploaderFactory $uploaderFactory
+     * @param \Magento\MediaStorage\Helper\File\Storage\Database $storageDatabase
+     */
+    public function __construct(
+        \Magento\Backend\App\Action\Context $context,
+        \Magento\Downloadable\Model\Link $link,
+        \Magento\Downloadable\Model\Sample $sample,
+        \Magento\Downloadable\Helper\File $fileHelper,
+        \Magento\MediaStorage\Model\File\UploaderFactory $uploaderFactory,
+        \Magento\MediaStorage\Helper\File\Storage\Database $storageDatabase
+    ) {
+        parent::__construct($context);
+        $this->_link = $link;
+        $this->_sample = $sample;
+        $this->_fileHelper = $fileHelper;
+        $this->uploaderFactory = $uploaderFactory;
+        $this->storageDatabase = $storageDatabase;
+    }
+
+    /**
      * Upload file controller action
      *
-     * @return void
+     * @return \Magento\Framework\Controller\ResultInterface
      */
     public function execute()
     {
@@ -44,7 +82,7 @@ class Upload extends \Magento\Downloadable\Controller\Adminhtml\Downloadable\Fil
         }
 
         try {
-            $uploader = $this->_objectManager->create('Magento\Core\Model\File\Uploader', array('fileId' => $type));
+            $uploader = $this->uploaderFactory->create(['fileId' => $type]);
 
             $result = $this->_fileHelper->uploadFromTmp($tmpPath, $uploader);
 
@@ -60,22 +98,19 @@ class Upload extends \Magento\Downloadable\Controller\Adminhtml\Downloadable\Fil
 
             if (isset($result['file'])) {
                 $relativePath = rtrim($tmpPath, '/') . '/' . ltrim($result['file'], '/');
-                $this->_objectManager->get('Magento\Core\Helper\File\Storage\Database')->saveFile($relativePath);
+                $this->storageDatabase->saveFile($relativePath);
             }
 
-            $result['cookie'] = array(
+            $result['cookie'] = [
                 'name' => $this->_getSession()->getName(),
                 'value' => $this->_getSession()->getSessionId(),
                 'lifetime' => $this->_getSession()->getCookieLifetime(),
                 'path' => $this->_getSession()->getCookiePath(),
-                'domain' => $this->_getSession()->getCookieDomain()
-            );
+                'domain' => $this->_getSession()->getCookieDomain(),
+            ];
         } catch (\Exception $e) {
-            $result = array('error' => $e->getMessage(), 'errorcode' => $e->getCode());
+            $result = ['error' => $e->getMessage(), 'errorcode' => $e->getCode()];
         }
-
-        $this->getResponse()->representJson(
-            $this->_objectManager->get('Magento\Core\Helper\Data')->jsonEncode($result)
-        );
+        return $this->resultFactory->create(ResultFactory::TYPE_JSON)->setData($result);
     }
 }

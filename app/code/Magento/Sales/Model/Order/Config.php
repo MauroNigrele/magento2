@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Model\Order;
 
@@ -29,7 +11,7 @@ namespace Magento\Sales\Model\Order;
 class Config
 {
     /**
-     * @var \Magento\Sales\Model\Resource\Order\Status\Collection
+     * @var \Magento\Sales\Model\ResourceModel\Order\Status\Collection
      */
     protected $collection;
 
@@ -51,26 +33,43 @@ class Config
     protected $orderStatusFactory;
 
     /**
-     * @var \Magento\Sales\Model\Resource\Order\Status\CollectionFactory
+     * @var \Magento\Sales\Model\ResourceModel\Order\Status\CollectionFactory
      */
     protected $orderStatusCollectionFactory;
+
+    /**
+     * @var \Magento\Framework\App\State
+     */
+    protected $state;
+
+    /**
+     * @var array
+     */
+    protected $maskStatusesMapping = [
+        \Magento\Framework\App\Area::AREA_FRONTEND => [
+            \Magento\Sales\Model\Order::STATUS_FRAUD => \Magento\Sales\Model\Order::STATE_PROCESSING
+        ]
+    ];
 
     /**
      * Constructor
      *
      * @param \Magento\Sales\Model\Order\StatusFactory $orderStatusFactory
-     * @param \Magento\Sales\Model\Resource\Order\Status\CollectionFactory $orderStatusCollectionFactory
+     * @param \Magento\Sales\Model\ResourceModel\Order\Status\CollectionFactory $orderStatusCollectionFactory
+     * @param \Magento\Framework\App\State $state
      */
     public function __construct(
         \Magento\Sales\Model\Order\StatusFactory $orderStatusFactory,
-        \Magento\Sales\Model\Resource\Order\Status\CollectionFactory $orderStatusCollectionFactory
+        \Magento\Sales\Model\ResourceModel\Order\Status\CollectionFactory $orderStatusCollectionFactory,
+        \Magento\Framework\App\State $state
     ) {
         $this->orderStatusFactory = $orderStatusFactory;
         $this->orderStatusCollectionFactory = $orderStatusCollectionFactory;
+        $this->state = $state;
     }
 
     /**
-     * @return \Magento\Sales\Model\Resource\Order\Status\Collection
+     * @return \Magento\Sales\Model\ResourceModel\Order\Status\Collection
      */
     protected function _getCollection()
     {
@@ -119,15 +118,31 @@ class Config
      */
     public function getStatusLabel($code)
     {
+        $code = $this->maskStatusForArea($this->state->getAreaCode(), $code);
         $status = $this->orderStatusFactory->create()->load($code);
         return $status->getStoreLabel();
+    }
+
+    /**
+     * Mask status for order for specified area
+     *
+     * @param string $area
+     * @param string $code
+     * @return string
+     */
+    protected function maskStatusForArea($area, $code)
+    {
+        if (isset($this->maskStatusesMapping[$area][$code])) {
+            return $this->maskStatusesMapping[$area][$code];
+        }
+        return $code;
     }
 
     /**
      * State label getter
      *
      * @param   string $state
-     * @return  string
+     * @return \Magento\Framework\Phrase|string
      */
     public function getStateLabel($state)
     {
@@ -156,9 +171,11 @@ class Config
      */
     public function getStates()
     {
-        $states = array();
+        $states = [];
         foreach ($this->_getCollection() as $item) {
-            $states[$item->getState()] = __($item->getData('label'));
+            if ($item->getState()) {
+                $states[$item->getState()] = __($item->getData('label'));
+            }
         }
         return $states;
     }
@@ -174,14 +191,14 @@ class Config
      */
     public function getStateStatuses($state, $addLabels = true)
     {
-        $key = md5(serialize(array($state, $addLabels)));
+        $key = md5(serialize([$state, $addLabels]));
         if (isset($this->stateStatuses[$key])) {
             return $this->stateStatuses[$key];
         }
-        $statuses = array();
+        $statuses = [];
 
         if (!is_array($state)) {
-            $state = array($state);
+            $state = [$state];
         }
         foreach ($state as $_state) {
             $stateNode = $this->_getState($_state);

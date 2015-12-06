@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Cache;
 
@@ -34,7 +16,7 @@ class Core extends \Zend_Cache_Core
      * -- 'options' - optional array of specific decorator options
      * @var array
      */
-    protected $_specificOptions = array('backend_decorators' => array(), 'disable_save' => false);
+    protected $_specificOptions = ['backend_decorators' => [], 'disable_save' => false];
 
     /**
      * Make and return a cache id
@@ -47,6 +29,7 @@ class Core extends \Zend_Cache_Core
     protected function _id($cacheId)
     {
         if ($cacheId !== null) {
+            $cacheId = str_replace('.', '__', $cacheId); //reduce collision chances
             $cacheId = preg_replace('/([^a-zA-Z0-9_]{1,1})/', '_', $cacheId);
             if (isset($this->_options['cache_id_prefix'])) {
                 $cacheId = $this->_options['cache_id_prefix'] . $cacheId;
@@ -82,7 +65,7 @@ class Core extends \Zend_Cache_Core
      *                                      some particular backends
      * @return bool                         True if no problem
      */
-    public function save($data, $cacheId = null, $tags = array(), $specificLifetime = false, $priority = 8)
+    public function save($data, $cacheId = null, $tags = [], $specificLifetime = false, $priority = 8)
     {
         if ($this->getOption('disable_save')) {
             return true;
@@ -109,7 +92,7 @@ class Core extends \Zend_Cache_Core
      * @throws \Zend_Cache_Exception
      * @return bool True if ok
      */
-    public function clean($mode = 'all', $tags = array())
+    public function clean($mode = 'all', $tags = [])
     {
         $tags = $this->_tags($tags);
         return parent::clean($mode, $tags);
@@ -123,7 +106,7 @@ class Core extends \Zend_Cache_Core
      * @param string[] $tags array of tags
      * @return string[] array of matching cache ids (string)
      */
-    public function getIdsMatchingTags($tags = array())
+    public function getIdsMatchingTags($tags = [])
     {
         $tags = $this->_tags($tags);
         return parent::getIdsMatchingTags($tags);
@@ -137,7 +120,7 @@ class Core extends \Zend_Cache_Core
      * @param string[] $tags array of tags
      * @return string[] array of not matching cache ids (string)
      */
-    public function getIdsNotMatchingTags($tags = array())
+    public function getIdsNotMatchingTags($tags = [])
     {
         $tags = $this->_tags($tags);
         return parent::getIdsNotMatchingTags($tags);
@@ -173,7 +156,7 @@ class Core extends \Zend_Cache_Core
                     "Concrete decorator options in '" . $decoratorName . "' should be an array containing 'class' key"
                 );
             }
-            $classOptions = array_key_exists('options', $decoratorOptions) ? $decoratorOptions['options'] : array();
+            $classOptions = array_key_exists('options', $decoratorOptions) ? $decoratorOptions['options'] : [];
             $classOptions['concrete_backend'] = $backendObject;
 
             if (!class_exists($decoratorOptions['class'])) {

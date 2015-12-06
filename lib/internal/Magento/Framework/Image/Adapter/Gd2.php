@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Image\Adapter;
 
@@ -30,20 +12,20 @@ class Gd2 extends \Magento\Framework\Image\Adapter\AbstractAdapter
      *
      * @var array
      */
-    protected $_requiredExtensions = array("gd");
+    protected $_requiredExtensions = ["gd"];
 
     /**
      * Image output callbacks by type
      *
      * @var array
      */
-    private static $_callbacks = array(
-        IMAGETYPE_GIF => array('output' => 'imagegif', 'create' => 'imagecreatefromgif'),
-        IMAGETYPE_JPEG => array('output' => 'imagejpeg', 'create' => 'imagecreatefromjpeg'),
-        IMAGETYPE_PNG => array('output' => 'imagepng', 'create' => 'imagecreatefrompng'),
-        IMAGETYPE_XBM => array('output' => 'imagexbm', 'create' => 'imagecreatefromxbm'),
-        IMAGETYPE_WBMP => array('output' => 'imagewbmp', 'create' => 'imagecreatefromxbm')
-    );
+    private static $_callbacks = [
+        IMAGETYPE_GIF => ['output' => 'imagegif', 'create' => 'imagecreatefromgif'],
+        IMAGETYPE_JPEG => ['output' => 'imagejpeg', 'create' => 'imagecreatefromjpeg'],
+        IMAGETYPE_PNG => ['output' => 'imagepng', 'create' => 'imagecreatefrompng'],
+        IMAGETYPE_XBM => ['output' => 'imagexbm', 'create' => 'imagecreatefromxbm'],
+        IMAGETYPE_WBMP => ['output' => 'imagewbmp', 'create' => 'imagecreatefromxbm'],
+    ];
 
     /**
      * Whether image was resized or not
@@ -52,6 +34,16 @@ class Gd2 extends \Magento\Framework\Image\Adapter\AbstractAdapter
      */
     protected $_resized = false;
 
+    /**
+     * For properties reset, e.g. mimeType caching.
+     *
+     * @return void
+     */
+    protected function _reset()
+    {
+        $this->_fileMimeType = null;
+        $this->_fileType = null;
+    }
     /**
      * Open image for processing
      *
@@ -62,6 +54,7 @@ class Gd2 extends \Magento\Framework\Image\Adapter\AbstractAdapter
     public function open($filename)
     {
         $this->_fileName = $filename;
+        $this->_reset();
         $this->getMimeType();
         $this->_getFileAttributes();
         if ($this->_isMemoryLimitReached()) {
@@ -162,18 +155,26 @@ class Gd2 extends \Magento\Framework\Image\Adapter\AbstractAdapter
             }
         }
 
-        $functionParameters = array($this->_imageHandler, $fileName);
+        // Enable interlace
+        imageinterlace($this->_imageHandler, true);
 
-        $quality = $this->quality();
-        if ($quality !== null) {
-            if ($this->_fileType == IMAGETYPE_PNG) {
-                // for PNG files quality param must be from 0 to 10
-                $quality = ceil($quality / 10);
-                if ($quality > 10) {
-                    $quality = 10;
-                }
-                $quality = 10 - $quality;
-            }
+        // Set image quality value
+        switch ($this->_fileType) {
+            case IMAGETYPE_PNG:
+                $quality = 9;   // For PNG files compression level must be from 0 (no compression) to 9.
+                break;
+
+            case IMAGETYPE_JPEG:
+                $quality = $this->quality();
+                break;
+
+            default:
+                $quality = null;    // No compression.
+        }
+
+        // Prepare callback method parameters
+        $functionParameters = [$this->_imageHandler, $fileName];
+        if ($quality) {
             $functionParameters[] = $quality;
         }
 
@@ -221,6 +222,7 @@ class Gd2 extends \Magento\Framework\Image\Adapter\AbstractAdapter
      * @param resource &$imageResourceTo
      * @return int
      * @throws \Exception
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     private function _fillBackgroundColor(&$imageResourceTo)
     {
@@ -231,7 +233,6 @@ class Gd2 extends \Magento\Framework\Image\Adapter\AbstractAdapter
             try {
                 // fill truecolor png with alpha transparency
                 if ($isAlpha) {
-
                     if (!imagealphablending($imageResourceTo, false)) {
                         throw new \Exception('Failed to set alpha blending for PNG image.');
                     }
@@ -295,6 +296,7 @@ class Gd2 extends \Magento\Framework\Image\Adapter\AbstractAdapter
      * @param bool &$isAlpha
      * @param bool &$isTrueColor
      * @return boolean
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName)
      */
     private function _getTransparency($imageResource, $fileType, &$isAlpha = false, &$isTrueColor = false)
     {
@@ -385,10 +387,14 @@ class Gd2 extends \Magento\Framework\Image\Adapter\AbstractAdapter
      * @param int $opacity
      * @param bool $tile
      * @return void
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function watermark($imagePath, $positionX = 0, $positionY = 0, $opacity = 30, $tile = false)
     {
-        list($watermarkSrcWidth, $watermarkSrcHeight, $watermarkFileType, ) = $this->_getImageOptions($imagePath);
+        list($watermarkSrcWidth, $watermarkSrcHeight, $watermarkFileType,) = $this->_getImageOptions($imagePath);
         $this->_getFileAttributes();
         $watermark = call_user_func(
             $this->_getCallback('create', $watermarkFileType, 'Unsupported watermark image format.'),
@@ -426,7 +432,6 @@ class Gd2 extends \Magento\Framework\Image\Adapter\AbstractAdapter
         if ($this->getWatermarkPosition() == self::POSITION_TILE) {
             $tile = true;
         } elseif ($this->getWatermarkPosition() == self::POSITION_STRETCH) {
-
             $newWatermark = imagecreatetruecolor($this->_imageSrcWidth, $this->_imageSrcHeight);
             imagealphablending($newWatermark, false);
             $col = imagecolorallocate($newWatermark, 255, 255, 255);

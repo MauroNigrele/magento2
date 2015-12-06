@@ -1,38 +1,27 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Customer\Model;
 
+use Magento\Framework\Indexer\StateInterface;
+
 /**
  * Class Visitor
  * @package Magento\Customer\Model
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class Visitor extends \Magento\Framework\Model\AbstractModel
 {
     const VISITOR_TYPE_CUSTOMER = 'c';
 
     const VISITOR_TYPE_VISITOR = 'v';
+
+    const DEFAULT_ONLINE_MINUTES_INTERVAL = 15;
+
+    const XML_PATH_ONLINE_INTERVAL = 'customer/online_customers/online_minutes_interval';
 
     /**
      * @var string[]
@@ -62,32 +51,60 @@ class Visitor extends \Magento\Framework\Model\AbstractModel
     protected $ignores;
 
     /**
+     * Core store config
+     *
+     * @var \Magento\Framework\App\Config\ScopeConfigInterface
+     */
+    protected $scopeConfig;
+
+    /**
+     * @var \Magento\Framework\Stdlib\DateTime
+     */
+    protected $dateTime;
+
+    /**
+     * @var \Magento\Framework\Indexer\IndexerRegistry
+     */
+    protected $indexerRegistry;
+
+    /**
      * @param \Magento\Framework\Model\Context $context
      * @param \Magento\Framework\Registry $registry
      * @param \Magento\Framework\Session\SessionManagerInterface $session
      * @param \Magento\Framework\HTTP\Header $httpHeader
-     * @param \Magento\Framework\Model\Resource\AbstractResource $resource
-     * @param \Magento\Framework\Data\Collection\Db $resourceCollection
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+     * @param \Magento\Framework\Stdlib\DateTime $dateTime
+     * @param \Magento\Framework\Indexer\IndexerRegistry $indexerRegistry
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource|null $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb|null $resourceCollection
      * @param array $ignoredUserAgents
      * @param array $ignores
      * @param array $data
+     *
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
         \Magento\Framework\Model\Context $context,
         \Magento\Framework\Registry $registry,
         \Magento\Framework\Session\SessionManagerInterface $session,
         \Magento\Framework\HTTP\Header $httpHeader,
-        \Magento\Framework\Model\Resource\AbstractResource $resource = null,
-        \Magento\Framework\Data\Collection\Db $resourceCollection = null,
-        array $ignoredUserAgents = array(),
-        array $ignores = array(),
-        $data = array()
+        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        \Magento\Framework\Stdlib\DateTime $dateTime,
+        \Magento\Framework\Indexer\IndexerRegistry $indexerRegistry,
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        array $ignoredUserAgents = [],
+        array $ignores = [],
+        array $data = []
     ) {
         $this->session = $session;
         $this->httpHeader = $httpHeader;
         $this->ignoredUserAgents = $ignoredUserAgents;
         parent::__construct($context, $registry, $resource, $resourceCollection, $data);
         $this->ignores = $ignores;
+        $this->scopeConfig = $scopeConfig;
+        $this->dateTime = $dateTime;
+        $this->indexerRegistry = $indexerRegistry;
     }
 
     /**
@@ -97,7 +114,7 @@ class Visitor extends \Magento\Framework\Model\AbstractModel
      */
     protected function _construct()
     {
-        $this->_init('Magento\Customer\Model\Resource\Visitor');
+        $this->_init('Magento\Customer\Model\ResourceModel\Visitor');
         $userAgent = $this->httpHeader->getHttpUserAgent();
         if ($this->ignoredUserAgents) {
             if (in_array($userAgent, $this->ignoredUserAgents)) {
@@ -131,13 +148,17 @@ class Visitor extends \Magento\Framework\Model\AbstractModel
         if ($this->skipRequestLogging || $this->isModuleIgnored($observer)) {
             return $this;
         }
+
         if ($this->session->getVisitorData()) {
             $this->setData($this->session->getVisitorData());
         }
+
+        $this->setLastVisitAt((new \DateTime())->format(\Magento\Framework\Stdlib\DateTime::DATETIME_PHP_FORMAT));
+
         if (!$this->getId()) {
             $this->setSessionId($this->session->getSessionId());
             $this->save();
-            $this->_eventManager->dispatch('visitor_init', array('visitor' => $this));
+            $this->_eventManager->dispatch('visitor_init', ['visitor' => $this]);
             $this->session->setVisitorData($this->getData());
         }
         return $this;
@@ -159,10 +180,10 @@ class Visitor extends \Magento\Framework\Model\AbstractModel
 
         try {
             $this->save();
-            $this->_eventManager->dispatch('visitor_activity_save', array('visitor' => $this));
+            $this->_eventManager->dispatch('visitor_activity_save', ['visitor' => $this]);
             $this->session->setVisitorData($this->getData());
         } catch (\Exception $e) {
-            $this->_logger->logException($e);
+            $this->_logger->critical($e);
         }
         return $this;
     }
@@ -194,7 +215,7 @@ class Visitor extends \Magento\Framework\Model\AbstractModel
      */
     public function bindCustomerLogin($observer)
     {
-        /** @var \Magento\Customer\Service\V1\Data\Customer $customer */
+        /** @var \Magento\Customer\Api\Data\CustomerInterface $customer */
         $customer = $observer->getEvent()->getCustomer();
         if (!$this->getCustomerId()) {
             $this->setDoCustomerLogin(true);
@@ -250,5 +271,45 @@ class Visitor extends \Magento\Framework\Model\AbstractModel
             $this->setDoQuoteDestroy(true);
         }
         return $this;
+    }
+
+    /**
+     * Return clean time in seconds for visitor's outdated records
+     *
+     * @return string
+     */
+    public function getCleanTime()
+    {
+        return $this->scopeConfig->getValue(
+            \Magento\Framework\Session\Config::XML_PATH_COOKIE_LIFETIME,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+        ) + 86400;
+    }
+
+    /**
+     * Clean visitor's outdated records
+     *
+     * @return $this
+     */
+    public function clean()
+    {
+        $this->getResource()->clean($this);
+        return $this;
+    }
+
+    /**
+     * Retrieve Online Interval (in minutes)
+     *
+     * @return int Minutes Interval
+     */
+    public function getOnlineInterval()
+    {
+        $configValue = intval(
+            $this->scopeConfig->getValue(
+                static::XML_PATH_ONLINE_INTERVAL,
+                \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+            )
+        );
+        return $configValue ?: static::DEFAULT_ONLINE_MINUTES_INTERVAL;
     }
 }

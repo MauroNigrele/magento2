@@ -1,29 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Filesystem\Directory;
 
-use Magento\Framework\Filesystem\FilesystemException;
+use Magento\Framework\Exception\FileSystemException;
 
 class Read implements ReadInterface
 {
@@ -33,11 +15,6 @@ class Read implements ReadInterface
      * @var string
      */
     protected $path;
-
-    /**
-     * @var string
-     */
-    protected $scheme;
 
     /**
      * File factory
@@ -56,35 +33,30 @@ class Read implements ReadInterface
     /**
      * Constructor. Set properties.
      *
-     * @param array $config
      * @param \Magento\Framework\Filesystem\File\ReadFactory $fileFactory
      * @param \Magento\Framework\Filesystem\DriverInterface $driver
+     * @param string $path
      */
     public function __construct(
-        array $config,
         \Magento\Framework\Filesystem\File\ReadFactory $fileFactory,
-        \Magento\Framework\Filesystem\DriverInterface $driver
+        \Magento\Framework\Filesystem\DriverInterface $driver,
+        $path
     ) {
-        $this->setProperties($config);
         $this->fileFactory = $fileFactory;
         $this->driver = $driver;
+        $this->setPath($path);
     }
 
     /**
-     * Set properties from config
+     * Sets base path
      *
-     * @param array $config
+     * @param string $path
      * @return void
-     * @throws \Magento\Framework\Filesystem\FilesystemException
      */
-    protected function setProperties(array $config)
+    protected function setPath($path)
     {
-        if (!empty($config['path'])) {
-            $this->path = rtrim(str_replace('\\', '/', $config['path']), '/') . '/';
-        }
-
-        if (!empty($config['protocol'])) {
-            $this->scheme = $config['protocol'];
+        if (!empty($path)) {
+            $this->path = rtrim(str_replace('\\', '/', $path), '/') . '/';
         }
     }
 
@@ -93,12 +65,12 @@ class Read implements ReadInterface
      * E.g.: /var/www/application/file.txt
      *
      * @param string $path
-     * @param string $schema
+     * @param string $scheme
      * @return string
      */
-    public function getAbsolutePath($path = null, $schema = null)
+    public function getAbsolutePath($path = null, $scheme = null)
     {
-        return $this->driver->getAbsolutePath($this->path, $path, $schema);
+        return $this->driver->getAbsolutePath($this->path, $path, $scheme);
     }
 
     /**
@@ -121,7 +93,7 @@ class Read implements ReadInterface
     public function read($path = null)
     {
         $files = $this->driver->readDirectory($this->driver->getAbsolutePath($this->path, $path));
-        $result = array();
+        $result = [];
         foreach ($files as $file) {
             $result[] = $this->getRelativePath($file);
         }
@@ -136,7 +108,7 @@ class Read implements ReadInterface
      */
     public function readRecursively($path = null)
     {
-        $result = array();
+        $result = [];
         $paths = $this->driver->readDirectoryRecursively($this->driver->getAbsolutePath($this->path, $path));
         /** @var \FilesystemIterator $file */
         foreach ($paths as $file) {
@@ -162,7 +134,7 @@ class Read implements ReadInterface
         }
 
         $files = $this->driver->search($pattern, $absolutePath);
-        $result = array();
+        $result = [];
         foreach ($files as $file) {
             $result[] = $this->getRelativePath($file);
         }
@@ -174,7 +146,7 @@ class Read implements ReadInterface
      *
      * @param string $path [optional]
      * @return bool
-     * @throws \Magento\Framework\Filesystem\FilesystemException
+     * @throws \Magento\Framework\Exception\FileSystemException
      */
     public function isExist($path = null)
     {
@@ -186,7 +158,7 @@ class Read implements ReadInterface
      *
      * @param string $path
      * @return array
-     * @throws \Magento\Framework\Filesystem\FilesystemException
+     * @throws \Magento\Framework\Exception\FileSystemException
      */
     public function stat($path)
     {
@@ -196,11 +168,11 @@ class Read implements ReadInterface
     /**
      * Check permissions for reading file or directory
      *
-     * @param string $path
+     * @param string $path [optional]
      * @return bool
-     * @throws \Magento\Framework\Filesystem\FilesystemException
+     * @throws \Magento\Framework\Exception\FileSystemException
      */
-    public function isReadable($path)
+    public function isReadable($path = null)
     {
         return $this->driver->isReadable($this->driver->getAbsolutePath($this->path, $path));
     }
@@ -209,15 +181,13 @@ class Read implements ReadInterface
      * Open file in read mode
      *
      * @param string $path
-     * @param string|null $protocol
      *
      * @return \Magento\Framework\Filesystem\File\ReadInterface
      */
-    public function openFile($path, $protocol = null)
+    public function openFile($path)
     {
         return $this->fileFactory->create(
             $this->driver->getAbsolutePath($this->path, $path),
-            $protocol,
             $this->driver
         );
     }
@@ -228,21 +198,14 @@ class Read implements ReadInterface
      * @param string $path
      * @param string|null $flag
      * @param resource|null $context
-     * @param string|null $protocol
      * @return string
-     * @throws FilesystemException
+     * @throws FileSystemException
      */
-    public function readFile($path, $flag = null, $context = null, $protocol = null)
+    public function readFile($path, $flag = null, $context = null)
     {
-        $absolutePath = $this->driver->getAbsolutePath($this->path, $path, $protocol);
+        $absolutePath = $this->driver->getAbsolutePath($this->path, $path);
+        return $this->driver->fileGetContents($absolutePath, $flag, $context);
 
-        if (is_null($protocol)) {
-            return $this->driver->fileGetContents($absolutePath, $flag, $context);
-        }
-
-        /** @var \Magento\Framework\Filesystem\File\Read $fileReader */
-        $fileReader = $this->fileFactory->create($absolutePath, $protocol, $this->driver);
-        return $fileReader->readAll($flag, $context);
     }
 
     /**
@@ -259,10 +222,10 @@ class Read implements ReadInterface
     /**
      * Check whether given path is directory
      *
-     * @param string $path
+     * @param string $path [optional]
      * @return bool
      */
-    public function isDirectory($path)
+    public function isDirectory($path = null)
     {
         return $this->driver->isDirectory($this->driver->getAbsolutePath($this->path, $path));
     }

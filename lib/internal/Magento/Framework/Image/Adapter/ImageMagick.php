@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Image\Adapter;
 
@@ -42,11 +24,11 @@ class ImageMagick extends \Magento\Framework\Image\Adapter\AbstractAdapter
      *
      * @var array
      */
-    protected $_options = array(
-        'resolution' => array('x' => 72, 'y' => 72),
-        'small_image' => array('width' => 300, 'height' => 300),
-        'sharpen' => array('radius' => 4, 'deviation' => 1)
-    );
+    protected $_options = [
+        'resolution' => ['x' => 72, 'y' => 72],
+        'small_image' => ['width' => 300, 'height' => 300],
+        'sharpen' => ['radius' => 4, 'deviation' => 1],
+    ];
 
     /**
      * Set/get background color. Check Imagick::COLOR_* constants
@@ -148,7 +130,7 @@ class ImageMagick extends \Magento\Framework\Image\Adapter\AbstractAdapter
     public function getImage()
     {
         $this->_applyOptions();
-        return (string)$this->_imageHandler;
+        return $this->_imageHandler->getImageBlob();
     }
 
     /**
@@ -253,6 +235,8 @@ class ImageMagick extends \Magento\Framework\Image\Adapter\AbstractAdapter
      * @return void
      * @throws \LogicException
      * @throws \Exception
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function watermark($imagePath, $positionX = 0, $positionY = 0, $opacity = 30, $tile = false)
     {
@@ -332,7 +316,7 @@ class ImageMagick extends \Magento\Framework\Image\Adapter\AbstractAdapter
         }
 
         // merge layers
-        $this->_imageHandler->flattenImages();
+        $this->_imageHandler->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
         $watermark->clear();
         $watermark->destroy();
     }
@@ -397,12 +381,12 @@ class ImageMagick extends \Magento\Framework\Image\Adapter\AbstractAdapter
         $pixel = $this->_imageHandler->getImagePixelColor($x, $y);
 
         $color = $pixel->getColor();
-        $rgbaColor = array(
+        $rgbaColor = [
             'red' => $color['r'],
             'green' => $color['g'],
             'blue' => $color['b'],
-            'alpha' => (1 - $color['a']) * 127
-        );
+            'alpha' => (1 - $color['a']) * 127,
+        ];
         return $rgbaColor;
     }
 

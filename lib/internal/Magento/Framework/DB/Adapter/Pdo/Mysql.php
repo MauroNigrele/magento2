@@ -2,47 +2,35 @@
 /**
  * Mysql PDO DB adapter
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 namespace Magento\Framework\DB\Adapter\Pdo;
 
-use Magento\Framework\App\Filesystem;
 use Magento\Framework\Cache\FrontendInterface;
 use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\DB\Ddl\Table;
 use Magento\Framework\DB\ExpressionConverter;
+use Magento\Framework\DB\LoggerInterface;
 use Magento\Framework\DB\Profiler;
 use Magento\Framework\DB\Select;
 use Magento\Framework\DB\Statement\Parameter;
-use Magento\Framework\Debug;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Phrase;
 use Magento\Framework\Stdlib\DateTime;
-use Magento\Framework\Stdlib\String;
+use Magento\Framework\Stdlib\StringUtils;
 
+/**
+ * @SuppressWarnings(PHPMD.ExcessivePublicCount)
+ * @SuppressWarnings(PHPMD.TooManyFields)
+ * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
 {
-    const DEBUG_CONNECT         = 0;
-    const DEBUG_TRANSACTION     = 1;
-    const DEBUG_QUERY           = 2;
-
     const TIMESTAMP_FORMAT      = 'Y-m-d H:i:s';
     const DATETIME_FORMAT       = 'Y-m-d H:i:s';
     const DATE_FORMAT           = 'Y-m-d';
@@ -101,14 +89,14 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      *
      * @var array
      */
-    protected $_ddlCache            = array();
+    protected $_ddlCache            = [];
 
     /**
      * SQL bind params. Used temporarily by regexp callback.
      *
      * @var array
      */
-    protected $_bindParams          = array();
+    protected $_bindParams          = [];
 
     /**
      * Autoincrement for bind value. Used by regexp callback.
@@ -116,55 +104,6 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      * @var int
      */
     protected $_bindIncrement       = 0;
-
-    /**
-     * Write SQL debug data to file
-     *
-     * @var bool
-     */
-    protected $_debug               = false;
-
-    /**
-     * Minimum query duration time to be logged
-     *
-     * @var float
-     */
-    protected $_logQueryTime        = 0.05;
-
-    /**
-     * Log all queries (ignored minimum query duration time)
-     *
-     * @var bool
-     */
-    protected $_logAllQueries       = false;
-
-    /**
-     * Add to log call stack data (backtrace)
-     *
-     * @var bool
-     */
-    protected $_logCallStack        = false;
-
-    /**
-     * Path to SQL debug data log
-     *
-     * @var string
-     */
-    protected $_debugFile           = 'var/debug/pdo_mysql.log';
-
-    /**
-     * Filesystem class
-     *
-     * @var Filesystem
-     */
-    protected $_filesystem;
-
-    /**
-     * Debug timer start value
-     *
-     * @var float
-     */
-    protected $_debugTimer          = 0;
 
     /**
      * Cache frontend adapter instance
@@ -184,7 +123,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      *
      * @var array
      */
-    protected $_ddlColumnTypes      = array(
+    protected $_ddlColumnTypes      = [
         Table::TYPE_BOOLEAN       => 'bool',
         Table::TYPE_SMALLINT      => 'smallint',
         Table::TYPE_INTEGER       => 'int',
@@ -197,8 +136,8 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         Table::TYPE_DATETIME      => 'datetime',
         Table::TYPE_TEXT          => 'text',
         Table::TYPE_BLOB          => 'blob',
-        Table::TYPE_VARBINARY     => 'blob'
-    );
+        Table::TYPE_VARBINARY     => 'blob',
+    ];
 
     /**
      * All possible DDL statements
@@ -206,21 +145,21 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      *
      * @var string[]
      */
-    protected $_ddlRoutines = array('alt', 'cre', 'ren', 'dro', 'tru');
+    protected $_ddlRoutines = ['alt', 'cre', 'ren', 'dro', 'tru'];
 
     /**
      * Allowed interval units array
      *
      * @var array
      */
-    protected $_intervalUnits = array(
+    protected $_intervalUnits = [
         self::INTERVAL_YEAR     => 'YEAR',
         self::INTERVAL_MONTH    => 'MONTH',
         self::INTERVAL_DAY      => 'DAY',
         self::INTERVAL_HOUR     => 'HOUR',
         self::INTERVAL_MINUTE   => 'MINUTE',
         self::INTERVAL_SECOND   => 'SECOND',
-    );
+    ];
 
     /**
      * Hook callback to modify queries. Mysql specific property, designed only for backwards compatibility.
@@ -240,21 +179,31 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     protected $dateTime;
 
     /**
-     * @param Filesystem $filesystem
-     * @param \Magento\Framework\Stdlib\String|String $string
+     * @var LoggerInterface
+     */
+    protected $logger;
+
+    /**
+     * @param \Magento\Framework\Stdlib\StringUtils|String $string
      * @param DateTime $dateTime
+     * @param LoggerInterface $logger
      * @param array $config
+     * @throws \InvalidArgumentException
      */
     public function __construct(
-        Filesystem $filesystem,
-        String $string,
+        StringUtils $string,
         DateTime $dateTime,
-        array $config = array()
+        LoggerInterface $logger,
+        array $config = []
     ) {
-        $this->_filesystem = $filesystem;
         $this->string = $string;
         $this->dateTime = $dateTime;
-        parent::__construct($config);
+        $this->logger = $logger;
+        try {
+            parent::__construct($config);
+        } catch (\Zend_Db_Adapter_Exception $e) {
+            throw new \InvalidArgumentException($e->getMessage(), $e->getCode(), $e);
+        }
     }
 
     /**
@@ -269,9 +218,9 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
             throw new \Exception(AdapterInterface::ERROR_ROLLBACK_INCOMPLETE_MESSAGE);
         }
         if ($this->_transactionLevel === 0) {
-            $this->_debugTimer();
+            $this->logger->startTimer();
             parent::beginTransaction();
-            $this->_debugStat(self::DEBUG_TRANSACTION, 'BEGIN');
+            $this->logger->logStats(LoggerInterface::TYPE_TRANSACTION, 'BEGIN');
         }
         ++$this->_transactionLevel;
         return $this;
@@ -286,9 +235,9 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     public function commit()
     {
         if ($this->_transactionLevel === 1 && !$this->_isRolledBack) {
-            $this->_debugTimer();
+            $this->logger->startTimer();
             parent::commit();
-            $this->_debugStat(self::DEBUG_TRANSACTION, 'COMMIT');
+            $this->logger->logStats(LoggerInterface::TYPE_TRANSACTION, 'COMMIT');
         } elseif ($this->_transactionLevel === 0) {
             throw new \Exception(AdapterInterface::ERROR_ASYMMETRIC_COMMIT_MESSAGE);
         } elseif ($this->_isRolledBack) {
@@ -307,10 +256,10 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     public function rollBack()
     {
         if ($this->_transactionLevel === 1) {
-            $this->_debugTimer();
+            $this->logger->startTimer();
             parent::rollBack();
             $this->_isRolledBack = false;
-            $this->_debugStat(self::DEBUG_TRANSACTION, 'ROLLBACK');
+            $this->logger->logStats(LoggerInterface::TYPE_TRANSACTION, 'ROLLBACK');
         } elseif ($this->_transactionLevel === 0) {
             throw new \Exception(AdapterInterface::ERROR_ASYMMETRIC_ROLLBACK_MESSAGE);
         } else {
@@ -333,7 +282,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     /**
      * Convert date to DB format
      *
-     * @param int|string|\Magento\Framework\Stdlib\DateTime\DateInterface $date
+     * @param int|string|\DateTime $date
      * @return \Zend_Db_Expr
      */
     public function convertDate($date)
@@ -344,7 +293,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     /**
      * Convert date and time to DB format
      *
-     * @param   int|string|\Magento\Framework\Stdlib\DateTime\DateInterface $datetime
+     * @param   int|string|\DateTime $datetime
      * @return \Zend_Db_Expr
      */
     public function convertDateTime($datetime)
@@ -375,16 +324,23 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         if (strpos($this->_config['host'], '/') !== false) {
             $this->_config['unix_socket'] = $this->_config['host'];
             unset($this->_config['host']);
-        } else if (strpos($this->_config['host'], ':') !== false) {
+        } elseif (strpos($this->_config['host'], ':') !== false) {
             list($this->_config['host'], $this->_config['port']) = explode(':', $this->_config['host']);
         }
 
-        $this->_debugTimer();
+        $this->logger->startTimer();
         parent::_connect();
-        $this->_debugStat(self::DEBUG_CONNECT, '');
+        $this->logger->logStats(LoggerInterface::TYPE_CONNECT, '');
 
         /** @link http://bugs.mysql.com/bug.php?id=18551 */
         $this->_connection->query("SET SQL_MODE=''");
+
+        // As we use default value CURRENT_TIMESTAMP for TIMESTAMP type columns we need to set GMT timezone
+        $this->_connection->query("SET time_zone = '+00:00'");
+
+        if (isset($this->_config['initStatements'])) {
+            $this->query($this->_config['initStatements']);
+        }
 
         if (!$this->_connectionFlagsSet) {
             $this->_connection->setAttribute(\PDO::ATTR_EMULATE_PREPARES, true);
@@ -445,15 +401,17 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     /**
      * Check transaction level in case of DDL query
      *
-     * @param string|\Zend_Db_Select $sql
+     * @param string|\Magento\Framework\DB\Select $sql
      * @return void
      * @throws \Zend_Db_Adapter_Exception
      */
     protected function _checkDdlTransaction($sql)
     {
-        if (is_string($sql) && $this->getTransactionLevel() > 0) {
-            $startSql = strtolower(substr(ltrim($sql), 0, 3));
-            if (in_array($startSql, $this->_ddlRoutines)) {
+        if ($this->getTransactionLevel() > 0) {
+            $sql = ltrim(preg_replace('/\s+/', ' ', $sql));
+            $sqlMessage = explode(' ', $sql, 3);
+            $startSql = strtolower(substr($sqlMessage[0], 0, 3));
+            if (in_array($startSql, $this->_ddlRoutines) && strcasecmp($sqlMessage[1], 'temporary') !== 0) {
                 trigger_error(AdapterInterface::ERROR_DDL_MESSAGE, E_USER_ERROR);
             }
         }
@@ -463,26 +421,28 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      * Special handling for PDO query().
      * All bind parameter names must begin with ':'.
      *
-     * @param string|\Zend_Db_Select $sql The SQL statement with placeholders.
+     * @param string|\Magento\Framework\DB\Select $sql The SQL statement with placeholders.
      * @param mixed $bind An array of data or data itself to bind to the placeholders.
      * @return \Zend_Db_Statement_Pdo|void
      * @throws \Zend_Db_Adapter_Exception To re-throw \PDOException.
+     * @throws LocalizedException In case multiple queries are attempted at once, to protect from SQL injection
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
-    public function query($sql, $bind = array())
+    protected function _query($sql, $bind = [])
     {
-        $connectionErrors = array(
+        $connectionErrors = [
             2006, // SQLSTATE[HY000]: General error: 2006 MySQL server has gone away
-            2013  // SQLSTATE[HY000]: General error: 2013 Lost connection to MySQL server during query
-        );
+            2013,  // SQLSTATE[HY000]: General error: 2013 Lost connection to MySQL server during query
+        ];
         $triesCount = 0;
         do {
             $retry = false;
-            $this->_debugTimer();
+            $this->logger->startTimer();
             try {
                 $this->_checkDdlTransaction($sql);
                 $this->_prepareQuery($sql, $bind);
                 $result = parent::query($sql, $bind);
-                $this->_debugStat(self::DEBUG_QUERY, $sql, $bind, $result);
+                $this->logger->logStats(LoggerInterface::TYPE_QUERY, $sql, $bind, $result);
                 return $result;
             } catch (\Exception $e) {
                 // Finalize broken query
@@ -511,11 +471,51 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
                 }
 
                 if (!$retry) {
-                    $this->_debugStat(self::DEBUG_QUERY, $sql, $bind);
-                    $this->_debugException($e);
+                    $this->logger->logStats(LoggerInterface::TYPE_QUERY, $sql, $bind);
+                    $this->logger->critical($e);
+                    throw $e;
                 }
             }
         } while ($retry);
+    }
+
+
+    /**
+     * Special handling for PDO query().
+     * All bind parameter names must begin with ':'.
+     *
+     * @param string|\Magento\Framework\DB\Select $sql The SQL statement with placeholders.
+     * @param mixed $bind An array of data or data itself to bind to the placeholders.
+     * @return \Zend_Db_Statement_Pdo|void
+     * @throws \Zend_Db_Adapter_Exception To re-throw \PDOException.
+     * @throws LocalizedException In case multiple queries are attempted at once, to protect from SQL injection
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     */
+    public function query($sql, $bind = [])
+    {
+        if (strpos(rtrim($sql, " \t\n\r\0;"), ';') !== false && count($this->_splitMultiQuery($sql)) > 1) {
+            throw new \Magento\Framework\Exception\LocalizedException(new Phrase('Cannot execute multiple queries'));
+        }
+        return $this->_query($sql, $bind);
+    }
+
+    /**
+     * Allows multiple queries -- to safeguard against SQL injection, USE CAUTION and verify that input
+     * cannot be tampered with.
+     *
+     * Special handling for PDO query().
+     * All bind parameter names must begin with ':'.
+     *
+     * @param string|\Magento\Framework\DB\Select $sql The SQL statement with placeholders.
+     * @param mixed $bind An array of data or data itself to bind to the placeholders.
+     * @return \Zend_Db_Statement_Pdo|void
+     * @throws \Zend_Db_Adapter_Exception To re-throw \PDOException.
+     * @throws LocalizedException In case multiple queries are attempted at once, to protect from SQL injection
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     */
+    public function multiQuery($sql, $bind = [])
+    {
+        return $this->_query($sql, $bind);
     }
 
     /**
@@ -523,15 +523,15 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      * (e.g. "foo:bar"). And also changes named bind to positional one, because underlying library has problems
      * with named binds.
      *
-     * @param \Zend_Db_Select|string $sql
+     * @param \Magento\Framework\DB\Select|string $sql
      * @param mixed $bind
      * @return $this
      */
-    protected function _prepareQuery(&$sql, &$bind = array())
+    protected function _prepareQuery(&$sql, &$bind = [])
     {
         $sql = (string) $sql;
         if (!is_array($bind)) {
-            $bind = array($bind);
+            $bind = [$bind];
         }
 
         // Mixed bind is not supported - so remember whether it is named bind, to normalize later if required
@@ -589,15 +589,15 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      */
     protected function _unQuote($string)
     {
-        $translate = array(
+        $translate = [
             "\\000" => "\000",
             "\\n"   => "\n",
             "\\r"   => "\r",
             "\\\\"  => "\\",
             "\'"    => "'",
             "\\\""  => "\"",
-            "\\032" => "\032"
-        );
+            "\\032" => "\032",
+        ];
         return strtr($string, $translate);
     }
 
@@ -611,7 +611,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      */
     protected function _convertMixedBind(&$sql, &$bind)
     {
-        $positions  = array();
+        $positions  = [];
         $offset     = 0;
         // get positions
         while (true) {
@@ -624,8 +624,8 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
             }
         }
 
-        $bindResult = array();
-        $map = array();
+        $bindResult = [];
+        $map = [];
         foreach ($bind as $k => $v) {
             // positional
             if (is_int($k)) {
@@ -672,51 +672,12 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     }
 
     /**
-     * Executes a SQL statement(s)
-     *
-     * @param string $sql
-     * @throws \Zend_Db_Exception
-     * @return array
-     */
-    public function multiQuery($sql)
-    {
-        return $this->multiMagentoQuery($sql);
-    }
-
-    /**
-     * Run Multi Query
-     *
-     * @param string $sql
-     * @return array
-     * @throws \Exception
-     */
-    public function multiMagentoQuery($sql)
-    {
-        ##$result = $this->rawQuery($sql);
-
-        #$this->beginTransaction();
-        try {
-            $stmts = $this->_splitMultiQuery($sql);
-            $result = array();
-            foreach ($stmts as $stmt) {
-                $result[] = $this->rawQuery($stmt);
-            }
-            #$this->commit();
-        } catch (\Exception $e) {
-            #$this->rollback();
-            throw $e;
-        }
-
-        $this->resetDdlCache();
-
-        return $result;
-    }
-
-    /**
      * Split multi statement query
      *
      * @param string $sql
      * @return array
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     protected function _splitMultiQuery($sql)
     {
@@ -729,7 +690,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
 
         $q      = false;
         $c      = false;
-        $stmts  = array();
+        $stmts  = [];
         $s      = '';
 
         foreach ($parts as $i => $part) {
@@ -758,7 +719,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
 
             // statements
             if ($part === ';' && $q === false && $c === false) {
-                if (trim($s)!=='') {
+                if (trim($s) !== '') {
                     $stmts[] = trim($s);
                     $s = '';
                 }
@@ -788,7 +749,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         if (substr($fkName, 0, 3) == 'FK_') {
             $fkName = substr($fkName, 3);
         }
-        foreach (array($fkName, 'FK_' . $fkName) as $key) {
+        foreach ([$fkName, 'FK_' . $fkName] as $key) {
             if (isset($foreignKeys[$key])) {
                 $sql = sprintf(
                     'ALTER TABLE %s DROP FOREIGN KEY %s',
@@ -928,7 +889,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
             return true;
         }
 
-        $alterDrop = array();
+        $alterDrop = [];
 
         $foreignKeys = $this->getForeignKeys($tableName, $schemaName);
         foreach ($foreignKeys as $fkProp) {
@@ -1125,7 +1086,6 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      * REF_TABLE_NAME   => string; reference table name
      * REF_COLUMN_NAME  => string; reference column name
      * ON_DELETE        => string; action type on delete row
-     * ON_UPDATE        => string; action type on update row
      *
      * @param string $tableName
      * @param string $schemaName
@@ -1136,18 +1096,18 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         $cacheKey = $this->_getTableName($tableName, $schemaName);
         $ddl = $this->loadDdlCache($cacheKey, self::DDL_FOREIGN_KEY);
         if ($ddl === false) {
-            $ddl = array();
+            $ddl = [];
             $createSql = $this->getCreateTable($tableName, $schemaName);
 
             // collect CONSTRAINT
-            $regExp  = '#,\s+CONSTRAINT `([^`]*)` FOREIGN KEY \(`([^`]*)`\) '
+            $regExp  = '#,\s+CONSTRAINT `([^`]*)` FOREIGN KEY ?\(`([^`]*)`\) '
                 . 'REFERENCES (`([^`]*)`\.)?`([^`]*)` \(`([^`]*)`\)'
                 . '( ON DELETE (RESTRICT|CASCADE|SET NULL|NO ACTION))?'
                 . '( ON UPDATE (RESTRICT|CASCADE|SET NULL|NO ACTION))?#';
-            $matches = array();
+            $matches = [];
             preg_match_all($regExp, $createSql, $matches, PREG_SET_ORDER);
             foreach ($matches as $match) {
-                $ddl[strtoupper($match[1])] = array(
+                $ddl[strtoupper($match[1])] = [
                     'FK_NAME'           => $match[1],
                     'SCHEMA_NAME'       => $schemaName,
                     'TABLE_NAME'        => $tableName,
@@ -1155,9 +1115,8 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
                     'REF_SHEMA_NAME'    => isset($match[4]) ? $match[4] : $schemaName,
                     'REF_TABLE_NAME'    => $match[5],
                     'REF_COLUMN_NAME'   => $match[6],
-                    'ON_DELETE'         => isset($match[7]) ? $match[8] : '',
-                    'ON_UPDATE'         => isset($match[9]) ? $match[10] : ''
-                );
+                    'ON_DELETE'         => isset($match[7]) ? $match[8] : ''
+                ];
             }
 
             $this->saveDdlCache($cacheKey, self::DDL_FOREIGN_KEY, $ddl);
@@ -1173,7 +1132,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      */
     public function getForeignKeysTree()
     {
-        $tree = array();
+        $tree = [];
         foreach ($this->listTables() as $table) {
             foreach ($this->getForeignKeys($table) as $key) {
                 $tree[$table][$key['COLUMN_NAME']] = $key;
@@ -1196,6 +1155,9 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      *
      * @param array $tables
      * @return $this
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
     public function modifyTables($tables)
     {
@@ -1208,7 +1170,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
                 if (!$this->tableColumnExists($table, $column)) {
                     continue;
                 }
-                $droppedKeys = array();
+                $droppedKeys = [];
                 foreach ($foreignKeys as $keyTable => $columns) {
                     foreach ($columns as $columnName => $keyOptions) {
                         if ($table == $keyOptions['REF_TABLE_NAME'] && $column == $keyOptions['REF_COLUMN_NAME']) {
@@ -1224,11 +1186,9 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
                     unset($columnDefinition['identity'], $columnDefinition['primary'], $columnDefinition['comment']);
 
                     $onDelete = $options['ON_DELETE'];
-                    $onUpdate = $options['ON_UPDATE'];
 
-                    if ($onDelete == AdapterInterface::FK_ACTION_SET_NULL
-                        || $onUpdate == AdapterInterface::FK_ACTION_SET_NULL) {
-                           $columnDefinition['nullable'] = true;
+                    if ($onDelete == AdapterInterface::FK_ACTION_SET_NULL) {
+                        $columnDefinition['nullable'] = true;
                     }
                     $this->modifyColumn($options['TABLE_NAME'], $options['COLUMN_NAME'], $columnDefinition);
                     $this->addForeignKey(
@@ -1237,8 +1197,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
                         $options['COLUMN_NAME'],
                         $options['REF_TABLE_NAME'],
                         $options['REF_COLUMN_NAME'],
-                        ($onDelete) ? $onDelete : AdapterInterface::FK_ACTION_NO_ACTION,
-                        ($onUpdate) ? $onUpdate : AdapterInterface::FK_ACTION_NO_ACTION
+                        ($onDelete) ? $onDelete : AdapterInterface::FK_ACTION_NO_ACTION
                     );
                 }
             }
@@ -1280,7 +1239,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         $cacheKey = $this->_getTableName($tableName, $schemaName);
         $ddl = $this->loadDdlCache($cacheKey, self::DDL_INDEX);
         if ($ddl === false) {
-            $ddl = array();
+            $ddl = [];
 
             $sql = sprintf(
                 'SHOW INDEX FROM %s',
@@ -1307,16 +1266,16 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
                     $ddl[$upperKeyName]['fields'][] = $row[$fieldColumn]; // for compatible
                     $ddl[$upperKeyName]['COLUMNS_LIST'][] = $row[$fieldColumn];
                 } else {
-                    $ddl[$upperKeyName] = array(
+                    $ddl[$upperKeyName] = [
                         'SCHEMA_NAME'   => $schemaName,
                         'TABLE_NAME'    => $tableName,
                         'KEY_NAME'      => $row[$fieldKeyName],
-                        'COLUMNS_LIST'  => array($row[$fieldColumn]),
+                        'COLUMNS_LIST'  => [$row[$fieldColumn]],
                         'INDEX_TYPE'    => $indexType,
                         'INDEX_METHOD'  => $row[$fieldIndexType],
                         'type'          => strtolower($indexType), // for compatibility
-                        'fields'        => array($row[$fieldColumn]) // for compatibility
-                    );
+                        'fields'        => [$row[$fieldColumn]], // for compatibility
+                    ];
                 }
             }
             $this->saveDdlCache($cacheKey, self::DDL_INDEX, $ddl);
@@ -1335,7 +1294,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      */
     protected function _removeDuplicateEntry($table, $fields, $ids)
     {
-        $where = array();
+        $where = [];
         $i = 0;
         foreach ($fields as $field) {
             $where[] = $this->quoteInto($field . '=?', $ids[$i++]);
@@ -1362,117 +1321,13 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     }
 
     /**
-     * Creates and returns a new \Zend_Db_Select object for this adapter.
+     * Creates and returns a new \Magento\Framework\DB\Select object for this adapter.
      *
      * @return Select
      */
     public function select()
     {
         return new Select($this);
-    }
-
-    /**
-     * Start debug timer
-     *
-     * @return $this
-     */
-    protected function _debugTimer()
-    {
-        if ($this->_debug) {
-            $this->_debugTimer = microtime(true);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Logging debug information
-     *
-     * @param int $type
-     * @param string $sql
-     * @param array $bind
-     * @param \Zend_Db_Statement_Pdo $result
-     * @return $this
-     */
-    protected function _debugStat($type, $sql, $bind = array(), $result = null)
-    {
-        if (!$this->_debug) {
-            return $this;
-        }
-
-        $code = '## ' . getmypid() . ' ## ';
-        $nl   = "\n";
-        $time = sprintf('%.4f', microtime(true) - $this->_debugTimer);
-
-        if (!$this->_logAllQueries && $time < $this->_logQueryTime) {
-            return $this;
-        }
-        switch ($type) {
-            case self::DEBUG_CONNECT:
-                $code .= 'CONNECT' . $nl;
-                break;
-            case self::DEBUG_TRANSACTION:
-                $code .= 'TRANSACTION ' . $sql . $nl;
-                break;
-            case self::DEBUG_QUERY:
-                $code .= 'QUERY' . $nl;
-                $code .= 'SQL: ' . $sql . $nl;
-                if ($bind) {
-                    $code .= 'BIND: ' . var_export($bind, true) . $nl;
-                }
-                if ($result instanceof \Zend_Db_Statement_Pdo) {
-                    $code .= 'AFF: ' . $result->rowCount() . $nl;
-                }
-                break;
-        }
-        $code .= 'TIME: ' . $time . $nl;
-
-        if ($this->_logCallStack) {
-            $code .= 'TRACE: ' . Debug::backtrace(true, false) . $nl;
-        }
-
-        $code .= $nl;
-
-        $this->_debugWriteToFile($code);
-
-        return $this;
-    }
-
-    /**
-     * Write exception and thow
-     *
-     * @param \Exception $e
-     * @return void
-     * @throws \Exception
-     */
-    protected function _debugException(\Exception $e)
-    {
-        if (!$this->_debug) {
-            throw $e;
-        }
-
-        $nl   = "\n";
-        $code = 'EXCEPTION ' . $nl . $e . $nl . $nl;
-        $this->_debugWriteToFile($code);
-
-        throw $e;
-    }
-
-    /**
-     * Debug write to file process
-     *
-     * @param string $str
-     * @return void
-     */
-    protected function _debugWriteToFile($str)
-    {
-        $str = '## ' . date('Y-m-d H:i:s') . "\r\n" . $str;
-
-        $stream = $this->_filesystem->getDirectoryWrite(Filesystem::ROOT_DIR)->openFile($this->_debugFile, 'a');
-        $stream->lock();
-        $stream->write($str);
-        $stream->unlock();
-        $stream->close();
     }
 
     /**
@@ -1490,6 +1345,10 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     {
         if (is_array($value) && empty($value)) {
             $value = new \Zend_Db_Expr('NULL');
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            $value = $value->format('Y-m-d H:i:s');
         }
 
         return parent::quoteInto($text, $value, $type, $count);
@@ -1567,7 +1426,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         if ($this->_cacheAdapter) {
             $cacheId = $this->_getCacheId($tableCacheKey, $ddlType);
             $data = serialize($data);
-            $this->_cacheAdapter->save($data, $cacheId, array(self::DDL_CACHE_TAG));
+            $this->_cacheAdapter->save($data, $cacheId, [self::DDL_CACHE_TAG]);
         }
 
         return $this;
@@ -1587,14 +1446,14 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
             return $this;
         }
         if ($tableName === null) {
-            $this->_ddlCache = array();
+            $this->_ddlCache = [];
             if ($this->_cacheAdapter) {
-                $this->_cacheAdapter->clean(\Zend_Cache::CLEANING_MODE_MATCHING_TAG, array(self::DDL_CACHE_TAG));
+                $this->_cacheAdapter->clean(\Zend_Cache::CLEANING_MODE_MATCHING_TAG, [self::DDL_CACHE_TAG]);
             }
         } else {
             $cacheKey = $this->_getTableName($tableName, $schemaName);
 
-            $ddlTypes = array(self::DDL_DESCRIBE, self::DDL_CREATE, self::DDL_INDEX, self::DDL_FOREIGN_KEY);
+            $ddlTypes = [self::DDL_DESCRIBE, self::DDL_CREATE, self::DDL_INDEX, self::DDL_FOREIGN_KEY];
             foreach ($ddlTypes as $ddlType) {
                 unset($this->_ddlCache[$ddlType][$cacheKey]);
             }
@@ -1668,7 +1527,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
              * Remove bug in some MySQL versions, when int-column without default value is described as:
              * having default empty string value
              */
-            $affected = array('tinyint', 'smallint', 'mediumint', 'int', 'bigint');
+            $affected = ['tinyint', 'smallint', 'mediumint', 'int', 'bigint'];
             foreach ($ddl as $key => $columnData) {
                 if (($columnData['DEFAULT'] === '') && (array_search($columnData['DATA_TYPE'], $affected) !== false)) {
                     $ddl[$key]['DEFAULT'] = null;
@@ -1686,11 +1545,13 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      *
      * @param  array $columnData
      * @return array
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function getColumnCreateByDescribe($columnData)
     {
         $type = $this->_getColumnTypeByDdl($columnData);
-        $options = array();
+        $options = [];
 
         if ($columnData['IDENTITY'] === true) {
             $options['identity'] = true;
@@ -1720,13 +1581,13 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
 
         $comment = $this->string->upperCaseWords($columnData['COLUMN_NAME'], '_', ' ');
 
-        $result = array(
+        $result = [
             'name'      => $columnData['COLUMN_NAME'],
             'type'      => $type,
             'length'    => $columnData['LENGTH'],
             'options'   => $options,
-            'comment'   => $comment
-        );
+            'comment'   => $comment,
+        ];
 
         return $result;
     }
@@ -1769,7 +1630,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
             }
 
             $fields = $indexData['COLUMNS_LIST'];
-            $options = array('type' => $indexData['INDEX_TYPE']);
+            $options = ['type' => $indexData['INDEX_TYPE']];
             $table->addIndex($this->getIndexName($newTableName, $fields, $indexData['INDEX_TYPE']), $fields, $options);
         }
 
@@ -1782,15 +1643,13 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
                 $keyData['REF_COLUMN_NAME']
             );
             $onDelete = $this->_getDdlAction($keyData['ON_DELETE']);
-            $onUpdate = $this->_getDdlAction($keyData['ON_UPDATE']);
 
             $table->addForeignKey(
                 $fkName,
                 $keyData['COLUMN_NAME'],
                 $keyData['REF_TABLE_NAME'],
                 $keyData['REF_COLUMN_NAME'],
-                $onDelete,
-                $onUpdate
+                $onDelete
             );
         }
 
@@ -1827,6 +1686,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      *
      * @param array $column
      * @return string
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     protected function _getColumnTypeByDdl($column)
     {
@@ -1923,13 +1783,15 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      * @param array $fields update fields pairs or values
      * @return int The number of affected rows.
      * @throws \Zend_Db_Exception
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
-    public function insertOnDuplicate($table, array $data, array $fields = array())
+    public function insertOnDuplicate($table, array $data, array $fields = [])
     {
         // extract and quote col names from the array keys
         $row    = reset($data); // get first element from data array
-        $bind   = array(); // SQL bind array
-        $values = array();
+        $bind   = []; // SQL bind array
+        $values = [];
 
         if (is_array($row)) { // Array of column-value pairs
             $cols = array_keys($row);
@@ -1945,13 +1807,10 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
             $values[] = $this->_prepareInsertData($data, $bind);
         }
 
-        $updateFields = array();
+        $updateFields = [];
         if (empty($fields)) {
             $fields = $cols;
         }
-
-        // quote column names
-        // $cols = array_map(array($this, 'quoteIdentifier'), $cols);
 
         // prepare ON DUPLICATE KEY conditions
         foreach ($fields as $k => $v) {
@@ -1970,7 +1829,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
                 $field = $this->quoteIdentifier($v);
             }
 
-            if ($field && $value) {
+            if ($field && is_string($value) && $value !== '') {
                 $updateFields[] = sprintf('%s = %s', $field, $value);
             }
         }
@@ -2004,9 +1863,9 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
 
         // validate data array
         $cols = array_keys($row);
-        $insertArray = array();
+        $insertArray = [];
         foreach ($data as $row) {
-            $line = array();
+            $line = [];
             if (array_diff($cols, array_keys($row))) {
                 throw new \Zend_Db_Exception('Invalid data for insert');
             }
@@ -2040,8 +1899,8 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      */
     public function insertArray($table, array $columns, array $data)
     {
-        $values       = array();
-        $bind         = array();
+        $values       = [];
+        $bind         = [];
         $columnsCount = count($columns);
         foreach ($data as $row) {
             if ($columnsCount != count($row)) {
@@ -2062,12 +1921,12 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     /**
      * Set cache adapter
      *
-     * @param FrontendInterface $adapter
+     * @param FrontendInterface $cacheAdapter
      * @return $this
      */
-    public function setCacheAdapter(FrontendInterface $adapter)
+    public function setCacheAdapter(FrontendInterface $cacheAdapter)
     {
-        $this->_cacheAdapter = $adapter;
+        $this->_cacheAdapter = $cacheAdapter;
         return $this;
     }
 
@@ -2086,6 +1945,9 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         }
         if ($schemaName !== null) {
             $table->setSchema($schemaName);
+        }
+        if (isset($this->_config['engine'])) {
+            $table->setOption('type', $this->_config['engine']);
         }
 
         return $table;
@@ -2114,13 +1976,15 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         );
         $tableOptions   = $this->_getOptionsDefinition($table);
         $sql = sprintf(
-            "CREATE TABLE %s (\n%s\n) %s",
+            "CREATE TABLE IF NOT EXISTS %s (\n%s\n) %s",
             $this->quoteIdentifier($table->getName()),
             implode(",\n", $sqlFragment),
             implode(" ", $tableOptions)
         );
+        $result = $this->query($sql);
+        $this->resetDdlCache($table->getName(), $table->getSchema());
 
-        return $this->query($sql);
+        return $result;
     }
 
     /**
@@ -2129,6 +1993,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      * @param \Magento\Framework\DB\Ddl\Table $table
      * @throws \Zend_Db_Exception
      * @return \Zend_Db_Pdo_Statement
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
     public function createTemporaryTable(\Magento\Framework\DB\Ddl\Table $table)
     {
@@ -2150,6 +2015,24 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     }
 
     /**
+     * Create temporary table like
+     *
+     * @param string $temporaryTableName
+     * @param string $originTableName
+     * @param bool $ifNotExists
+     * @return \Zend_Db_Statement_Pdo
+     */
+    public function createTemporaryTableLike($temporaryTableName, $originTableName, $ifNotExists = false)
+    {
+        $ifNotExistsSql = ($ifNotExists ? 'IF NOT EXISTS' : '');
+        $temporaryTable = $this->quoteIdentifier($this->_getTableName($temporaryTableName));
+        $originTable = $this->quoteIdentifier($this->_getTableName($originTableName));
+        $sql = sprintf('CREATE TEMPORARY TABLE %s %s LIKE %s', $ifNotExistsSql, $temporaryTable, $originTable);
+
+        return $this->query($sql);
+    }
+
+    /**
      * Rename several tables
      *
      * @param array $tablePairs array('oldName' => 'Name1', 'newName' => 'Name2')
@@ -2163,8 +2046,8 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
             throw new \Zend_Db_Exception('Please provide tables for rename');
         }
 
-        $renamesList = array();
-        $tablesList  = array();
+        $renamesList = [];
+        $tablesList  = [];
         foreach ($tablePairs as $pair) {
             $oldTableName  = $pair['oldName'];
             $newTableName  = $pair['newName'];
@@ -2193,8 +2076,8 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      */
     protected function _getColumnsDefinition(Table $table)
     {
-        $definition = array();
-        $primary    = array();
+        $definition = [];
+        $primary    = [];
         $columns    = $table->getColumns();
         if (empty($columns)) {
             throw new \Zend_Db_Exception('Table columns are not defined');
@@ -2216,7 +2099,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         // PRIMARY KEY
         if (!empty($primary)) {
             asort($primary, SORT_NUMERIC);
-            $primary      = array_map(array($this, 'quoteIdentifier'), array_keys($primary));
+            $primary      = array_map([$this, 'quoteIdentifier'], array_keys($primary));
             $definition[] = sprintf('  PRIMARY KEY (%s)', implode(', ', $primary));
         }
 
@@ -2231,43 +2114,57 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      */
     protected function _getIndexesDefinition(Table $table)
     {
-        $definition = array();
-        $indexes    = $table->getIndexes();
-        if (!empty($indexes)) {
-            foreach ($indexes as $indexData) {
-                if (!empty($indexData['TYPE'])) {
-                    switch ($indexData['TYPE']) {
-                        case 'primary':
-                            $indexType = 'PRIMARY KEY';
-                            unset($indexData['INDEX_NAME']);
-                            break;
-                        default:
-                            $indexType = strtoupper($indexData['TYPE']);
-                            break;
-                    }
-                } else {
-                    $indexType = 'KEY';
+        $definition = [];
+        $indexes = $table->getIndexes();
+        foreach ($indexes as $indexData) {
+            if (!empty($indexData['TYPE'])) {
+                //Skipping not supported fulltext indexes for NDB
+                if (($indexData['TYPE'] == AdapterInterface::INDEX_TYPE_FULLTEXT) && $this->isNdb($table)) {
+                    continue;
                 }
-
-                $columns = array();
-                foreach ($indexData['COLUMNS'] as $columnData) {
-                    $column = $this->quoteIdentifier($columnData['NAME']);
-                    if (!empty($columnData['SIZE'])) {
-                        $column .= sprintf('(%d)', $columnData['SIZE']);
-                    }
-                    $columns[] = $column;
+                switch ($indexData['TYPE']) {
+                    case AdapterInterface::INDEX_TYPE_PRIMARY:
+                        $indexType = 'PRIMARY KEY';
+                        unset($indexData['INDEX_NAME']);
+                        break;
+                    default:
+                        $indexType = strtoupper($indexData['TYPE']);
+                        break;
                 }
-                $indexName = isset($indexData['INDEX_NAME']) ? $this->quoteIdentifier($indexData['INDEX_NAME']) : '';
-                $definition[] = sprintf(
-                    '  %s %s (%s)',
-                    $indexType,
-                    $indexName,
-                    implode(', ', $columns)
-                );
+            } else {
+                $indexType = 'KEY';
             }
+
+            $columns = [];
+            foreach ($indexData['COLUMNS'] as $columnData) {
+                $column = $this->quoteIdentifier($columnData['NAME']);
+                if (!empty($columnData['SIZE'])) {
+                    $column .= sprintf('(%d)', $columnData['SIZE']);
+                }
+                $columns[] = $column;
+            }
+            $indexName = isset($indexData['INDEX_NAME']) ? $this->quoteIdentifier($indexData['INDEX_NAME']) : '';
+            $definition[] = sprintf(
+                '  %s %s (%s)',
+                $indexType,
+                $indexName,
+                implode(', ', $columns)
+            );
         }
 
         return $definition;
+    }
+
+    /**
+     * Check if NDB is used for table
+     *
+     * @param Table $table
+     * @return bool
+     */
+    protected function isNdb(Table $table)
+    {
+        $engineType = strtolower($table->getOption('type'));
+        return $engineType == 'ndb' || $engineType == 'ndbcluster';
     }
 
     /**
@@ -2278,22 +2175,19 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      */
     protected function _getForeignKeysDefinition(Table $table)
     {
-        $definition = array();
+        $definition = [];
         $relations  = $table->getForeignKeys();
 
         if (!empty($relations)) {
             foreach ($relations as $fkData) {
                 $onDelete = $this->_getDdlAction($fkData['ON_DELETE']);
-                $onUpdate = $this->_getDdlAction($fkData['ON_UPDATE']);
-
                 $definition[] = sprintf(
-                    '  CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s) ON DELETE %s ON UPDATE %s',
+                    '  CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s) ON DELETE %s',
                     $this->quoteIdentifier($fkData['FK_NAME']),
                     $this->quoteIdentifier($fkData['COLUMN_NAME']),
                     $this->quoteIdentifier($fkData['REF_TABLE_NAME']),
                     $this->quoteIdentifier($fkData['REF_COLUMN_NAME']),
-                    $onDelete,
-                    $onUpdate
+                    $onDelete
                 );
             }
         }
@@ -2310,14 +2204,14 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      */
     protected function _getOptionsDefinition(Table $table)
     {
-        $definition = array();
+        $definition = [];
         $comment    = $table->getComment();
         if (empty($comment)) {
             throw new \Zend_Db_Exception('Comment for table is required and must be defined');
         }
         $definition[] = $this->quoteInto('COMMENT=?', $comment);
 
-        $tableProps = array(
+        $tableProps = [
             'type'              => 'ENGINE=%s',
             'checksum'          => 'CHECKSUM=%d',
             'auto_increment'    => 'AUTO_INCREMENT=%d',
@@ -2327,8 +2221,8 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
             'delay_key_write'   => 'DELAY_KEY_WRITE=%d',
             'row_format'        => 'row_format=%s',
             'charset'           => 'charset=%s',
-            'collate'           => 'COLLATE=%s'
-        );
+            'collate'           => 'COLLATE=%s',
+        ];
         foreach ($tableProps as $key => $mask) {
             $v = $table->getOption($key);
             if ($v !== null) {
@@ -2360,9 +2254,13 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      *
      * @param array $options
      * @param string $ddlType Table DDL Column type constant
-     * @throws \Magento\Framework\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      * @return string
      * @throws \Zend_Db_Exception
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     protected function _getColumnDefinition($options, $ddlType = null)
     {
@@ -2397,7 +2295,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
             case Table::TYPE_NUMERIC:
                 $precision  = 10;
                 $scale      = 0;
-                $match      = array();
+                $match      = [];
                 if (!empty($options['LENGTH']) && preg_match('#^\(?(\d+),(\d+)\)?$#', $options['LENGTH'], $match)) {
                     $precision  = $match[1];
                     $scale      = $match[2];
@@ -2422,9 +2320,9 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
                 if ($length <= 255) {
                     $cType = $ddlType == Table::TYPE_TEXT ? 'varchar' : 'varbinary';
                     $cType = sprintf('%s(%d)', $cType, $length);
-                } else if ($length > 255 && $length <= 65536) {
+                } elseif ($length > 255 && $length <= 65536) {
                     $cType = $ddlType == Table::TYPE_TEXT ? 'text' : 'blob';
-                } else if ($length > 65536 && $length <= 16777216) {
+                } elseif ($length > 65536 && $length <= 16777216) {
                     $cType = $ddlType == Table::TYPE_TEXT ? 'mediumtext' : 'mediumblob';
                 } else {
                     $cType = $ddlType == Table::TYPE_TEXT ? 'longtext' : 'longblob';
@@ -2456,16 +2354,16 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
                 $cDefault = new \Zend_Db_Expr('NULL');
             } elseif ($cDefault == Table::TIMESTAMP_INIT) {
                 $cDefault = new \Zend_Db_Expr('CURRENT_TIMESTAMP');
-            } else if ($cDefault == Table::TIMESTAMP_UPDATE) {
+            } elseif ($cDefault == Table::TIMESTAMP_UPDATE) {
                 $cDefault = new \Zend_Db_Expr('0 ON UPDATE CURRENT_TIMESTAMP');
-            } else if ($cDefault == Table::TIMESTAMP_INIT_UPDATE) {
+            } elseif ($cDefault == Table::TIMESTAMP_INIT_UPDATE) {
                 $cDefault = new \Zend_Db_Expr('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
-            } else if ($cNullable && !$cDefault) {
+            } elseif ($cNullable && !$cDefault) {
                 $cDefault = new \Zend_Db_Expr('NULL');
             } else {
                 $cDefault = false;
             }
-        } else if (is_null($cDefault) && $cNullable) {
+        } elseif (is_null($cDefault) && $cNullable) {
             $cDefault = new \Zend_Db_Expr('NULL');
         }
 
@@ -2505,7 +2403,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         $table = $this->quoteIdentifier($this->_getTableName($tableName, $schemaName));
         $query = 'DROP TABLE IF EXISTS ' . $table;
         $this->query($query);
-
+        $this->resetDdlCache($tableName, $schemaName);
         return true;
     }
 
@@ -2598,6 +2496,8 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      * @return \Zend_Db_Statement_Interface
      * @throws \Zend_Db_Exception
      * @throws \Exception
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function addIndex(
         $tableName,
@@ -2619,10 +2519,10 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         }
 
         if (!is_array($fields)) {
-            $fields = array($fields);
+            $fields = [$fields];
         }
 
-        $fieldSql = array();
+        $fieldSql = [];
         foreach ($fields as $field) {
             if (!isset($columns[$field])) {
                 $msg = sprintf(
@@ -2659,8 +2559,8 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
                 $result = $this->rawQuery($query);
                 $cycle  = false;
             } catch (\Exception $e) {
-                if (in_array(strtolower($indexType), array('primary', 'unique'))) {
-                    $match = array();
+                if (in_array(strtolower($indexType), ['primary', 'unique'])) {
+                    $match = [];
                     if (preg_match('#SQLSTATE\[23000\]: [^:]+: 1062[^\']+\'([\d-\.]+)\'#', $e->getMessage(), $match)) {
                         $ids = explode('-', $match[1]);
                         $this->_removeDuplicateEntry($tableName, $fields, $ids);
@@ -2718,11 +2618,11 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      * @param string $refTableName
      * @param string $refColumnName
      * @param string $onDelete
-     * @param string $onUpdate
      * @param bool $purge            trying remove invalid data
      * @param string $schemaName
      * @param string $refSchemaName
      * @return \Zend_Db_Statement_Interface
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function addForeignKey(
         $fkName,
@@ -2731,7 +2631,6 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         $refTableName,
         $refColumnName,
         $onDelete = AdapterInterface::FK_ACTION_CASCADE,
-        $onUpdate = AdapterInterface::FK_ACTION_CASCADE,
         $purge = false,
         $schemaName = null,
         $refSchemaName = null
@@ -2754,9 +2653,6 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         if ($onDelete !== null) {
             $query .= ' ON DELETE ' . strtoupper($onDelete);
         }
-        if ($onUpdate  !== null) {
-            $query .= ' ON UPDATE ' . strtoupper($onUpdate);
-        }
 
         $result = $this->rawQuery($query);
         $this->resetDdlCache($tableName);
@@ -2766,7 +2662,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     /**
      * Format Date to internal database date format
      *
-     * @param int|string|\Magento\Framework\Stdlib\DateTime\DateInterface $date
+     * @param int|string|\DateTime $date
      * @param bool $includeTime
      * @return \Zend_Db_Expr
      */
@@ -2837,10 +2733,11 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      * @param string $fieldName
      * @param integer|string|array $condition
      * @return string
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function prepareSqlCondition($fieldName, $condition)
     {
-        $conditionKeyMap = array(
+        $conditionKeyMap = [
             'eq'            => "{{fieldName}} = ?",
             'neq'           => "{{fieldName}} != ?",
             'like'          => "{{fieldName}} LIKE ?",
@@ -2859,15 +2756,12 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
             'from'          => "{{fieldName}} >= ?",
             'to'            => "{{fieldName}} <= ?",
             'seq'           => null,
-            'sneq'          => null
-        );
+            'sneq'          => null,
+            'ntoa'          => "INET_NTOA({{fieldName}}) LIKE ?",
+        ];
 
         $query = '';
         if (is_array($condition)) {
-            if (isset($condition['field_expr'])) {
-                $fieldName = str_replace('#?', $this->quoteIdentifier($fieldName), $condition['field_expr']);
-                unset($condition['field_expr']);
-            }
             $key = key(array_intersect_key($condition, $conditionKeyMap));
 
             if (isset($condition['from']) || isset($condition['to'])) {
@@ -2888,7 +2782,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
                 }
                 $query = $this->_prepareQuotedSqlCondition($conditionKeyMap[$key], $value, $fieldName);
             } else {
-                $queries = array();
+                $queries = [];
                 foreach ($condition as $orCondition) {
                     $queries[] = sprintf('(%s)', $this->prepareSqlCondition($fieldName, $orCondition));
                 }
@@ -2943,6 +2837,9 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      * @param array $column     the column describe array
      * @param mixed $value
      * @return mixed
+     *
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function prepareColumnValue(array $column, $value)
     {
@@ -3023,7 +2920,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     /**
      * Generate fragment of SQL, that check condition and return true or false value
      *
-     * @param \Zend_Db_Expr|\Zend_Db_Select|string $expression
+     * @param \Zend_Db_Expr|\Magento\Framework\DB\Select|string $expression
      * @param string $true  true value
      * @param string $false false value
      * @return \Zend_Db_Expr
@@ -3042,7 +2939,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     /**
      * Returns valid IFNULL expression
      *
-     * @param \Zend_Db_Expr|\Zend_Db_Select|string $expression
+     * @param \Zend_Db_Expr|\Magento\Framework\DB\Select|string $expression
      * @param string|int $value OPTIONAL. Applies when $expression is NULL
      * @return \Zend_Db_Expr
      */
@@ -3262,47 +3159,31 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     }
 
     /**
-     * Minus superfluous characters from hash.
-     *
-     * @param  string $hash
-     * @param  string $prefix
-     * @param  int $maxCharacters
-     * @return string
-     */
-    protected function _minusSuperfluous($hash, $prefix, $maxCharacters)
-    {
-         $diff        = strlen($hash) + strlen($prefix) -  $maxCharacters;
-         $superfluous = $diff / 2;
-         $odd         = $diff % 2;
-         $hash        = substr($hash, $superfluous, - ($superfluous + $odd));
-         return $hash;
-    }
-
-    /**
-     * Retrieve valid table name
-     * Check table name length and allowed symbols
+     * Returns a compressed version of the table name if it is too long
      *
      * @param string $tableName
      * @return string
+     * @codeCoverageIgnore
      */
     public function getTableName($tableName)
     {
-        $prefix = 't_';
-        if (strlen($tableName) > self::LENGTH_TABLE_NAME) {
-            $shortName = ExpressionConverter::shortName($tableName);
-            if (strlen($shortName) > self::LENGTH_TABLE_NAME) {
-                $hash = md5($tableName);
-                if (strlen($prefix.$hash) > self::LENGTH_TABLE_NAME) {
-                    $tableName = $this->_minusSuperfluous($hash, $prefix, self::LENGTH_TABLE_NAME);
-                } else {
-                    $tableName = $prefix . $hash;
-                }
-            } else {
-                $tableName = $shortName;
-            }
-        }
+        return ExpressionConverter::shortenEntityName($tableName, 't_');
+    }
 
-        return $tableName;
+    /**
+     * Build a trigger name based on table name and trigger details
+     *
+     * @param string $tableName  The table which is the subject of the trigger
+     * @param string $time  Either "before" or "after"
+     * @param string $event  The DB level event which activates the trigger, i.e. "update" or "insert"
+     * @return string
+     * @codeCoverageIgnore
+     */
+
+    public function getTriggerName($tableName, $time, $event)
+    {
+        $triggerName = 'trg_' . $tableName . '_' . $time . '_' . $event;
+        return ExpressionConverter::shortenEntityName($triggerName, 'trg_');
     }
 
     /**
@@ -3323,35 +3204,15 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         switch (strtolower($indexType)) {
             case AdapterInterface::INDEX_TYPE_UNIQUE:
                 $prefix = 'unq_';
-                $shortPrefix = 'u_';
                 break;
             case AdapterInterface::INDEX_TYPE_FULLTEXT:
                 $prefix = 'fti_';
-                $shortPrefix = 'f_';
                 break;
             case AdapterInterface::INDEX_TYPE_INDEX:
             default:
                 $prefix = 'idx_';
-                $shortPrefix = 'i_';
         }
-
-        $hash = $tableName . '_' . $fields;
-
-        if (strlen($hash) + strlen($prefix) > self::LENGTH_INDEX_NAME) {
-            $short = ExpressionConverter::shortName($prefix . $hash);
-            if (strlen($short) > self::LENGTH_INDEX_NAME) {
-                $hash = md5($hash);
-                if (strlen($hash) + strlen($shortPrefix) > self::LENGTH_INDEX_NAME) {
-                    $hash = $this->_minusSuperfluous($hash, $shortPrefix, self::LENGTH_INDEX_NAME);
-                }
-            } else {
-                $hash = $short;
-            }
-        } else {
-            $hash = $prefix . $hash;
-        }
-
-        return strtoupper($hash);
+        return strtoupper(ExpressionConverter::shortenEntityName($tableName . '_' . $fields, $prefix));
     }
 
     /**
@@ -3363,28 +3224,12 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      * @param string $refTableName
      * @param string $refColumnName
      * @return string
+     * @codeCoverageIgnore
      */
     public function getForeignKeyName($priTableName, $priColumnName, $refTableName, $refColumnName)
     {
-        $prefix = 'fk_';
-        $hash = sprintf('%s_%s_%s_%s', $priTableName, $priColumnName, $refTableName, $refColumnName);
-        if (strlen($prefix.$hash) > self::LENGTH_FOREIGN_NAME) {
-            $short = ExpressionConverter::shortName($prefix . $hash);
-            if (strlen($short) > self::LENGTH_FOREIGN_NAME) {
-                $hash = md5($hash);
-                if (strlen($prefix.$hash) > self::LENGTH_FOREIGN_NAME) {
-                    $hash = $this->_minusSuperfluous($hash, $prefix, self::LENGTH_FOREIGN_NAME);
-                } else {
-                    $hash = $prefix . $hash;
-                }
-            } else {
-                $hash = $short;
-            }
-        } else {
-            $hash = $prefix . $hash;
-        }
-
-        return strtoupper($hash);
+        $fkName = sprintf('%s_%s_%s_%s', $priTableName, $priColumnName, $refTableName, $refColumnName);
+        return strtoupper(ExpressionConverter::shortenEntityName($fkName, 'fk_'));
     }
 
     /**
@@ -3428,7 +3273,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      * @param int|false $mode
      * @return string
      */
-    public function insertFromSelect(Select $select, $table, array $fields = array(), $mode = false)
+    public function insertFromSelect(Select $select, $table, array $fields = [], $mode = false)
     {
         $query = 'INSERT';
         if ($mode == self::INSERT_IGNORE) {
@@ -3436,7 +3281,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         }
         $query = sprintf('%s INTO %s', $query, $this->quoteIdentifier($table));
         if ($fields) {
-            $columns = array_map(array($this, 'quoteIdentifier'), $fields);
+            $columns = array_map([$this, 'quoteIdentifier'], $fields);
             $query = sprintf('%s (%s)', $query, join(', ', $columns));
         }
 
@@ -3451,7 +3296,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
                     }
                 }
             }
-            $update = array();
+            $update = [];
             foreach ($fields as $field) {
                 $update[] = sprintf('%1$s = VALUES(%1$s)', $this->quoteIdentifier($field));
             }
@@ -3471,16 +3316,18 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      * @param \Magento\Framework\DB\Select $select
      * @param int $stepCount
      * @return \Magento\Framework\DB\Select[]
-     * @throws \Magento\Framework\DB\DBException
+     * @throws LocalizedException
      */
     public function selectsByRange($rangeField, \Magento\Framework\DB\Select $select, $stepCount = 100)
     {
         $fromSelect = $select->getPart(\Magento\Framework\DB\Select::FROM);
         if (empty($fromSelect)) {
-            throw new \Magento\Framework\DB\DBException('Select object must have correct "FROM" part');
+            throw new LocalizedException(
+                new \Magento\Framework\Phrase('Select object must have correct "FROM" part')
+            );
         }
 
-        $tableName = array();
+        $tableName = [];
         $correlationName = '';
         foreach ($fromSelect as $correlationName => $formPart) {
             if ($formPart['joinType'] == \Magento\Framework\DB\Select::FROM) {
@@ -3527,12 +3374,14 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      * @param Select $select
      * @param string|array $table
      * @return string
-     * @throws \Magento\Framework\DB\DBException
+     * @throws LocalizedException
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function updateFromSelect(Select $select, $table)
     {
         if (!is_array($table)) {
-            $table = array($table => $table);
+            $table = [$table => $table];
         }
 
         // get table name and alias
@@ -3543,10 +3392,10 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         $query = sprintf('UPDATE %s', $this->quoteTableAs($tableName, $tableAlias));
 
         // render JOIN conditions (FROM Part)
-        $joinConds  = array();
-        foreach ($select->getPart(\Zend_Db_Select::FROM) as $correlationName => $joinProp) {
-            if ($joinProp['joinType'] == \Zend_Db_Select::FROM) {
-                $joinType = strtoupper(\Zend_Db_Select::INNER_JOIN);
+        $joinConds  = [];
+        foreach ($select->getPart(\Magento\Framework\DB\Select::FROM) as $correlationName => $joinProp) {
+            if ($joinProp['joinType'] == \Magento\Framework\DB\Select::FROM) {
+                $joinType = strtoupper(\Magento\Framework\DB\Select::INNER_JOIN);
             } else {
                 $joinType = strtoupper($joinProp['joinType']);
             }
@@ -3570,26 +3419,28 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
         }
 
         // render UPDATE SET
-        $columns = array();
-        foreach ($select->getPart(\Zend_Db_Select::COLUMNS) as $columnEntry) {
+        $columns = [];
+        foreach ($select->getPart(\Magento\Framework\DB\Select::COLUMNS) as $columnEntry) {
             list($correlationName, $column, $alias) = $columnEntry;
             if (empty($alias)) {
                 $alias = $column;
             }
             if (!$column instanceof \Zend_Db_Expr && !empty($correlationName)) {
-                $column = $this->quoteIdentifier(array($correlationName, $column));
+                $column = $this->quoteIdentifier([$correlationName, $column]);
             }
-            $columns[] = sprintf('%s = %s', $this->quoteIdentifier(array($tableAlias, $alias)), $column);
+            $columns[] = sprintf('%s = %s', $this->quoteIdentifier([$tableAlias, $alias]), $column);
         }
 
         if (!$columns) {
-            throw new \Magento\Framework\DB\DBException('The columns for UPDATE statement are not defined');
+            throw new LocalizedException(
+                new \Magento\Framework\Phrase('The columns for UPDATE statement are not defined')
+            );
         }
 
         $query = sprintf("%s\nSET %s", $query, implode(', ', $columns));
 
         // render WHERE
-        $wherePart = $select->getPart(\Zend_Db_Select::WHERE);
+        $wherePart = $select->getPart(\Magento\Framework\DB\Select::WHERE);
         if ($wherePart) {
             $query = sprintf("%s\nWHERE %s", $query, implode(' ', $wherePart));
         }
@@ -3607,8 +3458,8 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     public function deleteFromSelect(Select $select, $table)
     {
         $select = clone $select;
-        $select->reset(\Zend_Db_Select::DISTINCT);
-        $select->reset(\Zend_Db_Select::COLUMNS);
+        $select->reset(\Magento\Framework\DB\Select::DISTINCT);
+        $select->reset(\Magento\Framework\DB\Select::COLUMNS);
 
         $query = sprintf('DELETE %s %s', $this->quoteIdentifier($table), $select->assemble());
 
@@ -3624,8 +3475,8 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
      */
     public function getTablesChecksum($tableNames, $schemaName = null)
     {
-        $result     = array();
-        $tableNames = is_array($tableNames) ? $tableNames : array($tableNames);
+        $result     = [];
+        $tableNames = is_array($tableNames) ? $tableNames : [$tableNames];
 
         foreach ($tableNames as $tableName) {
             $query = 'CHECKSUM TABLE ' . $this->_getTableName($tableName, $schemaName);
@@ -3658,7 +3509,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     {
         if ($field !== null) {
             $expression = new \Zend_Db_Expr(sprintf('RAND() * %s', $this->quoteIdentifier($field)));
-            $select->columns(array('mage_rand' => $expression));
+            $select->columns(['mage_rand' => $expression]);
             $spec = new \Zend_Db_Expr('mage_rand');
         } else {
             $spec = new \Zend_Db_Expr('RAND()');
@@ -3689,7 +3540,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     protected function _prepareInsertData($row, &$bind)
     {
         $row = (array)$row;
-        $line = array();
+        $line = [];
         foreach ($row as $value) {
             if ($value instanceof \Zend_Db_Expr) {
                 $line[] = $value->__toString();
@@ -3714,7 +3565,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     protected function _getInsertSqlQuery($tableName, array $columns, array $values)
     {
         $tableName = $this->quoteIdentifier($tableName, true);
-        $columns   = array_map(array($this, 'quoteIdentifier'), $columns);
+        $columns   = array_map([$this, 'quoteIdentifier'], $columns);
         $columns   = implode(',', $columns);
         $values    = implode(', ', $values);
 
@@ -3856,7 +3707,12 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     public function createTrigger(\Magento\Framework\DB\Ddl\Trigger $trigger)
     {
         if (!$trigger->getStatements()) {
-            throw new \Zend_Db_Exception(sprintf(__('Trigger %s has not statements available'), $trigger->getName()));
+            throw new \Zend_Db_Exception(
+                (string)new \Magento\Framework\Phrase(
+                    'Trigger %1 has not statements available',
+                    [$trigger->getName()]
+                )
+            );
         }
 
         $statements = implode("\n", $trigger->getStatements());
@@ -3870,7 +3726,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
             $statements
         );
 
-        return $this->query($sql);
+        return $this->multiQuery($sql);
     }
 
     /**
@@ -3884,7 +3740,7 @@ class Mysql extends \Zend_Db_Adapter_Pdo_Mysql implements AdapterInterface
     public function dropTrigger($triggerName, $schemaName = null)
     {
         if (empty($triggerName)) {
-            throw new \InvalidArgumentException(__('Trigger name is not defined'));
+            throw new \InvalidArgumentException((string)new \Magento\Framework\Phrase('Trigger name is not defined'));
         }
 
         $triggerName = ($schemaName ? $schemaName . '.' : '') . $triggerName;

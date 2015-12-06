@@ -1,48 +1,62 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Customer\Controller\Adminhtml\Index;
 
-class MassDelete extends \Magento\Customer\Controller\Adminhtml\Index
+use Magento\Backend\App\Action\Context;
+use Magento\Customer\Model\ResourceModel\Customer\CollectionFactory;
+use Magento\Eav\Model\Entity\Collection\AbstractCollection;
+use Magento\Ui\Component\MassAction\Filter;
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Framework\Controller\ResultFactory;
+
+/**
+ * Class MassDelete
+ */
+class MassDelete extends AbstractMassAction
 {
     /**
-     * Customer mass delete action
-     *
-     * @return void
+     * @var CustomerRepositoryInterface
      */
-    public function execute()
+    protected $customerRepository;
+
+    /**
+     * @param Context $context
+     * @param Filter $filter
+     * @param CollectionFactory $collectionFactory
+     * @param CustomerRepositoryInterface $customerRepository
+     */
+    public function __construct(
+        Context $context,
+        Filter $filter,
+        CollectionFactory $collectionFactory,
+        CustomerRepositoryInterface $customerRepository
+    ) {
+        parent::__construct($context, $filter, $collectionFactory);
+        $this->customerRepository = $customerRepository;
+    }
+
+    /**
+     * @param AbstractCollection $collection
+     * @return \Magento\Backend\Model\View\Result\Redirect
+     */
+    protected function massAction(AbstractCollection $collection)
     {
-        $customerIds = $this->getRequest()->getParam('customer');
-        $customersDeleted = $this->actUponMultipleCustomers(
-            function ($customerId) {
-                $this->_customerAccountService->deleteCustomer($customerId);
-            },
-            $customerIds
-        );
+        $customersDeleted = 0;
+        foreach ($collection->getAllIds() as $customerId) {
+            $this->customerRepository->deleteById($customerId);
+            $customersDeleted++;
+        }
+
         if ($customersDeleted) {
             $this->messageManager->addSuccess(__('A total of %1 record(s) were deleted.', $customersDeleted));
         }
-        $this->_redirect('customer/*/index');
+        /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
+        $resultRedirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
+        $resultRedirect->setPath($this->getComponentRefererUrl());
+
+        return $resultRedirect;
     }
 }

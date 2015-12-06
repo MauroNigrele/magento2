@@ -1,36 +1,16 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\User\Test\Handler\User;
 
-use Mtf\Fixture\FixtureInterface;
-use Mtf\Handler\Curl as AbstractCurl;
-use Mtf\Util\Protocol\CurlInterface;
-use Mtf\Util\Protocol\CurlTransport;
-use Mtf\Util\Protocol\CurlTransport\BackendDecorator;
-use Mtf\System\Config;
 use Magento\Backend\Test\Handler\Extractor;
+use Magento\Mtf\Fixture\FixtureInterface;
+use Magento\Mtf\Handler\Curl as AbstractCurl;
+use Magento\Mtf\Util\Protocol\CurlTransport;
+use Magento\Mtf\Util\Protocol\CurlTransport\BackendDecorator;
 
 /**
  * Class Curl
@@ -52,10 +32,11 @@ class Curl extends AbstractCurl implements UserInterface
         if ($fixture->hasData('role_id')) {
             $data['roles[]'] = $fixture->getDataFieldConfig('role_id')['source']->getRole()->getRoleId();
         }
+        $data['is_active'] = (isset($data['is_active']) && ($data['is_active'] === 'Inactive')) ? 0 : 1;
         $url = $_ENV['app_backend_url'] . 'admin/user/save/active_tab/main_section/';
-        $curl = new BackendDecorator(new CurlTransport(), new Config);
+        $curl = new BackendDecorator(new CurlTransport(), $this->_configuration);
         $curl->addOption(CURLOPT_HEADER, 1);
-        $curl->write(CurlInterface::POST, $url, '1.0', [], $data);
+        $curl->write($url, $data);
         $response = $curl->read();
         $curl->close();
 
@@ -64,8 +45,7 @@ class Curl extends AbstractCurl implements UserInterface
         }
 
         $url = 'admin/user/roleGrid/sort/user_id/dir/desc';
-        $regExpPattern = '/class=\"\scol\-id col\-user_id\W*>\W+(\d+)\W+<\/td>\W+<td[\w\s\"=\-]*?>\W+?'
-            . $data['username'] . '/siu';
+        $regExpPattern = '/col-user_id[^\>]+\>\s*(\d+)\s*<.td>\s*<[^<>]*?>\s*' . $data['username'] . '/siu';
         $extractor = new Extractor($url, $regExpPattern);
 
         return ['user_id' => $extractor->getData()[1]];

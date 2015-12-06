@@ -1,34 +1,20 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Wishlist\Controller\Index;
 
-use Magento\Wishlist\Controller\IndexInterface;
+use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Framework\App\Action;
-use Magento\Framework\App\Action\NotFoundException;
+use Magento\Framework\Exception\NotFoundException;
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Controller\ResultFactory;
 
-class Add extends Action\Action implements IndexInterface
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
+class Add extends \Magento\Wishlist\Controller\AbstractIndex
 {
     /**
      * @var \Magento\Wishlist\Controller\WishlistProviderInterface
@@ -41,31 +27,42 @@ class Add extends Action\Action implements IndexInterface
     protected $_customerSession;
 
     /**
+     * @var ProductRepositoryInterface
+     */
+    protected $productRepository;
+
+    /**
      * @param Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Wishlist\Controller\WishlistProviderInterface $wishlistProvider
+     * @param ProductRepositoryInterface $productRepository
      */
     public function __construct(
         Action\Context $context,
         \Magento\Customer\Model\Session $customerSession,
-        \Magento\Wishlist\Controller\WishlistProviderInterface $wishlistProvider
+        \Magento\Wishlist\Controller\WishlistProviderInterface $wishlistProvider,
+        ProductRepositoryInterface $productRepository
     ) {
         $this->_customerSession = $customerSession;
         $this->wishlistProvider = $wishlistProvider;
         parent::__construct($context);
+        $this->productRepository = $productRepository;
     }
 
     /**
      * Adding new item
      *
-     * @return void
+     * @return \Magento\Framework\Controller\Result\Redirect
      * @throws NotFoundException
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
     public function execute()
     {
         $wishlist = $this->wishlistProvider->getWishlist();
         if (!$wishlist) {
-            throw new NotFoundException();
+            throw new NotFoundException(__('Page not found.'));
         }
 
         $session = $this->_customerSession;
@@ -78,31 +75,37 @@ class Add extends Action\Action implements IndexInterface
         }
 
         $productId = isset($requestParams['product']) ? (int)$requestParams['product'] : null;
-
+        /** @var \Magento\Framework\Controller\Result\Redirect $resultRedirect */
+        $resultRedirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
         if (!$productId) {
-            $this->_redirect('*/');
-            return;
-        }
-
-        $product = $this->_objectManager->create('Magento\Catalog\Model\Product')->load($productId);
-        if (!$product->getId() || !$product->isVisibleInCatalog()) {
-            $this->messageManager->addError(__('We can\'t specify a product.'));
-            $this->_redirect('*/');
-            return;
+            $resultRedirect->setPath('*/');
+            return $resultRedirect;
         }
 
         try {
-            $buyRequest = new \Magento\Framework\Object($requestParams);
+            $product = $this->productRepository->getById($productId);
+        } catch (NoSuchEntityException $e) {
+            $product = null;
+        }
+
+        if (!$product || !$product->isVisibleInCatalog()) {
+            $this->messageManager->addErrorMessage(__('We can\'t specify a product.'));
+            $resultRedirect->setPath('*/');
+            return $resultRedirect;
+        }
+
+        try {
+            $buyRequest = new \Magento\Framework\DataObject($requestParams);
 
             $result = $wishlist->addNewItem($product, $buyRequest);
             if (is_string($result)) {
-                throw new \Magento\Framework\Model\Exception($result);
+                throw new \Magento\Framework\Exception\LocalizedException(__($result));
             }
             $wishlist->save();
 
             $this->_eventManager->dispatch(
                 'wishlist_add_product',
-                array('wishlist' => $wishlist, 'product' => $product, 'item' => $result)
+                ['wishlist' => $wishlist, 'product' => $product, 'item' => $result]
             );
 
             $referer = $session->getBeforeWishlistUrl();
@@ -112,28 +115,27 @@ class Add extends Action\Action implements IndexInterface
                 $referer = $this->_redirect->getRefererUrl();
             }
 
-            /**
-             *  Set referer to avoid referring to the compare popup window
-             */
-            $session->setAddActionReferer($referer);
+            $this->_objectManager->get('Magento\Wishlist\Helper\Data')->calculate();
 
-            /** @var $helper \Magento\Wishlist\Helper\Data */
-            $helper = $this->_objectManager->get('Magento\Wishlist\Helper\Data')->calculate();
-            $message = __(
-                '%1 has been added to your wishlist. Click <a href="%2">here</a> to continue shopping.',
-                $this->_objectManager->get('Magento\Framework\Escaper')->escapeHtml($product->getName()),
-                $this->_objectManager->get('Magento\Framework\Escaper')->escapeUrl($referer)
+            $this->messageManager->addComplexSuccessMessage(
+                'addProductSuccessMessage',
+                [
+                    'product_name' => $product->getName(),
+                    'referer' => $referer
+                ]
             );
-            $this->messageManager->addSuccess($message);
-        } catch (\Magento\Framework\Model\Exception $e) {
-            $this->messageManager->addError(
-                __('An error occurred while adding item to wish list: %1', $e->getMessage())
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+            $this->messageManager->addErrorMessage(
+                __('We can\'t add the item to Wish List right now: %1.', $e->getMessage())
             );
         } catch (\Exception $e) {
-            $this->messageManager->addError(__('An error occurred while adding item to wish list.'));
-            $this->_objectManager->get('Magento\Framework\Logger')->logException($e);
+            $this->messageManager->addExceptionMessage(
+                $e,
+                __('We can\'t add the item to Wish List right now.')
+            );
         }
 
-        $this->_redirect('*', array('wishlist_id' => $wishlist->getId()));
+        $resultRedirect->setPath('*', ['wishlist_id' => $wishlist->getId()]);
+        return $resultRedirect;
     }
 }

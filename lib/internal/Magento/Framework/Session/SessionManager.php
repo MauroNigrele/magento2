@@ -2,26 +2,8 @@
 /**
  * Magento session manager
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Session;
 
@@ -29,6 +11,7 @@ use Magento\Framework\Session\Config\ConfigInterface;
 
 /**
  * Session Manager
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class SessionManager implements SessionManagerInterface
 {
@@ -41,14 +24,14 @@ class SessionManager implements SessionManagerInterface
      *
      * @var array
      */
-    protected $defaultDestroyOptions = array('send_expire_cookie' => true, 'clear_storage' => true);
+    protected $defaultDestroyOptions = ['send_expire_cookie' => true, 'clear_storage' => true];
 
     /**
      * URL host cache
      *
      * @var array
      */
-    protected static $urlHostCache = array();
+    protected static $urlHostCache = [];
 
     /**
      * Validator
@@ -94,8 +77,8 @@ class SessionManager implements SessionManagerInterface
 
     /**
      * Cookie Manager
-     * 
-     * @var \Magento\Framework\Stdlib\CookieManager
+     *
+     * @var \Magento\Framework\Stdlib\CookieManagerInterface
      */
     protected $cookieManager;
 
@@ -103,18 +86,23 @@ class SessionManager implements SessionManagerInterface
      * @var \Magento\Framework\Stdlib\Cookie\CookieMetadataFactory
      */
     protected $cookieMetadataFactory;
-    
+
     /**
-     * Constructor
-     *
+     * @var \Magento\Framework\App\State
+     */
+    private $appState;
+
+    /**
      * @param \Magento\Framework\App\Request\Http $request
      * @param SidResolverInterface $sidResolver
      * @param ConfigInterface $sessionConfig
      * @param SaveHandlerInterface $saveHandler
      * @param ValidatorInterface $validator
      * @param StorageInterface $storage
-     * @param \Magento\Framework\Stdlib\CookieManager $cookieManager
+     * @param \Magento\Framework\Stdlib\CookieManagerInterface $cookieManager
      * @param \Magento\Framework\Stdlib\Cookie\CookieMetadataFactory $cookieMetadataFactory
+     * @param \Magento\Framework\App\State $appState
+     * @throws \Magento\Framework\Exception\SessionException
      */
     public function __construct(
         \Magento\Framework\App\Request\Http $request,
@@ -123,8 +111,9 @@ class SessionManager implements SessionManagerInterface
         SaveHandlerInterface $saveHandler,
         ValidatorInterface $validator,
         StorageInterface $storage,
-        \Magento\Framework\Stdlib\CookieManager $cookieManager,
-        \Magento\Framework\Stdlib\Cookie\CookieMetadataFactory $cookieMetadataFactory
+        \Magento\Framework\Stdlib\CookieManagerInterface $cookieManager,
+        \Magento\Framework\Stdlib\Cookie\CookieMetadataFactory $cookieMetadataFactory,
+        \Magento\Framework\App\State $appState
     ) {
         $this->request = $request;
         $this->sidResolver = $sidResolver;
@@ -134,9 +123,11 @@ class SessionManager implements SessionManagerInterface
         $this->storage = $storage;
         $this->cookieManager = $cookieManager;
         $this->cookieMetadataFactory = $cookieMetadataFactory;
+        $this->appState = $appState;
 
         // Enable session.use_only_cookies
         ini_set('session.use_only_cookies', '1');
+        $this->start();
     }
 
     /**
@@ -158,24 +149,37 @@ class SessionManager implements SessionManagerInterface
      */
     public function __call($method, $args)
     {
-        if (!in_array(substr($method, 0, 3), array('get', 'set', 'uns', 'has'))) {
+        if (!in_array(substr($method, 0, 3), ['get', 'set', 'uns', 'has'])) {
             throw new \InvalidArgumentException(
                 sprintf('Invalid method %s::%s(%s)', get_class($this), $method, print_r($args, 1))
             );
         }
-        $return = call_user_func_array(array($this->storage, $method), $args);
+        $return = call_user_func_array([$this->storage, $method], $args);
         return $return === $this->storage ? $this : $return;
     }
 
     /**
      * Configure session handler and start session
      *
+     * @throws \Magento\Framework\Exception\SessionException
      * @return $this
      */
     public function start()
     {
         if (!$this->isSessionExists()) {
             \Magento\Framework\Profiler::start('session_start');
+
+            try {
+                $this->appState->getAreaCode();
+            } catch (\Magento\Framework\Exception\LocalizedException $e) {
+                throw new \Magento\Framework\Exception\SessionException(
+                    new \Magento\Framework\Phrase(
+                        'Area code not set: Area code must be set before starting a session.'
+                    ),
+                    $e
+                );
+            }
+
             // Need to apply the config options so they can be ready by session_start
             $this->initIniOptions();
             $this->registerSaveHandler();
@@ -185,12 +189,12 @@ class SessionManager implements SessionManagerInterface
             session_start();
             $this->validator->validate($this);
 
-            register_shutdown_function(array($this, 'writeClose'));
+            register_shutdown_function([$this, 'writeClose']);
 
             $this->_addHost();
             \Magento\Framework\Profiler::stop('session_start');
         }
-        $this->storage->init(isset($_SESSION) ? $_SESSION : array());
+        $this->storage->init(isset($_SESSION) ? $_SESSION : []);
         return $this;
     }
 
@@ -202,12 +206,12 @@ class SessionManager implements SessionManagerInterface
     protected function registerSaveHandler()
     {
         return session_set_save_handler(
-            array($this->saveHandler, 'open'),
-            array($this->saveHandler, 'close'),
-            array($this->saveHandler, 'read'),
-            array($this->saveHandler, 'write'),
-            array($this->saveHandler, 'destroy'),
-            array($this->saveHandler, 'gc')
+            [$this->saveHandler, 'open'],
+            [$this->saveHandler, 'close'],
+            [$this->saveHandler, 'read'],
+            [$this->saveHandler, 'write'],
+            [$this->saveHandler, 'destroy'],
+            [$this->saveHandler, 'gc']
         );
     }
 
@@ -350,7 +354,7 @@ class SessionManager implements SessionManagerInterface
     public function setSessionId($sessionId)
     {
         $this->_addHost();
-        if (!is_null($sessionId) && preg_match('#^[0-9a-zA-Z,-]+$#', $sessionId)) {
+        if ($sessionId !== null && preg_match('#^[0-9a-zA-Z,-]+$#', $sessionId)) {
             session_id($sessionId);
         }
         return $this;
@@ -361,6 +365,7 @@ class SessionManager implements SessionManagerInterface
      *
      * @param string $urlHost can be host or url
      * @return string {session_id_key}={session_id_encrypted}
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function getSessionIdForHost($urlHost)
     {
@@ -440,7 +445,7 @@ class SessionManager implements SessionManagerInterface
      */
     protected function _getHosts()
     {
-        return isset($_SESSION[self::HOST_KEY]) ? $_SESSION[self::HOST_KEY] : array();
+        return isset($_SESSION[self::HOST_KEY]) ? $_SESSION[self::HOST_KEY] : [];
     }
 
     /**
@@ -464,7 +469,12 @@ class SessionManager implements SessionManagerInterface
         if (headers_sent()) {
             return $this;
         }
-        session_regenerate_id(true);
+        if ($this->isSessionExists()) {
+            session_regenerate_id(true);
+        } else {
+            session_start();
+        }
+        $this->storage->init(isset($_SESSION) ? $_SESSION : []);
 
         if ($this->sessionConfig->getUseCookies()) {
             $this->clearSubDomainSessionCookie();
@@ -526,7 +536,7 @@ class SessionManager implements SessionManagerInterface
             if ($result === false) {
                 $error = error_get_last();
                 throw new \InvalidArgumentException(
-                    sprintf('"%s" is not a valid sessions-related ini setting. %s', $option, $error['message'])
+                    sprintf('Failed to set ini option "%s" to value "%s". %s', $option, $value, $error['message'])
                 );
             }
         }

@@ -10,3 +10,17 @@ Admin,Admin
 "Your Language","Your Language"
 Language,Language
 "Select Store","Select Store"
+"Helper arguments should not be used in custom layout updates.","Helper arguments should not be used in custom layout updates."
+"Updater model should not be used in custom layout updates.","Updater model should not be used in custom layout updates."
+"Please correct the XML data and try again. %value%","Please correct the XML data and try again. %value%"
+Layouts,Layouts
+"Layout building instructions.","Layout building instructions."
+"Blocks HTML output","Blocks HTML output"
+"Page blocks HTML.","Page blocks HTML."
+"Paths to view files (e.g., PHTML templates, images, CSS, JS files).","Paths to view files (e.g., PHTML templates, images, CSS, JS files)."
+"Paths to pre-processed view files (e.g, CSS files with fixed paths or generated from LESS files).","Paths to pre-processed view files (e.g, CSS files with fixed paths or generated from LESS files)."
+"Collections Data","Collections Data"
+"Collection data files.","Collection data files."
+"All Stores","All Stores"
+"Other Settings","Other Settings"
+Attribute,Attribute

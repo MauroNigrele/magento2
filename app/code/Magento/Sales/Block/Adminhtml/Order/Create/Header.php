@@ -1,29 +1,10 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Block\Adminhtml\Order\Create;
 
-use Magento\Customer\Service\V1\CustomerAccountServiceInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 
 /**
@@ -31,8 +12,12 @@ use Magento\Framework\Pricing\PriceCurrencyInterface;
  */
 class Header extends AbstractCreate
 {
-    /** @var CustomerAccountServiceInterface */
-    protected $_customerAccountService;
+    /**
+     * Customer repository
+     *
+     * @var \Magento\Customer\Api\CustomerRepositoryInterface
+     */
+    protected $customerRepository;
 
     /**
      * Customer view helper
@@ -42,11 +27,13 @@ class Header extends AbstractCreate
     protected $_customerViewHelper;
 
     /**
+     * Constructor
+     *
      * @param \Magento\Backend\Block\Template\Context $context
      * @param \Magento\Backend\Model\Session\Quote $sessionQuote
      * @param \Magento\Sales\Model\AdminOrder\Create $orderCreate
      * @param PriceCurrencyInterface $priceCurrency
-     * @param CustomerAccountServiceInterface $customerAccountService
+     * @param \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository
      * @param \Magento\Customer\Helper\View $customerViewHelper
      * @param array $data
      */
@@ -55,11 +42,11 @@ class Header extends AbstractCreate
         \Magento\Backend\Model\Session\Quote $sessionQuote,
         \Magento\Sales\Model\AdminOrder\Create $orderCreate,
         PriceCurrencyInterface $priceCurrency,
-        CustomerAccountServiceInterface $customerAccountService,
+        \Magento\Customer\Api\CustomerRepositoryInterface $customerRepository,
         \Magento\Customer\Helper\View $customerViewHelper,
-        array $data = array()
+        array $data = []
     ) {
-        $this->_customerAccountService = $customerAccountService;
+        $this->customerRepository = $customerRepository;
         $this->_customerViewHelper = $customerViewHelper;
         parent::__construct($context, $sessionQuote, $orderCreate, $priceCurrency, $data);
     }
@@ -103,18 +90,19 @@ class Header extends AbstractCreate
             $out .= __('Create New Order for New Customer');
             return $out;
         }
+
         return $out;
     }
 
     /**
-     * Get customer name by his ID.
+     * Get customer name by his ID
      *
      * @param int $customerId
      * @return string
      */
     protected function _getCustomerName($customerId)
     {
-        $customerData = $this->_customerAccountService->getCustomer($customerId);
+        $customerData = $this->customerRepository->getById($customerId);
         return $this->_customerViewHelper->getCustomerName($customerData);
     }
 }

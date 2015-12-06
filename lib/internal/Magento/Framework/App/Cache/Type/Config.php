@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -43,10 +25,40 @@ class Config extends TagScope implements CacheInterface
     const CACHE_TAG = 'CONFIG';
 
     /**
-     * @param FrontendPool $cacheFrontendPool
+     * @var \Magento\Framework\App\Cache\Type\FrontendPool
      */
-    public function __construct(FrontendPool $cacheFrontendPool)
+    private $cacheFrontendPool;
+
+    /**
+     * @param \Magento\Framework\App\Cache\Type\FrontendPool $cacheFrontendPool
+     */
+    public function __construct(\Magento\Framework\App\Cache\Type\FrontendPool $cacheFrontendPool)
     {
-        parent::__construct($cacheFrontendPool->get(self::TYPE_IDENTIFIER), self::CACHE_TAG);
+        $this->cacheFrontendPool = $cacheFrontendPool;
+    }
+
+    /**
+     * Retrieve cache frontend instance being decorated
+     *
+     * @return \Magento\Framework\Cache\FrontendInterface
+     */
+    protected function _getFrontend()
+    {
+        $frontend = parent::_getFrontend();
+        if (!$frontend) {
+            $frontend = $this->cacheFrontendPool->get(self::TYPE_IDENTIFIER);
+            $this->setFrontend($frontend);
+        }
+        return $frontend;
+    }
+
+    /**
+     * Retrieve cache tag name
+     *
+     * @return string
+     */
+    public function getTag()
+    {
+        return self::CACHE_TAG;
     }
 }

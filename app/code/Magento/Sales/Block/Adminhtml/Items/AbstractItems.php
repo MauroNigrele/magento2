@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Block\Adminhtml\Items;
 
@@ -28,6 +10,7 @@ use Magento\Sales\Model\Order\Creditmemo\Item;
 
 /**
  * Abstract items renderer
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class AbstractItems extends \Magento\Backend\Block\Template
 {
@@ -44,7 +27,7 @@ class AbstractItems extends \Magento\Backend\Block\Template
      *
      * @var array
      */
-    protected $_columnRenders = array();
+    protected $_columnRenders = [];
 
     /**
      * Flag - if it is set method canEditQty will return value of it
@@ -61,23 +44,31 @@ class AbstractItems extends \Magento\Backend\Block\Template
     protected $_coreRegistry;
 
     /**
-     * @var \Magento\CatalogInventory\Service\V1\StockItemService
+     * @var \Magento\CatalogInventory\Api\StockRegistryInterface
      */
-    protected $stockItemService;
+    protected $stockRegistry;
+
+    /**
+     * @var \Magento\CatalogInventory\Api\StockConfigurationInterface
+     */
+    protected $stockConfiguration;
 
     /**
      * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\CatalogInventory\Service\V1\StockItemService $stockItemService
+     * @param \Magento\CatalogInventory\Api\StockRegistryInterface $stockRegistry
+     * @param \Magento\CatalogInventory\Api\StockConfigurationInterface $stockConfiguration
      * @param \Magento\Framework\Registry $registry
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
-        \Magento\CatalogInventory\Service\V1\StockItemService $stockItemService,
+        \Magento\CatalogInventory\Api\StockRegistryInterface $stockRegistry,
+        \Magento\CatalogInventory\Api\StockConfigurationInterface $stockConfiguration,
         \Magento\Framework\Registry $registry,
-        array $data = array()
+        array $data = []
     ) {
-        $this->stockItemService = $stockItemService;
+        $this->stockRegistry = $stockRegistry;
+        $this->stockConfiguration = $stockConfiguration;
         $this->_coreRegistry = $registry;
         parent::__construct($context, $data);
     }
@@ -141,10 +132,10 @@ class AbstractItems extends \Magento\Backend\Block\Template
     /**
      * Retrieve rendered item html content
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @return string
      */
-    public function getItemHtml(\Magento\Framework\Object $item)
+    public function getItemHtml(\Magento\Framework\DataObject $item)
     {
         if ($item->getOrderItem()) {
             $type = $item->getOrderItem()->getProductType();
@@ -158,10 +149,10 @@ class AbstractItems extends \Magento\Backend\Block\Template
     /**
      * Retrieve rendered item extra info html content
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @return string
      */
-    public function getItemExtraInfoHtml(\Magento\Framework\Object $item)
+    public function getItemExtraInfoHtml(\Magento\Framework\DataObject $item)
     {
         $extraInfoBlock = $this->getChildBlock('order_item_extra_info');
         if ($extraInfoBlock) {
@@ -173,12 +164,12 @@ class AbstractItems extends \Magento\Backend\Block\Template
     /**
      * Retrieve rendered column html content
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @param string $column the column key
      * @param string $field the custom item field
      * @return string
      */
-    public function getColumnHtml(\Magento\Framework\Object $item, $column, $field = null)
+    public function getColumnHtml(\Magento\Framework\DataObject $item, $column, $field = null)
     {
         if ($item->getOrderItem()) {
             $block = $this->getColumnRenderer($column, $item->getOrderItem()->getProductType());
@@ -188,7 +179,7 @@ class AbstractItems extends \Magento\Backend\Block\Template
 
         if ($block) {
             $block->setItem($item);
-            if (!is_null($field)) {
+            if ($field !== null) {
                 $block->setField($field);
             }
             return $block->toHtml();
@@ -213,7 +204,7 @@ class AbstractItems extends \Magento\Backend\Block\Template
     /**
      * Retrieve available order
      *
-     * @throws \Magento\Framework\Model\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      * @return Order
      */
     public function getOrder()
@@ -237,7 +228,7 @@ class AbstractItems extends \Magento\Backend\Block\Template
             return $this->getItem()->getOrder();
         }
 
-        throw new \Magento\Framework\Model\Exception(__('We cannot get the order instance.'));
+        throw new \Magento\Framework\Exception\LocalizedException(__('We can\'t get the order instance right now.'));
     }
 
     /**
@@ -248,7 +239,7 @@ class AbstractItems extends \Magento\Backend\Block\Template
     public function getPriceDataObject()
     {
         $obj = $this->getData('price_data_object');
-        if (is_null($obj)) {
+        if ($obj === null) {
             return $this->getOrder();
         }
         return $obj;
@@ -325,13 +316,13 @@ class AbstractItems extends \Magento\Backend\Block\Template
     /**
      * Retrieve tax calculation html content
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @return string
      */
-    public function displayTaxCalculation(\Magento\Framework\Object $item)
+    public function displayTaxCalculation(\Magento\Framework\DataObject $item)
     {
         if ($item->getTaxPercent() && $item->getTaxString() == '') {
-            $percents = array($item->getTaxPercent());
+            $percents = [$item->getTaxPercent()];
         } elseif ($item->getTaxString()) {
             $percents = explode(\Magento\Tax\Model\Config::CALCULATION_STRING_SEPARATOR, $item->getTaxString());
         } else {
@@ -347,10 +338,10 @@ class AbstractItems extends \Magento\Backend\Block\Template
     /**
      * Retrieve tax with percent html content
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @return string
      */
-    public function displayTaxPercent(\Magento\Framework\Object $item)
+    public function displayTaxPercent(\Magento\Framework\DataObject $item)
     {
         if ($item->getTaxPercent()) {
             return sprintf('%s%%', $item->getTaxPercent() + 0);
@@ -402,7 +393,7 @@ class AbstractItems extends \Magento\Backend\Block\Template
         /**
          * If parent block has set
          */
-        if (!is_null($this->_canEditQty)) {
+        if ($this->_canEditQty !== null) {
             return $this->_canEditQty;
         }
 
@@ -466,21 +457,12 @@ class AbstractItems extends \Magento\Backend\Block\Template
     }
 
     /**
-     * CREDITMEMO
-     *
+     * @param \Magento\Store\Model\Store $store
      * @return bool
      */
-    public function canReturnToStock()
+    public function canReturnToStock($store = null)
     {
-        $canSubtract = $this->_scopeConfig->getValue(
-            \Magento\CatalogInventory\Model\Stock\Item::XML_PATH_CAN_SUBTRACT,
-            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
-        );
-        if ($canSubtract) {
-            return true;
-        } else {
-            return false;
-        }
+        return $this->stockConfiguration->canSubtractQty($store);
     }
 
     /**
@@ -493,21 +475,16 @@ class AbstractItems extends \Magento\Backend\Block\Template
     {
         if (null !== $item) {
             if (!$item->hasCanReturnToStock()) {
-                $productId = $item->getOrderItem()->getProductId();
-                if ($productId && $this->stockItemService->getManageStock($productId)) {
-                    $item->setCanReturnToStock(true);
-                } else {
-                    $item->setCanReturnToStock(false);
-                }
+                $stockItem = $this->stockRegistry->getStockItem(
+                    $item->getOrderItem()->getProductId(),
+                    $item->getOrderItem()->getStore()->getWebsiteId()
+                );
+                $item->setCanReturnToStock($stockItem->getManageStock());
             }
-            $canReturnToStock = $item->getCanReturnToStock();
-        } else {
-            $canReturnToStock = $this->_scopeConfig->getValue(
-                \Magento\CatalogInventory\Model\Stock\Item::XML_PATH_CAN_SUBTRACT,
-                \Magento\Store\Model\ScopeInterface::SCOPE_STORE
-            );
+            return $item->getCanReturnToStock();
         }
-        return $canReturnToStock;
+
+        return $this->canReturnToStock();
     }
 
     /**
@@ -518,18 +495,14 @@ class AbstractItems extends \Magento\Backend\Block\Template
      */
     public function canParentReturnToStock($item = null)
     {
-        $canReturnToStock = $this->_scopeConfig->getValue(
-            \Magento\CatalogInventory\Model\Stock\Item::XML_PATH_CAN_SUBTRACT,
-            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
-        );
-        if (!is_null($item)) {
+        if ($item !== null) {
             if ($item->getCreditmemo()->getOrder()->hasCanReturnToStock()) {
-                $canReturnToStock = $item->getCreditmemo()->getOrder()->getCanReturnToStock();
+                return $item->getCreditmemo()->getOrder()->getCanReturnToStock();
             }
         } elseif ($this->getOrder()->hasCanReturnToStock()) {
-            $canReturnToStock = $this->getOrder()->getCanReturnToStock();
+            return $this->getOrder()->getCanReturnToStock();
         }
-        return $canReturnToStock;
+        return $this->canReturnToStock();
     }
 
     /**
@@ -540,11 +513,11 @@ class AbstractItems extends \Magento\Backend\Block\Template
      */
     public function canShipPartially($order = null)
     {
-        if (is_null($order) || !$order instanceof Order) {
+        if ($order === null || !$order instanceof Order) {
             $order = $this->_coreRegistry->registry('current_shipment')->getOrder();
         }
         $value = $order->getCanShipPartially();
-        if (!is_null($value) && !$value) {
+        if ($value !== null && !$value) {
             return false;
         }
         return true;
@@ -558,11 +531,11 @@ class AbstractItems extends \Magento\Backend\Block\Template
      */
     public function canShipPartiallyItem($order = null)
     {
-        if (is_null($order) || !$order instanceof Order) {
+        if ($order === null || !$order instanceof Order) {
             $order = $this->_coreRegistry->registry('current_shipment')->getOrder();
         }
         $value = $order->getCanShipPartiallyItem();
-        if (!is_null($value) && !$value) {
+        if ($value !== null && !$value) {
             return false;
         }
         return true;

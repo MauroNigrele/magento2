@@ -1,35 +1,17 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Test\Constraint;
 
-use Mtf\Client\Browser;
-use Mtf\Fixture\FixtureInterface;
-use Mtf\Constraint\AbstractConstraint;
-use Magento\Checkout\Test\Page\CheckoutCart;
-use Magento\Catalog\Test\Page\Product\CatalogProductView;
 use Magento\Catalog\Test\Fixture\CatalogProductSimple;
+use Magento\Catalog\Test\Page\Product\CatalogProductView;
+use Magento\Checkout\Test\Page\CheckoutCart;
+use Magento\Mtf\Client\BrowserInterface;
+use Magento\Mtf\Constraint\AbstractConstraint;
+use Magento\Mtf\Fixture\FixtureInterface;
 
 /**
  * Class AssertProductInCart
@@ -38,31 +20,25 @@ use Magento\Catalog\Test\Fixture\CatalogProductSimple;
 class AssertProductInCart extends AbstractConstraint
 {
     /**
-     * Constraint severeness
-     *
-     * @var string
-     */
-    protected $severeness = 'low';
-
-    /**
      * Assertion that the product is correctly displayed in cart
      *
      * @param CatalogProductView $catalogProductView
      * @param FixtureInterface $product
-     * @param Browser $browser
+     * @param BrowserInterface $browser
      * @param CheckoutCart $checkoutCart
      * @return void
      */
     public function processAssert(
         CatalogProductView $catalogProductView,
         FixtureInterface $product,
-        Browser $browser,
+        BrowserInterface $browser,
         CheckoutCart $checkoutCart
     ) {
         // Add product to cart
         $browser->open($_ENV['app_frontend_url'] . $product->getUrlKey() . '.html');
         $catalogProductView->getViewBlock()->fillOptions($product);
         $catalogProductView->getViewBlock()->clickAddToCart();
+        $catalogProductView->getMessagesBlock()->waitSuccessMessage();
 
         // Check price
         $this->assertOnShoppingCart($product, $checkoutCart);
@@ -74,27 +50,29 @@ class AssertProductInCart extends AbstractConstraint
      * @param FixtureInterface $product
      * @param CheckoutCart $checkoutCart
      * @return void
+     *
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     protected function assertOnShoppingCart(FixtureInterface $product, CheckoutCart $checkoutCart)
     {
+        $checkoutCart->open();
         /** @var CatalogProductSimple $product */
         $customOptions = $product->getCustomOptions();
         $checkoutData = $product->getCheckoutData();
+        $checkoutCartItem = isset($checkoutData['cartItem']) ? $checkoutData['cartItem'] : [];
         $checkoutCustomOptions = isset($checkoutData['options']['custom_options'])
             ? $checkoutData['options']['custom_options']
             : [];
         $fixturePrice = $product->getPrice();
-        $groupPrice = $product->getGroupPrice();
         $specialPrice = $product->getSpecialPrice();
         $cartItem = $checkoutCart->getCartBlock()->getCartItem($product);
         $formPrice = $cartItem->getPrice();
 
-        if ($groupPrice) {
-            $groupPrice = reset($groupPrice);
-            $fixturePrice = $groupPrice['price'];
-        }
         if ($specialPrice) {
             $fixturePrice = $specialPrice;
+        }
+        if (isset($checkoutCartItem['price'])) {
+            $fixturePrice = $checkoutCartItem['price'];
         }
         $fixtureActualPrice = $fixturePrice;
 

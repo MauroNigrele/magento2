@@ -1,28 +1,12 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\App\Response\Http;
+
+use Magento\Framework\App\Filesystem\DirectoryList;
 
 class FileFactory
 {
@@ -32,17 +16,17 @@ class FileFactory
     protected $_response;
 
     /**
-     * @var \Magento\Framework\App\Filesystem
+     * @var \Magento\Framework\Filesystem
      */
     protected $_filesystem;
 
     /**
      * @param \Magento\Framework\App\ResponseInterface $response
-     * @param \Magento\Framework\App\Filesystem $filesystem
+     * @param \Magento\Framework\Filesystem $filesystem
      */
     public function __construct(
         \Magento\Framework\App\ResponseInterface $response,
-        \Magento\Framework\App\Filesystem $filesystem
+        \Magento\Framework\Filesystem $filesystem
     ) {
         $this->_response = $response;
         $this->_filesystem = $filesystem;
@@ -68,7 +52,7 @@ class FileFactory
     public function create(
         $fileName,
         $content,
-        $baseDir = \Magento\Framework\App\Filesystem::ROOT_DIR,
+        $baseDir = DirectoryList::ROOT,
         $contentType = 'application/octet-stream',
         $contentLength = null
     ) {
@@ -82,59 +66,52 @@ class FileFactory
             if ($content['type'] == 'filename') {
                 $isFile = true;
                 $file = $content['value'];
+                if (!$dir->isFile($file)) {
+                    throw new \Exception((string)new \Magento\Framework\Phrase('File not found'));
+                }
                 $contentLength = $dir->stat($file)['size'];
             }
         }
+        $this->_response->setHttpResponseCode(200)
+            ->setHeader('Pragma', 'public', true)
+            ->setHeader('Cache-Control', 'must-revalidate, post-check=0, pre-check=0', true)
+            ->setHeader('Content-type', $contentType, true)
+            ->setHeader('Content-Length', $contentLength === null ? strlen($content) : $contentLength, true)
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $fileName . '"', true)
+            ->setHeader('Last-Modified', date('r'), true);
 
-        $this->_response->setHttpResponseCode(
-            200
-        )->setHeader(
-            'Pragma',
-            'public',
-            true
-        )->setHeader(
-            'Cache-Control',
-            'must-revalidate, post-check=0, pre-check=0',
-            true
-        )->setHeader(
-            'Content-type',
-            $contentType,
-            true
-        )->setHeader(
-            'Content-Length',
-            is_null($contentLength) ? strlen($content) : $contentLength,
-            true
-        )->setHeader(
-            'Content-Disposition',
-            'attachment; filename="' . $fileName . '"',
-            true
-        )->setHeader(
-            'Last-Modified',
-            date('r'),
-            true
-        );
-
-        if (!is_null($content)) {
+        if ($content !== null) {
+            $this->_response->sendHeaders();
             if ($isFile) {
-                if (!$dir->isFile($file)) {
-                    throw new \Exception(__('File not found'));
-                }
-                $this->_response->sendHeaders();
                 $stream = $dir->openFile($file, 'r');
                 while (!$stream->eof()) {
                     echo $stream->read(1024);
                 }
-                $stream->close();
-                flush();
-                if (!empty($content['rm'])) {
-                    $dir->delete($file);
-                }
-                exit(0);
             } else {
-                $this->_response->clearBody();
-                $this->_response->setBody($content);
+                $dir->writeFile($fileName, $content);
+                $stream = $dir->openFile($fileName, 'r');
+                while (!$stream->eof()) {
+                    echo $stream->read(1024);
+                }
             }
+            $stream->close();
+            flush();
+            if (!empty($content['rm'])) {
+                $dir->delete($file);
+            }
+            $this->callExit();
         }
         return $this->_response;
+    }
+
+    /**
+     * Call exit
+     *
+     * @return void
+     * @SuppressWarnings(PHPMD.ExitExpression)
+     */
+    protected function callExit()
+    {
+        exit(0);
     }
 }

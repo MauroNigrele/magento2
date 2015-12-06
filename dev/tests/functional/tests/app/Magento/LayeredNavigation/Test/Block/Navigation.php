@@ -1,85 +1,107 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
 namespace Magento\LayeredNavigation\Test\Block;
 
-use Mtf\Block\Block;
-use Mtf\Client\Element\Locator;
+use Magento\Mtf\Block\Block;
+use Magento\Mtf\Client\Locator;
 
 /**
- * Catalog layered navigation view block
+ * Catalog layered navigation view block.
  */
 class Navigation extends Block
 {
     /**
-     * 'Clear All' link
+     * Locator for loaded "narrow-by-list" block.
+     *
+     * @var string
+     */
+    protected $loadedNarrowByList = '#narrow-by-list[role="tablist"]';
+
+    /**
+     * Locator value for "Clear All" link.
      *
      * @var string
      */
     protected $clearAll = '.action.clear';
 
     /**
-     * Price range
+     * Locator value for correspondent Attribute filter option.
      *
      * @var string
      */
-    protected $priceRange = "[href$='?price=%s']";
+    protected $optionTitle = './/div[@class="filter-options-title" and contains(text(),"%s")]';
 
     /**
-     * Attribute option
+     * Locator value for correspondent "Filter" link.
      *
      * @var string
      */
-    protected $attributeOption = "//a[contains(text(), '%s')]";
+    protected $filterLink = './/div[@class="filter-options-title" and contains(text(),"%s")]/following-sibling::div//a';
 
     /**
-     * Click on 'Clear All' link
+     * Locator value for "Expand Filter" button.
+     *
+     * @var string
+     */
+    protected $expandFilterButton = '[data]';
+
+    /**
+     * Remove all applied filters.
+     *
+     * @return void
      */
     public function clearAll()
     {
-        $this->reinitRootElement();
-        $this->_rootElement->find($this->clearAll, locator::SELECTOR_CSS)->click();
+        $this->_rootElement->find($this->clearAll)->click();
     }
 
     /**
-     * Select product price range
+     * Get all available filters.
      *
-     * @param string $range
+     * @return array
      */
-    public function selectPriceRange($range)
+    public function getFilters()
     {
-        $this->reinitRootElement();
-        $this->_rootElement->find(sprintf($this->priceRange, $range))->click();
+        $this->waitForElementVisible($this->loadedNarrowByList);
+
+        $options = $this->_rootElement->getElements(sprintf($this->optionTitle, ''), Locator::SELECTOR_XPATH);
+        $data = [];
+        foreach ($options as $option) {
+            $data[] = strtoupper($option->getText());
+        }
+
+        return $data;
     }
 
     /**
-     * Select attribute option
+     * Apply Layerd Navigation filter.
      *
-     * @param string $optionName
+     * @param string $filter
+     * @param string $linkPattern
+     * @return void
+     * @throws \Exception
      */
-    public function selectAttributeOption($optionName)
+    public function applyFilter($filter, $linkPattern)
     {
-        $this->reinitRootElement();
-        $this->_rootElement->find(sprintf($this->attributeOption, $optionName), Locator::SELECTOR_XPATH)->click();
+        $expandFilterButton = sprintf($this->optionTitle, $filter);
+        $links = sprintf($this->filterLink, $filter);
+
+        $this->waitForElementVisible($this->loadedNarrowByList);
+        if (!$this->_rootElement->find($links, Locator::SELECTOR_XPATH)->isVisible()) {
+            $this->_rootElement->find($expandFilterButton, Locator::SELECTOR_XPATH)->click();
+        }
+
+        $links = $this->_rootElement->getElements($links, Locator::SELECTOR_XPATH);
+        foreach ($links as $link) {
+            if (preg_match($linkPattern, trim($link->getText()))) {
+                $link->click();
+                return;
+            }
+        }
+        throw new \Exception("Can't find {$filter} filter link by pattern: {$linkPattern}");
     }
 }

@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Backend\Block\Dashboard\Tab\Products;
 
@@ -27,25 +9,26 @@ namespace Magento\Backend\Block\Dashboard\Tab\Products;
  * Adminhtml dashboard most viewed products grid
  *
  * @author      Magento Core Team <core@magentocommerce.com>
+ * @SuppressWarnings(PHPMD.DepthOfInheritance)
  */
 class Viewed extends \Magento\Backend\Block\Dashboard\Grid
 {
     /**
-     * @var \Magento\Reports\Model\Resource\Product\CollectionFactory
+     * @var \Magento\Reports\Model\ResourceModel\Product\CollectionFactory
      */
     protected $_productsFactory;
 
     /**
      * @param \Magento\Backend\Block\Template\Context $context
      * @param \Magento\Backend\Helper\Data $backendHelper
-     * @param \Magento\Reports\Model\Resource\Product\CollectionFactory $productsFactory
+     * @param \Magento\Reports\Model\ResourceModel\Product\CollectionFactory $productsFactory
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
         \Magento\Backend\Helper\Data $backendHelper,
-        \Magento\Reports\Model\Resource\Product\CollectionFactory $productsFactory,
-        array $data = array()
+        \Magento\Reports\Model\ResourceModel\Product\CollectionFactory $productsFactory,
+        array $data = []
     ) {
         $this->_productsFactory = $productsFactory;
         parent::__construct($context, $backendHelper, $data);
@@ -68,7 +51,7 @@ class Viewed extends \Magento\Backend\Block\Dashboard\Grid
         if ($this->getParam('website')) {
             $storeIds = $this->_storeManager->getWebsite($this->getParam('website'))->getStoreIds();
             $storeId = array_pop($storeIds);
-        } else if ($this->getParam('group')) {
+        } elseif ($this->getParam('group')) {
             $storeIds = $this->_storeManager->getGroup($this->getParam('group'))->getStoreIds();
             $storeId = array_pop($storeIds);
         } else {
@@ -92,31 +75,30 @@ class Viewed extends \Magento\Backend\Block\Dashboard\Grid
      */
     protected function _prepareColumns()
     {
-        $this->addColumn('name', array('header' => __('Product'), 'sortable' => false, 'index' => 'name'));
+        $this->addColumn('name', ['header' => __('Product'), 'sortable' => false, 'index' => 'name']);
 
         $this->addColumn(
             'price',
-            array(
+            [
                 'header' => __('Price'),
-                'width' => '120px',
                 'type' => 'currency',
                 'currency_code' => (string)$this->_storeManager->getStore(
                     (int)$this->getParam('store')
                 )->getBaseCurrencyCode(),
                 'sortable' => false,
                 'index' => 'price'
-            )
+            ]
         );
 
         $this->addColumn(
             'views',
-            array(
+            [
                 'header' => __('Views'),
-                'width' => '120px',
-                'align' => 'right',
                 'sortable' => false,
-                'index' => 'views'
-            )
+                'index' => 'views',
+                'header_css_class' => 'col-views',
+                'column_css_class' => 'col-views'
+            ]
         );
 
         $this->setFilterVisibility(false);
@@ -130,7 +112,7 @@ class Viewed extends \Magento\Backend\Block\Dashboard\Grid
      */
     public function getRowUrl($row)
     {
-        $params = array('id' => $row->getId());
+        $params = ['id' => $row->getId()];
         if ($this->getRequest()->getParam('store')) {
             $params['store'] = $this->getRequest()->getParam('store');
         }

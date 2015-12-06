@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Message;
 
@@ -44,10 +26,16 @@ abstract class AbstractMessage implements MessageInterface
     protected $isSticky = false;
 
     /**
+     * @var array
+     */
+    protected $data;
+
+    /**
      * @param string $text
      */
-    public function __construct($text)
-    {
+    public function __construct(
+        $text = null
+    ) {
         $this->text = $text;
     }
 
@@ -65,7 +53,7 @@ abstract class AbstractMessage implements MessageInterface
      */
     public function getText()
     {
-        return $this->text;
+        return (string)$this->text;
     }
 
     /**
@@ -118,6 +106,7 @@ abstract class AbstractMessage implements MessageInterface
      * Getter for flag. Whether message is sticky
      *
      * @return bool
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName)
      */
     public function getIsSticky()
     {
@@ -131,7 +120,39 @@ abstract class AbstractMessage implements MessageInterface
      */
     public function toString()
     {
-        $out = $this->getType() . ': ' . $this->getText();
+        $out = $this->getType() . ': ' . $this->getIdentifier() . ': ' . $this->getText();
         return $out;
+    }
+
+    /**
+     * Sets message data
+     *
+     * @param array $data
+     * @return $this
+     * @throws \InvalidArgumentException
+     */
+    public function setData(array $data = [])
+    {
+        array_walk_recursive(
+            $data,
+            function ($element) {
+                if (is_object($element) && !$element instanceof \Serializable) {
+                    throw new \InvalidArgumentException('Only serializable content is allowed.');
+                }
+            }
+        );
+
+        $this->data = $data;
+        return $this;
+    }
+
+    /**
+     * Returns message data
+     *
+     * @return array
+     */
+    public function getData()
+    {
+        return (array)$this->data;
     }
 }

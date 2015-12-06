@@ -2,28 +2,12 @@
 /**
  * Initial configuration data container. Provides interface for reading initial config values
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\App\Config;
+
+use Magento\Framework\App\Config\ScopeConfigInterface;
 
 class Initial
 {
@@ -37,14 +21,14 @@ class Initial
      *
      * @var array
      */
-    protected $_data = array();
+    protected $_data = [];
 
     /**
      * Config metadata
      *
      * @var array
      */
-    protected $_metadata = array();
+    protected $_metadata = [];
 
     /**
      * @param \Magento\Framework\App\Config\Initial\Reader $reader
@@ -68,19 +52,19 @@ class Initial
     /**
      * Get initial data by given scope
      *
-     * @param string $scope
+     * @param string $scope Format is scope type and scope code separated by pipe: e.g. "type|code"
      * @return array
      */
     public function getData($scope)
     {
         list($scopeType, $scopeCode) = array_pad(explode('|', $scope), 2, null);
 
-        if (\Magento\Framework\App\ScopeInterface::SCOPE_DEFAULT == $scopeType) {
-            return isset($this->_data[$scopeType]) ? $this->_data[$scopeType] : array();
+        if (ScopeConfigInterface::SCOPE_TYPE_DEFAULT == $scopeType) {
+            return isset($this->_data[$scopeType]) ? $this->_data[$scopeType] : [];
         } elseif ($scopeCode) {
-            return isset($this->_data[$scopeType][$scopeCode]) ? $this->_data[$scopeType][$scopeCode] : array();
+            return isset($this->_data[$scopeType][$scopeCode]) ? $this->_data[$scopeType][$scopeCode] : [];
         }
-        return array();
+        return [];
     }
 
     /**

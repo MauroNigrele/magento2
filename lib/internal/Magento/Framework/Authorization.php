@@ -2,26 +2,8 @@
 /**
  * Magento Authorization component. Can be used to add authorization facility to any application
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework;
 
@@ -30,24 +12,24 @@ class Authorization implements \Magento\Framework\AuthorizationInterface
     /**
      * ACL policy
      *
-     * @var \Magento\Framework\Authorization\Policy
+     * @var \Magento\Framework\Authorization\PolicyInterface
      */
     protected $_aclPolicy;
 
     /**
      * ACL role locator
      *
-     * @var \Magento\Framework\Authorization\RoleLocator
+     * @var \Magento\Framework\Authorization\RoleLocatorInterface
      */
     protected $_aclRoleLocator;
 
     /**
-     * @param \Magento\Framework\Authorization\Policy $aclPolicy
-     * @param \Magento\Framework\Authorization\RoleLocator $roleLocator
+     * @param \Magento\Framework\Authorization\PolicyInterface $aclPolicy
+     * @param \Magento\Framework\Authorization\RoleLocatorInterface $roleLocator
      */
     public function __construct(
-        \Magento\Framework\Authorization\Policy $aclPolicy,
-        \Magento\Framework\Authorization\RoleLocator $roleLocator
+        \Magento\Framework\Authorization\PolicyInterface $aclPolicy,
+        \Magento\Framework\Authorization\RoleLocatorInterface $roleLocator
     ) {
         $this->_aclPolicy = $aclPolicy;
         $this->_aclRoleLocator = $roleLocator;

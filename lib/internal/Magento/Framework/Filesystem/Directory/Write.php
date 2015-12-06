@@ -1,78 +1,41 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Filesystem\Directory;
 
-use Magento\Framework\Filesystem\FilesystemException;
+use Magento\Framework\Exception\FileSystemException;
+use Magento\Framework\Filesystem\DriverInterface;
 
 class Write extends Read implements WriteInterface
 {
     /**
-     * Is directory creation
-     *
-     * @var bool
-     */
-    protected $allowCreateDirs;
-
-    /**
-     * Permissions for new directories and files
+     * Permissions for new sub-directories
      *
      * @var int
      */
-    protected $permissions = 0777;
+    protected $permissions = DriverInterface::WRITEABLE_DIRECTORY_MODE;
 
     /**
      * Constructor
      *
-     * @param array $config
      * @param \Magento\Framework\Filesystem\File\WriteFactory $fileFactory
      * @param \Magento\Framework\Filesystem\DriverInterface $driver
+     * @param string $path
+     * @param int $createPermissions
      */
     public function __construct(
-        array $config,
         \Magento\Framework\Filesystem\File\WriteFactory $fileFactory,
-        \Magento\Framework\Filesystem\DriverInterface $driver
+        \Magento\Framework\Filesystem\DriverInterface $driver,
+        $path,
+        $createPermissions = null
     ) {
-        $this->setProperties($config);
         $this->fileFactory = $fileFactory;
         $this->driver = $driver;
-    }
-
-    /**
-     * Set properties from config
-     *
-     * @param array $config
-     * @return void
-     * @throws \Magento\Framework\Filesystem\FilesystemException
-     */
-    protected function setProperties(array $config)
-    {
-        parent::setProperties($config);
-        if (isset($config['permissions'])) {
-            $this->permissions = $config['permissions'];
-        }
-        if (isset($config['allow_create_dirs'])) {
-            $this->allowCreateDirs = (bool)$config['allow_create_dirs'];
+        $this->setPath($path);
+        if (null !== $createPermissions) {
+            $this->permissions = $createPermissions;
         }
     }
 
@@ -81,13 +44,13 @@ class Write extends Read implements WriteInterface
      *
      * @param string $path
      * @return void
-     * @throws \Magento\Framework\Filesystem\FilesystemException
+     * @throws \Magento\Framework\Exception\FileSystemException
      */
     protected function assertWritable($path)
     {
         if ($this->isWritable($path) === false) {
             $path = $this->getAbsolutePath($this->path, $path);
-            throw new FilesystemException(sprintf('The path "%s" is not writable', $path));
+            throw new FileSystemException(new \Magento\Framework\Phrase('The path "%1" is not writable', [$path]));
         }
     }
 
@@ -96,23 +59,25 @@ class Write extends Read implements WriteInterface
      *
      * @param string $path
      * @return void
-     * @throws \Magento\Framework\Filesystem\FilesystemException
+     * @throws \Magento\Framework\Exception\FileSystemException
      */
     protected function assertIsFile($path)
     {
         clearstatcache();
         $absolutePath = $this->driver->getAbsolutePath($this->path, $path);
         if (!$this->driver->isFile($absolutePath)) {
-            throw new FilesystemException(sprintf('The "%s" file doesn\'t exist or not a file', $absolutePath));
+            throw new FileSystemException(
+                new \Magento\Framework\Phrase('The "%1" file doesn\'t exist or not a file', [$absolutePath])
+            );
         }
     }
 
     /**
-     * Create directory if it does not exists
+     * Create directory if it does not exist
      *
      * @param string $path
      * @return bool
-     * @throws FilesystemException
+     * @throws FileSystemException
      */
     public function create($path = null)
     {
@@ -130,7 +95,7 @@ class Write extends Read implements WriteInterface
      * @param string $newPath
      * @param WriteInterface $targetDirectory
      * @return bool
-     * @throws FilesystemException
+     * @throws FileSystemException
      */
     public function renameFile($path, $newPath, WriteInterface $targetDirectory = null)
     {
@@ -151,7 +116,7 @@ class Write extends Read implements WriteInterface
      * @param string $destination
      * @param WriteInterface $targetDirectory
      * @return bool
-     * @throws FilesystemException
+     * @throws FileSystemException
      */
     public function copyFile($path, $destination, WriteInterface $targetDirectory = null)
     {
@@ -168,11 +133,35 @@ class Write extends Read implements WriteInterface
     }
 
     /**
+     * Creates symlink on a file and places it to destination
+     *
+     * @param string $path
+     * @param string $destination
+     * @param WriteInterface $targetDirectory [optional]
+     * @return bool
+     * @throws \Magento\Framework\Exception\FileSystemException
+     */
+    public function createSymlink($path, $destination, WriteInterface $targetDirectory = null)
+    {
+        $this->assertIsFile($path);
+
+        $targetDirectory = $targetDirectory ?: $this;
+        $parentDirectory = $this->driver->getParentDirectory($destination);
+        if (!$targetDirectory->isExist($parentDirectory)) {
+            $targetDirectory->create($parentDirectory);
+        }
+        $absolutePath = $this->driver->getAbsolutePath($this->path, $path);
+        $absoluteDestination = $targetDirectory->getAbsolutePath($destination);
+
+        return $this->driver->symlink($absolutePath, $absoluteDestination, $targetDirectory->driver);
+    }
+
+    /**
      * Delete given path
      *
      * @param string $path
      * @return bool
-     * @throws FilesystemException
+     * @throws FileSystemException
      */
     public function delete($path = null)
     {
@@ -194,7 +183,7 @@ class Write extends Read implements WriteInterface
      * @param string $path
      * @param int $permissions
      * @return bool
-     * @throws FilesystemException
+     * @throws FileSystemException
      */
     public function changePermissions($path, $permissions)
     {
@@ -203,12 +192,27 @@ class Write extends Read implements WriteInterface
     }
 
     /**
+     * Recursively change permissions of given path
+     *
+     * @param string $path
+     * @param int $dirPermissions
+     * @param int $filePermissions
+     * @return bool
+     * @throws FileSystemException
+     */
+    public function changePermissionsRecursively($path, $dirPermissions, $filePermissions)
+    {
+        $absolutePath = $this->driver->getAbsolutePath($this->path, $path);
+        return $this->driver->changePermissionsRecursively($absolutePath, $dirPermissions, $filePermissions);
+    }
+
+    /**
      * Sets modification time of file, if file does not exist - creates file
      *
      * @param string $path
      * @param int|null $modificationTime
      * @return bool
-     * @throws FilesystemException
+     * @throws FileSystemException
      */
     public function touch($path, $modificationTime = null)
     {
@@ -223,7 +227,7 @@ class Write extends Read implements WriteInterface
      *
      * @param null $path
      * @return bool
-     * @throws \Magento\Framework\Filesystem\FilesystemException
+     * @throws \Magento\Framework\Exception\FileSystemException
      */
     public function isWritable($path = null)
     {
@@ -235,16 +239,15 @@ class Write extends Read implements WriteInterface
      *
      * @param string $path
      * @param string $mode
-     * @param string|null $protocol
      * @return \Magento\Framework\Filesystem\File\WriteInterface
      */
-    public function openFile($path, $mode = 'w', $protocol = null)
+    public function openFile($path, $mode = 'w')
     {
         $folder = dirname($path);
         $this->create($folder);
         $this->assertWritable($folder);
         $absolutePath = $this->driver->getAbsolutePath($this->path, $path);
-        return $this->fileFactory->create($absolutePath, $protocol, $this->driver, $mode);
+        return $this->fileFactory->create($absolutePath, $this->driver, $mode);
     }
 
     /**
@@ -253,13 +256,12 @@ class Write extends Read implements WriteInterface
      * @param string $path
      * @param string $content
      * @param string|null $mode
-     * @param string|null $protocol
      * @return int The number of bytes that were written.
-     * @throws FilesystemException
+     * @throws FileSystemException
      */
-    public function writeFile($path, $content, $mode = 'w+', $protocol = null)
+    public function writeFile($path, $content, $mode = 'w+')
     {
-        return $this->openFile($path, $mode, $protocol)->write($content);
+        return $this->openFile($path, $mode)->write($content);
     }
 
     /**

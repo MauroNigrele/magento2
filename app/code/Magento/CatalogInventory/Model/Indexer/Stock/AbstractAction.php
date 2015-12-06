@@ -1,30 +1,15 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
  * @category    Magento
  * @package     Magento_CatalogInventory
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\CatalogInventory\Model\Indexer\Stock;
+
+use Magento\Catalog\Model\Category;
+use Magento\Framework\App\ResourceConnection;
 
 /**
  * Abstract action reindex class
@@ -36,12 +21,12 @@ abstract class AbstractAction
     /**
      * Resource instance
      *
-     * @var \Magento\Framework\App\Resource
+     * @var Resource
      */
     protected $_resource;
 
     /**
-     * @var \Magento\CatalogInventory\Model\Resource\Indexer\StockFactory
+     * @var \Magento\CatalogInventory\Model\ResourceModel\Indexer\StockFactory
      */
     protected $_indexerFactory;
 
@@ -61,7 +46,7 @@ abstract class AbstractAction
      *
      * @var array
      */
-    protected $_indexers = array();
+    protected $_indexers = [];
 
     /**
      * Flag that defines if need to use "_idx" index table suffix instead of "_tmp"
@@ -71,18 +56,35 @@ abstract class AbstractAction
     protected $_isNeedUseIdxTable = false;
 
     /**
-     * @param \Magento\Framework\App\Resource $resource
-     * @param \Magento\CatalogInventory\Model\Resource\Indexer\StockFactory $indexerFactory
+     * @var \Magento\Framework\Indexer\CacheContext
+     */
+    private $cacheContext;
+
+    /**
+     * @var \Magento\Framework\Event\ManagerInterface
+     */
+    private $eventManager;
+
+
+    /**
+     * @param ResourceConnection $resource
+     * @param \Magento\CatalogInventory\Model\ResourceModel\Indexer\StockFactory $indexerFactory
      * @param \Magento\Catalog\Model\Product\Type $catalogProductType
+     * @param \Magento\Framework\Indexer\CacheContext $cacheContext
+     * @param \Magento\Framework\Event\ManagerInterface $eventManager
      */
     public function __construct(
-        \Magento\Framework\App\Resource $resource,
-        \Magento\CatalogInventory\Model\Resource\Indexer\StockFactory $indexerFactory,
-        \Magento\Catalog\Model\Product\Type $catalogProductType
+        ResourceConnection $resource,
+        \Magento\CatalogInventory\Model\ResourceModel\Indexer\StockFactory $indexerFactory,
+        \Magento\Catalog\Model\Product\Type $catalogProductType,
+        \Magento\Framework\Indexer\CacheContext $cacheContext,
+        \Magento\Framework\Event\ManagerInterface $eventManager
     ) {
         $this->_resource = $resource;
         $this->_indexerFactory = $indexerFactory;
         $this->_catalogProductType = $catalogProductType;
+        $this->cacheContext = $cacheContext;
+        $this->eventManager = $eventManager;
     }
 
     /**
@@ -102,7 +104,7 @@ abstract class AbstractAction
     protected function _getConnection()
     {
         if (null === $this->_connection) {
-            $this->_connection = $this->_resource->getConnection('write');
+            $this->_connection = $this->_resource->getConnection();
         }
         return $this->_connection;
     }
@@ -110,7 +112,7 @@ abstract class AbstractAction
     /**
      * Retrieve Stock Indexer Models per Product Type
      *
-     * @return \Magento\CatalogInventory\Model\Resource\Indexer\Stock\StockInterface[]
+     * @return \Magento\CatalogInventory\Model\ResourceModel\Indexer\Stock\StockInterface[]
      */
     protected function _getTypeIndexers()
     {
@@ -147,12 +149,12 @@ abstract class AbstractAction
      */
     public function getRelationsByChild($childIds)
     {
-        $adapter = $this->_getConnection();
-        $select = $adapter->select()
+        $connection = $this->_getConnection();
+        $select = $connection->select()
             ->from($this->_getTable('catalog_product_relation'), 'parent_id')
             ->where('child_id IN(?)', $childIds);
 
-        return $adapter->fetchCol($select);
+        return $connection->fetchCol($select);
     }
 
     /**
@@ -201,11 +203,11 @@ abstract class AbstractAction
     protected function _deleteOldRelations($tableName)
     {
         $select = $this->_connection->select()
-            ->from(array('s' => $tableName))
+            ->from(['s' => $tableName])
             ->joinLeft(
-                array('w' => $this->_getTable('catalog_product_website')),
+                ['w' => $this->_getTable('catalog_product_website')],
                 's.product_id = w.product_id AND s.website_id = w.website_id',
-                array()
+                []
             )
             ->where('w.product_id IS NULL');
 
@@ -219,22 +221,22 @@ abstract class AbstractAction
      * @param array $productIds
      * @return array Affected ids
      */
-    protected function _reindexRows($productIds = array())
+    protected function _reindexRows($productIds = [])
     {
-        $adapter = $this->_getConnection();
+        $connection = $this->_getConnection();
         if (!is_array($productIds)) {
-            $productIds = array($productIds);
+            $productIds = [$productIds];
         }
         $parentIds = $this->getRelationsByChild($productIds);
         $processIds = $parentIds ? array_merge($parentIds, $productIds) : $productIds;
 
         // retrieve product types by processIds
-        $select = $adapter->select()
-            ->from($this->_getTable('catalog_product_entity'), array('entity_id', 'type_id'))
+        $select = $connection->select()
+            ->from($this->_getTable('catalog_product_entity'), ['entity_id', 'type_id'])
             ->where('entity_id IN(?)', $processIds);
-        $pairs = $adapter->fetchPairs($select);
+        $pairs = $connection->fetchPairs($select);
 
-        $byType = array();
+        $byType = [];
         foreach ($pairs as $productId => $typeId) {
             $byType[$typeId][$productId] = $productId;
         }
@@ -245,6 +247,16 @@ abstract class AbstractAction
                 $indexer->reindexEntity($byType[$indexer->getTypeId()]);
             }
         }
+
+        $select = $connection->select()
+            ->distinct(true)
+            ->from($this->_getTable('catalog_category_product'), ['category_id'])
+            ->where('product_id IN(?)', $processIds);
+
+        $affectedCategories = $connection->fetchCol($select);
+        $this->cacheContext->registerEntities(Category::CACHE_TAG, $affectedCategories);
+
+        $this->eventManager->dispatch('clean_cache_by_tags', ['object' => $this->cacheContext]);
 
         return $this;
     }
@@ -257,7 +269,7 @@ abstract class AbstractAction
      */
     public function useIdxTable($value = null)
     {
-        if (!is_null($value)) {
+        if ($value !== null) {
             $this->_isNeedUseIdxTable = (bool)$value;
         }
         return $this->_isNeedUseIdxTable;

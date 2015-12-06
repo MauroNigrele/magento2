@@ -1,27 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Paypal\Helper;
+
+use Magento\Framework\App\Config\ScopeConfigInterface;
 
 /**
  * Paypal Backend helper
@@ -29,28 +13,36 @@ namespace Magento\Paypal\Helper;
 class Backend extends \Magento\Framework\App\Helper\AbstractHelper
 {
     /**
-     * @var \Magento\Core\Helper\Data
+     * @var \Magento\Directory\Helper\Data
      */
-    protected $_coreHelper;
+    protected $directoryHelper;
 
     /**
-     * @var \Magento\Backend\Model\Config
+     * @var \Magento\Config\Model\Config
      */
-    protected $_backendConfig;
+    protected $backendConfig;
+
+    /**
+     * @var \Magento\Config\Model\Config\ScopeDefiner
+     */
+    protected $scopeDefiner;
 
     /**
      * @param \Magento\Framework\App\Helper\Context $context
-     * @param \Magento\Core\Helper\Data $coreHelper
-     * @param \Magento\Backend\Model\Config $backendConfig
+     * @param \Magento\Directory\Helper\Data $directoryHelper
+     * @param \Magento\Config\Model\Config $backendConfig
+     * @param \Magento\Config\Model\Config\ScopeDefiner $scopeDefiner
      */
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
-        \Magento\Core\Helper\Data $coreHelper,
-        \Magento\Backend\Model\Config $backendConfig
+        \Magento\Directory\Helper\Data $directoryHelper,
+        \Magento\Config\Model\Config $backendConfig,
+        \Magento\Config\Model\Config\ScopeDefiner $scopeDefiner
     ) {
         parent::__construct($context);
-        $this->_coreHelper = $coreHelper;
-        $this->_backendConfig = $backendConfig;
+        $this->directoryHelper = $directoryHelper;
+        $this->backendConfig = $backendConfig;
+        $this->scopeDefiner = $scopeDefiner;
     }
 
     /**
@@ -61,13 +53,17 @@ class Backend extends \Magento\Framework\App\Helper\AbstractHelper
     public function getConfigurationCountryCode()
     {
         $countryCode  = $this->_request->getParam(\Magento\Paypal\Model\Config\StructurePlugin::REQUEST_PARAM_COUNTRY);
-        if (is_null($countryCode) || preg_match('/^[a-zA-Z]{2}$/', $countryCode) == 0) {
-            $countryCode = $this->_backendConfig->getConfigDataValue(
+        if ($countryCode === null || preg_match('/^[a-zA-Z]{2}$/', $countryCode) == 0) {
+            $scope = $this->scopeDefiner->getScope();
+            if ($scope != ScopeConfigInterface::SCOPE_TYPE_DEFAULT) {
+                $this->backendConfig->setData($scope, $this->_request->getParam($scope));
+            }
+            $countryCode = $this->backendConfig->getConfigDataValue(
                 \Magento\Paypal\Block\Adminhtml\System\Config\Field\Country::FIELD_CONFIG_PATH
             );
         }
         if (empty($countryCode)) {
-            $countryCode = $this->_coreHelper->getDefaultCountry();
+            $countryCode = $this->directoryHelper->getDefaultCountry();
         }
         return $countryCode;
     }

@@ -1,24 +1,6 @@
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 'use strict';
@@ -26,22 +8,29 @@ angular.module('web-configuration', ['ngStorage'])
     .controller('webConfigurationController', ['$scope', '$state', '$localStorage', function ($scope, $state, $localStorage) {
         $scope.config = {
             address: {
-                web: 'http://www.example.com/',
-                admin: 'admin'
+                base_url: '',
+                auto_base_url: '',
+                actual_base_url: '',
+                admin: ''
             },
             https: {
-                front: true,
-                admin: true
+                front: false,
+                admin: false,
+                text: ''
             },
             rewrites: {
                 allowed: true
             },
             encrypt: {
-                key: '',
+                key: null,
                 type: 'magento'
             },
             advanced: {
                 expanded: false
+            },
+            sessionSave: {
+                type: 'files',
+                error: false
             }
         };
 
@@ -55,11 +44,59 @@ angular.module('web-configuration', ['ngStorage'])
 
         $scope.updateOnExpand = function(obj) {
             obj.expanded = !obj.expanded;
-        }
+        };
+
+        $scope.fillBaseURL = function() {
+            if (angular.equals($scope.config.address.base_url, '')) {
+                $scope.config.address.base_url = $scope.config.address.auto_base_url;
+            }
+        };
+
+        $scope.$watch('config.address.base_url', function() {
+            if (angular.equals($scope.config.address.base_url, '')) {
+                $scope.config.address.actual_base_url = $scope.config.address.auto_base_url;
+            } else {
+                $scope.config.address.actual_base_url = $scope.config.address.base_url;
+            }
+        });
+
+        $scope.$watch('config.encrypt.type', function() {
+            if (angular.equals($scope.config.encrypt.type, 'magento')) {
+                $scope.config.encrypt.key = null;
+            }
+        });
+
+        $scope.$watch('config.address.base_url', function() {
+            if (angular.equals($scope.config.https.text, '') || angular.isUndefined($scope.config.https.text)) {
+                $scope.config.https.text = $scope.config.address.base_url.replace('http', 'https');
+            }
+        });
+
+        $scope.populateHttps = function() {
+            $scope.config.https.text = $scope.config.address.base_url.replace('http', 'https');
+        };
 
         $scope.showEncryptKey = function() {
             return angular.equals($scope.config.encrypt.type, 'user');
-        }
+        };
+
+        $scope.showHttpsField = function() {
+            return ($scope.config.https.front || $scope.config.https.admin);
+        };
+
+        $scope.addSlash = function() {
+            if (angular.isUndefined($scope.config.address.base_url)) {
+                return;
+            }
+
+            var p = $scope.config.address.base_url;
+            if (p.length > 1) {
+                var lastChar = p.substr(-1);
+                if (lastChar != '/') {
+                    $scope.config.address.base_url = p + '/';
+                }
+            }
+        };
 
         // Listens on form validate event, dispatched by parent controller
         $scope.$on('validate-' + $state.current.id, function() {
@@ -74,7 +111,7 @@ angular.module('web-configuration', ['ngStorage'])
                 $scope.$emit('validation-response', false);
                 $scope.webconfig.submitted = true;
             }
-        }
+        };
 
         // Update 'submitted' flag
         $scope.$watch(function() { return $scope.webconfig.$valid }, function(valid) {

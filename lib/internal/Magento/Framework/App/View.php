@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\App;
 
@@ -89,7 +71,7 @@ class View implements ViewInterface
         $this->_configScope = $configScope;
         $this->_eventManager = $eventManager;
         $this->_actionFlag = $actionFlag;
-        $this->page = $pageFactory->create();
+        $this->page = $pageFactory->create(true);
     }
 
     /**
@@ -120,13 +102,14 @@ class View implements ViewInterface
         if ($this->_isLayoutLoaded) {
             throw new \RuntimeException('Layout must be loaded only once.');
         }
-        if ($addActionHandles) {
-            // add default layout handles for this action
-            $this->page->initLayout();
-        }
         // if handles were specified in arguments load them first
         if (!empty($handles)) {
             $this->getLayout()->getUpdate()->addHandle($handles);
+        }
+
+        if ($addActionHandles) {
+            // add default layout handles for this action
+            $this->page->initLayout();
         }
         $this->loadLayoutUpdates();
 
@@ -161,9 +144,7 @@ class View implements ViewInterface
      */
     public function addActionLayoutHandles()
     {
-        if (!$this->addPageLayoutHandles()) {
-            $this->getLayout()->getUpdate()->addHandle($this->getDefaultLayoutHandle());
-        }
+        $this->getLayout()->getUpdate()->addHandle($this->getDefaultLayoutHandle());
         return $this;
     }
 
@@ -174,7 +155,7 @@ class View implements ViewInterface
      * @param string|null $defaultHandle
      * @return bool
      */
-    public function addPageLayoutHandles(array $parameters = array(), $defaultHandle = null)
+    public function addPageLayoutHandles(array $parameters = [], $defaultHandle = null)
     {
         return $this->page->addPageLayoutHandles($parameters, $defaultHandle);
     }
@@ -186,19 +167,7 @@ class View implements ViewInterface
      */
     public function loadLayoutUpdates()
     {
-        \Magento\Framework\Profiler::start('LAYOUT');
-        // dispatch event for adding handles to layout update
-        $this->_eventManager->dispatch(
-            'controller_action_layout_load_before',
-            array('full_action_name' => $this->_request->getFullActionName(), 'layout' => $this->getLayout())
-        );
-
-        // load layout updates by specified handles
-        \Magento\Framework\Profiler::start('layout_load');
-        $this->getLayout()->getUpdate()->load();
-        \Magento\Framework\Profiler::stop('layout_load');
-
-        \Magento\Framework\Profiler::stop('LAYOUT');
+        $this->page->getConfig()->publicBuild();
         return $this;
     }
 
@@ -209,13 +178,7 @@ class View implements ViewInterface
      */
     public function generateLayoutXml()
     {
-        \Magento\Framework\Profiler::start('LAYOUT');
-        // generate xml from collected text updates
-        \Magento\Framework\Profiler::start('layout_generate_xml');
-        $this->getLayout()->generateXml();
-        \Magento\Framework\Profiler::stop('layout_generate_xml');
-
-        \Magento\Framework\Profiler::stop('LAYOUT');
+        $this->page->getConfig()->publicBuild();
         return $this;
     }
 
@@ -226,29 +189,7 @@ class View implements ViewInterface
      */
     public function generateLayoutBlocks()
     {
-        \Magento\Framework\Profiler::start('LAYOUT');
-
-        // dispatch event for adding xml layout elements
-        if (!$this->_actionFlag->get('', \Magento\Framework\App\Action\Action::FLAG_NO_DISPATCH_BLOCK_EVENT)) {
-            $this->_eventManager->dispatch(
-                'controller_action_layout_generate_blocks_before',
-                array('full_action_name' => $this->_request->getFullActionName(), 'layout' => $this->getLayout())
-            );
-        }
-
-        // generate blocks from xml layout
-        \Magento\Framework\Profiler::start('layout_generate_blocks');
-        $this->getLayout()->generateElements();
-        \Magento\Framework\Profiler::stop('layout_generate_blocks');
-
-        if (!$this->_actionFlag->get('', \Magento\Framework\App\Action\Action::FLAG_NO_DISPATCH_BLOCK_EVENT)) {
-            $this->_eventManager->dispatch(
-                'controller_action_layout_generate_blocks_after',
-                array('full_action_name' => $this->_request->getFullActionName(), 'layout' => $this->getLayout())
-            );
-        }
-
-        \Magento\Framework\Profiler::stop('LAYOUT');
+        $this->page->getConfig()->publicBuild();
         return $this;
     }
 

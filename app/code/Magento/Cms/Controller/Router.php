@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Cms\Controller;
 
@@ -45,7 +27,7 @@ class Router implements \Magento\Framework\App\RouterInterface
     /**
      * Store manager
      *
-     * @var \Magento\Framework\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
@@ -82,7 +64,7 @@ class Router implements \Magento\Framework\App\RouterInterface
      * @param \Magento\Framework\Event\ManagerInterface $eventManager
      * @param \Magento\Framework\UrlInterface $url
      * @param \Magento\Cms\Model\PageFactory $pageFactory
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param \Magento\Framework\App\ResponseInterface $response
      */
     public function __construct(
@@ -90,7 +72,7 @@ class Router implements \Magento\Framework\App\RouterInterface
         \Magento\Framework\Event\ManagerInterface $eventManager,
         \Magento\Framework\UrlInterface $url,
         \Magento\Cms\Model\PageFactory $pageFactory,
-        \Magento\Framework\StoreManagerInterface $storeManager,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Framework\App\ResponseInterface $response
     ) {
         $this->actionFactory = $actionFactory;
@@ -111,20 +93,17 @@ class Router implements \Magento\Framework\App\RouterInterface
     {
         $identifier = trim($request->getPathInfo(), '/');
 
-        $condition = new \Magento\Framework\Object(array('identifier' => $identifier, 'continue' => true));
+        $condition = new \Magento\Framework\DataObject(['identifier' => $identifier, 'continue' => true]);
         $this->_eventManager->dispatch(
             'cms_controller_router_match_before',
-            array('router' => $this, 'condition' => $condition)
+            ['router' => $this, 'condition' => $condition]
         );
         $identifier = $condition->getIdentifier();
 
         if ($condition->getRedirectUrl()) {
             $this->_response->setRedirect($condition->getRedirectUrl());
             $request->setDispatched(true);
-            return $this->actionFactory->create(
-                'Magento\Framework\App\Action\Redirect',
-                array('request' => $request)
-            );
+            return $this->actionFactory->create('Magento\Framework\App\Action\Redirect');
         }
 
         if (!$condition->getContinue()) {
@@ -141,9 +120,6 @@ class Router implements \Magento\Framework\App\RouterInterface
         $request->setModuleName('cms')->setControllerName('page')->setActionName('view')->setParam('page_id', $pageId);
         $request->setAlias(\Magento\Framework\Url::REWRITE_REQUEST_PATH_ALIAS, $identifier);
 
-        return $this->actionFactory->create(
-            'Magento\Framework\App\Action\Forward',
-            array('request' => $request)
-        );
+        return $this->actionFactory->create('Magento\Framework\App\Action\Forward');
     }
 }

@@ -1,32 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Block\Adminhtml\Order\View;
 
 /**
  * Test class for \Magento\Sales\Block\Adminhtml\Order\View\Info
  */
-class InfoTest extends \Magento\Backend\Utility\Controller
+class InfoTest extends \Magento\TestFramework\TestCase\AbstractBackendController
 {
     /**
      * Value for the user defined custom attribute, which is created by attribute_user_defined_customer.php fixture.
@@ -40,11 +22,11 @@ class InfoTest extends \Magento\Backend\Utility\Controller
         $infoBlock = $layout->createBlock(
             'Magento\Sales\Block\Adminhtml\Order\View\Info',
             'info_block' . mt_rand(),
-            array()
+            []
         );
 
         $result = $infoBlock->getCustomerAccountData();
-        $this->assertEquals(array(), $result, 'Customer has additional account data.');
+        $this->assertEquals([], $result, 'Customer has additional account data.');
     }
 
     /**
@@ -57,7 +39,7 @@ class InfoTest extends \Magento\Backend\Utility\Controller
         $customerGroupBlock = $layout->createBlock(
             'Magento\Sales\Block\Adminhtml\Order\View\Info',
             'info_block' . mt_rand(),
-            array('registry' => $this->_putOrderIntoRegistry())
+            ['registry' => $this->_putOrderIntoRegistry()]
         );
 
         $result = $customerGroupBlock->getCustomerGroupName();
@@ -72,23 +54,23 @@ class InfoTest extends \Magento\Backend\Utility\Controller
     {
         $layout = $this->_objectManager->get('Magento\Framework\View\LayoutInterface');
 
-        $orderData = array(
-            'customer_' . FIXTURE_ATTRIBUTE_USER_DEFINED_CUSTOMER_NAME => self::ORDER_USER_DEFINED_ATTRIBUTE_VALUE
-        );
+        $orderData = [
+            'customer_' . FIXTURE_ATTRIBUTE_USER_DEFINED_CUSTOMER_NAME => self::ORDER_USER_DEFINED_ATTRIBUTE_VALUE,
+        ];
         /** @var \Magento\Sales\Block\Adminhtml\Order\View\Info $customerGroupBlock */
         $customerGroupBlock = $layout->createBlock(
             'Magento\Sales\Block\Adminhtml\Order\View\Info',
             'info_block' . mt_rand(),
-            array('registry' => $this->_putOrderIntoRegistry($orderData))
+            ['registry' => $this->_putOrderIntoRegistry($orderData)]
         );
 
         $this->assertEquals(
-            array(
-                200 => array(
+            [
+                200 => [
                     'label' => FIXTURE_ATTRIBUTE_USER_DEFINED_CUSTOMER_FRONTEND_LABEL,
-                    'value' => self::ORDER_USER_DEFINED_ATTRIBUTE_VALUE
-                )
-            ),
+                    'value' => self::ORDER_USER_DEFINED_ATTRIBUTE_VALUE,
+                ],
+            ],
             $customerGroupBlock->getCustomerAccountData()
         );
     }
@@ -97,7 +79,7 @@ class InfoTest extends \Magento\Backend\Utility\Controller
      * @param array $additionalOrderData
      * @return \Magento\Framework\Registry|\PHPUnit_Framework_MockObject_MockObject
      */
-    protected function _putOrderIntoRegistry(array $additionalOrderData = array())
+    protected function _putOrderIntoRegistry(array $additionalOrderData = [])
     {
         $registry = $this->getMockBuilder('Magento\Framework\Registry')->disableOriginalConstructor()->getMock();
 
@@ -106,7 +88,7 @@ class InfoTest extends \Magento\Backend\Utility\Controller
         )->load(
             '100000001'
         )->setData(
-            array_merge(array('customer_group_id' => 0), $additionalOrderData)
+            array_merge(['customer_group_id' => 0], $additionalOrderData)
         );
 
         $registry->expects($this->any())->method('registry')->with('current_order')->will($this->returnValue($order));

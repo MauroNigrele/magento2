@@ -1,43 +1,28 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 ?>
-<?php /** @var $this \Magento\Checkout\Block\Onepage\Success */ ?>
+<?php /** @var $block \Magento\Checkout\Block\Onepage\Success */ ?>
 <div class="checkout-success">
-    <?php if ($this->getOrderId()):?>
-        <?php if ($this->getCanViewOrder()) :?>
-            <p><?php echo __('Your order number is: %1.', sprintf('<a href="%s" class="order-number"><strong>%s</strong></a>', $this->escapeHtml($this->getViewOrderUrl()), $this->escapeHtml($this->getOrderId()))) ?></p>
+    <?php if ($block->getOrderId()):?>
+        <?php if ($block->getCanViewOrder()) :?>
+            <p><?php echo __('Your order number is: %1.', sprintf('<a href="%s" class="order-number"><strong>%s</strong></a>', $block->escapeHtml($block->getViewOrderUrl()), $block->escapeHtml($block->getOrderId()))) ?></p>
         <?php  else :?>
-            <p><?php echo __('Your order # is: <span>%1</span>.', $this->escapeHtml($this->getOrderId())) ?></p>
+            <p><?php echo __('Your order # is: <span>%1</span>.', $block->escapeHtml($block->getOrderId())) ?></p>
         <?php endif;?>
-            <p><?php echo __('You will receive an order confirmation email with details of your order and a link to track its progress.') ?></p>
+            <p><?php /* @escapeNotVerified */ echo __('We\'ll email you an order confirmation with details and tracking info.') ?></p>
     <?php endif;?>
 
-    <?php echo $this->getAdditionalInfoHtml() ?>
+    <?php echo $block->getAdditionalInfoHtml() ?>
 
     <div class="actions-toolbar">
         <div class="primary">
-            <a class="action primary continue" title="<?php echo __('Continue Shopping') ?>" href="<?php echo $this->getUrl() ?>"><span><?php echo __('Continue Shopping') ?></span></a>
+            <a class="action primary continue" href="<?php /* @escapeNotVerified */ echo $block->getUrl() ?>"><span><?php /* @escapeNotVerified */ echo __('Continue Shopping') ?></span></a>
         </div>
     </div>
 </div>

@@ -1,27 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\App;
+
+use Zend\Stdlib\Parameters;
 
 class AreaTest extends \PHPUnit_Framework_TestCase
 {
@@ -33,7 +17,7 @@ class AreaTest extends \PHPUnit_Framework_TestCase
     public static function tearDownAfterClass()
     {
         \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get('Magento\Framework\App\CacheInterface')
-            ->clean(array(\Magento\Core\Model\Design::CACHE_TAG));
+            ->clean([\Magento\Theme\Model\Design::CACHE_TAG]);
     }
 
     protected function setUp()
@@ -43,7 +27,7 @@ class AreaTest extends \PHPUnit_Framework_TestCase
         /** @var $_model \Magento\Framework\App\Area */
         $this->_model = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
             'Magento\Framework\App\Area',
-            array('areaCode' => 'frontend')
+            ['areaCode' => 'frontend']
         );
     }
 
@@ -85,11 +69,10 @@ class AreaTest extends \PHPUnit_Framework_TestCase
     // @codingStandardsIgnoreEnd
     public function testDetectDesignUserAgent()
     {
-
         $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
         /** @var $request \Magento\TestFramework\Request */
         $request = $objectManager->create('Magento\TestFramework\Request');
-        $request->setServer(array('HTTP_USER_AGENT' => 'Mozilla Firefox'));
+        $request->setServer(new Parameters(['HTTP_USER_AGENT' => 'Mozilla Firefox']));
         $this->_model->detectDesign($request);
         $design = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
             'Magento\Framework\View\DesignInterface'
@@ -101,7 +84,7 @@ class AreaTest extends \PHPUnit_Framework_TestCase
     /**
      * @magentoConfigFixture current_store design/theme/ua_regexp a:1:{s:1:"_";a:2:{s:6:"regexp";s:10:"/firefox/i";s:5:"value";s:13:"Magento/blank";}}
      * @magentoConfigFixture current_store design/package/ua_regexp a:1:{s:1:"_";a:2:{s:6:"regexp";s:10:"/firefox/i";s:5:"value";s:13:"Magento/blank";}}
-     * @magentoDataFixture Magento/Core/_files/design_change.php
+     * @magentoDataFixture Magento/Theme/_files/design_change.php
      * @magentoAppIsolation enabled
      */
     // @codingStandardsIgnoreEnd
@@ -111,7 +94,7 @@ class AreaTest extends \PHPUnit_Framework_TestCase
         $design = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
             'Magento\Framework\View\DesignInterface'
         );
-        $this->assertEquals('Magento/plushe', $design->getDesignTheme()->getThemePath());
+        $this->assertEquals('Magento/luma', $design->getDesignTheme()->getThemePath());
     }
 
     // @codingStandardsIgnoreStart
@@ -119,17 +102,17 @@ class AreaTest extends \PHPUnit_Framework_TestCase
      * Test that non-frontend areas are not affected neither by user-agent reg expressions, nor by the "design change"
      *
      * @magentoConfigFixture current_store design/theme/ua_regexp a:1:{s:1:"_";a:2:{s:6:"regexp";s:10:"/firefox/i";s:5:"value";s:13:"Magento/blank";}}
-     * magentoDataFixture Magento/Core/_files/design_change.php
+     * magentoDataFixture Magento/Theme/_files/design_change.php
      * @magentoAppIsolation enabled
      */
     // @codingStandardsIgnoreEnd
     public function testDetectDesignNonFrontend()
     {
         $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
-        $model = $objectManager->create('Magento\Framework\App\Area', array('areaCode' => 'install'));
+        $model = $objectManager->create('Magento\Framework\App\Area', ['areaCode' => 'adminhtml']);
         /** @var $request \Magento\TestFramework\Request */
         $request = $objectManager->create('Magento\TestFramework\Request');
-        $request->setServer(array('HTTP_USER_AGENT' => 'Mozilla Firefox'));
+        $request->setServer(new Parameters(['HTTP_USER_AGENT' => 'Mozilla Firefox']));
         $model->detectDesign($request);
         $design = $objectManager->get('Magento\Framework\View\DesignInterface');
         $this->assertNotEquals('Magento/blank', $design->getDesignTheme()->getThemePath());

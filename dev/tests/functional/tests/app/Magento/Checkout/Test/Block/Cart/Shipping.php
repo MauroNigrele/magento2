@@ -1,84 +1,64 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Checkout\Test\Block\Cart;
 
-use Mtf\Block\Form;
-use Mtf\Client\Element;
-use Mtf\Client\Element\Locator;
-use Magento\Customer\Test\Fixture\AddressInjectable;
+use Magento\Customer\Test\Fixture\Address;
+use Magento\Mtf\Block\Form;
+use Magento\Mtf\Client\Locator;
 
 /**
- * Class Shipping
- * Cart shipping block
+ * Cart shipping block.
  */
 class Shipping extends Form
 {
     /**
-     * Form wrapper selector
+     * Form wrapper selector.
      *
      * @var string
      */
     protected $formWrapper = '.content';
 
     /**
-     * Open shipping form selector
+     * Open shipping form selector.
      *
      * @var string
      */
     protected $openForm = '.title';
 
     /**
-     * Get quote selector
+     * Selector to access the shipping carrier method.
      *
      * @var string
      */
-    protected $getQuote = '.action.quote';
+    protected $shippingMethod = '//span[text()="%s"]/following::label[contains(., "%s")]/../input';
 
     /**
-     * Update total selector
-     *
-     * @var string
-     */
-    protected $updateTotalSelector = '.action.update';
-
-    /**
-     * Selector to access the shipping carrier method
-     *
-     * @var string
-     */
-    protected $shippingMethod = '//span[text()="%s"]/following::*//*[contains(text(), "%s")]';
-
-    /**
-     * From with shipping available shipping methods
+     * From with shipping available shipping methods.
      *
      * @var string
      */
     protected $shippingMethodForm = '#co-shipping-method-form';
 
     /**
-     * Open estimate shipping and tax form
+     * Fields that are used in estimation shipping form.
+     *
+     * @var array
+     */
+    protected $estimationFields = ['country_id', 'region_id', 'region', 'postcode'];
+
+    /**
+     * Block wait element.
+     *
+     * @var string
+     */
+    protected $blockWaitElement = '._block-content-loading';
+
+    /**
+     * Open estimate shipping and tax form.
      *
      * @return void
      */
@@ -90,46 +70,49 @@ class Shipping extends Form
     }
 
     /**
-     * Click Get quote button
-     *
-     * @return void
-     */
-    public function clickGetQuote()
-    {
-        $this->_rootElement->find($this->getQuote)->click();
-    }
-
-    /**
-     * Select shipping method
+     * Select shipping method.
      *
      * @param array $shipping
      * @return void
+     * @throws \Exception
      */
     public function selectShippingMethod(array $shipping)
     {
-        $selector = sprintf($this->shippingMethod, $shipping['carrier'], $shipping['method']);
+        $selector = sprintf($this->shippingMethod, $shipping['shipping_service'], $shipping['shipping_method']);
         if (!$this->_rootElement->find($selector, Locator::SELECTOR_XPATH)->isVisible()) {
             $this->openEstimateShippingAndTax();
         }
-        $this->_rootElement->find($selector, Locator::SELECTOR_XPATH)->click();
-        $this->_rootElement->find($this->updateTotalSelector, Locator::SELECTOR_CSS)->click();
+
+        $element = $this->_rootElement->find($selector, Locator::SELECTOR_XPATH);
+        if (!$element->isDisabled()) {
+            $element->click();
+        } else {
+            throw new \Exception("Unable to set value to field '$selector' as it's disabled.");
+        }
     }
 
     /**
-     * Fill shipping and tax form
+     * Fill shipping and tax form.
      *
-     * @param AddressInjectable $address
+     * @param Address $address
      * @return void
      */
-    public function fillEstimateShippingAndTax(AddressInjectable $address)
+    public function fillEstimateShippingAndTax(Address $address)
     {
         $this->openEstimateShippingAndTax();
-        $this->fill($address);
-        $this->clickGetQuote();
+        $data = $address->getData();
+        $mapping = $this->dataMapping(array_intersect_key($data, array_flip($this->estimationFields)));
+
+        // Test environment may become unstable when form fields are filled in a default manner.
+        // Imitating behavior closer to the real user.
+        foreach ($mapping as $field) {
+            $this->_fill([$field], $this->_rootElement);
+            $this->waitForUpdatedShippingMethods();
+        }
     }
 
     /**
-     * Determines if the specified shipping carrier/method is visible on the cart
+     * Determines if the specified shipping carrier/method is visible on the cart.
      *
      * @param $carrier
      * @param $method
@@ -144,6 +127,19 @@ class Shipping extends Form
             }
         );
         $selector = sprintf($this->shippingMethod, $carrier, $method);
+
         return $this->_rootElement->find($selector, Locator::SELECTOR_XPATH)->isVisible();
+    }
+
+    /**
+     * Wait for shipping methods block to update contents asynchronously.
+     *
+     * @return void
+     */
+    public function waitForUpdatedShippingMethods()
+    {
+        // Code under test uses JavaScript delay at this point as well.
+        sleep(1);
+        $this->waitForElementNotVisible($this->blockWaitElement);
     }
 }

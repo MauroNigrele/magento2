@@ -1,34 +1,25 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\OfflinePayments\Model;
 
+/**
+ * Class Purchaseorder
+ *
+ * @method \Magento\Quote\Api\Data\PaymentMethodExtensionInterface getExtensionAttributes()
+ */
 class Purchaseorder extends \Magento\Payment\Model\Method\AbstractMethod
 {
+    const PAYMENT_METHOD_PURCHASEORDER_CODE = 'purchaseorder';
+
     /**
+     * Payment method code
+     *
      * @var string
      */
-    protected $_code = 'purchaseorder';
+    protected $_code = self::PAYMENT_METHOD_PURCHASEORDER_CODE;
 
     /**
      * @var string
@@ -41,15 +32,23 @@ class Purchaseorder extends \Magento\Payment\Model\Method\AbstractMethod
     protected $_infoBlockType = 'Magento\OfflinePayments\Block\Info\Purchaseorder';
 
     /**
+     * Availability option
+     *
+     * @var bool
+     */
+    protected $_isOffline = true;
+
+    /**
      * Assign data to info model instance
      *
-     * @param \Magento\Framework\Object|mixed $data
+     * @param \Magento\Framework\DataObject|mixed $data
      * @return $this
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
-    public function assignData($data)
+    public function assignData(\Magento\Framework\DataObject $data)
     {
-        if (!$data instanceof \Magento\Framework\Object) {
-            $data = new \Magento\Framework\Object($data);
+        if (!$data instanceof \Magento\Framework\DataObject) {
+            $data = new \Magento\Framework\DataObject($data);
         }
 
         $this->getInfoInstance()->setPoNumber($data->getPoNumber());

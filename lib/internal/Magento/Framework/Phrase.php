@@ -2,53 +2,37 @@
 /**
  * Phrase (for replacing Data Value with Object)
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework;
 
+use Magento\Framework\Phrase\Renderer\Placeholder as RendererPlaceholder;
 use Magento\Framework\Phrase\RendererInterface;
+use Zend\Stdlib\JsonSerializable;
 
-class Phrase
+class Phrase implements JsonSerializable
 {
     /**
      * Default phrase renderer. Allows stacking renderers that "don't know about each other"
      *
      * @var RendererInterface
      */
-    private static $_renderer;
+    private static $renderer;
 
     /**
      * String for rendering
      *
      * @var string
      */
-    private $_text;
+    private $text;
 
     /**
      * Arguments for placeholder values
      *
      * @var array
      */
-    private $_arguments;
+    private $arguments;
 
     /**
      * Set default Phrase renderer
@@ -58,7 +42,7 @@ class Phrase
      */
     public static function setRenderer(RendererInterface $renderer)
     {
-        self::$_renderer = $renderer;
+        self::$renderer = $renderer;
     }
 
     /**
@@ -68,7 +52,10 @@ class Phrase
      */
     public static function getRenderer()
     {
-        return self::$_renderer;
+        if (!self::$renderer) {
+            self::$renderer = new RendererPlaceholder();
+        }
+        return self::$renderer;
     }
 
     /**
@@ -77,10 +64,30 @@ class Phrase
      * @param string $text
      * @param array $arguments
      */
-    public function __construct($text, array $arguments = array())
+    public function __construct($text, array $arguments = [])
     {
-        $this->_text = (string)$text;
-        $this->_arguments = $arguments;
+        $this->text = (string)$text;
+        $this->arguments = $arguments;
+    }
+
+    /**
+     * Get phrase base text
+     *
+     * @return string
+     */
+    public function getText()
+    {
+        return $this->text;
+    }
+
+    /**
+     * Get phrase message arguments
+     *
+     * @return array
+     */
+    public function getArguments()
+    {
+        return $this->arguments;
     }
 
     /**
@@ -90,7 +97,11 @@ class Phrase
      */
     public function render()
     {
-        return self::$_renderer ? self::$_renderer->render([$this->_text], $this->_arguments) : $this->_text;
+        try {
+            return self::getRenderer()->render([$this->text], $this->getArguments());
+        } catch (\Exception $e) {
+            return $this->getText();
+        }
     }
 
     /**
@@ -99,6 +110,16 @@ class Phrase
      * @return string
      */
     public function __toString()
+    {
+        return $this->render();
+    }
+
+    /**
+     * Specify data which should be serialized to JSON
+     *
+     * @return string
+     */
+    public function jsonSerialize()
     {
         return $this->render();
     }

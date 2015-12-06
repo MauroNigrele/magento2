@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\CatalogInventory\Model\Config\Backend;
 
@@ -56,32 +38,31 @@ class ManagestockTest extends \PHPUnit_Framework_TestCase
      */
     public function testSaveAndRebuildIndex($newStockValue, $callCount)
     {
-        /** @var \Magento\CatalogInventory\Model\Stock\Status */
-        $stockStatus = $this->getMock(
-            '\Magento\CatalogInventory\Model\Stock\Status',
+        /** @var \Magento\CatalogInventory\Model\StockIndex */
+        $stockManagement = $this->getMock(
+            '\Magento\CatalogInventory\Model\StockIndex',
             ['rebuild'],
             [],
             '',
             false
         );
 
-        $stockStatus->expects($this->exactly($callCount))
-            ->method('rebuild')
-            ->will($this->returnValue($stockStatus));
+        $stockManagement->expects($this->exactly($callCount))
+            ->method('rebuild');
 
         $manageStock = new Managestock(
-            Bootstrap::getObjectManager()->get('\Magento\Framework\Model\Context'),
-            Bootstrap::getObjectManager()->get('\Magento\Framework\Registry'),
-            Bootstrap::getObjectManager()->get('\Magento\Framework\App\Config\ScopeConfigInterface'),
-            $stockStatus,
+            Bootstrap::getObjectManager()->get('Magento\Framework\Model\Context'),
+            Bootstrap::getObjectManager()->get('Magento\Framework\Registry'),
+            Bootstrap::getObjectManager()->get('Magento\Framework\App\Config\ScopeConfigInterface'),
+            Bootstrap::getObjectManager()->get('Magento\Framework\App\Cache\TypeListInterface'),
+            $stockManagement,
             Bootstrap::getObjectManager()->get('Magento\CatalogInventory\Model\Indexer\Stock\Processor'),
-            Bootstrap::getObjectManager()->get('Magento\Core\Model\Resource\Config')
+            Bootstrap::getObjectManager()->get('Magento\Config\Model\ResourceModel\Config')
         );
 
-        $manageStock->setPath('cataloginventory/item_options/manage_stock')
-            ->setScope('default')
-            ->setScopeId(0);
-
+        $manageStock->setPath('cataloginventory/item_options/manage_stock');
+        $manageStock->setScope('default');
+        $manageStock->setScopeId(0);
         $manageStock->setValue($newStockValue);
 
         // assert

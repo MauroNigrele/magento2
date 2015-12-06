@@ -1,35 +1,54 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Checkout\Controller\Cart;
+
+use Magento\Framework;
+use Magento\Checkout\Model\Cart as CustomerCart;
 
 class EstimatePost extends \Magento\Checkout\Controller\Cart
 {
     /**
+     * @var \Magento\Quote\Api\CartRepositoryInterface
+     */
+    protected $quoteRepository;
+
+    /**
+     * @param \Magento\Framework\App\Action\Context $context
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+     * @param \Magento\Checkout\Model\Session $checkoutSession
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\Data\Form\FormKey\Validator $formKeyValidator
+     * @param CustomerCart $cart
+     * @param \Magento\Quote\Api\CartRepositoryInterface $quoteRepository
+     * @codeCoverageIgnore
+     */
+    public function __construct(
+        Framework\App\Action\Context $context,
+        Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        \Magento\Checkout\Model\Session $checkoutSession,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\Data\Form\FormKey\Validator $formKeyValidator,
+        CustomerCart $cart,
+        \Magento\Quote\Api\CartRepositoryInterface $quoteRepository
+    ) {
+        $this->quoteRepository = $quoteRepository;
+        parent::__construct(
+            $context,
+            $scopeConfig,
+            $checkoutSession,
+            $storeManager,
+            $formKeyValidator,
+            $cart
+        );
+    }
+
+    /**
      * Initialize shipping information
      *
-     * @return void
+     * @return \Magento\Framework\Controller\Result\Redirect
      */
     public function execute()
     {
@@ -39,20 +58,15 @@ class EstimatePost extends \Magento\Checkout\Controller\Cart
         $regionId = (string)$this->getRequest()->getParam('region_id');
         $region = (string)$this->getRequest()->getParam('region');
 
-        $this->cart->getQuote()->getShippingAddress()->setCountryId(
-            $country
-        )->setCity(
-            $city
-        )->setPostcode(
-            $postcode
-        )->setRegionId(
-            $regionId
-        )->setRegion(
-            $region
-        )->setCollectShippingRates(
-            true
-        );
-        $this->cart->getQuote()->save();
-        $this->_goBack();
+        $this->cart->getQuote()->getShippingAddress()
+            ->setCountryId($country)
+            ->setCity($city)
+            ->setPostcode($postcode)
+            ->setRegionId($regionId)
+            ->setRegion($region)
+            ->setCollectShippingRates(true);
+        $this->quoteRepository->save($this->cart->getQuote());
+        $this->cart->save();
+        return $this->_goBack();
     }
 }

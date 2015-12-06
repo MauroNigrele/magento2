@@ -1,31 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Model\Order\Email;
 
 use Magento\Sales\Model\Order;
-use Magento\Sales\Model\Order\Email\Container\Template;
 use Magento\Sales\Model\Order\Email\Container\IdentityInterface;
+use Magento\Sales\Model\Order\Email\Container\Template;
+use Magento\Sales\Model\Order\Address\Renderer;
 
 abstract class Sender
 {
@@ -45,18 +28,34 @@ abstract class Sender
     protected $identityContainer;
 
     /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    protected $logger;
+
+    /**
+     * @var Renderer
+     */
+    protected $addressRenderer;
+
+    /**
      * @param Template $templateContainer
      * @param IdentityInterface $identityContainer
-     * @param Order\Email\SenderBuilderFactory $senderBuilderFactory
+     * @param SenderBuilderFactory $senderBuilderFactory
+     * @param \Psr\Log\LoggerInterface $logger
+     * @param Renderer $addressRenderer
      */
     public function __construct(
         Template $templateContainer,
         IdentityInterface $identityContainer,
-        \Magento\Sales\Model\Order\Email\SenderBuilderFactory $senderBuilderFactory
+        \Magento\Sales\Model\Order\Email\SenderBuilderFactory $senderBuilderFactory,
+        \Psr\Log\LoggerInterface $logger,
+        Renderer $addressRenderer
     ) {
         $this->templateContainer = $templateContainer;
         $this->identityContainer = $identityContainer;
         $this->senderBuilderFactory = $senderBuilderFactory;
+        $this->logger = $logger;
+        $this->addressRenderer = $addressRenderer;
     }
 
     /**
@@ -74,8 +73,12 @@ abstract class Sender
         /** @var SenderBuilder $sender */
         $sender = $this->getSender();
 
-        $sender->send();
-        $sender->sendCopyTo();
+        try {
+            $sender->send();
+            $sender->sendCopyTo();
+        } catch (\Exception $e) {
+            $this->logger->error($e->getMessage());
+        }
 
         return true;
     }
@@ -109,7 +112,7 @@ abstract class Sender
         return $this->senderBuilderFactory->create(
             [
                 'templateContainer' => $this->templateContainer,
-                'identityContainer' => $this->identityContainer
+                'identityContainer' => $this->identityContainer,
             ]
         );
     }
@@ -123,5 +126,25 @@ abstract class Sender
             'area' => \Magento\Framework\App\Area::AREA_FRONTEND,
             'store' => $this->identityContainer->getStore()->getStoreId()
         ];
+    }
+
+    /**
+     * @param Order $order
+     * @return string|null
+     */
+    protected function getFormattedShippingAddress($order)
+    {
+        return $order->getIsVirtual()
+            ? null
+            : $this->addressRenderer->format($order->getShippingAddress(), 'html');
+    }
+
+    /**
+     * @param Order $order
+     * @return string|null
+     */
+    protected function getFormattedBillingAddress($order)
+    {
+        return $this->addressRenderer->format($order->getBillingAddress(), 'html');
     }
 }

@@ -1,27 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 namespace Magento\Framework\File;
+
+use Magento\Framework\Filesystem\Driver\File;
 
 /**
  * Csv parse
@@ -46,10 +33,18 @@ class Csv
     protected $_enclosure = '"';
 
     /**
-     * Constructor
+     * @var File
      */
-    public function __construct()
+    protected $file;
+
+    /**
+     * Constructor
+     *
+     * @param File $file File Driver used for writing CSV
+     */
+    public function __construct(File $file)
     {
+        $this->file = $file;
     }
 
     /**
@@ -97,9 +92,9 @@ class Csv
      */
     public function getData($file)
     {
-        $data = array();
+        $data = [];
         if (!file_exists($file)) {
-            throw new \Exception('File "' . $file . '" do not exists');
+            throw new \Exception('File "' . $file . '" does not exist');
         }
 
         $fh = fopen($file, 'r');
@@ -120,7 +115,7 @@ class Csv
      */
     public function getDataPairs($file, $keyIndex = 0, $valueIndex = 1)
     {
-        $data = array();
+        $data = [];
         $csvData = $this->getData($file);
         foreach ($csvData as $rowData) {
             if (isset($rowData[$keyIndex])) {
@@ -141,67 +136,9 @@ class Csv
     {
         $fh = fopen($file, 'w');
         foreach ($data as $dataRow) {
-            $this->fputcsv($fh, $dataRow, $this->_delimiter, $this->_enclosure);
+            $this->file->filePutCsv($fh, $dataRow, $this->_delimiter, $this->_enclosure);
         }
         fclose($fh);
         return $this;
-    }
-
-    /**
-     * Write to csv
-     *
-     * @param resource $handle
-     * @param string[] $fields
-     * @param string $delimiter
-     * @param string $enclosure
-     * @return int
-     */
-    public function fputcsv(&$handle, $fields = array(), $delimiter = ',', $enclosure = '"')
-    {
-        $str = '';
-        $escape_char = '\\';
-        foreach ($fields as $value) {
-            if (strpos(
-                $value,
-                $delimiter
-            ) !== false || strpos(
-                $value,
-                $enclosure
-            ) !== false || strpos(
-                $value,
-                "\n"
-            ) !== false || strpos(
-                $value,
-                "\r"
-            ) !== false || strpos(
-                $value,
-                "\t"
-            ) !== false || strpos(
-                $value,
-                ' '
-            ) !== false
-            ) {
-                $str2 = $enclosure;
-                $escaped = 0;
-                $len = strlen($value);
-                for ($i = 0; $i < $len; $i++) {
-                    if ($value[$i] == $escape_char) {
-                        $escaped = 1;
-                    } else if (!$escaped && $value[$i] == $enclosure) {
-                        $str2 .= $enclosure;
-                    } else {
-                        $escaped = 0;
-                    }
-                    $str2 .= $value[$i];
-                }
-                $str2 .= $enclosure;
-                $str .= $str2 . $delimiter;
-            } else {
-                $str .= $enclosure . $value . $enclosure . $delimiter;
-            }
-        }
-        $str = substr($str, 0, -1);
-        $str .= "\n";
-        return fwrite($handle, $str);
     }
 }

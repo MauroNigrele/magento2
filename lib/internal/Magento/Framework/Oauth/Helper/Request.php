@@ -1,27 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Oauth\Helper;
+
+use Magento\Framework\App\RequestInterface;
 
 class Request
 {
@@ -43,7 +27,7 @@ class Request
     /**
      * Process HTTP request object and prepare for token validation
      *
-     * @param \Zend_Controller_Request_Http $httpRequest
+     * @param RequestInterface $httpRequest
      * @return array
      */
     public function prepareRequest($httpRequest)
@@ -51,7 +35,7 @@ class Request
         $oauthParams = $this->_processRequest(
             $httpRequest->getHeader('Authorization'),
             $httpRequest->getHeader(\Zend_Http_Client::CONTENT_TYPE),
-            $httpRequest->getRawBody(),
+            $httpRequest->getContent(),
             $this->getRequestUrl($httpRequest)
         );
         return $oauthParams;
@@ -60,13 +44,12 @@ class Request
     /**
      * Compute the request Url from the Http request
      *
-     * @param \Zend_Controller_Request_Http $httpRequest
+     * @param RequestInterface $httpRequest
      * @return string
      */
     public function getRequestUrl($httpRequest)
     {
-        // TODO: Fix needed for $this->getRequest()->getHttpHost(). Hosts with port are not covered.
-        return $httpRequest->getScheme() . '://' . $httpRequest->getHttpHost() . $httpRequest->getRequestUri();
+        return $httpRequest->getScheme() . '://' . $httpRequest->getHttpHost(false) . $httpRequest->getRequestUri();
     }
 
     /**
@@ -91,7 +74,7 @@ class Request
      */
     protected function _processRequest($authHeaderValue, $contentTypeHeader, $requestBodyString, $requestUrl)
     {
-        $protocolParams = array();
+        $protocolParams = [];
 
         if (!$this->_processHeader($authHeaderValue, $protocolParams)) {
             return [];
@@ -204,23 +187,28 @@ class Request
      * Create response string for problem during request and set HTTP error code
      *
      * @param \Exception $exception
-     * @param \Zend_Controller_Response_Http $response OPTIONAL If NULL - will use internal getter
+     * @param \Magento\Framework\HTTP\PhpEnvironment\Response $response OPTIONAL If NULL - will use internal getter
      * @return array
      */
-    public function prepareErrorResponse(\Exception $exception, \Zend_Controller_Response_Http $response = null)
-    {
+    public function prepareErrorResponse(
+        \Exception $exception,
+        \Magento\Framework\HTTP\PhpEnvironment\Response $response = null
+    ) {
         $errorMsg = $exception->getMessage();
 
         if ($exception instanceof \Magento\Framework\Oauth\Exception) {
             $responseCode = self::HTTP_UNAUTHORIZED;
         } elseif ($exception instanceof \Magento\Framework\Oauth\OauthInputException) {
             $responseCode = self::HTTP_BAD_REQUEST;
+            if ($errorMsg == \Magento\Framework\Oauth\OauthInputException::DEFAULT_MESSAGE) {
+                $errorMsg = $exception->getAggregatedErrorMessage();
+            }
         } else {
             $errorMsg = 'internal_error&message=' . ($errorMsg ? $errorMsg : 'empty_message');
             $responseCode = self::HTTP_INTERNAL_ERROR;
         }
 
         $response->setHttpResponseCode($responseCode);
-        return array('oauth_problem' => $errorMsg);
+        return ['oauth_problem' => $errorMsg];
     }
 }

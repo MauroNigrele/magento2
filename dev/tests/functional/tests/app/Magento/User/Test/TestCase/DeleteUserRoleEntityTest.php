@@ -1,37 +1,19 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\User\Test\TestCase;
 
 use Magento\Backend\Test\Page\AdminAuthLogin;
 use Magento\Backend\Test\Page\Adminhtml\Dashboard;
+use Magento\User\Test\Fixture\Role;
 use Magento\User\Test\Fixture\User;
-use Magento\User\Test\Fixture\AdminUserRole;
-use Magento\User\Test\Page\Adminhtml\UserRoleIndex;
 use Magento\User\Test\Page\Adminhtml\UserRoleEditRole;
-use Mtf\Fixture\FixtureFactory;
-use Mtf\TestCase\Injectable;
+use Magento\User\Test\Page\Adminhtml\UserRoleIndex;
+use Magento\Mtf\Fixture\FixtureFactory;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
  * Test Creation for DeleteUserRoleEntity
@@ -46,11 +28,16 @@ use Mtf\TestCase\Injectable;
  *  4. Click "Delete Role" button
  *  5. Perform all assertions
  *
- * @group ACL_(MX)
+ * @group ACL_(PS)
  * @ZephyrId MAGETWO-23926
  */
 class DeleteUserRoleEntityTest extends Injectable
 {
+    /* tags */
+    const MVP = 'no';
+    const DOMAIN = 'PS';
+    /* end tags */
+
     /**
      * @var UserRoleIndex
      */
@@ -81,7 +68,7 @@ class DeleteUserRoleEntityTest extends Injectable
     {
         $adminUser = $fixtureFactory->createByCode(
             'user',
-            ['dataSet' => 'custom_admin_with_default_role']
+            ['dataset' => 'custom_admin_with_default_role']
         );
         $adminUser->persist();
 
@@ -113,18 +100,18 @@ class DeleteUserRoleEntityTest extends Injectable
     /**
      * Runs Delete User Role Entity test.
      *
-     * @param AdminUserRole $role
+     * @param Role $role
      * @param User $adminUser
      * @param string $isDefaultUser
      * @return void
      */
     public function testDeleteAdminUserRole(
-        AdminUserRole $role,
+        Role $role,
         User $adminUser,
         $isDefaultUser
     ) {
         $filter = [
-            'rolename' => $role->getRoleName()
+            'rolename' => $role->getRoleName(),
         ];
         //Steps
         if ($isDefaultUser == 0) {
@@ -135,6 +122,7 @@ class DeleteUserRoleEntityTest extends Injectable
         $this->userRoleIndex->open();
         $this->userRoleIndex->getRoleGrid()->searchAndOpen($filter);
         $this->userRoleEditRole->getPageActions()->delete();
+        $this->userRoleEditRole->getModalBlock()->acceptAlert();
     }
 
     /**

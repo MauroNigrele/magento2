@@ -1,39 +1,20 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Checkout\Test\Constraint;
 
-use Mtf\Constraint\AbstractAssertForm;
-use Magento\Checkout\Test\Page\CheckoutCart;
-use Mtf\Fixture\FixtureInterface;
+use Magento\Catalog\Test\Fixture\CatalogProductSimple;
 use Magento\Checkout\Test\Fixture\Cart;
 use Magento\Checkout\Test\Fixture\Cart\Items;
-use Magento\Catalog\Test\Fixture\CatalogProductSimple;
+use Magento\Checkout\Test\Page\CheckoutCart;
+use Magento\Mtf\Constraint\AbstractAssertForm;
+use Magento\Mtf\Fixture\FixtureInterface;
 
 /**
- * Class AssertCartItemsOptions
- * Assert that cart item options for product(s) display with correct information block
+ * Assert that cart item options for product(s) display with correct information block.
  *
  * @SuppressWarnings(PHPMD.NPathComplexity)
  * @SuppressWarnings(PHPMD.CyclomaticComplexity)
@@ -41,24 +22,22 @@ use Magento\Catalog\Test\Fixture\CatalogProductSimple;
 class AssertCartItemsOptions extends AbstractAssertForm
 {
     /**
-     * Constraint severeness
+     * Error message for verify options
      *
      * @var string
      */
-    protected $severeness = 'low';
+    protected $errorMessage = '- %s: "%s" instead of "%s"';
 
     /**
      * Assert that cart item options for product(s) display with correct information block
-     * (custom options, variations, links, samples, bundle items etc) according to passed from dataSet
+     * (custom options, variations, links, samples, bundle items etc) according to passed from dataset.
      *
      * @param CheckoutCart $checkoutCart
      * @param Cart $cart
      * @return void
      */
-    public function processAssert(
-        CheckoutCart $checkoutCart,
-        Cart $cart
-    ) {
+    public function processAssert(CheckoutCart $checkoutCart, Cart $cart)
+    {
         $checkoutCart->open();
         /** @var Items $sourceProducts */
         $sourceProducts = $cart->getDataFieldConfig('items')['source'];
@@ -76,10 +55,10 @@ class AssertCartItemsOptions extends AbstractAssertForm
             $cartItem = $checkoutCart->getCartBlock()->getCartItem($product);
 
             $productsData[$productName] = [
-                'options' => $this->sortDataByPath($checkoutItem['options'], '::title')
+                'options' => $this->sortDataByPath($checkoutItem['options'], '::title'),
             ];
             $cartData[$productName] = [
-                'options' => $this->sortDataByPath($cartItem->getOptions(), '::title')
+                'options' => $this->sortDataByPath($cartItem->getOptions(), '::title'),
             ];
         }
 
@@ -88,7 +67,7 @@ class AssertCartItemsOptions extends AbstractAssertForm
     }
 
     /**
-     * Verify form data contains in fixture data
+     * Verify form data contains in fixture data.
      *
      * @param array $fixtureData
      * @param array $formData
@@ -110,7 +89,7 @@ class AssertCartItemsOptions extends AbstractAssertForm
             }
 
             $formValue = isset($formData[$key]) ? $formData[$key] : null;
-            if (!is_array($formValue)) {
+            if ($formValue && !is_array($formValue)) {
                 $formValue = trim($formValue, '. ');
             }
 
@@ -121,14 +100,10 @@ class AssertCartItemsOptions extends AbstractAssertForm
                 if (!empty($valueErrors)) {
                     $errors[$key] = $valueErrors;
                 }
+            } elseif (($key == 'value') && $this->equals($fixtureData['value'], $formData['value'])) {
+                $errors[] = $this->errorFormat($value, $formValue, $key);
             } elseif (null === strpos($value, $formValue)) {
-                if (is_array($value)) {
-                    $value = $this->arrayToString($value);
-                }
-                if (is_array($formValue)) {
-                    $formValue = $this->arrayToString($formValue);
-                }
-                $errors[] = sprintf('- %s: "%s" instead of "%s"', $key, $formValue, $value);
+                $errors[] = $this->errorFormat($value, $formValue, $key);
             }
         }
 
@@ -145,6 +120,37 @@ class AssertCartItemsOptions extends AbstractAssertForm
         return $errors;
     }
 
+    /**
+     * Check that params are equals.
+     *
+     * @param mixed $expected
+     * @param mixed $actual
+     * @return bool
+     */
+    protected function equals($expected, $actual)
+    {
+        return (null === strpos($expected, $actual));
+    }
+
+    /**
+     * Format error.
+     *
+     * @param mixed $value
+     * @param mixed $formValue
+     * @param mixed $key
+     * @return string
+     */
+    protected function errorFormat($value, $formValue, $key)
+    {
+        if (is_array($value)) {
+            $value = $this->arrayToString($value);
+        }
+        if (is_array($formValue)) {
+            $formValue = $this->arrayToString($formValue);
+        }
+
+        return sprintf($this->errorMessage, $key, $formValue, $value);
+    }
 
     /**
      * Returns a string representation of the object

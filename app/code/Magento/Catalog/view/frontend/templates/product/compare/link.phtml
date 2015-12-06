@@ -1,38 +1,19 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-/* @var $this \Magento\Catalog\Block\Product\Compare\Sidebar */
+
+// @codingStandardsIgnoreFile
 ?>
-<?php
-$_helper = $this->helper('Magento\Catalog\Helper\Product\Compare');
-$_items = $_helper->getItemCount() > 0 ? $_helper->getItemCollection() : null;
-$count = $_helper->getItemCount();
-?>
-<?php if($count > 0): ?>
-    <li class="item link compare">
-        <a class="action compare" href="<?php echo $_helper->getListUrl() ?>" title="<?php echo __('Compare Products') ?>">
-            <?php echo __('Compare Products') ?>
-            <span class="counter qty"><?php echo ($count == 1) ? __('1 item') : __('%1 items',$count) ?></span>
-        </a>
-    </li>
-<?php endif; ?>
+<li class="item link compare" data-bind="scope: 'compareProducts'" data-role="compare-products-link">
+    <a class="action compare no-display" title="<?php /* @escapeNotVerified */ echo __('Compare Products') ?>"
+       data-bind="attr: {'href': compareProducts().listUrl}, css: {'no-display': !compareProducts().count}"
+    >
+        <?php /* @escapeNotVerified */ echo __('Compare Products') ?>
+        <span class="counter qty" data-bind="text: compareProducts().countCaption"></span>
+    </a>
+</li>
+<script type="text/x-magento-init">
+{"[data-role=compare-products-link]": {"Magento_Ui/js/core/app": <?php /* @escapeNotVerified */ echo $block->getJsLayout();?>}}
+</script>

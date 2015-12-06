@@ -1,34 +1,17 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Framework\View\Design\FileResolution\Fallback\Resolver;
 
-use Magento\Framework\App\Filesystem;
-use Magento\Framework\View\Design\FileResolution\Fallback;
+use Magento\Framework\App\Filesystem\DirectoryList;
+use Magento\Framework\Filesystem;
+use Magento\Framework\Filesystem\Directory\ReadInterface;
 use Magento\Framework\View\Design\Fallback\Rule\RuleInterface;
 use Magento\Framework\View\Design\Fallback\RulePool;
-use Magento\Framework\Filesystem\Directory\ReadInterface;
+use Magento\Framework\View\Design\FileResolution\Fallback;
 use Magento\Framework\View\Design\ThemeInterface;
 
 /**
@@ -37,6 +20,8 @@ use Magento\Framework\View\Design\ThemeInterface;
 class Simple implements Fallback\ResolverInterface
 {
     /**
+     * Root directory
+     *
      * @var ReadInterface
      */
     protected $rootDirectory;
@@ -53,13 +38,11 @@ class Simple implements Fallback\ResolverInterface
      *
      * @param Filesystem $filesystem
      * @param RulePool $rulePool
-     * @param Fallback\CacheDataInterface $cache
      */
-    public function __construct(Filesystem $filesystem, RulePool $rulePool, Fallback\CacheDataInterface $cache)
+    public function __construct(Filesystem $filesystem, RulePool $rulePool)
     {
-        $this->rootDirectory = $filesystem->getDirectoryRead(Filesystem::ROOT_DIR);
+        $this->rootDirectory = $filesystem->getDirectoryRead(DirectoryList::ROOT);
         $this->rulePool = $rulePool;
-        $this->cache = $cache;
     }
 
     /**
@@ -68,25 +51,18 @@ class Simple implements Fallback\ResolverInterface
     public function resolve($type, $file, $area = null, ThemeInterface $theme = null, $locale = null, $module = null)
     {
         self::assertFilePathFormat($file);
-        $themePath = $theme ? $theme->getThemePath() : '';
-        $path = $this->cache->getFromCache($type, $file, $area, $themePath, $locale, $module);
-        if (false !== $path) {
-            $path = $path ? $this->rootDirectory->getAbsolutePath($path) : false;
-        } else {
-            $params = ['area' => $area, 'theme' => $theme, 'locale' => $locale];
-            foreach ($params as $key => $param) {
-                if ($param === null) {
-                    unset($params[$key]);
-                }
-            }
-            if (!empty($module)) {
-                list($params['namespace'], $params['module']) = explode('_', $module, 2);
-            }
-            $path = $this->resolveFile($this->rulePool->getRule($type), $file, $params);
-            $cachedValue = $path ? $this->rootDirectory->getRelativePath($path) : '';
 
-            $this->cache->saveToCache($cachedValue, $type, $file, $area, $themePath, $locale, $module);
+        $params = ['area' => $area, 'theme' => $theme, 'locale' => $locale];
+        foreach ($params as $key => $param) {
+            if ($param === null) {
+                unset($params[$key]);
+            }
         }
+        if (!empty($module)) {
+            $params['module_name'] = $module;
+        }
+        $path = $this->resolveFile($this->rulePool->getRule($type), $file, $params);
+
         return $path;
     }
 
@@ -112,7 +88,7 @@ class Simple implements Fallback\ResolverInterface
      * @param array $params
      * @return string|bool
      */
-    protected function resolveFile(RuleInterface $fallbackRule, $file, array $params = array())
+    protected function resolveFile(RuleInterface $fallbackRule, $file, array $params = [])
     {
         foreach ($fallbackRule->getPatternDirs($params) as $dir) {
             $path = "{$dir}/{$file}";

@@ -1,30 +1,13 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Controller\AbstractController;
 
-use \Magento\Framework\App\Action\Context;
+use Magento\Framework\App\Action\Context;
+use Magento\Framework\View\Result\PageFactory;
 
 abstract class PrintShipment extends \Magento\Framework\App\Action\Action
 {
@@ -39,24 +22,32 @@ abstract class PrintShipment extends \Magento\Framework\App\Action\Action
     protected $_coreRegistry;
 
     /**
+     * @var PageFactory
+     */
+    protected $resultPageFactory;
+
+    /**
      * @param Context $context
      * @param OrderViewAuthorizationInterface $orderAuthorization
      * @param \Magento\Framework\Registry $registry
+     * @param PageFactory $resultPageFactory
      */
     public function __construct(
         Context $context,
         OrderViewAuthorizationInterface $orderAuthorization,
-        \Magento\Framework\Registry $registry
+        \Magento\Framework\Registry $registry,
+        PageFactory $resultPageFactory
     ) {
         $this->orderAuthorization = $orderAuthorization;
         $this->_coreRegistry = $registry;
+        $this->resultPageFactory = $resultPageFactory;
         parent::__construct($context);
     }
 
     /**
      * Print Shipment Action
      *
-     * @return void
+     * @return \Magento\Framework\Controller\Result\Redirect|\Magento\Framework\View\Result\Page
      */
     public function execute()
     {
@@ -73,14 +64,19 @@ abstract class PrintShipment extends \Magento\Framework\App\Action\Action
             if (isset($shipment)) {
                 $this->_coreRegistry->register('current_shipment', $shipment);
             }
-            $this->_view->loadLayout('print');
-            $this->_view->renderLayout();
+            /** @var \Magento\Framework\View\Result\Page $resultPage */
+            $resultPage = $this->resultPageFactory->create();
+            $resultPage->addHandle('print');
+            return $resultPage;
         } else {
+            /** @var \Magento\Framework\Controller\Result\Redirect $resultRedirect */
+            $resultRedirect = $this->resultRedirectFactory->create();
             if ($this->_objectManager->get('Magento\Customer\Model\Session')->isLoggedIn()) {
-                $this->_redirect('*/*/history');
+                $resultRedirect->setPath('*/*/history');
             } else {
-                $this->_redirect('sales/guest/form');
+                $resultRedirect->setPath('sales/guest/form');
             }
+            return $resultRedirect;
         }
     }
 }

@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -43,22 +25,10 @@ class Radios extends AbstractElement
         Factory $factoryElement,
         CollectionFactory $factoryCollection,
         Escaper $escaper,
-        $data = array()
+        $data = []
     ) {
         parent::__construct($factoryElement, $factoryCollection, $escaper, $data);
         $this->setType('radios');
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getSeparator()
-    {
-        $separator = $this->getData('separator');
-        if (is_null($separator)) {
-            $separator = '&nbsp;';
-        }
-        return $separator;
     }
 
     /**
@@ -84,24 +54,25 @@ class Radios extends AbstractElement
      */
     protected function _optionToHtml($option, $selected)
     {
-        $html = '<input type="radio"' . $this->serialize(array('name', 'class', 'style'));
+        $html = '<div class="admin__field admin__field-option">' .
+            '<input type="radio"' . $this->getRadioButtonAttributes($option);
         if (is_array($option)) {
             $html .= 'value="' . $this->_escape(
                 $option['value']
-            ) . '"  id="' . $this->getHtmlId() . $option['value'] . '"';
+            ) . '" class="admin__control-radio" id="' . $this->getHtmlId() . $option['value'] . '"';
             if ($option['value'] == $selected) {
                 $html .= ' checked="checked"';
             }
             $html .= ' />';
-            $html .= '<label class="inline" for="' .
+            $html .= '<label class="admin__field-label" for="' .
                 $this->getHtmlId() .
                 $option['value'] .
-                '">' .
+                '"><span>' .
                 $option['label'] .
-                '</label>';
-        } elseif ($option instanceof \Magento\Framework\Object) {
+                '</span></label>';
+        } elseif ($option instanceof \Magento\Framework\DataObject) {
             $html .= 'id="' . $this->getHtmlId() . $option->getValue() . '"' . $option->serialize(
-                array('label', 'title', 'value', 'class', 'style')
+                ['label', 'title', 'value', 'class', 'style']
             );
             if (in_array($option->getValue(), $selected)) {
                 $html .= ' checked="checked"';
@@ -114,7 +85,31 @@ class Radios extends AbstractElement
                 $option->getLabel() .
                 '</label>';
         }
-        $html .= $this->getSeparator() . "\n";
+        $html .= '</div>';
         return $html;
+    }
+
+    /**
+     * @return array
+     */
+    public function getHtmlAttributes()
+    {
+        return array_merge(parent::getHtmlAttributes(), ['name']);
+    }
+
+    /**
+     * @param array $option
+     * @return string
+     */
+    protected function getRadioButtonAttributes($option)
+    {
+        $html = '';
+        foreach ($this->getHtmlAttributes() as $attribute) {
+            if ($value = $this->getDataUsingMethod($attribute, $option['value'])) {
+                $html .= ' ' . $attribute . '="' . $value . '" ';
+            }
+        }
+        return $html;
+
     }
 }

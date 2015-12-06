@@ -1,39 +1,19 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\CatalogSearch\Test\Handler\CatalogSearchQuery;
 
-use Mtf\System\Config;
-use Mtf\Fixture\FixtureInterface;
-use Mtf\Util\Protocol\CurlInterface;
-use Mtf\Util\Protocol\CurlTransport;
-use Mtf\Util\Protocol\CurlTransport\BackendDecorator;
-use Mtf\Handler\Curl as AbstractCurl;
+use Magento\Mtf\Fixture\FixtureInterface;
+use Magento\Mtf\Handler\Curl as AbstractCurl;
+use Magento\Mtf\Util\Protocol\CurlInterface;
+use Magento\Mtf\Util\Protocol\CurlTransport;
+use Magento\Mtf\Util\Protocol\CurlTransport\BackendDecorator;
 
 /**
- * Class Curl
- * Create new search term via curl
+ * Create new search term via curl.
  */
 class Curl extends AbstractCurl implements CatalogSearchQueryInterface
 {
@@ -47,9 +27,16 @@ class Curl extends AbstractCurl implements CatalogSearchQueryInterface
             'No' => 0,
         ],
         'store_id' => [
-            'Main Website/Main Website Store/Default Store View' => 1
-        ]
+            'Main Website/Main Website Store/Default Store View' => 1,
+        ],
     ];
+
+    /**
+     * Search term url.
+     *
+     * @var string
+     */
+    protected $url = 'search/term/';
 
     /**
      * Post request for creating search term
@@ -67,21 +54,21 @@ class Curl extends AbstractCurl implements CatalogSearchQueryInterface
     }
 
     /**
-     * Add new search term
+     * Add new search term.
      *
      * @param array $data
      */
     protected function addNewSearchTerm(array $data)
     {
-        $url = $_ENV['app_backend_url'] . 'catalog/search/save';
-        $curl = new BackendDecorator(new CurlTransport(), new Config);
-        $curl->write(CurlInterface::POST, $url, '1.0', [], $data);
+        $url = $_ENV['app_backend_url'] . $this->url . 'save';
+        $curl = new BackendDecorator(new CurlTransport(), $this->_configuration);
+        $curl->write($url, $data);
         $curl->read();
         $curl->close();
     }
 
     /**
-     * Getting search term id
+     * Getting search term id.
      *
      * @param string $queryText
      * @return int
@@ -90,13 +77,13 @@ class Curl extends AbstractCurl implements CatalogSearchQueryInterface
     protected function getNewSearchTermId($queryText)
     {
         $filter = base64_encode('search_query=' . $queryText);
-        $url = $_ENV['app_backend_url'] . 'catalog/search/index/filter/' . $filter;
-        $curl = new BackendDecorator(new CurlTransport(), new Config);
-        $curl->write(CurlInterface::GET, $url, '1.0');
+        $url = $_ENV['app_backend_url'] . $this->url . 'index/filter/' . $filter;
+        $curl = new BackendDecorator(new CurlTransport(), $this->_configuration);
+        $curl->write($url, [], CurlInterface::GET);
         $response = $curl->read();
         $curl->close();
 
-        if (!preg_match('#search/edit/id/(\d+)/"#', $response, $matches)) {
+        if (!preg_match('#' . $this->url . 'edit/id/(\d+)/"#', $response, $matches)) {
             throw new \Exception('Search term not found in grid!');
         }
 

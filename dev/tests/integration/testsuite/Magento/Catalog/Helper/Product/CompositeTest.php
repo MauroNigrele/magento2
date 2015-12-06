@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Helper\Product;
@@ -53,7 +35,6 @@ class CompositeTest extends \PHPUnit_Framework_TestCase
     {
         $this->registry->unregister('composite_configure_result_error_message');
         $this->registry->unregister(RegistryConstants::CURRENT_CUSTOMER_ID);
-        $this->registry->unregister(RegistryConstants::CURRENT_CUSTOMER);
         $this->registry->unregister('current_product');
         $this->registry->unregister('product');
     }
@@ -64,7 +45,7 @@ class CompositeTest extends \PHPUnit_Framework_TestCase
      */
     public function testRenderConfigureResult()
     {
-        $configureResult = new \Magento\Framework\Object();
+        $configureResult = new \Magento\Framework\DataObject();
         $configureResult->setOk(true)
             ->setProductId(1)
             ->setCurrentCustomerId(1);
@@ -79,7 +60,7 @@ class CompositeTest extends \PHPUnit_Framework_TestCase
 
     public function testRenderConfigureResultNotOK()
     {
-        $configureResult = new \Magento\Framework\Object();
+        $configureResult = new \Magento\Framework\DataObject();
         $configureResult->setError(true)
             ->setMessage('Test Message');
 

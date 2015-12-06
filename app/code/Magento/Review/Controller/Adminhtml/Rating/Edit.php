@@ -1,54 +1,36 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Review\Controller\Adminhtml\Rating;
 
-class Edit extends \Magento\Review\Controller\Adminhtml\Rating
+use Magento\Review\Controller\Adminhtml\Rating as RatingController;
+use Magento\Framework\Controller\ResultFactory;
+
+class Edit extends RatingController
 {
     /**
-     * @return void
+     * @return \Magento\Backend\Model\View\Result\Page
      */
     public function execute()
     {
-        $this->_initEnityId();
-        $this->_view->loadLayout();
-
+        $this->initEnityId();
+        /** @var \Magento\Review\Model\Rating $ratingModel */
         $ratingModel = $this->_objectManager->create('Magento\Review\Model\Rating');
         if ($this->getRequest()->getParam('id')) {
             $ratingModel->load($this->getRequest()->getParam('id'));
         }
-
-        $this->_title->add($ratingModel->getId() ? $ratingModel->getRatingCode() : __('New Rating'));
-
-        $this->_setActiveMenu('Magento_Review::catalog_reviews_ratings_ratings');
-        $this->_addBreadcrumb(__('Manage Ratings'), __('Manage Ratings'));
-
-        $this->_addContent(
-            $this->_view->getLayout()->createBlock('Magento\Review\Block\Adminhtml\Rating\Edit')
-        )->_addLeft(
-            $this->_view->getLayout()->createBlock('Magento\Review\Block\Adminhtml\Rating\Edit\Tabs')
+        /** @var \Magento\Backend\Model\View\Result\Page $resultPage */
+        $resultPage = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
+        $resultPage->setActiveMenu('Magento_Review::catalog_reviews_ratings_ratings');
+        $resultPage->getConfig()->getTitle()->prepend(__('Ratings'));
+        $resultPage->getConfig()->getTitle()->prepend(
+            $ratingModel->getId() ? $ratingModel->getRatingCode() : __('New Rating')
         );
-        $this->_view->renderLayout();
+        $resultPage->addBreadcrumb(__('Manage Ratings'), __('Manage Ratings'));
+        $resultPage->addContent($resultPage->getLayout()->createBlock('Magento\Review\Block\Adminhtml\Rating\Edit'))
+            ->addLeft($resultPage->getLayout()->createBlock('Magento\Review\Block\Adminhtml\Rating\Edit\Tabs'));
+        return $resultPage;
     }
 }

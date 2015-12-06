@@ -1,12 +1,11 @@
 <?php
 /**
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Data;
 
-class Schema extends \Magento\Framework\Object
+class Schema extends \Magento\Framework\DataObject
 {
     /**
      * @param mixed $schema

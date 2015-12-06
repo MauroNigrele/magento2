@@ -1,30 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
-/** @var $this \Magento\Bundle\Block\Adminhtml\Catalog\Product\Edit\Tab\Bundle */
+// @codingStandardsIgnoreFile
+
+/** @var $block \Magento\Bundle\Block\Adminhtml\Catalog\Product\Edit\Tab\Bundle */
 ?>
-<script type="text/javascript">
+<script>
 
 if(typeof Bundle=='undefined') {
     Bundle = {};
@@ -32,46 +16,39 @@ if(typeof Bundle=='undefined') {
 
 </script>
 
-<div class="entry-edit form-inline" id="bundle_product_container">
-    <div class="fieldset-wrapper collapsable-wrapper" id="bundle_product-wrapper">
-        <div class="fieldset-wrapper-title">
-            <strong class="title" data-toggle="collapse" data-target="#bundle_product-content">
-                <span><?php echo $this->getTabLabel() ?></span>
-            </strong>
+<div id="bundle_product_container" class="entry-edit form-inline">
+    <fieldset class="fieldset">
+        <div class="field field-ship-bundle-items">
+            <label for="shipment_type" class="label"><?php /* @escapeNotVerified */ echo __('Ship Bundle Items') ?></label>
+            <div class="control">
+                <select <?php if ($block->isReadonly()): ?>disabled="disabled" <?php endif;?>
+                        id="shipment_type"
+                        name="<?php /* @escapeNotVerified */ echo $block->getFieldSuffix() ?>[shipment_type]"
+                        class="select">
+                    <option value="1"><?php /* @escapeNotVerified */ echo __('Separately') ?></option>
+                    <option value="0"<?php if ($block->getProduct()->getShipmentType() == 0): ?> selected="selected"<?php endif; ?>><?php /* @escapeNotVerified */ echo __('Together') ?></option>
+                </select>
+            </div>
         </div>
-        <div class="fieldset-wrapper-content collapse" id="bundle_product-content">
-            <fieldset class="fieldset">
-                <div class="field field-ship-bundle-items">
-                    <label for="shipment_type" class="label"><?php echo __('Ship Bundle Items') ?></label>
-                    <div class="control">
-                        <select <?php if ($this->isReadonly()): ?>disabled="disabled" <?php endif;?>
-                                id="shipment_type"
-                                name="<?php echo $this->getFieldSuffix() ?>[shipment_type]"
-                                class="select">
-                            <option value="1"><?php echo __('Separately') ?></option>
-                            <option value="0"<?php if ($this->getProduct()->getShipmentType() == 0): ?> selected="selected"<?php endif; ?>><?php echo __('Together') ?></option>
-                        </select>
-                    </div>
-                </div>
 
-                <div class="entry-edit custom-options bundle" id="product_bundle_container">
-                    <?php echo $this->getOptionsBoxHtml() ?>
-                </div>
-
-                <?php echo $this->getAddButtonHtml() ?>
-            </fieldset>
+        <div
+            id="product_bundle_container"
+            class="entry-edit custom-options bundle sortable-wrapper">
+            <?php echo $block->getOptionsBoxHtml() ?>
         </div>
-    </div>
+
+        <?php echo $block->getAddButtonHtml() ?>
+    </fieldset>
 </div>
 
 <input type="hidden" name="affect_bundle_product_selections" value="1" />
 
-<script type="text/javascript">
+<script>
 require(["prototype", "mage/adminhtml/form"], function(){
     // re-bind form elements onchange
     varienWindowOnload(true);
 
-    <?php if ($this->isReadonly()):?>
+    <?php if ($block->isReadonly()):?>
     $('product_bundle_container').select('input', 'select', 'textarea', 'button').each(function(input){
         input.disabled = true;
         if (input.tagName.toLowerCase() == 'button') {
@@ -79,19 +56,5 @@ require(["prototype", "mage/adminhtml/form"], function(){
         }
     });
     <?php endif; ?>
-});
-require([
-    "jquery",
-    "jquery/jquery.tabs",
-    "mage/mage",
-    "Magento_Bundle/js/bundle-product",
-    "mage/backend/validation"
-], function($){
-
-    $.mage.extend('validation', 'validation', 'Magento_Bundle/product/validation-rules');
-
-    $('#bundle_product_container').bundleProduct();
-    $('#product_bundle_container .collapse').collapse('hide');
-
 });
 </script>

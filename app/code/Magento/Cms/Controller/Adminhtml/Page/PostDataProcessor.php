@@ -1,26 +1,8 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Cms\Controller\Adminhtml\Page;
 
@@ -32,7 +14,7 @@ class PostDataProcessor
     protected $dateFilter;
 
     /**
-     * @var \Magento\Core\Model\Layout\Update\ValidatorFactory
+     * @var \Magento\Framework\View\Model\Layout\Update\ValidatorFactory
      */
     protected $validatorFactory;
 
@@ -44,12 +26,12 @@ class PostDataProcessor
     /**
      * @param \Magento\Framework\Stdlib\DateTime\Filter\Date $dateFilter
      * @param \Magento\Framework\Message\ManagerInterface $messageManager
-     * @param \Magento\Core\Model\Layout\Update\ValidatorFactory $validatorFactory
+     * @param \Magento\Framework\View\Model\Layout\Update\ValidatorFactory $validatorFactory
      */
     public function __construct(
         \Magento\Framework\Stdlib\DateTime\Filter\Date $dateFilter,
         \Magento\Framework\Message\ManagerInterface $messageManager,
-        \Magento\Core\Model\Layout\Update\ValidatorFactory $validatorFactory
+        \Magento\Framework\View\Model\Layout\Update\ValidatorFactory $validatorFactory
     ) {
         $this->dateFilter = $dateFilter;
         $this->messageManager = $messageManager;
@@ -65,8 +47,8 @@ class PostDataProcessor
     public function filter($data)
     {
         $inputFilter = new \Zend_Filter_Input(
-            array('custom_theme_from' => $this->dateFilter, 'custom_theme_to' => $this->dateFilter),
-            array(),
+            ['custom_theme_from' => $this->dateFilter, 'custom_theme_to' => $this->dateFilter],
+            [],
             $data
         );
         $data = $inputFilter->getUnescaped();
@@ -83,7 +65,7 @@ class PostDataProcessor
     {
         $errorNo = true;
         if (!empty($data['layout_update_xml']) || !empty($data['custom_layout_update_xml'])) {
-            /** @var $validatorCustomLayout \Magento\Core\Model\Layout\Update\Validator */
+            /** @var $validatorCustomLayout \Magento\Framework\View\Model\Layout\Update\Validator */
             $validatorCustomLayout = $this->validatorFactory->create();
             if (!empty($data['layout_update_xml']) && !$validatorCustomLayout->isValid($data['layout_update_xml'])) {
                 $errorNo = false;
@@ -95,6 +77,31 @@ class PostDataProcessor
             }
             foreach ($validatorCustomLayout->getMessages() as $message) {
                 $this->messageManager->addError($message);
+            }
+        }
+        return $errorNo;
+    }
+
+    /**
+     * Check if required fields is not empty
+     *
+     * @param array $data
+     * @return bool
+     */
+    public function validateRequireEntry(array $data)
+    {
+        $requiredFields = [
+            'title' => __('Page Title'),
+            'stores' => __('Store View'),
+            'is_active' => __('Status')
+        ];
+        $errorNo = true;
+        foreach ($data as $field => $value) {
+            if (in_array($field, array_keys($requiredFields)) && $value == '') {
+                $errorNo = false;
+                $this->messageManager->addError(
+                    __('To apply changes you should fill in hidden required "%1" field', $requiredFields[$field])
+                );
             }
         }
         return $errorNo;

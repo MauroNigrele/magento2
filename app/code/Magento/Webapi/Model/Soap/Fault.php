@@ -2,32 +2,14 @@
 /**
  * Magento-specific SOAP fault.
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Webapi\Model\Soap;
 
 use Magento\Framework\App\State;
 
-class Fault extends \RuntimeException
+class Fault
 {
     const FAULT_REASON_INTERNAL = 'Internal Error.';
 
@@ -65,14 +47,14 @@ class Fault extends \RuntimeException
      *
      * @var array
      */
-    protected $_parameters = array();
+    protected $_parameters = [];
 
     /**
      * Wrapped errors are extracted from exception and can be inserted into 'Detail' node as 'WrappedErrors'.
      *
      * @var array
      */
-    protected $_wrappedErrors = array();
+    protected $_wrappedErrors = [];
 
     /**
      * Fault name is used for details wrapper node name generation.
@@ -86,7 +68,7 @@ class Fault extends \RuntimeException
      *
      * @var array
      */
-    protected $_details = array();
+    protected $_details = [];
 
     /**
      * @var \Magento\Framework\App\RequestInterface
@@ -109,23 +91,34 @@ class Fault extends \RuntimeException
     protected $appState;
 
     /**
+     * @var null|string
+     */
+    protected $stackTrace;
+
+    /**
+     * @var string
+     */
+    protected $message;
+
+    /**
      * @param \Magento\Framework\App\RequestInterface $request
      * @param Server $soapServer
-     * @param \Magento\Webapi\Exception $previousException
+     * @param \Magento\Framework\Webapi\Exception $exception
      * @param \Magento\Framework\Locale\ResolverInterface $localeResolver
      * @param State $appState
      */
     public function __construct(
         \Magento\Framework\App\RequestInterface $request,
         Server $soapServer,
-        \Magento\Webapi\Exception $previousException,
+        \Magento\Framework\Webapi\Exception $exception,
         \Magento\Framework\Locale\ResolverInterface $localeResolver,
         State $appState
     ) {
-        parent::__construct($previousException->getMessage(), $previousException->getCode(), $previousException);
-        $this->_soapCode = $previousException->getOriginator();
-        $this->_parameters = $previousException->getDetails();
-        $this->_wrappedErrors = $previousException->getErrors();
+        $this->_soapCode = $exception->getOriginator();
+        $this->_parameters = $exception->getDetails();
+        $this->_wrappedErrors = $exception->getErrors();
+        $this->stackTrace = $exception->getStackTrace() ?: $exception->getTraceAsString();
+        $this->message = $exception->getMessage();
         $this->_request = $request;
         $this->_soapServer = $soapServer;
         $this->_localeResolver = $localeResolver;
@@ -140,13 +133,13 @@ class Fault extends \RuntimeException
     public function toXml()
     {
         if ($this->appState->getMode() == State::MODE_DEVELOPER) {
-            $this->addDetails(array(self::NODE_DETAIL_TRACE => "<![CDATA[{$this->getTraceAsString()}]]>"));
+            $this->addDetails([self::NODE_DETAIL_TRACE => "<![CDATA[{$this->stackTrace}]]>"]);
         }
         if ($this->getParameters()) {
-            $this->addDetails(array(self::NODE_DETAIL_PARAMETERS => $this->getParameters()));
+            $this->addDetails([self::NODE_DETAIL_PARAMETERS => $this->getParameters()]);
         }
         if ($this->getWrappedErrors()) {
-            $this->addDetails(array(self::NODE_DETAIL_WRAPPED_ERRORS => $this->getWrappedErrors()));
+            $this->addDetails([self::NODE_DETAIL_WRAPPED_ERRORS => $this->getWrappedErrors()]);
         }
 
         return $this->getSoapFaultMessage($this->getMessage(), $this->getSoapCode(), $this->getDetails());
@@ -211,7 +204,15 @@ class Fault extends \RuntimeException
      */
     public function getLanguage()
     {
-        return $this->_localeResolver->getLocale()->getLanguage();
+        return \Locale::getPrimaryLanguage($this->_localeResolver->getLocale());
+    }
+
+    /**
+     * @return string
+     */
+    public function getMessage()
+    {
+        return $this->message;
     }
 
     /**
@@ -316,7 +317,6 @@ FAULT_MESSAGE;
         if (!is_array($parameters)) {
             return $result;
         }
-
         $paramsXml = '';
         foreach ($parameters as $parameterName => $parameterValue) {
             if (is_string($parameterName) && (is_string($parameterValue) || is_numeric($parameterValue))) {

@@ -1,30 +1,11 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Reports\Controller\Adminhtml\Report\Statistics;
 
-use \Magento\Backend\Model\Session;
 
 class RefreshRecent extends \Magento\Reports\Controller\Adminhtml\Report\Statistics
 {
@@ -37,18 +18,18 @@ class RefreshRecent extends \Magento\Reports\Controller\Adminhtml\Report\Statist
     {
         try {
             $collectionsNames = $this->_getCollectionNames();
-            /** @var \Magento\Framework\Stdlib\DateTime\DateInterface $currentDate */
+            /** @var \DateTime $currentDate */
             $currentDate = $this->_objectManager->get('Magento\Framework\Stdlib\DateTime\TimezoneInterface')->date();
-            $date = $currentDate->subHour(25);
+            $date = $currentDate->modify('-25 hours');
             foreach ($collectionsNames as $collectionName) {
                 $this->_objectManager->create($collectionName)->aggregate($date);
             }
             $this->messageManager->addSuccess(__('Recent statistics have been updated.'));
-        } catch (\Magento\Framework\Model\Exception $e) {
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
             $this->messageManager->addError($e->getMessage());
         } catch (\Exception $e) {
             $this->messageManager->addError(__('We can\'t refresh recent statistics.'));
-            $this->_objectManager->get('Magento\Framework\Logger')->logException($e);
+            $this->_objectManager->get('Psr\Log\LoggerInterface')->critical($e);
         }
 
         if ($this->_getSession()->isFirstPageAfterLogin()) {

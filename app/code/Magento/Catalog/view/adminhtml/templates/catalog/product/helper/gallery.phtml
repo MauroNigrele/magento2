@@ -1,126 +1,119 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-/** @var $this \Magento\Catalog\Block\Adminhtml\Product\Helper\Form\Gallery\Content */
-$elementName = $this->getElement()->getName() . '[images]';
+
+// @codingStandardsIgnoreFile
+
+/** @var $block \Magento\Catalog\Block\Adminhtml\Product\Helper\Form\Gallery\Content */
+$elementName = $block->getElement()->getName() . '[images]';
 ?>
-<div id="<?php echo $this->getHtmlId() ?>"
+<div id="<?php echo $block->getHtmlId() ?>"
      class='gallery'
-     data-mage-init='{"productGallery":{"template":"#<?php echo $this->getHtmlId() ?>-template"}}'
-     data-images="<?php echo $this->escapeHtml($this->getImagesJson()) ?>"
-     data-types="<?php echo $this->escapeHtml(
-         $this->helper('Magento\Core\Helper\Data')->jsonEncode($this->getImageTypes())
+     data-mage-init='{"productGallery":{"template":"#<?php echo $block->getHtmlId() ?>-template"}}'
+     data-images="<?php echo $block->escapeHtml($block->getImagesJson()) ?>"
+     data-types="<?php echo $block->escapeHtml(
+         $this->helper('Magento\Framework\Json\Helper\Data')->jsonEncode($block->getImageTypes())
      ) ?>"
     >
-    <?php if (!$this->getElement()->getReadonly()) { ?>
+    <?php if (!$block->getElement()->getReadonly()) {
+    ?>
         <div class="image image-placeholder">
-            <?php echo $this->getUploaderHtml(); ?>
-            <img class="spacer" src="<?php echo $this->getViewFileUrl('images/spacer.gif')?>"/>
-            <p class="image-placeholder-text"><?php echo __('Click here or drag and drop to add images'); ?></p>
+            <?php echo $block->getUploaderHtml();
+    ?>
+            <img class="spacer" src="<?php /* @escapeNotVerified */ echo $block->getViewFileUrl('images/spacer.gif')?>"/>
+            <p class="image-placeholder-text"><?php /* @escapeNotVerified */ echo __('Click here or drag and drop to add images.');
+    ?></p>
         </div>
-    <?php } ?>
-    <?php foreach ($this->getImageTypes() as $typeData) { ?>
-        <input name="<?php echo $this->escapeHtml($typeData['name']) ?>"
-               class="image-<?php echo $this->escapeHtml($typeData['code']) ?>"
+    <?php
+
+} ?>
+    <?php foreach ($block->getImageTypes() as $typeData) {
+    ?>
+        <input name="<?php echo $block->escapeHtml($typeData['name']) ?>"
+               class="image-<?php echo $block->escapeHtml($typeData['code']) ?>"
                type="hidden"
-               value="<?php echo $this->escapeHtml($typeData['value']) ?>"/>
-    <?php } ?>
+               value="<?php echo $block->escapeHtml($typeData['value']) ?>"/>
+    <?php
 
+} ?>
 
-    <script id="<?php echo $this->getHtmlId() ?>-template" type="text/x-jquery-tmpl">
-        <div class="image item {{if disabled == 1 }}hidden-for-front{{/if}}"
+    <script id="<?php echo $block->getHtmlId() ?>-template" type="text/x-magento-template">
+        <div class="image item <% if (data.disabled == 1) { %>hidden-for-front<% } %>"
              data-role="image">
-            <input type="hidden" name="<?php echo $elementName ?>[${file_id}][position]" value="${position}" class="position"/>
-            <input type="hidden" name="<?php echo $elementName ?>[${file_id}][file]" value="${file}"/>
-            <input type="hidden" name="<?php echo $elementName ?>[${file_id}][value_id]" value="${value_id}"/>
-            <input type="hidden" name="<?php echo $elementName ?>[${file_id}][label]" value="${label}"/>
-            <input type="hidden" name="<?php echo $elementName ?>[${file_id}][disabled]" value="${disabled}"/>
-            <input type="hidden" name="<?php echo $elementName ?>[${file_id}][removed]" value="" class="is-removed"/>
+            <input type="hidden" name="<?php /* @escapeNotVerified */ echo $elementName ?>[<%- data.file_id %>][position]" value="<%- data.position %>" class="position"/>
+            <input type="hidden" name="<?php /* @escapeNotVerified */ echo $elementName ?>[<%- data.file_id %>][file]" value="<%- data.file %>"/>
+            <input type="hidden" name="<?php /* @escapeNotVerified */ echo $elementName ?>[<%- data.file_id %>][value_id]" value="<%- data.value_id %>"/>
+            <input type="hidden" name="<?php /* @escapeNotVerified */ echo $elementName ?>[<%- data.file_id %>][label]" value="<%- data.label %>"/>
+            <input type="hidden" name="<?php /* @escapeNotVerified */ echo $elementName ?>[<%- data.file_id %>][disabled]" value="<%- data.disabled %>"/>
+            <input type="hidden" name="<?php /* @escapeNotVerified */ echo $elementName ?>[<%- data.file_id %>][removed]" value="" class="is-removed"/>
             <ul class="type-labels" style="display: none">
-                <?php foreach ($this->getImageTypes() as $typeData) { ?>
-                    <li class="type-<?php echo $this->escapeHtml(
+                <?php foreach ($block->getImageTypes() as $typeData) {
+    ?>
+                    <li class="type-<?php echo $block->escapeHtml(
                         $typeData['code']
-                    ) ?>"><?php echo $this->escapeHtml($typeData['label']) ?></li>
-                <?php } ?>
+                    ) ?>"><?php echo $block->escapeHtml($typeData['label']) ?></li>
+                <?php
+
+} ?>
             </ul>
-            <img class="spacer" src="<?php echo $this->getViewFileUrl('images/spacer.gif')?>"/>
-            <img class="product-image" src="${url}" alt="${label}"/>
+            <img class="spacer" src="<?php /* @escapeNotVerified */ echo $block->getViewFileUrl('images/spacer.gif')?>"/>
+            <img class="product-image" src="<%- data.url %>" alt="<%- data.label %>"/>
             <div class="actions" >
-                <button type="button" class="action-delete" data-role="delete-button" title="<?php echo __('Delete image') ?>">
-                    <span> <?php echo __('Delete image') ?></span >
+                <button type="button" class="action-delete" data-role="delete-button" title="<?php /* @escapeNotVerified */ echo __('Delete image') ?>">
+                    <span> <?php /* @escapeNotVerified */ echo __('Delete image') ?></span >
                 </button>
-                <button type="button" class="action-make-base" data-role="make-base-button" title="<?php echo __('Make Base') ?>">
-                    <span><?php echo __('Make Base') ?></span >
+                <button type="button" class="action-make-base" data-role="make-base-button" title="<?php /* @escapeNotVerified */ echo __('Make Base') ?>">
+                    <span><?php /* @escapeNotVerified */ echo __('Make Base') ?></span >
                 </button >
                 <div class="draggable-handle" ></div >
             </div >
             <div class="image-label"></div>
-            <div class="image-fade"><span><?php echo __('Hidden') ?></span></div>
+            <div class="image-fade"><span><?php /* @escapeNotVerified */ echo __('Hidden') ?></span></div>
         </div>
     </script>
-    <script class="dialog-template" type="text/x-jquery-tmpl"  data-title="Image Options">
+    <script class="dialog-template" type="text/x-magento-template"  data-title="Image Options">
         <div class="image-panel" data-role="dialog">
             <div class="image-panel-preview">
-                <img src="${url}" alt="${label}" />
+                <img src="<%- data.url %>" alt="<%- data.label %>" />
             </div>
             <div class="image-panel-controls">
-                <strong class="image-name">${label}</strong>
-
-                <button type="button" class="action-remove"
-                        title="<?php echo __('Remove Image'); ?>">
-                    <span><?php echo __('Remove Image'); ?></span>
-                </button>
+                <strong class="image-name"><%- data.label %></strong>
 
                 <fieldset class="fieldset fieldset-image-panel">
                     <div class="field field-image-description">
                         <label class="label" for="image-description">
-                            <span><?php echo __('Alt Text')?></span>
+                            <span><?php /* @escapeNotVerified */ echo __('Alt Text')?></span>
                         </label>
                         <div class="control">
                             <textarea id="image-description"
                                       rows="3"
-                                      name="<?php echo $elementName ?>[${file_id}][label]">${label}</textarea>
+                                      name="<?php /* @escapeNotVerified */ echo $elementName ?>[<%- data.file_id %>][label]"><%- data.label %></textarea>
                         </div>
                     </div>
 
                     <div class="field field-image-role">
                         <label class="label">
-                            <span><?php echo __('Role')?></span>
+                            <span><?php /* @escapeNotVerified */ echo __('Role')?></span>
                         </label>
                         <div class="control">
                             <ul class="multiselect-alt">
-                                <?php foreach ($this->getMediaAttributes() as $attribute) { ?>
+                                <?php foreach ($block->getMediaAttributes() as $attribute) {
+    ?>
                                     <li class="item">
                                         <label>
                                             <input class="image-type"
                                                    data-role="type-selector"
                                                    type="checkbox"
-                                                   value="<?php echo $this->escapeHtml($attribute->getAttributeCode()) ?>"
+                                                   value="<?php echo $block->escapeHtml($attribute->getAttributeCode()) ?>"
                                                 />
-                                            <?php echo $this->escapeHtml($attribute->getFrontendLabel()) ?>
+                                            <?php echo $block->escapeHtml($attribute->getFrontendLabel()) ?>
                                         </label>
                                     </li>
-                                <?php } ?>
+                                <?php
+
+} ?>
                             </ul>
                         </div>
                     </div>
@@ -130,16 +123,16 @@ $elementName = $this->getElement()->getName() . '[images]';
                             <input type="checkbox"
                                    data-role="visibility-trigger"
                                    value="1"
-                                   name="<?php echo $elementName ?>[${file_id}][disabled]"
-                            {{if disabled == 1 }}checked="checked"{{/if}} />
-                            <span><?php echo __('Hide from Product Page')?></span>
+                                   name="<?php /* @escapeNotVerified */ echo $elementName ?>[<%- data.file_id %>][disabled]"
+                            <% if (data.disabled == 1) { %>checked="checked"<% } %> />
+                            <span><?php /* @escapeNotVerified */ echo __('Hide from Product Page')?></span>
                         </label>
                     </div>
                 </fieldset>
             </div>
 
-            <button type="button" class="action-close" data-role="close-panel" title="<?php echo __('Close panel'); ?>">
-                <span><?php echo __('Close panel'); ?></span>
+            <button type="button" class="action-close" data-role="close-panel" title="<?php /* @escapeNotVerified */ echo __('Close panel'); ?>">
+                <span><?php /* @escapeNotVerified */ echo __('Close panel'); ?></span>
             </button>
             <div class="image-pointer"></div>
         </div>

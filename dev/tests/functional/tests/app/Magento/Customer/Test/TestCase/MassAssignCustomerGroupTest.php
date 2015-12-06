@@ -1,33 +1,15 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Customer\Test\TestCase;
 
-use Mtf\TestCase\Injectable;
-use Magento\Customer\Test\Fixture\CustomerInjectable;
+use Magento\Customer\Test\Fixture\CustomerGroup;
+use Magento\Customer\Test\Fixture\Customer;
 use Magento\Customer\Test\Page\Adminhtml\CustomerIndex;
-use Magento\Customer\Test\Fixture\CustomerGroupInjectable;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
  * Test creation for MassAssignCustomerGroup
@@ -52,6 +34,11 @@ use Magento\Customer\Test\Fixture\CustomerGroupInjectable;
  */
 class MassAssignCustomerGroupTest extends Injectable
 {
+    /* tags */
+    const MVP = 'yes';
+    const DOMAIN = 'CS';
+    /* end tags */
+
     /**
      * Customer index page
      *
@@ -69,10 +56,10 @@ class MassAssignCustomerGroupTest extends Injectable
     /**
      * Prepare data
      *
-     * @param CustomerInjectable $customer
+     * @param Customer $customer
      * @return array
      */
-    public function __prepare(CustomerInjectable $customer)
+    public function __prepare(Customer $customer)
     {
         $customer->persist();
 
@@ -93,18 +80,19 @@ class MassAssignCustomerGroupTest extends Injectable
     /**
      * Mass assign customer group
      *
-     * @param CustomerInjectable $customer
-     * @param CustomerGroupInjectable $customerGroup
+     * @param Customer $customer
+     * @param CustomerGroup $customerGroup
      * @return void
      */
-    public function test(CustomerInjectable $customer, CustomerGroupInjectable $customerGroup)
+    public function test(Customer $customer, CustomerGroup $customerGroup)
     {
         // Steps
         $customerGroup->persist();
         $this->customerIndex->open();
         $this->customerIndex->getCustomerGridBlock()->massaction(
             [['email' => $customer->getEmail()]],
-            [$this->customersGridActions => $customerGroup->getCustomerGroupCode()]
+            [$this->customersGridActions => $customerGroup->getCustomerGroupCode()],
+            true
         );
     }
 }

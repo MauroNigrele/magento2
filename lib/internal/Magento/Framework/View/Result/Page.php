@@ -1,31 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Framework\View\Result;
 
-use Magento\Framework\View;
+use Magento\Framework;
 use Magento\Framework\App\ResponseInterface;
+use Magento\Framework\View;
 
 /**
  * A "page" result that encapsulates page type, page configuration
@@ -36,19 +19,13 @@ use Magento\Framework\App\ResponseInterface;
  * and a guaranteed handle that stands for page layout (a wireframe of a page)
  *
  * Page result is a more specific implementation of a generic layout response
+ *
+ * @SuppressWarnings(PHPMD.TooManyFields)
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ * @SuppressWarnings(PHPMD.DepthOfInheritance)
  */
 class Page extends Layout
 {
-    /**
-     * Default template
-     */
-    const DEFAULT_ROOT_TEMPLATE = 'Magento_Theme::root.phtml';
-
-    /**
-     * @var string
-     */
-    protected $pageType;
-
     /**
      * @var string
      */
@@ -60,44 +37,160 @@ class Page extends Layout
     protected $pageConfig;
 
     /**
+     * @var \Magento\Framework\View\Page\Config\RendererInterface
+     */
+    protected $pageConfigRenderer;
+
+    /**
+     * @var \Magento\Framework\View\Page\Config\RendererFactory
+     */
+    protected $pageConfigRendererFactory;
+
+    /**
+     * @var \Magento\Framework\View\Page\Layout\Reader
+     */
+    protected $pageLayoutReader;
+
+    /**
+     * @var \Magento\Framework\View\FileSystem
+     */
+    protected $viewFileSystem;
+
+    /**
+     * @var array
+     */
+    protected $viewVars;
+
+    /**
+     * @var string
+     */
+    protected $template;
+
+    /**
+     * @var Framework\App\RequestInterface
+     */
+    protected $request;
+
+    /**
+     * Asset service
+     *
+     * @var \Magento\Framework\View\Asset\Repository
+     */
+    protected $assetRepo;
+
+    /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    protected $logger;
+
+    /**
+     * @var Framework\UrlInterface
+     */
+    protected $urlBuilder;
+
+    /**
      * Constructor
      *
      * @param View\Element\Template\Context $context
      * @param View\LayoutFactory $layoutFactory
-     * @param \Magento\Framework\Translate\InlineInterface $translateInline
-     * @param View\Page\Config $pageConfig
-     * @param string $pageType
-     * @param array $data
+     * @param View\Layout\ReaderPool $layoutReaderPool
+     * @param Framework\Translate\InlineInterface $translateInline
+     * @param View\Layout\BuilderFactory $layoutBuilderFactory
+     * @param View\Layout\GeneratorPool $generatorPool
+     * @param View\Page\Config\RendererFactory $pageConfigRendererFactory
+     * @param View\Page\Layout\Reader $pageLayoutReader
+     * @param string $template
+     * @param bool $isIsolated
+     *
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
         View\Element\Template\Context $context,
         View\LayoutFactory $layoutFactory,
-        \Magento\Framework\Translate\InlineInterface $translateInline,
-        View\Page\Config $pageConfig,
-        $pageType,
-        array $data = array()
+        View\Layout\ReaderPool $layoutReaderPool,
+        Framework\Translate\InlineInterface $translateInline,
+        View\Layout\BuilderFactory $layoutBuilderFactory,
+        View\Layout\GeneratorPool $generatorPool,
+        View\Page\Config\RendererFactory $pageConfigRendererFactory,
+        View\Page\Layout\Reader $pageLayoutReader,
+        $template,
+        $isIsolated = false
     ) {
-        $this->pageConfig = $pageConfig;
-        $this->pageType = $pageType;
-        parent::__construct($context, $layoutFactory, $translateInline, $data);
+        $this->request = $context->getRequest();
+        $this->assetRepo = $context->getAssetRepository();
+        $this->logger = $context->getLogger();
+        $this->urlBuilder = $context->getUrlBuilder();
+        $this->pageConfig = $context->getPageConfig();
+        $this->pageLayoutReader = $pageLayoutReader;
+        $this->viewFileSystem = $context->getViewFileSystem();
+        $this->pageConfigRendererFactory = $pageConfigRendererFactory;
+        $this->template = $template;
+        parent::__construct(
+            $context,
+            $layoutFactory,
+            $layoutReaderPool,
+            $translateInline,
+            $layoutBuilderFactory,
+            $generatorPool,
+            $isIsolated
+        );
+        $this->initPageConfigReader();
     }
 
     /**
-     * {@inheritdoc}
+     * Initialize page config reader
+     *
+     * @return void
+     */
+    protected function initPageConfigReader()
+    {
+        $this->pageConfigRenderer = $this->pageConfigRendererFactory->create(['pageConfig' => $this->pageConfig]);
+    }
+
+    /**
+     * Create layout builder
+     *
+     * @return void
+     */
+    protected function initLayoutBuilder()
+    {
+        $this->layoutBuilderFactory->create(View\Layout\BuilderFactory::TYPE_PAGE, [
+            'layout' => $this->layout,
+            'pageConfig' => $this->pageConfig,
+            'pageLayoutReader' => $this->pageLayoutReader
+        ]);
+    }
+
+    /**
+     * Set up default handles for current page
+     *
+     * @return $this
      */
     public function initLayout()
     {
+        $this->addHandle('default');
+        $this->addHandle($this->getDefaultLayoutHandle());
         $update = $this->getLayout()->getUpdate();
-        $update->addHandle('default');
-        $update->addHandle($this->getDefaultLayoutHandle());
         if ($update->isLayoutDefined()) {
             $update->removeHandle('default');
         }
-        $this->setTemplate(self::DEFAULT_ROOT_TEMPLATE);
         return $this;
     }
 
     /**
+     * Add default handle
+     *
+     * @return $this
+     */
+    public function addDefaultHandle()
+    {
+        $this->addHandle('default');
+        return parent::addDefaultHandle();
+    }
+
+    /**
+     * Return page configuration
+     *
      * @return \Magento\Framework\View\Page\Config
      */
     public function getConfig()
@@ -112,49 +205,46 @@ class Page extends Layout
      * @param string|null $defaultHandle
      * @return bool
      */
-    public function addPageLayoutHandles(array $parameters = array(), $defaultHandle = null)
+    public function addPageLayoutHandles(array $parameters = [], $defaultHandle = null)
     {
         $handle = $defaultHandle ? $defaultHandle : $this->getDefaultLayoutHandle();
-        $pageHandles = array($handle);
+        $pageHandles = [$handle];
         foreach ($parameters as $key => $value) {
             $pageHandles[] = $handle . '_' . $key . '_' . $value;
         }
         // Do not sort array going into add page handles. Ensure default layout handle is added first.
-        return $this->getLayout()->getUpdate()->addPageHandles($pageHandles);
-    }
-
-    /**
-     * Retrieve the default layout handle name for the current action
-     *
-     * @return string
-     */
-    public function getDefaultLayoutHandle()
-    {
-        return strtolower($this->_request->getFullActionName());
+        return $this->addHandle($pageHandles);
     }
 
     /**
      * @param ResponseInterface $response
      * @return $this
      */
-    public function renderResult(ResponseInterface $response)
+    protected function render(ResponseInterface $response)
     {
-        if ($this->getConfig()->getPageLayout()) {
-            $layout = $this->getLayout();
+        $this->pageConfig->publicBuild();
+        if ($this->getPageLayout()) {
             $config = $this->getConfig();
-
-            $this->assign('headContent', $layout->getBlock('head')->toHtml());
             $this->addDefaultBodyClasses();
-            $this->assign('bodyClasses', $config->getElementAttribute($config::ELEMENT_TYPE_BODY, 'classes'));
-            $this->assign('bodyAttributes', $config->getElementAttribute($config::ELEMENT_TYPE_BODY, 'attributes'));
-            $this->assign('htmlAttributes', $config->getElementAttribute($config::ELEMENT_TYPE_HTML, 'attributes'));
+            $addBlock = $this->getLayout()->getBlock('head.additional'); // todo
+            $requireJs = $this->getLayout()->getBlock('require.js');
+            $this->assign([
+                'requireJs' => $requireJs ? $requireJs->toHtml() : null,
+                'headContent' => $this->pageConfigRenderer->renderHeadContent(),
+                'headAdditional' => $addBlock ? $addBlock->toHtml() : null,
+                'htmlAttributes' => $this->pageConfigRenderer->renderElementAttributes($config::ELEMENT_TYPE_HTML),
+                'headAttributes' => $this->pageConfigRenderer->renderElementAttributes($config::ELEMENT_TYPE_HEAD),
+                'bodyAttributes' => $this->pageConfigRenderer->renderElementAttributes($config::ELEMENT_TYPE_BODY),
+                'loaderIcon' => $this->getViewFileUrl('images/loader-2.gif'),
+            ]);
 
-            $output = $layout->getOutput();
-            $this->translateInline->processResponseBody($output);
+            $output = $this->getLayout()->getOutput();
             $this->assign('layoutContent', $output);
-            $response->appendBody($this->toHtml());
+            $output = $this->renderPage();
+            $this->translateInline->processResponseBody($output);
+            $response->appendBody($output);
         } else {
-            parent::renderResult($response);
+            parent::render($response);
         }
         return $this;
     }
@@ -166,12 +256,81 @@ class Page extends Layout
      */
     protected function addDefaultBodyClasses()
     {
-        $config = $this->getConfig();
-        $config->addBodyClass($this->_request->getFullActionName('-'));
-        $pageLayout = $this->pageConfig->getPageLayout();
+        $this->pageConfig->addBodyClass($this->request->getFullActionName('-'));
+        $pageLayout = $this->getPageLayout();
         if ($pageLayout) {
-            $config->addBodyClass('page-layout-' . $pageLayout);
+            $this->pageConfig->addBodyClass('page-layout-' . $pageLayout);
         }
         return $this;
+    }
+
+    /**
+     * @return string
+     */
+    protected function getPageLayout()
+    {
+        return $this->pageConfig->getPageLayout() ?: $this->getLayout()->getUpdate()->getPageLayout();
+    }
+
+    /**
+     * Assign variable
+     *
+     * @param   string|array $key
+     * @param   mixed $value
+     * @return  $this
+     */
+    protected function assign($key, $value = null)
+    {
+        if (is_array($key)) {
+            foreach ($key as $subKey => $subValue) {
+                $this->assign($subKey, $subValue);
+            }
+        } else {
+            $this->viewVars[$key] = $value;
+        }
+        return $this;
+    }
+
+    /**
+     * Render page template
+     *
+     * @return string
+     * @throws \Exception
+     */
+    protected function renderPage()
+    {
+        $fileName = $this->viewFileSystem->getTemplateFileName($this->template);
+        if (!$fileName) {
+            throw new \InvalidArgumentException('Template "' . $this->template . '" is not found');
+        }
+
+        ob_start();
+        try {
+            extract($this->viewVars, EXTR_SKIP);
+            include $fileName;
+        } catch (\Exception $exception) {
+            ob_end_clean();
+            throw $exception;
+        }
+        $output = ob_get_clean();
+        return $output;
+    }
+
+    /**
+     * Retrieve url of a view file
+     *
+     * @param string $fileId
+     * @param array $params
+     * @return string
+     */
+    protected function getViewFileUrl($fileId, array $params = [])
+    {
+        try {
+            $params = array_merge(['_secure' => $this->request->isSecure()], $params);
+            return $this->assetRepo->getUrlWithParams($fileId, $params);
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+            $this->logger->critical($e);
+            return $this->urlBuilder->getUrl('', ['_direct' => 'core/index/notFound']);
+        }
     }
 }

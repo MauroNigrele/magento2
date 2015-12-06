@@ -2,30 +2,13 @@
 /**
  * Class constructor validator. Validates call of parent construct
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Code\Validator;
 
 use Magento\Framework\Code\ValidatorInterface;
+use Magento\Framework\Phrase;
 
 class ConstructorIntegrity implements ValidatorInterface
 {
@@ -47,7 +30,9 @@ class ConstructorIntegrity implements ValidatorInterface
      *
      * @param string $className
      * @return bool
-     * @throws \Magento\Framework\Code\ValidationException
+     * @throws \Magento\Framework\Exception\ValidatorException
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function validate($className)
     {
@@ -89,11 +74,11 @@ class ConstructorIntegrity implements ValidatorInterface
                 }
 
                 $classPath = str_replace('\\', '/', $class->getFileName());
-                throw new \Magento\Framework\Code\ValidationException(
-                    'Missed required argument ' .
-                    $requiredArgument['name'] .
-                    ' in parent::__construct call. File: ' .
-                    $classPath
+                throw new \Magento\Framework\Exception\ValidatorException(
+                    new Phrase(
+                        'Missed required argument %1 in parent::__construct call. File: %2',
+                        [$requiredArgument['name'], $classPath]
+                    )
                 );
             }
 
@@ -103,15 +88,11 @@ class ConstructorIntegrity implements ValidatorInterface
             );
             if (false == $isCompatibleTypes) {
                 $classPath = str_replace('\\', '/', $class->getFileName());
-                throw new \Magento\Framework\Code\ValidationException(
-                    'Incompatible argument type: Required type: ' .
-                    $requiredArgument['type'] .
-                    '. Actual type: ' .
-                    $actualArgument['type'] .
-                    '; File: ' .
-                    PHP_EOL .
-                    $classPath .
-                    PHP_EOL
+                throw new \Magento\Framework\Exception\ValidatorException(
+                    new Phrase(
+                        'Incompatible argument type: Required type: %1. Actual type: %2; File: %3%4%5',
+                        [$requiredArgument['type'], $actualArgument['type'], PHP_EOL, $classPath, PHP_EOL]
+                    )
                 );
             }
         }
@@ -122,14 +103,17 @@ class ConstructorIntegrity implements ValidatorInterface
          */
         if (count($callArguments) > count($parentArguments)) {
             $extraParameters = array_slice($callArguments, count($parentArguments));
-            $names = array();
+            $names = [];
             foreach ($extraParameters as $param) {
                 $names[] = '$' . $param['name'];
             }
 
             $classPath = str_replace('\\', '/', $class->getFileName());
-            throw new \Magento\Framework\Code\ValidationException(
-                'Extra parameters passed to parent construct: ' . implode(', ', $names) . '. File: ' . $classPath
+            throw new \Magento\Framework\Exception\ValidatorException(
+                new Phrase(
+                    'Extra parameters passed to parent construct: %1. File: %2',
+                    [implode(', ', $names), $classPath]
+                )
             );
         }
         return true;

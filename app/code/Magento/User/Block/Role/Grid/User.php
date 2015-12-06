@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\User\Block\Role\Grid;
 
@@ -50,7 +32,7 @@ class User extends \Magento\Backend\Block\Widget\Grid\Extended
     protected $_jsonEncoder;
 
     /**
-     * @var \Magento\User\Model\Resource\Role\User\CollectionFactory
+     * @var \Magento\User\Model\ResourceModel\Role\User\CollectionFactory
      */
     protected $_userRolesFactory;
 
@@ -60,7 +42,7 @@ class User extends \Magento\Backend\Block\Widget\Grid\Extended
      * @param \Magento\Framework\Json\EncoderInterface $jsonEncoder
      * @param \Magento\Framework\Registry $coreRegistry
      * @param \Magento\Authorization\Model\RoleFactory $roleFactory
-     * @param \Magento\User\Model\Resource\Role\User\CollectionFactory $userRolesFactory
+     * @param \Magento\User\Model\ResourceModel\Role\User\CollectionFactory $userRolesFactory
      * @param array $data
      */
     public function __construct(
@@ -69,7 +51,7 @@ class User extends \Magento\Backend\Block\Widget\Grid\Extended
         \Magento\Framework\Json\EncoderInterface $jsonEncoder,
         \Magento\Framework\Registry $coreRegistry,
         \Magento\Authorization\Model\RoleFactory $roleFactory,
-        \Magento\User\Model\Resource\Role\User\CollectionFactory $userRolesFactory,
+        \Magento\User\Model\ResourceModel\Role\User\CollectionFactory $userRolesFactory,
         array $data = []
     ) {
         parent::__construct($context, $backendHelper, $data);

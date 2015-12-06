@@ -1,37 +1,19 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Test\TestCase\ProductAttribute;
 
-use Mtf\Fixture\FixtureFactory;
-use Mtf\TestCase\Injectable;
 use Magento\Catalog\Test\Fixture\CatalogAttributeSet;
 use Magento\Catalog\Test\Page\Adminhtml\CatalogProductSetEdit;
 use Magento\Catalog\Test\Page\Adminhtml\CatalogProductSetIndex;
+use Magento\Mtf\Fixture\FixtureFactory;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
- * Test Creation for Delete Attribute Set (Product Template)
+ * Test Creation for Delete Attribute Set (Attribute Set)
  *
  * Preconditions:
  * 1. An attribute is created.
@@ -40,9 +22,9 @@ use Magento\Catalog\Test\Page\Adminhtml\CatalogProductSetIndex;
  *
  * Test Flow:
  * 1. Log in to Backend.
- * 2. Navigate to Stores > Attributes > Product Template.
- * 3. Open created Product Template.
- * 4. Click 'Delete Attribute Set' button.
+ * 2. Navigate to Stores > Attributes > Attribute Set.
+ * 3. Open created Attribute Set.
+ * 4. Click 'Delete' button.
  * 5. Perform all assertions.
  *
  * @group Product_Attributes_(MX)
@@ -50,6 +32,11 @@ use Magento\Catalog\Test\Page\Adminhtml\CatalogProductSetIndex;
  */
 class DeleteAttributeSetTest extends Injectable
 {
+    /* tags */
+    const MVP = 'yes';
+    const DOMAIN = 'MX';
+    /* end tags */
+
     /**
      * Catalog Product Set index page
      *
@@ -83,29 +70,30 @@ class DeleteAttributeSetTest extends Injectable
      * Run DeleteAttributeSet test
      *
      * @param FixtureFactory $fixtureFactory
-     * @param CatalogAttributeSet $productTemplate
+     * @param CatalogAttributeSet $attributeSet
      * @return array
      */
-    public function test(FixtureFactory $fixtureFactory, CatalogAttributeSet $productTemplate)
+    public function test(FixtureFactory $fixtureFactory, CatalogAttributeSet $attributeSet)
     {
         // Precondition
-        $productTemplate->persist();
+        $attributeSet->persist();
         $product = $fixtureFactory->createByCode(
             'catalogProductSimple',
             [
-                'dataSet' => 'default',
+                'dataset' => 'default',
                 'data' => [
-                    'attribute_set_id' => ['attribute_set' => $productTemplate],
+                    'attribute_set_id' => ['attribute_set' => $attributeSet],
                 ],
             ]
         );
         $product->persist();
 
         // Steps
-        $filter = ['set_name' => $productTemplate->getAttributeSetName()];
+        $filter = ['set_name' => $attributeSet->getAttributeSetName()];
         $this->productSetIndex->open();
         $this->productSetIndex->getGrid()->searchAndOpen($filter);
         $this->productSetEdit->getPageActions()->delete();
+        $this->productSetEdit->getModalBlock()->acceptAlert();
 
         return ['product' => $product];
     }

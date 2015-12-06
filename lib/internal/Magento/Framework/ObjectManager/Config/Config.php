@@ -1,45 +1,27 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\ObjectManager\Config;
 
-use Magento\Framework\ObjectManager\ConfigCache;
-use Magento\Framework\ObjectManager\Definition;
-use Magento\Framework\ObjectManager\Relations;
+use Magento\Framework\ObjectManager\ConfigCacheInterface;
+use Magento\Framework\ObjectManager\DefinitionInterface;
+use Magento\Framework\ObjectManager\RelationsInterface;
 
-class Config implements \Magento\Framework\ObjectManager\Config
+class Config implements \Magento\Framework\ObjectManager\ConfigInterface
 {
     /**
      * Config cache
      *
-     * @var ConfigCache
+     * @var ConfigCacheInterface
      */
     protected $_cache;
 
     /**
      * Class definitions
      *
-     * @var \Magento\Framework\ObjectManager\Definition
+     * @var \Magento\Framework\ObjectManager\DefinitionInterface
      */
     protected $_definitions;
 
@@ -55,33 +37,33 @@ class Config implements \Magento\Framework\ObjectManager\Config
      *
      * @var array
      */
-    protected $_preferences = array();
+    protected $_preferences = [];
 
     /**
      * Virtual types
      *
      * @var array
      */
-    protected $_virtualTypes = array();
+    protected $_virtualTypes = [];
 
     /**
      * Instance arguments
      *
      * @var array
      */
-    protected $_arguments = array();
+    protected $_arguments = [];
 
     /**
      * Type shareability
      *
      * @var array
      */
-    protected $_nonShared = array();
+    protected $_nonShared = [];
 
     /**
      * List of relations
      *
-     * @var Relations
+     * @var RelationsInterface
      */
     protected $_relations;
 
@@ -93,10 +75,10 @@ class Config implements \Magento\Framework\ObjectManager\Config
     protected $_mergedArguments;
 
     /**
-     * @param Relations $relations
-     * @param Definition $definitions
+     * @param RelationsInterface $relations
+     * @param DefinitionInterface $definitions
      */
-    public function __construct(Relations $relations = null, Definition $definitions = null)
+    public function __construct(RelationsInterface $relations = null, DefinitionInterface $definitions = null)
     {
         $this->_relations = $relations ?: new \Magento\Framework\ObjectManager\Relations\Runtime();
         $this->_definitions = $definitions ?: new \Magento\Framework\ObjectManager\Definition\Runtime();
@@ -105,10 +87,10 @@ class Config implements \Magento\Framework\ObjectManager\Config
     /**
      * Set class relations
      *
-     * @param Relations $relations
+     * @param RelationsInterface $relations
      * @return void
      */
-    public function setRelations(Relations $relations)
+    public function setRelations(RelationsInterface $relations)
     {
         $this->_relations = $relations;
     }
@@ -116,10 +98,10 @@ class Config implements \Magento\Framework\ObjectManager\Config
     /**
      * Set cache instance
      *
-     * @param ConfigCache $cache
+     * @param ConfigCacheInterface $cache
      * @return void
      */
-    public function setCache(ConfigCache $cache)
+    public function setCache(ConfigCacheInterface $cache)
     {
         $this->_cache = $cache;
     }
@@ -132,9 +114,10 @@ class Config implements \Magento\Framework\ObjectManager\Config
      */
     public function getArguments($type)
     {
-        return isset($this->_mergedArguments[$type])
-            ? $this->_mergedArguments[$type]
-            : $this->_collectConfiguration($type);
+        if (isset($this->_mergedArguments[$type])) {
+            return $this->_mergedArguments[$type];
+        }
+        return $this->_collectConfiguration($type);
     }
 
     /**
@@ -172,7 +155,7 @@ class Config implements \Magento\Framework\ObjectManager\Config
     public function getPreference($type)
     {
         $type = ltrim($type, '\\');
-        $preferencePath = array();
+        $preferencePath = [];
         while (isset($this->_preferences[$type])) {
             if (isset($preferencePath[$this->_preferences[$type]])) {
                 throw new \LogicException(
@@ -201,9 +184,9 @@ class Config implements \Magento\Framework\ObjectManager\Config
         if (!isset($this->_mergedArguments[$type])) {
             if (isset($this->_virtualTypes[$type])) {
                 $arguments = $this->_collectConfiguration($this->_virtualTypes[$type]);
-            } else if ($this->_relations->has($type)) {
+            } elseif ($this->_relations->has($type)) {
                 $relations = $this->_relations->getParents($type);
-                $arguments = array();
+                $arguments = [];
                 foreach ($relations as $relation) {
                     if ($relation) {
                         $relationArguments = $this->_collectConfiguration($relation);
@@ -213,7 +196,7 @@ class Config implements \Magento\Framework\ObjectManager\Config
                     }
                 }
             } else {
-                $arguments = array();
+                $arguments = [];
             }
 
             if (isset($this->_arguments[$type])) {
@@ -253,7 +236,7 @@ class Config implements \Magento\Framework\ObjectManager\Config
                     }
                     if (isset($curConfig['arguments'])) {
                         if (!empty($this->_mergedArguments)) {
-                            $this->_mergedArguments = array();
+                            $this->_mergedArguments = [];
                         }
                         if (isset($this->_arguments[$key])) {
                             $this->_arguments[$key] = array_replace($this->_arguments[$key], $curConfig['arguments']);
@@ -284,21 +267,19 @@ class Config implements \Magento\Framework\ObjectManager\Config
         if ($this->_cache) {
             if (!$this->_currentCacheKey) {
                 $this->_currentCacheKey = md5(
-                    serialize(array($this->_arguments, $this->_nonShared, $this->_preferences, $this->_virtualTypes))
+                    serialize([$this->_arguments, $this->_nonShared, $this->_preferences, $this->_virtualTypes])
                 );
             }
             $key = md5($this->_currentCacheKey . serialize($configuration));
             $cached = $this->_cache->get($key);
             if ($cached) {
-                list($this->_arguments,
-                    $this
-                    ->_nonShared,
-                    $this
-                    ->_preferences,
-                    $this
-                    ->_virtualTypes,
-                    $this
-                    ->_mergedArguments) = $cached;
+                list(
+                    $this->_arguments,
+                    $this->_nonShared,
+                    $this->_preferences,
+                    $this->_virtualTypes,
+                    $this->_mergedArguments
+                ) = $cached;
             } else {
                 $this->_mergeConfiguration($configuration);
                 if (!$this->_mergedArguments) {
@@ -307,13 +288,13 @@ class Config implements \Magento\Framework\ObjectManager\Config
                     }
                 }
                 $this->_cache->save(
-                    array(
+                    [
                         $this->_arguments,
                         $this->_nonShared,
                         $this->_preferences,
                         $this->_virtualTypes,
-                        $this->_mergedArguments
-                    ),
+                        $this->_mergedArguments,
+                    ],
                     $key
                 );
             }
@@ -321,5 +302,25 @@ class Config implements \Magento\Framework\ObjectManager\Config
         } else {
             $this->_mergeConfiguration($configuration);
         }
+    }
+
+    /**
+     * Returns list of virtual types
+     *
+     * @return array
+     */
+    public function getVirtualTypes()
+    {
+        return $this->_virtualTypes;
+    }
+
+    /**
+     * Returns list on preferences
+     *
+     * @return array
+     */
+    public function getPreferences()
+    {
+        return $this->_preferences;
     }
 }

@@ -1,32 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\CustomerImportExport\Model\Export;
 
 /**
  * Export entity customer model
  *
- * @method \Magento\Customer\Model\Resource\Attribute\Collection getAttributeCollection() getAttributeCollection()
+ * @method \Magento\Customer\Model\ResourceModel\Attribute\Collection getAttributeCollection() getAttributeCollection()
  */
 class Customer extends \Magento\ImportExport\Model\Export\Entity\AbstractEav
 {
@@ -47,7 +29,7 @@ class Customer extends \Magento\ImportExport\Model\Export\Entity\AbstractEav
     /**#@+
      * Attribute collection name
      */
-    const ATTRIBUTE_COLLECTION_NAME = 'Magento\Customer\Model\Resource\Attribute\Collection';
+    const ATTRIBUTE_COLLECTION_NAME = 'Magento\Customer\Model\ResourceModel\Attribute\Collection';
 
     /**#@-*/
 
@@ -63,59 +45,59 @@ class Customer extends \Magento\ImportExport\Model\Export\Entity\AbstractEav
      *
      * @var array
      */
-    protected $_attributeOverrides = array(
-        'created_at' => array('backend_type' => 'datetime'),
-        'reward_update_notification' => array('source_model' => 'Magento\Eav\Model\Entity\Attribute\Source\Boolean'),
-        'reward_warning_notification' => array('source_model' => 'Magento\Eav\Model\Entity\Attribute\Source\Boolean')
-    );
+    protected $_attributeOverrides = [
+        'created_at' => ['backend_type' => 'datetime'],
+        'reward_update_notification' => ['source_model' => 'Magento\Eav\Model\Entity\Attribute\Source\Boolean'],
+        'reward_warning_notification' => ['source_model' => 'Magento\Eav\Model\Entity\Attribute\Source\Boolean'],
+    ];
 
     /**
      * Array of attributes codes which are disabled for export
      *
      * @var string[]
      */
-    protected $_disabledAttributes = array('default_billing', 'default_shipping');
+    protected $_disabledAttributes = ['default_billing', 'default_shipping'];
 
     /**
      * Attributes with index (not label) value.
      *
      * @var string[]
      */
-    protected $_indexValueAttributes = array('group_id', 'website_id', 'store_id');
+    protected $_indexValueAttributes = ['group_id', 'website_id', 'store_id'];
 
     /**
      * Permanent entity columns.
      *
      * @var string[]
      */
-    protected $_permanentAttributes = array(self::COLUMN_EMAIL, self::COLUMN_WEBSITE, self::COLUMN_STORE);
+    protected $_permanentAttributes = [self::COLUMN_EMAIL, self::COLUMN_WEBSITE, self::COLUMN_STORE];
 
     /**
      * Customers whose data is exported
      *
-     * @var \Magento\Customer\Model\Resource\Customer\Collection
+     * @var \Magento\Customer\Model\ResourceModel\Customer\Collection
      */
     protected $_customerCollection;
 
     /**
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param \Magento\ImportExport\Model\Export\Factory $collectionFactory
-     * @param \Magento\ImportExport\Model\Resource\CollectionByPagesIteratorFactory $resourceColFactory
+     * @param \Magento\ImportExport\Model\ResourceModel\CollectionByPagesIteratorFactory $resourceColFactory
      * @param \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate
      * @param \Magento\Eav\Model\Config $eavConfig
-     * @param \Magento\Customer\Model\Resource\Customer\CollectionFactory $customerColFactory
+     * @param \Magento\Customer\Model\ResourceModel\Customer\CollectionFactory $customerColFactory
      * @param array $data
      */
     public function __construct(
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Magento\Framework\StoreManagerInterface $storeManager,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\ImportExport\Model\Export\Factory $collectionFactory,
-        \Magento\ImportExport\Model\Resource\CollectionByPagesIteratorFactory $resourceColFactory,
+        \Magento\ImportExport\Model\ResourceModel\CollectionByPagesIteratorFactory $resourceColFactory,
         \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate,
         \Magento\Eav\Model\Config $eavConfig,
-        \Magento\Customer\Model\Resource\Customer\CollectionFactory $customerColFactory,
-        array $data = array()
+        \Magento\Customer\Model\ResourceModel\Customer\CollectionFactory $customerColFactory,
+        array $data = []
     ) {
         parent::__construct(
             $scopeConfig,
@@ -154,7 +136,7 @@ class Customer extends \Magento\ImportExport\Model\Export\Entity\AbstractEav
     /**
      * Get customers collection
      *
-     * @return \Magento\Customer\Model\Resource\Customer\Collection
+     * @return \Magento\Customer\Model\ResourceModel\Customer\Collection
      */
     protected function _getEntityCollection()
     {
@@ -167,7 +149,7 @@ class Customer extends \Magento\ImportExport\Model\Export\Entity\AbstractEav
     protected function _getHeaderColumns()
     {
         $validAttributeCodes = $this->_getExportAttributeCodes();
-        return array_merge($this->_permanentAttributes, $validAttributeCodes, array('password'));
+        return array_merge($this->_permanentAttributes, $validAttributeCodes, ['password']);
     }
 
     /**

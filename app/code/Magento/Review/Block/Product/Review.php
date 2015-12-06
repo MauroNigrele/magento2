@@ -1,36 +1,19 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Review\Block\Product;
 
-use Magento\Review\Model\Resource\Review\Collection as ReviewCollection;
+use Magento\Framework\DataObject\IdentityInterface;
+use Magento\Framework\View\Element\Template;
 
 /**
  * Product Review Tab
  *
  * @author     Magento Core Team <core@magentocommerce.com>
  */
-class Review extends \Magento\Framework\View\Element\Template
+class Review extends Template implements IdentityInterface
 {
     /**
      * Core registry
@@ -42,23 +25,22 @@ class Review extends \Magento\Framework\View\Element\Template
     /**
      * Review resource model
      *
-     * @var \Magento\Review\Model\Resource\Review\CollectionFactory
+     * @var \Magento\Review\Model\ResourceModel\Review\CollectionFactory
      */
     protected $_reviewsColFactory;
 
     /**
-     * @param \Magento\Backend\Block\Template\Context $context
+     * @param \Magento\Framework\View\Element\Template\Context $context
      * @param \Magento\Framework\Registry $registry
-     * @param \Magento\Review\Model\Resource\Review\CollectionFactory $collectionFactory
+     * @param \Magento\Review\Model\ResourceModel\Review\CollectionFactory $collectionFactory
      * @param array $data
      */
     public function __construct(
-        \Magento\Backend\Block\Template\Context $context,
+        \Magento\Framework\View\Element\Template\Context $context,
         \Magento\Framework\Registry $registry,
-        \Magento\Review\Model\Resource\Review\CollectionFactory $collectionFactory,
-        array $data = array()
+        \Magento\Review\Model\ResourceModel\Review\CollectionFactory $collectionFactory,
+        array $data = []
     ) {
-
         $this->_coreRegistry = $registry;
         $this->_reviewsColFactory = $collectionFactory;
         parent::__construct($context, $data);
@@ -84,7 +66,13 @@ class Review extends \Magento\Framework\View\Element\Template
      */
     public function getProductReviewUrl()
     {
-        return $this->getUrl('review/product/listAjax', array('id' => $this->getProductId()));
+        return $this->getUrl(
+            'review/product/listAjax',
+            [
+                '_secure' => $this->getRequest()->isSecure(),
+                'id' => $this->getProductId(),
+            ]
+        );
     }
 
     /**
@@ -117,5 +105,15 @@ class Review extends \Magento\Framework\View\Element\Template
         );
 
         return $collection->getSize();
+    }
+
+    /**
+     * Return unique ID(s) for each object in system
+     *
+     * @return array
+     */
+    public function getIdentities()
+    {
+        return [\Magento\Review\Model\Review::CACHE_TAG];
     }
 }

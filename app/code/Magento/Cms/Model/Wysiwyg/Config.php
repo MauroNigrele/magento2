@@ -1,32 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Cms\Model\Wysiwyg;
 
 /**
  * Wysiwyg Config for Editor HTML Element
  */
-class Config extends \Magento\Framework\Object
+class Config extends \Magento\Framework\DataObject
 {
     /**
      * Wysiwyg status enabled
@@ -37,6 +19,11 @@ class Config extends \Magento\Framework\Object
      * Wysiwyg status configuration path
      */
     const WYSIWYG_STATUS_CONFIG_PATH = 'cms/wysiwyg/enabled';
+
+    /**
+     *
+     */
+    const WYSIWYG_SKIN_IMAGE_PLACEHOLDER_ID = 'Magento_Cms::images/wysiwyg_skin_image.png';
 
     /**
      * Wysiwyg status hidden
@@ -64,7 +51,7 @@ class Config extends \Magento\Framework\Object
     protected $_assetRepo;
 
     /**
-     * @var \Magento\Core\Model\Variable\Config
+     * @var \Magento\Variable\Model\Variable\Config
      */
     protected $_variableConfig;
 
@@ -98,26 +85,34 @@ class Config extends \Magento\Framework\Object
     protected $_backendUrl;
 
     /**
+     * @var \Magento\Store\Model\StoreManagerInterface
+     */
+    protected $_storeManager;
+
+    /**
      * @param \Magento\Backend\Model\UrlInterface $backendUrl
      * @param \Magento\Framework\Event\ManagerInterface $eventManager
      * @param \Magento\Framework\AuthorizationInterface $authorization
      * @param \Magento\Framework\View\Asset\Repository $assetRepo
-     * @param \Magento\Core\Model\Variable\Config $variableConfig
+     * @param \Magento\Variable\Model\Variable\Config $variableConfig
      * @param \Magento\Widget\Model\Widget\Config $widgetConfig
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param array $windowSize
      * @param array $data
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
         \Magento\Backend\Model\UrlInterface $backendUrl,
         \Magento\Framework\Event\ManagerInterface $eventManager,
         \Magento\Framework\AuthorizationInterface $authorization,
         \Magento\Framework\View\Asset\Repository $assetRepo,
-        \Magento\Core\Model\Variable\Config $variableConfig,
+        \Magento\Variable\Model\Variable\Config $variableConfig,
         \Magento\Widget\Model\Widget\Config $widgetConfig,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        array $windowSize = array(),
-        array $data = array()
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        array $windowSize = [],
+        array $data = []
     ) {
         $this->_backendUrl = $backendUrl;
         $this->_eventManager = $eventManager;
@@ -127,11 +122,12 @@ class Config extends \Magento\Framework\Object
         $this->_variableConfig = $variableConfig;
         $this->_widgetConfig = $widgetConfig;
         $this->_windowSize = $windowSize;
+        $this->_storeManager = $storeManager;
         parent::__construct($data);
     }
 
     /**
-     * Return Wysiwyg config as \Magento\Framework\Object
+     * Return Wysiwyg config as \Magento\Framework\DataObject
      *
      * Config options description:
      *
@@ -143,15 +139,15 @@ class Config extends \Magento\Framework\Object
      * files_browser_*:         Files Browser (media, images) settings
      * encode_directives:       Encode template directives with JS or not
      *
-     * @param array|\Magento\Framework\Object $data Object constructor params to override default config values
-     * @return \Magento\Framework\Object
+     * @param array|\Magento\Framework\DataObject $data Object constructor params to override default config values
+     * @return \Magento\Framework\DataObject
      */
-    public function getConfig($data = array())
+    public function getConfig($data = [])
     {
-        $config = new \Magento\Framework\Object();
+        $config = new \Magento\Framework\DataObject();
 
         $config->setData(
-            array(
+            [
                 'enabled' => $this->isEnabled(),
                 'hidden' => $this->isHidden(),
                 'use_container' => false,
@@ -167,20 +163,20 @@ class Config extends \Magento\Framework\Object
                     'mage/adminhtml/wysiwyg/tiny_mce/themes/advanced/skins/default/content.css'
                 ),
                 'width' => '100%',
-                'plugins' => array()
-            )
+                'plugins' => [],
+            ]
         );
 
         $config->setData('directives_url_quoted', preg_quote($config->getData('directives_url')));
 
         if ($this->_authorization->isAllowed('Magento_Cms::media_gallery')) {
             $config->addData(
-                array(
+                [
                     'add_images' => true,
                     'files_browser_window_url' => $this->_backendUrl->getUrl('cms/wysiwyg_images/index'),
                     'files_browser_window_width' => $this->_windowSize['width'],
-                    'files_browser_window_height' => $this->_windowSize['height']
-                )
+                    'files_browser_window_height' => $this->_windowSize['height'],
+                ]
             );
         }
 
@@ -202,13 +198,15 @@ class Config extends \Magento\Framework\Object
     }
 
     /**
-     * Return URL for skin images placeholder
+     * Return path for skin images placeholder
      *
      * @return string
      */
-    public function getSkinImagePlaceholderUrl()
+    public function getSkinImagePlaceholderPath()
     {
-        return $this->_assetRepo->getUrl('Magento_Cms::images/wysiwyg_skin_image.png');
+        $staticPath = $this->_storeManager->getStore()->getBaseStaticDir();
+        $placeholderPath = $this->_assetRepo->createAsset(self::WYSIWYG_SKIN_IMAGE_PLACEHOLDER_ID)->getPath();
+        return $staticPath . '/' . $placeholderPath;
     }
 
     /**
@@ -223,7 +221,7 @@ class Config extends \Magento\Framework\Object
             \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
             $this->getStoreId()
         );
-        return in_array($wysiwygState, array(self::WYSIWYG_ENABLED, self::WYSIWYG_HIDDEN));
+        return in_array($wysiwygState, [self::WYSIWYG_ENABLED, self::WYSIWYG_HIDDEN]);
     }
 
     /**

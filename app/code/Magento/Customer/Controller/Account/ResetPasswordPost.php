@@ -1,64 +1,86 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Customer\Controller\Account;
 
-class ResetPasswordPost extends \Magento\Customer\Controller\Account
+use Magento\Customer\Api\AccountManagementInterface;
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Customer\Model\Session;
+use Magento\Framework\App\Action\Context;
+
+class ResetPasswordPost extends \Magento\Customer\Controller\AbstractAccount
 {
+    /** @var AccountManagementInterface */
+    protected $accountManagement;
+
+    /** @var CustomerRepositoryInterface */
+    protected $customerRepository;
+
+    /**
+     * @var Session
+     */
+    protected $session;
+
+    /**
+     * @param Context $context
+     * @param Session $customerSession
+     * @param AccountManagementInterface $accountManagement
+     * @param CustomerRepositoryInterface $customerRepository
+     */
+    public function __construct(
+        Context $context,
+        Session $customerSession,
+        AccountManagementInterface $accountManagement,
+        CustomerRepositoryInterface $customerRepository
+    ) {
+        $this->session = $customerSession;
+        $this->accountManagement = $accountManagement;
+        $this->customerRepository = $customerRepository;
+        parent::__construct($context);
+    }
+
     /**
      * Reset forgotten password
      *
      * Used to handle data received from reset forgotten password form
      *
-     * @return void
+     * @return \Magento\Framework\Controller\Result\Redirect
      */
     public function execute()
     {
+        /** @var \Magento\Framework\Controller\Result\Redirect $resultRedirect */
+        $resultRedirect = $this->resultRedirectFactory->create();
         $resetPasswordToken = (string)$this->getRequest()->getQuery('token');
         $customerId = (int)$this->getRequest()->getQuery('id');
         $password = (string)$this->getRequest()->getPost('password');
-        $passwordConfirmation = (string)$this->getRequest()->getPost('confirmation');
+        $passwordConfirmation = (string)$this->getRequest()->getPost('password_confirmation');
 
         if ($password !== $passwordConfirmation) {
             $this->messageManager->addError(__("New Password and Confirm New Password values didn't match."));
-            return;
+            $resultRedirect->setPath('*/*/createPassword', ['id' => $customerId, 'token' => $resetPasswordToken]);
+            return $resultRedirect;
         }
         if (iconv_strlen($password) <= 0) {
-            $this->messageManager->addError(__('New password field cannot be empty.'));
-            $this->_redirect('*/*/createPassword', array('id' => $customerId, 'token' => $resetPasswordToken));
-            return;
+            $this->messageManager->addError(__('Please enter a new password.'));
+            $resultRedirect->setPath('*/*/createPassword', ['id' => $customerId, 'token' => $resetPasswordToken]);
+            return $resultRedirect;
         }
 
         try {
-            $this->_customerAccountService->resetPassword($customerId, $resetPasswordToken, $password);
-            $this->messageManager->addSuccess(__('Your password has been updated.'));
-            $this->_redirect('*/*/login');
-            return;
+            $customerEmail = $this->customerRepository->getById($customerId)->getEmail();
+            $this->accountManagement->resetPassword($customerEmail, $resetPasswordToken, $password);
+            $this->session->unsRpToken();
+            $this->session->unsRpCustomerId();
+            $this->messageManager->addSuccess(__('You updated your password.'));
+            $resultRedirect->setPath('*/*/login');
+            return $resultRedirect;
         } catch (\Exception $exception) {
-            $this->messageManager->addError(__('There was an error saving the new password.'));
-            $this->_redirect('*/*/createPassword', array('id' => $customerId, 'token' => $resetPasswordToken));
-            return;
+            $this->messageManager->addError(__('Something went wrong while saving the new password.'));
+            $resultRedirect->setPath('*/*/createPassword', ['id' => $customerId, 'token' => $resetPasswordToken]);
+            return $resultRedirect;
         }
     }
 }

@@ -1,24 +1,6 @@
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 'use strict';
@@ -30,27 +12,28 @@ angular.module('create-admin-account', ['ngStorage'])
                 label: 'None'
             }
         };
-
+        
         $scope.passwordStatusChange = function () {
             if (angular.isUndefined($scope.admin.password)) {
                 return;
             }
             var p = $scope.admin.password;
-            if (p.length > 6 && p.match(/[\d]+/) && p.match(/[a-z]+/) && p.match(/[A-Z]+/) && p.match(/[!@#$%^*()_\/\\\-\+=]+/)) {
+            var MIN_ADMIN_PASSWORD_LENGTH = 7;
+            if (p.length >= MIN_ADMIN_PASSWORD_LENGTH && p.match(/[\d]+/) && p.match(/[a-z]+/) && p.match(/[A-Z]+/) && p.match(/[!@#$%^*()_\/\\\-\+=]+/)) {
                 $scope.admin.passwordStatus.class = 'strong';
                 $scope.admin.passwordStatus.label = 'Strong';
-            } else if (p.length > 6 && p.match(/[\d]+/) && p.match(/[a-z]+/) && p.match(/[A-Z]+/)) {
+            } else if (p.length >= MIN_ADMIN_PASSWORD_LENGTH && p.match(/[\d]+/) && p.match(/[a-z]+/) && p.match(/[A-Z]+/)) {
                 $scope.admin.passwordStatus.class = 'good';
                 $scope.admin.passwordStatus.label = 'Good';
-            } else if (p.length > 6 && p.match(/[\d]+/) && p.match(/[a-zA-Z]+/)) {
+            } else if (p.length >= MIN_ADMIN_PASSWORD_LENGTH && p.match(/[\d]+/) && p.match(/[a-zA-Z]+/)) {
+                $scope.admin.passwordStatus.class = 'fair';
+                $scope.admin.passwordStatus.label = 'Fair';
+            } else if (p.length >= MIN_ADMIN_PASSWORD_LENGTH) {
                 $scope.admin.passwordStatus.class = 'weak';
                 $scope.admin.passwordStatus.label = 'Weak';
-            } else if (p.length > 6) {
-                $scope.admin.passwordStatus.class = 'to-short';
-                $scope.admin.passwordStatus.label = 'To Short';
             } else {
-                $scope.admin.passwordStatus.class = 'none';
-                $scope.admin.passwordStatus.label = 'None';
+                $scope.admin.passwordStatus.class = 'too-short';
+                $scope.admin.passwordStatus.label = 'Too Short';
             }
         };
 
@@ -84,6 +67,24 @@ angular.module('create-admin-account', ['ngStorage'])
             }
         });
     }])
+    .directive('checkPassword', function() {
+        return{
+            require: "ngModel",
+            link: function(scope, elm, attrs, ctrl){
+                var validator = function(value){
+                    var minReg = /^(?=.*\d)(?=.*[a-zA-Z]).{6,}$/,
+                        isValid = typeof value === 'string' && minReg.test(value);
+
+                    ctrl.$setValidity('checkPassword', isValid);
+                    
+                    return value;
+                };
+                
+                ctrl.$parsers.unshift(validator);
+                ctrl.$formatters.unshift(validator);
+            }
+        };
+    })
     .directive('confirmPassword', function() {
         return {
             require: 'ngModel',

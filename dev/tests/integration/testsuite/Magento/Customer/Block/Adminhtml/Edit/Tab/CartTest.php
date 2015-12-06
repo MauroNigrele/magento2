@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Customer\Block\Adminhtml\Edit\Tab;
 
@@ -40,13 +22,13 @@ class CartTest extends \PHPUnit_Framework_TestCase
     /** @var \Magento\Framework\Registry */
     private $_coreRegistry;
 
-    /** @var \Magento\Framework\StoreManagerInterface */
+    /** @var \Magento\Store\Model\StoreManagerInterface */
     private $_storeManager;
 
     /** @var Cart */
     private $_block;
 
-    /** @var \Magento\Framework\ObjectManager */
+    /** @var \Magento\Framework\ObjectManagerInterface */
     private $_objectManager;
 
     public function setUp()
@@ -56,7 +38,7 @@ class CartTest extends \PHPUnit_Framework_TestCase
         $this->_storeManager = $this->_objectManager->get('Magento\Store\Model\StoreManager');
         $this->_context = $this->_objectManager->get(
             'Magento\Backend\Block\Template\Context',
-            array('storeManager' => $this->_storeManager)
+            ['storeManager' => $this->_storeManager]
         );
 
         $this->_coreRegistry = $this->_objectManager->get('Magento\Framework\Registry');
@@ -67,7 +49,7 @@ class CartTest extends \PHPUnit_Framework_TestCase
         )->createBlock(
             'Magento\Customer\Block\Adminhtml\Edit\Tab\Cart',
             '',
-            array('context' => $this->_context, 'registry' => $this->_coreRegistry)
+            ['context' => $this->_context, 'registry' => $this->_coreRegistry]
         );
     }
 
@@ -93,18 +75,21 @@ class CartTest extends \PHPUnit_Framework_TestCase
         )->createBlock(
             'Magento\Customer\Block\Adminhtml\Edit\Tab\Cart',
             '',
-            array()
+            []
         );
         $mockCollection = $this->getMockBuilder('\Magento\Framework\Data\Collection')
             ->disableOriginalConstructor()
             ->getMock();
         $this->_block->setCollection($mockCollection);
-        $this->assertContains("<div class=\"grid-actions\">", $this->_block->getGridParentHtml());
+        $this->assertContains(
+            "<div class=\"admin__data-grid-header admin__data-grid-toolbar\"",
+            $this->_block->getGridParentHtml()
+        );
     }
 
     public function testGetRowUrl()
     {
-        $row = new \Magento\Framework\Object();
+        $row = new \Magento\Framework\DataObject();
         $row->setProductId(1);
         $this->assertContains('/backend/catalog/product/edit/id/1', $this->_block->getRowUrl($row));
     }
@@ -112,9 +97,9 @@ class CartTest extends \PHPUnit_Framework_TestCase
     public function testGetHtml()
     {
         $html = $this->_block->toHtml();
-        $this->assertContains("<div id=\"customer_cart_grid\">", $html);
-        $this->assertContains("<div class=\"grid-actions\">", $html);
-        $this->assertContains("customer_cart_gridJsObject = new varienGrid('customer_cart_grid',", $html);
+        $this->assertContains("<div id=\"customer_cart_grid\"", $html);
+        $this->assertContains("<div class=\"admin__data-grid-header admin__data-grid-toolbar\"", $html);
+        $this->assertContains("customer_cart_gridJsObject = new varienGrid(\"customer_cart_grid\",", $html);
         $this->assertContains(
             "backend/customer/cart_product_composite_cart/configure/customer_id/" . self::CUSTOMER_ID_VALUE,
             $html

@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Filter\Template\Tokenizer;
 
@@ -29,13 +11,21 @@ namespace Magento\Framework\Filter\Template\Tokenizer;
 class Variable extends \Magento\Framework\Filter\Template\Tokenizer\AbstractTokenizer
 {
     /**
+     * Internal counter used to keep track of how deep in array parsing we are
+     *
+     * @var int
+     */
+    protected $arrayDepth = 0;
+
+    /**
      * Tokenize string and return getted variable stack path
      *
      * @return array
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function tokenize()
     {
-        $actions = array();
+        $actions = [];
         $parameterName = '';
         $variableSet = false;
         do {
@@ -48,15 +38,15 @@ class Variable extends \Magento\Framework\Filter\Template\Tokenizer\AbstractToke
             } elseif ($this->char() == '(') {
                 // Method declaration
                 $methodArgs = $this->getMethodArgs();
-                $actions[] = array('type' => 'method', 'name' => $parameterName, 'args' => $methodArgs);
+                $actions[] = ['type' => 'method', 'name' => $parameterName, 'args' => $methodArgs];
                 $parameterName = '';
             } elseif ($parameterName != '') {
                 // Property or variable declaration
                 if ($variableSet) {
-                    $actions[] = array('type' => 'property', 'name' => $parameterName);
+                    $actions[] = ['type' => 'property', 'name' => $parameterName];
                 } else {
                     $variableSet = true;
-                    $actions[] = array('type' => 'variable', 'name' => $parameterName);
+                    $actions[] = ['type' => 'variable', 'name' => $parameterName];
                 }
                 $parameterName = '';
             }
@@ -64,9 +54,9 @@ class Variable extends \Magento\Framework\Filter\Template\Tokenizer\AbstractToke
 
         if ($parameterName != '') {
             if ($variableSet) {
-                $actions[] = array('type' => 'property', 'name' => $parameterName);
+                $actions[] = ['type' => 'property', 'name' => $parameterName];
             } else {
-                $actions[] = array('type' => 'variable', 'name' => $parameterName);
+                $actions[] = ['type' => 'variable', 'name' => $parameterName];
             }
         }
 
@@ -84,9 +74,9 @@ class Variable extends \Magento\Framework\Filter\Template\Tokenizer\AbstractToke
         if ($this->isWhiteSpace()) {
             return $value;
         }
-        $qouteStart = $this->isQuote();
+        $quoteStart = $this->isQuote();
 
-        if ($qouteStart) {
+        if ($quoteStart) {
             $breakSymbol = $this->char();
         } else {
             $breakSymbol = false;
@@ -94,7 +84,7 @@ class Variable extends \Magento\Framework\Filter\Template\Tokenizer\AbstractToke
         }
 
         while ($this->next()) {
-            if (!$breakSymbol && ($this->isWhiteSpace() || $this->char() == ',' || $this->char() == ')')) {
+            if (!$breakSymbol && $this->isStringBreak()) {
                 $this->prev();
                 break;
             } elseif ($breakSymbol && $this->char() == $breakSymbol) {
@@ -107,6 +97,137 @@ class Variable extends \Magento\Framework\Filter\Template\Tokenizer\AbstractToke
             }
         }
         return $value;
+    }
+
+    /**
+     * Get array member key or return false if none present
+     *
+     * @return bool|string
+     */
+    public function getMemberKey()
+    {
+        $value = '';
+        if ($this->isWhiteSpace()) {
+            return $value;
+        }
+
+        $quoteStart = $this->isQuote();
+
+        if ($quoteStart) {
+            $closeQuote = $this->char();
+        } else {
+            $closeQuote = false;
+            $value .= $this->char();
+        }
+
+        while ($this->next()) {
+            if ($closeQuote) {
+                if ($this->char() == $closeQuote) {
+                    $closeQuote = false;
+                    continue;
+                }
+                $value .= $this->char();
+            } elseif ($this->char() == ':') {
+                $this->next();
+                return $value;
+            } elseif ($this->isStringBreak()) {
+                $this->prev();
+                break;
+            } else {
+                $value .= $this->char();
+            }
+        }
+
+        if ($quoteStart) {
+            $this->back(strlen($value) + 1);
+        } else {
+            $this->back(strlen($value) - 1);
+        }
+        return false;
+    }
+
+    /**
+     * Get array value for method args
+     *
+     * Parses arrays demarcated via open/closing brackets. Keys/value pairs are separated by a
+     * single colon character. Multi-dimensional arrays are supported. Example input:
+     *
+     * [key:value, "key2":"value2", [
+     *     [123, foo],
+     * ]]
+     *
+     * @return array
+     */
+    public function getArray()
+    {
+        $values = [];
+        if (!$this->isArray()) {
+            return $values;
+        }
+
+        $this->incArrayDepth();
+
+        while ($this->next()) {
+            if ($this->char() == ']') {
+                break;
+            } elseif ($this->isWhiteSpace() || $this->char() == ',') {
+                continue;
+            }
+
+            $key = $this->getMemberKey();
+
+            if ($this->isNumeric()) {
+                $val = $this->getNumber();
+            } elseif ($this->isArray()) {
+                $val = $this->getArray();
+            } else {
+                $val = $this->getString();
+            }
+
+            if ($key) {
+                $values[$key] = $val;
+            } else {
+                $values[] = $val;
+            }
+        }
+
+        $this->decArrayDepth();
+        return $values;
+    }
+
+    /**
+     * Return the internal array depth counter
+     *
+     * @return int
+     */
+    protected function getArrayDepth()
+    {
+        return $this->arrayDepth;
+    }
+
+    /**
+     * Increment the internal array depth counter
+     *
+     * @return void
+     */
+    protected function incArrayDepth()
+    {
+        $this->arrayDepth++;
+    }
+
+    /**
+     * Decrement the internal array depth counter
+     *
+     * If depth is already 0 do nothing
+     *
+     * @return void
+     */
+    protected function decArrayDepth()
+    {
+        if ($this->arrayDepth == 0) {
+            return;
+        }
+        $this->arrayDepth--;
     }
 
     /**
@@ -130,19 +251,46 @@ class Variable extends \Magento\Framework\Filter\Template\Tokenizer\AbstractToke
     }
 
     /**
+     * Retrun true if current char is opening boundary for an array
+     *
+     * @return bool
+     */
+    public function isArray()
+    {
+        return $this->char() == '[';
+    }
+
+    /**
+     * Return true if current char is closing boundary for string
+     *
+     * @return bool
+     */
+    public function isStringBreak()
+    {
+        if ($this->getArrayDepth() == 0 && ($this->isWhiteSpace() || $this->char() == ',' || $this->char() == ')')) {
+            return true;
+        } elseif ($this->getArrayDepth() > 0 && ($this->char() == ',' || $this->char() == ']')) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Return array of arguments for method
      *
      * @return array
      */
     public function getMethodArgs()
     {
-        $value = array();
+        $value = [];
 
         while ($this->next() && $this->char() != ')') {
             if ($this->isWhiteSpace() || $this->char() == ',') {
                 continue;
             } elseif ($this->isNumeric()) {
                 $value[] = $this->getNumber();
+            } elseif ($this->isArray()) {
+                $value[] = $this->getArray();
             } else {
                 $value[] = $this->getString();
             }

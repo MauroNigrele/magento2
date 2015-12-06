@@ -1,62 +1,50 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Tax\Model\Calculation;
 
-use Magento\Tax\Model\Calculation;
-use Magento\Customer\Service\V1\Data\Address;
-use Magento\Tax\Service\V1\Data\QuoteDetails\Item as QuoteDetailsItem;
+use Magento\Tax\Api\Data\QuoteDetailsItemInterface;
 
 abstract class AbstractAggregateCalculator extends AbstractCalculator
 {
     /**
      * {@inheritdoc}
      */
-    protected function calculateWithTaxInPrice(QuoteDetailsItem $item, $quantity)
+    protected function calculateWithTaxInPrice(QuoteDetailsItemInterface $item, $quantity, $round = true)
     {
         $taxRateRequest = $this->getAddressRateRequest()->setProductClassId(
-            $this->taxClassService->getTaxClassId($item->getTaxClassKey())
+            $this->taxClassManagement->getTaxClassId($item->getTaxClassKey())
         );
         $rate = $this->calculationTool->getRate($taxRateRequest);
         $storeRate = $storeRate = $this->calculationTool->getStoreRate($taxRateRequest, $this->storeId);
+
+        $discountTaxCompensationAmount = 0;
+        $applyTaxAfterDiscount = $this->config->applyTaxAfterDiscount($this->storeId);
+        $discountAmount = $item->getDiscountAmount();
 
         // Calculate $rowTotalInclTax
         $priceInclTax = $this->calculationTool->round($item->getUnitPrice());
         $rowTotalInclTax = $priceInclTax * $quantity;
         if (!$this->isSameRateAsStore($rate, $storeRate)) {
-            $priceInclTax = $this->calculatePriceInclTax($priceInclTax, $storeRate, $rate);
+            $priceInclTax = $this->calculatePriceInclTax($priceInclTax, $storeRate, $rate, $round);
             $rowTotalInclTax = $priceInclTax * $quantity;
         }
         $rowTaxExact = $this->calculationTool->calcTaxAmount($rowTotalInclTax, $rate, true, false);
-        $rowTax = $this->roundAmount($rowTaxExact, $rate, true);
+        $deltaRoundingType = self::KEY_REGULAR_DELTA_ROUNDING;
+        if ($applyTaxAfterDiscount) {
+            $deltaRoundingType = self::KEY_TAX_BEFORE_DISCOUNT_DELTA_ROUNDING;
+        }
+        $rowTax = $this->roundAmount($rowTaxExact, $rate, true, $deltaRoundingType, $round, $item);
         $rowTotal = $rowTotalInclTax - $rowTax;
-        $price = $this->calculationTool->round($rowTotal / $quantity);
+        $price = $rowTotal / $quantity;
+        if ($round) {
+            $price = $this->calculationTool->round($price);
+        }
 
         //Handle discount
-        $discountTaxCompensationAmount = 0;
-        $applyTaxAfterDiscount = $this->config->applyTaxAfterDiscount($this->storeId);
-        $discountAmount = $item->getDiscountAmount();
-        if ($discountAmount && $applyTaxAfterDiscount) {
+        if ($applyTaxAfterDiscount) {
             //TODO: handle originalDiscountAmount
             $taxableAmount = max($rowTotalInclTax - $discountAmount, 0);
             $rowTaxAfterDiscount = $this->calculationTool->calcTaxAmount(
@@ -69,7 +57,9 @@ abstract class AbstractAggregateCalculator extends AbstractCalculator
                 $rowTaxAfterDiscount,
                 $rate,
                 true,
-                self::KEY_TAX_AFTER_DISCOUNT_DELTA_ROUNDING
+                self::KEY_REGULAR_DELTA_ROUNDING,
+                $round,
+                $item
             );
             // Set discount tax compensation
             $discountTaxCompensationAmount = $rowTax - $rowTaxAfterDiscount;
@@ -77,32 +67,31 @@ abstract class AbstractAggregateCalculator extends AbstractCalculator
         }
 
         // Calculate applied taxes
-        /** @var  \Magento\Tax\Service\V1\Data\TaxDetails\AppliedTax[] $appliedTaxes */
-        $appliedTaxes = [];
+        /** @var  \Magento\Tax\Api\Data\AppliedTaxInterface[] $appliedTaxes */
         $appliedRates = $this->calculationTool->getAppliedRates($taxRateRequest);
         $appliedTaxes = $this->getAppliedTaxes($rowTax, $rate, $appliedRates);
 
-        $this->taxDetailsItemBuilder->setCode($item->getCode());
-        $this->taxDetailsItemBuilder->setType($item->getType());
-        $this->taxDetailsItemBuilder->setRowTax($rowTax);
-        $this->taxDetailsItemBuilder->setPrice($price);
-        $this->taxDetailsItemBuilder->setPriceInclTax($priceInclTax);
-        $this->taxDetailsItemBuilder->setRowTotal($rowTotal);
-        $this->taxDetailsItemBuilder->setRowTotalInclTax($rowTotalInclTax);
-        $this->taxDetailsItemBuilder->setDiscountTaxCompensationAmount($discountTaxCompensationAmount);
-        $this->taxDetailsItemBuilder->setAssociatedItemCode($item->getAssociatedItemCode());
-        $this->taxDetailsItemBuilder->setTaxPercent($rate);
-        $this->taxDetailsItemBuilder->setAppliedTaxes($appliedTaxes);
-        return $this->taxDetailsItemBuilder->create();
+        return $this->taxDetailsItemDataObjectFactory->create()
+            ->setCode($item->getCode())
+            ->setType($item->getType())
+            ->setRowTax($rowTax)
+            ->setPrice($price)
+            ->setPriceInclTax($priceInclTax)
+            ->setRowTotal($rowTotal)
+            ->setRowTotalInclTax($rowTotalInclTax)
+            ->setDiscountTaxCompensationAmount($discountTaxCompensationAmount)
+            ->setAssociatedItemCode($item->getAssociatedItemCode())
+            ->setTaxPercent($rate)
+            ->setAppliedTaxes($appliedTaxes);
     }
 
     /**
      * {@inheritdoc}
      */
-    protected function calculateWithTaxNotInPrice(QuoteDetailsItem $item, $quantity)
+    protected function calculateWithTaxNotInPrice(QuoteDetailsItemInterface $item, $quantity, $round = true)
     {
         $taxRateRequest = $this->getAddressRateRequest()->setProductClassId(
-            $this->taxClassService->getTaxClassId($item->getTaxClassKey())
+            $this->taxClassManagement->getTaxClassId($item->getTaxClassKey())
         );
         $rate = $this->calculationTool->getRate($taxRateRequest);
         $appliedRates = $this->calculationTool->getAppliedRates($taxRateRequest);
@@ -122,11 +111,15 @@ abstract class AbstractAggregateCalculator extends AbstractCalculator
             $taxId = $appliedRate['id'];
             $taxRate = $appliedRate['percent'];
             $rowTaxPerRate = $this->calculationTool->calcTaxAmount($rowTotal, $taxRate, false, false);
-            $rowTaxPerRate = $this->roundAmount($rowTaxPerRate, $taxRate, false);
+            $deltaRoundingType = self::KEY_REGULAR_DELTA_ROUNDING;
+            if ($applyTaxAfterDiscount) {
+                $deltaRoundingType = self::KEY_TAX_BEFORE_DISCOUNT_DELTA_ROUNDING;
+            }
+            $rowTaxPerRate = $this->roundAmount($rowTaxPerRate, $taxId, false, $deltaRoundingType, $round, $item);
             $rowTaxAfterDiscount = $rowTaxPerRate;
 
             //Handle discount
-            if ($discountAmount && $applyTaxAfterDiscount) {
+            if ($applyTaxAfterDiscount) {
                 //TODO: handle originalDiscountAmount
                 $taxableAmount = max($rowTotal - $discountAmount, 0);
                 $rowTaxAfterDiscount = $this->calculationTool->calcTaxAmount(
@@ -137,9 +130,11 @@ abstract class AbstractAggregateCalculator extends AbstractCalculator
                 );
                 $rowTaxAfterDiscount = $this->roundAmount(
                     $rowTaxAfterDiscount,
-                    $taxRate,
+                    $taxId,
                     false,
-                    self::KEY_TAX_AFTER_DISCOUNT_DELTA_ROUNDING
+                    self::KEY_REGULAR_DELTA_ROUNDING,
+                    $round,
+                    $item
                 );
             }
             $appliedTaxes[$taxId] = $this->getAppliedTax(
@@ -153,20 +148,23 @@ abstract class AbstractAggregateCalculator extends AbstractCalculator
         $rowTax = array_sum($rowTaxes);
         $rowTaxBeforeDiscount = array_sum($rowTaxesBeforeDiscount);
         $rowTotalInclTax = $rowTotal + $rowTaxBeforeDiscount;
-        $priceInclTax = $this->calculationTool->round($rowTotalInclTax / $quantity);
+        $priceInclTax = $rowTotalInclTax / $quantity;
+        if ($round) {
+            $priceInclTax = $this->calculationTool->round($priceInclTax);
+        }
 
-        $this->taxDetailsItemBuilder->setCode($item->getCode());
-        $this->taxDetailsItemBuilder->setType($item->getType());
-        $this->taxDetailsItemBuilder->setRowTax($rowTax);
-        $this->taxDetailsItemBuilder->setPrice($price);
-        $this->taxDetailsItemBuilder->setPriceInclTax($priceInclTax);
-        $this->taxDetailsItemBuilder->setRowTotal($rowTotal);
-        $this->taxDetailsItemBuilder->setRowTotalInclTax($rowTotalInclTax);
-        $this->taxDetailsItemBuilder->setDiscountTaxCompensationAmount($discountTaxCompensationAmount);
-        $this->taxDetailsItemBuilder->setAssociatedItemCode($item->getAssociatedItemCode());
-        $this->taxDetailsItemBuilder->setTaxPercent($rate);
-        $this->taxDetailsItemBuilder->setAppliedTaxes($appliedTaxes);
-        return $this->taxDetailsItemBuilder->create();
+        return $this->taxDetailsItemDataObjectFactory->create()
+            ->setCode($item->getCode())
+            ->setType($item->getType())
+            ->setRowTax($rowTax)
+            ->setPrice($price)
+            ->setPriceInclTax($priceInclTax)
+            ->setRowTotal($rowTotal)
+            ->setRowTotalInclTax($rowTotalInclTax)
+            ->setDiscountTaxCompensationAmount($discountTaxCompensationAmount)
+            ->setAssociatedItemCode($item->getAssociatedItemCode())
+            ->setTaxPercent($rate)
+            ->setAppliedTaxes($appliedTaxes);
     }
 
     /**
@@ -176,12 +174,16 @@ abstract class AbstractAggregateCalculator extends AbstractCalculator
      * @param null|float $rate
      * @param null|bool $direction
      * @param string $type
+     * @param bool $round
+     * @param QuoteDetailsItemInterface $item
      * @return float
      */
     abstract protected function roundAmount(
         $amount,
         $rate = null,
         $direction = null,
-        $type = self::KEY_REGULAR_DELTA_ROUNDING
+        $type = self::KEY_REGULAR_DELTA_ROUNDING,
+        $round = true,
+        $item = null
     );
 }

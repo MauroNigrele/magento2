@@ -1,27 +1,12 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Interception\Code;
+
+use Magento\Framework\Exception\ValidatorException;
+use Magento\Framework\Phrase;
 
 class InterfaceValidator
 {
@@ -54,6 +39,8 @@ class InterfaceValidator
      *
      * @return void
      * @throws ValidatorException
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
     public function validate($pluginClass, $interceptedType)
     {
@@ -62,22 +49,19 @@ class InterfaceValidator
         $plugin = new \ReflectionClass($pluginClass);
         $type = new \ReflectionClass($interceptedType);
 
-        $pluginMethods = array();
+        $pluginMethods = [];
         foreach ($plugin->getMethods(\ReflectionMethod::IS_PUBLIC) as $pluginMethod) {
             /** @var  $pluginMethod \ReflectionMethod */
             $originMethodName = $this->getOriginMethodName($pluginMethod->getName());
-            if (is_null($originMethodName)) {
+            if ($originMethodName === null) {
                 continue;
             }
             if (!$type->hasMethod($originMethodName)) {
                 throw new ValidatorException(
-                    'Incorrect interface in ' .
-                    $pluginClass .
-                    '. There is no method [ ' .
-                    $originMethodName .
-                    ' ] in ' .
-                    $interceptedType .
-                    ' interface'
+                    new Phrase(
+                        'Incorrect interface in %1. There is no method [ %2 ] in %3 interface',
+                        [$pluginClass, $originMethodName, $interceptedType]
+                    )
                 );
             }
             $originMethod = $type->getMethod($originMethodName);
@@ -91,21 +75,13 @@ class InterfaceValidator
             if (!$this->_argumentsReader->isCompatibleType(
                 $subject['type'],
                 $interceptedType
-            ) || is_null(
-                $subject['type']
-            )
+            ) || $subject['type'] === null
             ) {
                 throw new ValidatorException(
-                    'Invalid [' .
-                    $subject['type'] .
-                    '] $' .
-                    $subject['name'] .
-                    ' type in ' .
-                    $pluginClass .
-                    '::' .
-                    $pluginMethod->getName() .
-                    '. It must be compatible with ' .
-                    $interceptedType
+                    new Phrase(
+                        'Invalid [%1] $%2 type in %3::%4. It must be compatible with %5',
+                        [$subject['type'], $subject['name'], $pluginClass, $pluginMethod->getName(), $interceptedType]
+                    )
                 );
             }
 
@@ -122,15 +98,10 @@ class InterfaceValidator
                     $proceed = array_shift($pluginMethodParameters);
                     if (!$this->_argumentsReader->isCompatibleType($proceed['type'], '\\Closure')) {
                         throw new ValidatorException(
-                            'Invalid [' .
-                            $proceed['type'] .
-                            '] $' .
-                            $proceed['name'] .
-                            ' type in ' .
-                            $pluginClass .
-                            '::' .
-                            $pluginMethod->getName() .
-                            '. It must be compatible with \\Closure'
+                            new Phrase(
+                                'Invalid [%1] $%2 type in %3::%4. It must be compatible with \\Closure',
+                                [$proceed['type'], $proceed['name'], $pluginClass, $pluginMethod->getName()]
+                            )
                         );
                     }
                     $this->validateMethodsParameters(
@@ -143,11 +114,10 @@ class InterfaceValidator
                 case self::METHOD_AFTER:
                     if (count($pluginMethodParameters) > 1) {
                         throw new ValidatorException(
-                            'Invalid method signature. Detected extra parameters' .
-                            ' in ' .
-                            $pluginClass .
-                            '::' .
-                            $pluginMethod->getName()
+                            new Phrase(
+                                'Invalid method signature. Detected extra parameters in %1::%2',
+                                [$pluginClass, $pluginMethod->getName()]
+                            )
                         );
                     }
                     break;
@@ -170,23 +140,19 @@ class InterfaceValidator
     {
         if (count($pluginParameters) != count($originParameters)) {
             throw new ValidatorException(
-                'Invalid method signature. Invalid method parameters count' . ' in ' . $class . '::' . $method
+                new Phrase(
+                    'Invalid method signature. Invalid method parameters count in %1::%2',
+                    [$class, $method]
+                )
             );
         }
         foreach ($pluginParameters as $position => $data) {
             if (!$this->_argumentsReader->isCompatibleType($data['type'], $originParameters[$position]['type'])) {
                 throw new ValidatorException(
-                    'Incompatible parameter type [' .
-                    $data['type'] .
-                    ' $' .
-                    $data['name'] .
-                    ']' .
-                    ' in ' .
-                    $class .
-                    '::' .
-                    $method .
-                    '. It must be compatible with ' .
-                    $originParameters[$position]['type']
+                    new Phrase(
+                        'Incompatible parameter type [%1 $%2] in %3::%4. It must be compatible with %5',
+                        [$data['type'], $data['name'], $class, $method, $originParameters[$position]['type']]
+                    )
                 );
             }
         }
@@ -257,12 +223,12 @@ class InterfaceValidator
      */
     protected function getMethodParameters(\ReflectionMethod $method)
     {
-        $output = array();
+        $output = [];
         foreach ($method->getParameters() as $parameter) {
-            $output[$parameter->getPosition()] = array(
+            $output[$parameter->getPosition()] = [
                 'name' => $parameter->getName(),
-                'type' => $this->getParametersType($parameter)
-            );
+                'type' => $this->getParametersType($parameter),
+            ];
         }
         return $output;
     }

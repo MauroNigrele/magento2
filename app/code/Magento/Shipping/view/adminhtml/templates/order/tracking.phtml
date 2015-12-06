@@ -1,29 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 ?>
-<?php /** @var $this Magento\Shipping\Block\Adminhtml\Order\Tracking */?>
-<script type="text/javascript">
+<?php /** @var $block Magento\Shipping\Block\Adminhtml\Order\Tracking */?>
+<script>
 require(['prototype'], function(){
 
     //<![CDATA[
@@ -33,7 +18,11 @@ require(['prototype'], function(){
         add : function () {
             this.index++;
             var data = {index:this.index};
-            Element.insert($('track_row_container'), {bottom: this.template.evaluate(data)});
+            Element.insert($('track_row_container'), {
+                bottom: this.template({
+                    data: data
+                })
+            });
             $('trackingC' + this.index).disabled = false;
             $('trackingT' + this.index).disabled = false;
             $('trackingN' + this.index).disabled = false;
@@ -72,40 +61,72 @@ require(['prototype'], function(){
 
 });
 </script>
-<table cellspacing="0" class="data-table" id="tracking_numbers_table">
-    <thead>
-    <tr class="headings">
-        <th class="col-carrier"><?php echo __('Carrier') ?></th>
-        <th class="col-title"><?php echo __('Title') ?></th>
-        <th class="col-number"><?php echo __('Number') ?></th>
-        <th class="col-delete last"><?php echo __('Action') ?></th>
-    </tr>
-    </thead>
-    <tfoot>
+<script id="track_row_template" type="text/x-magento-template">
     <tr>
-        <td colspan="4" class="last col-actions-add"><?php echo $this->getChildHtml('add_button') ?></td>
-    </tr>
-    </tfoot>
-    <tbody id="track_row_container">
-    <tr id="track_row_template" class="template no-display">
         <td class="col-carrier">
-            <select name="tracking[__index__][carrier_code]" id="trackingC__index__" class="select carrier" disabled="disabled">
-                <?php foreach ($this->getCarriers() as $_code=>$_name): ?>
-                    <option value="<?php echo $_code ?>"><?php echo $this->escapeHtml($_name) ?></option>
+            <select name="tracking[<%- data.index %>][carrier_code]"
+                    id="trackingC<%- data.index %>"
+                    class="select admin__control-select carrier"
+                    disabled="disabled">
+                <?php foreach ($block->getCarriers() as $_code => $_name): ?>
+                    <option value="<?php /* @escapeNotVerified */ echo $_code ?>"><?php echo $block->escapeHtml($_name) ?></option>
                 <?php endforeach; ?>
             </select>
         </td>
-        <td class="col-title"><input class="input-text number-title" type="text" name="tracking[__index__][title]" id="trackingT__index__" value="" disabled="disabled" /></td>
-        <td class="col-number"><input class="input-text required-entry" type="text" name="tracking[__index__][number]" id="trackingN__index__" value="" disabled="disabled" /></td>
-        <td class="col-delete last"><a href="#" class="action- delete" onclick="trackingControl.deleteRow(event);return false"><span><?php echo __('Delete') ?></span></a></td>
+        <td class="col-title">
+            <input class="input-text admin__control-text number-title"
+                   type="text"
+                   name="tracking[<%- data.index %>][title]"
+                   id="trackingT<%- data.index %>"
+                   value=""
+                   disabled="disabled" />
+        </td>
+        <td class="col-number">
+            <input class="input-text admin__control-text required-entry"
+                   type="text"
+                   name="tracking[<%- data.index %>][number]"
+                   id="trackingN<%- data.index %>"
+                   value=""
+                   disabled="disabled" />
+        </td>
+        <td class="col-delete">
+            <button
+                type="button"
+                class="action-default action-delete"
+                onclick="trackingControl.deleteRow(event);return false">
+                <span><?php /* @escapeNotVerified */ echo __('Delete') ?></span>
+            </button>
+        </td>
     </tr>
-    </tbody>
-</table>
-<script type="text/javascript">
-require(['prototype'], function(){
+</script>
+
+<div class="admin__control-table-wrapper">
+    <table class="data-table admin__control-table" id="tracking_numbers_table">
+        <thead>
+        <tr class="headings">
+            <th class="col-carrier"><?php /* @escapeNotVerified */ echo __('Carrier') ?></th>
+            <th class="col-title"><?php /* @escapeNotVerified */ echo __('Title') ?></th>
+            <th class="col-number"><?php /* @escapeNotVerified */ echo __('Number') ?></th>
+            <th class="col-delete"><?php /* @escapeNotVerified */ echo __('Action') ?></th>
+        </tr>
+        </thead>
+        <tfoot>
+        <tr>
+            <td colspan="4" class="col-actions-add"><?php echo $block->getChildHtml('add_button') ?></td>
+        </tr>
+        </tfoot>
+        <tbody id="track_row_container">
+        </tbody>
+    </table>
+</div>
+<script>
+require([
+    'mage/template',
+    'prototype'
+], function (mageTemplate) {
 
     //<![CDATA[
-    trackingControl.template = new Template('<tr>' + $('track_row_template').innerHTML.replace(/__index__/g, '#{index}') + '<\/tr>');
+    trackingControl.template = mageTemplate('#track_row_template');
     //]]>
 
 });

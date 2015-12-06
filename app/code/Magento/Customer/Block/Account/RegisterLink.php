@@ -1,30 +1,16 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Customer\Block\Account;
 
+use Magento\Customer\Model\Context;
+
 /**
  * Customer register link
+ *
+ * @SuppressWarnings(PHPMD.DepthOfInheritance)
  */
 class RegisterLink extends \Magento\Framework\View\Element\Html\Link
 {
@@ -36,26 +22,33 @@ class RegisterLink extends \Magento\Framework\View\Element\Html\Link
     protected $httpContext;
 
     /**
-     * @var \Magento\Customer\Helper\Data
+     * @var \Magento\Customer\Model\Registration
      */
-    protected $_customerHelper;
+    protected $_registration;
+
+    /**
+     * @var \Magento\Customer\Model\Url
+     */
+    protected $_customerUrl;
 
     /**
      * @param \Magento\Framework\View\Element\Template\Context $context
      * @param \Magento\Framework\App\Http\Context $httpContext
-     * @param \Magento\Customer\Helper\Data $customerHelper
+     * @param \Magento\Customer\Model\Registration $registration
+     * @param \Magento\Customer\Model\Url $customerUrl
      * @param array $data
      */
     public function __construct(
         \Magento\Framework\View\Element\Template\Context $context,
         \Magento\Framework\App\Http\Context $httpContext,
-        \Magento\Customer\Helper\Data $customerHelper,
-        array $data = array()
+        \Magento\Customer\Model\Registration $registration,
+        \Magento\Customer\Model\Url $customerUrl,
+        array $data = []
     ) {
         parent::__construct($context, $data);
         $this->httpContext = $httpContext;
-        $this->_customerHelper = $customerHelper;
-        $this->_isScopePrivate = true;
+        $this->_registration = $registration;
+        $this->_customerUrl = $customerUrl;
     }
 
     /**
@@ -63,7 +56,7 @@ class RegisterLink extends \Magento\Framework\View\Element\Html\Link
      */
     public function getHref()
     {
-        return $this->_customerHelper->getRegisterUrl();
+        return $this->_customerUrl->getRegisterUrl();
     }
 
     /**
@@ -71,8 +64,8 @@ class RegisterLink extends \Magento\Framework\View\Element\Html\Link
      */
     protected function _toHtml()
     {
-        if (!$this->_customerHelper->isRegistrationAllowed()
-            || $this->httpContext->getValue(\Magento\Customer\Helper\Data::CONTEXT_AUTH)
+        if (!$this->_registration->isAllowed()
+            || $this->httpContext->getValue(Context::CONTEXT_AUTH)
         ) {
             return '';
         }

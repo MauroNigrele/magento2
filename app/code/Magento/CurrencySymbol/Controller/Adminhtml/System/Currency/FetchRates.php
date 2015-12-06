@@ -1,36 +1,20 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\CurrencySymbol\Controller\Adminhtml\System\Currency;
+
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Controller\ResultFactory;
 
 class FetchRates extends \Magento\CurrencySymbol\Controller\Adminhtml\System\Currency
 {
     /**
      * Fetch rates action
      *
-     * @return void
-     * @throws \Exception|\Magento\Framework\Model\Exception
+     * @return \Magento\Backend\Model\View\Result\Redirect
      */
     public function execute()
     {
@@ -40,17 +24,14 @@ class FetchRates extends \Magento\CurrencySymbol\Controller\Adminhtml\System\Cur
             $service = $this->getRequest()->getParam('rate_services');
             $this->_getSession()->setCurrencyRateService($service);
             if (!$service) {
-                throw new \Exception(__('Please specify a correct Import Service.'));
+                throw new LocalizedException(__('Please specify a correct Import Service.'));
             }
             try {
                 /** @var \Magento\Directory\Model\Currency\Import\ImportInterface $importModel */
-                $importModel = $this->_objectManager->get(
-                    'Magento\Directory\Model\Currency\Import\Factory'
-                )->create(
-                    $service
-                );
+                $importModel = $this->_objectManager->get('Magento\Directory\Model\Currency\Import\Factory')
+                    ->create($service);
             } catch (\Exception $e) {
-                throw new \Magento\Framework\Model\Exception(__('We can\'t initialize the import model.'));
+                throw new LocalizedException(__('We can\'t initialize the import model.'));
             }
             $rates = $importModel->fetchRates();
             $errors = $importModel->getMessages();
@@ -59,16 +40,19 @@ class FetchRates extends \Magento\CurrencySymbol\Controller\Adminhtml\System\Cur
                     $this->messageManager->addWarning($error);
                 }
                 $this->messageManager->addWarning(
-                    __('All possible rates were fetched, please click on "Save" to apply')
+                    __('Click "Save" to apply the rates we found.')
                 );
             } else {
-                $this->messageManager->addSuccess(__('All rates were fetched, please click on "Save" to apply'));
+                $this->messageManager->addSuccess(__('Click "Save" to apply the rates we found.'));
             }
 
             $backendSession->setRates($rates);
         } catch (\Exception $e) {
             $this->messageManager->addError($e->getMessage());
         }
-        $this->_redirect('adminhtml/*/');
+
+        /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
+        $resultRedirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
+        return $resultRedirect->setPath('adminhtml/*/');
     }
 }

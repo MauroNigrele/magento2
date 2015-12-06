@@ -1,129 +1,137 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Search\Adapter\Mysql\Filter;
 
 use Magento\Framework\DB\Select;
+use Magento\Framework\Search\Adapter\Mysql\ConditionManager;
+use Magento\Framework\Search\Adapter\Mysql\Filter\Builder\FilterInterface;
 use Magento\Framework\Search\Adapter\Mysql\Filter\Builder\Range;
 use Magento\Framework\Search\Adapter\Mysql\Filter\Builder\Term;
+use Magento\Framework\Search\Adapter\Mysql\Filter\Builder\Wildcard;
 use Magento\Framework\Search\Request\FilterInterface as RequestFilterInterface;
+use Magento\Framework\Search\Request\Query\BoolExpression;
 
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 class Builder implements BuilderInterface
 {
     /**
-     * @var Range
+     * @var ConditionManager
      */
-    private $range;
+    private $conditionManager;
+
     /**
-     * @var Term
+     * @var FilterInterface[]
      */
-    private $term;
+    private $filters;
+
+    /**
+     * @var PreprocessorInterface
+     */
+    private $preprocessor;
 
     /**
      * @param Range $range
      * @param Term $term
+     * @param Wildcard $wildcard
+     * @param ConditionManager $conditionManager
+     * @param PreprocessorInterface $preprocessor
      */
     public function __construct(
         Range $range,
-        Term $term
+        Term $term,
+        Wildcard $wildcard,
+        ConditionManager $conditionManager,
+        PreprocessorInterface $preprocessor
     ) {
-        $this->range = $range;
-        $this->term = $term;
+        $this->filters = [
+            RequestFilterInterface::TYPE_RANGE => $range,
+            RequestFilterInterface::TYPE_TERM => $term,
+            RequestFilterInterface::TYPE_WILDCARD => $wildcard,
+        ];
+        $this->conditionManager = $conditionManager;
+        $this->preprocessor = $preprocessor;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function build(RequestFilterInterface $filter)
+    public function build(RequestFilterInterface $filter, $conditionType)
     {
-        switch ($filter->getType()) {
-            case RequestFilterInterface::TYPE_BOOL:
-                /** @var \Magento\Framework\Search\Request\Filter\Bool $filter */
-                $queries = [];
-                $must = $this->buildFilters($filter->getMust(), Select::SQL_AND);
-                if (!empty($must)) {
-                    $queries[] = $must;
-                }
-                $should = $this->buildFilters($filter->getShould(), Select::SQL_OR);
-                if (!empty($should)) {
-                    $queries[] = $this->wrapBrackets($should);
-                }
-                $mustNot = $this->buildFilters($filter->getMustNot(), Select::SQL_AND);
-                if (!empty($mustNot)) {
-                    $queries[] = '!' . $this->wrapBrackets($mustNot);
-                }
-                $query = $this->generateQuery($queries, Select::SQL_AND);
-                break;
-            case RequestFilterInterface::TYPE_TERM:
-                /** @var \Magento\Framework\Search\Request\Filter\Term $filter */
-                $query = $this->term->buildFilter($filter);
-                break;
-            case RequestFilterInterface::TYPE_RANGE:
-                /** @var \Magento\Framework\Search\Request\Filter\Range $filter */
-                $query = $this->range->buildFilter($filter);
-                break;
-            default:
-                throw new \InvalidArgumentException(sprintf('Unknown filter type \'%s\'', $filter->getType()));
+        return $this->processFilter($filter, $this->isNegation($conditionType));
+    }
+
+    /**
+     * @param RequestFilterInterface $filter
+     * @param bool $isNegation
+     * @return string
+     */
+    private function processFilter(RequestFilterInterface $filter, $isNegation)
+    {
+        if ($filter->getType() === RequestFilterInterface::TYPE_BOOL) {
+            $query = $this->processBoolFilter($filter, $isNegation);
+            $query = $this->conditionManager->wrapBrackets($query);
+        } else {
+            if (!isset($this->filters[$filter->getType()])) {
+                throw new \InvalidArgumentException('Unknown filter type ' . $filter->getType());
+            }
+            $query = $this->filters[$filter->getType()]->buildFilter($filter, $isNegation);
+            $query = $this->preprocessor->process($filter, $isNegation, $query);
         }
-        return $this->wrapBrackets($query);
+
+        return $query;
+    }
+
+    /**
+     * @param RequestFilterInterface|\Magento\Framework\Search\Request\Filter\Bool $filter
+     * @param bool $isNegation
+     * @return string
+     */
+    private function processBoolFilter(RequestFilterInterface $filter, $isNegation)
+    {
+        $must = $this->buildFilters($filter->getMust(), Select::SQL_AND, $isNegation);
+        $should = $this->buildFilters($filter->getShould(), Select::SQL_OR, $isNegation);
+        $mustNot = $this->buildFilters(
+            $filter->getMustNot(),
+            Select::SQL_AND,
+            !$isNegation
+        );
+
+        $queries = [
+            $must,
+            $this->conditionManager->wrapBrackets($should),
+            $this->conditionManager->wrapBrackets($mustNot),
+        ];
+
+        return $this->conditionManager->combineQueries($queries, Select::SQL_AND);
     }
 
     /**
      * @param \Magento\Framework\Search\Request\FilterInterface[] $filters
      * @param string $unionOperator
+     * @param bool $isNegation
      * @return string
      */
-    private function buildFilters(array $filters, $unionOperator)
+    private function buildFilters(array $filters, $unionOperator, $isNegation)
     {
         $queries = [];
         foreach ($filters as $filter) {
-            $queries[] = $this->build($filter);
+            $filterQuery = $this->processFilter($filter, $isNegation);
+            $queries[] = $this->conditionManager->wrapBrackets($filterQuery);
         }
-        return $this->generateQuery($queries, $unionOperator);
+        return $this->conditionManager->combineQueries($queries, $unionOperator);
     }
 
     /**
-     * @param string[] $queries
-     * @param string $unionOperator
-     * @return string
+     * @param string $conditionType
+     * @return bool
      */
-    private function generateQuery(array $queries, $unionOperator)
+    private function isNegation($conditionType)
     {
-        $query = implode(
-            ' ' . $unionOperator . ' ',
-            $queries
-        );
-        return $query;
-    }
-
-    /**
-     * @param string $query
-     * @return string
-     */
-    private function wrapBrackets($query)
-    {
-        return empty($query)
-            ? $query
-            : '(' . $query . ')';
+        return BoolExpression::QUERY_CONDITION_NOT === $conditionType;
     }
 }

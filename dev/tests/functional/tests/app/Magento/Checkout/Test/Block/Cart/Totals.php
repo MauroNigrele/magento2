@@ -1,122 +1,195 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Checkout\Test\Block\Cart;
 
-use Mtf\Block\Block;
-use Mtf\Client\Element;
-use Mtf\Client\Element\Locator;
+use Magento\Mtf\Block\Block;
+use Magento\Mtf\Client\Locator;
 
 /**
- * Class Totals
- * Cart totals block
+ * Cart totals block.
  */
 class Totals extends Block
 {
     /**
-     * Grand total search mask
+     * Grand total search mask.
      *
      * @var string
      */
-    protected $grandTotal = '//tr[normalize-space(td)="Grand Total"]//span';
+    protected $grandTotal = '.grand.totals .price';
 
     /**
-     * Subtotal search mask
+     * Grand total search mask.
      *
      * @var string
      */
-    protected $subtotal = '//tr[normalize-space(td)="Subtotal"]//span';
+    protected $grandTotalExclTax = '.totals.grand.excl span';
 
     /**
-     * Tax search mask
+     * Grand total search mask.
      *
      * @var string
      */
-    protected $tax = '//tr[normalize-space(td)="Tax"]//span';
+    protected $grandTotalInclTax = '.totals.grand.incl span';
 
     /**
-     * Get shipping price selector
+     * Subtotal search mask.
+     *
+     * @var string
+     */
+    protected $subtotal = '.totals.sub .price';
+
+    /**
+     * Subtotal search mask.
+     *
+     * @var string
+     */
+    protected $subtotalExclTax = '.totals.sub.excl .price';
+
+    /**
+     * Subtotal search mask.
+     *
+     * @var string
+     */
+    protected $subtotalInclTax = '.totals.sub.incl .price';
+
+    /**
+     * Tax search mask.
+     *
+     * @var string
+     */
+    protected $tax = '.totals-tax span';
+
+    /**
+     * Get shipping price selector.
      *
      * @var string
      */
     protected $shippingPriceSelector = '.shipping.excl .price';
 
     /**
-     * Get shipping price block selector
+     * Get discount.
+     *
+     * @var string
+     */
+    protected $discount = '[class=totals] .amount .price';
+
+    /**
+     * Get shipping price including tax selector.
+     *
+     * @var string
+     */
+    protected $shippingPriceInclTaxSelector = '.shipping.incl .price';
+
+    /**
+     * Get shipping price block selector.
      *
      * @var string
      */
     protected $shippingPriceBlockSelector = '.totals.shipping.excl';
 
     /**
-     * Get Grand Total Text
+     * Block wait element.
      *
-     * @return array|string
+     * @var string
+     */
+    protected $blockWaitElement = '.loading-mask';
+
+    /**
+     * Get Grand Total Text.
+     *
+     * @return string
      */
     public function getGrandTotal()
     {
-        $grandTotal = $this->_rootElement->find($this->grandTotal, Locator::SELECTOR_XPATH)->getText();
+        $grandTotal = $this->_rootElement->find($this->grandTotal, Locator::SELECTOR_CSS)->getText();
         return $this->escapeCurrency($grandTotal);
     }
 
     /**
-     * Get Tax text from Order Totals
+     * Get Grand Total Text.
      *
-     * @return array|string
+     * @return string|null
      */
-    public function getTax()
+    public function getGrandTotalIncludingTax()
     {
-        $taxPrice = $this->_rootElement->find($this->tax, Locator::SELECTOR_XPATH)->getText();
-        return $this->escapeCurrency($taxPrice);
+        $priceElement = $this->_rootElement->find($this->grandTotalInclTax, Locator::SELECTOR_CSS);
+        return $priceElement->isVisible() ? $this->escapeCurrency($priceElement->getText()) : null;
     }
 
     /**
-     * Check that Tax is visible
+     * Get Grand Total Text.
+     *
+     * @return string|null
+     */
+    public function getGrandTotalExcludingTax()
+    {
+        $priceElement = $this->_rootElement->find($this->grandTotalExclTax, Locator::SELECTOR_CSS);
+        return $priceElement->isVisible() ? $this->escapeCurrency($priceElement->getText()) : null;
+    }
+
+    /**
+     * Get Tax text from Order Totals.
+     *
+     * @return string|null
+     */
+    public function getTax()
+    {
+        $priceElement = $this->_rootElement->find($this->tax, Locator::SELECTOR_CSS);
+        return $priceElement->isVisible() ? $this->escapeCurrency($priceElement->getText()) : null;
+    }
+
+    /**
+     * Check that Tax is visible.
      *
      * @return bool
      */
     public function isTaxVisible()
     {
-        return $this->_rootElement->find($this->tax, Locator::SELECTOR_XPATH)->isVisible();
+        return $this->_rootElement->find($this->tax, Locator::SELECTOR_CSS)->isVisible();
     }
 
     /**
-     * Get Subtotal text
+     * Get Subtotal text.
      *
      * @return string
      */
     public function getSubtotal()
     {
-        $subTotal = $this->_rootElement->find($this->subtotal, Locator::SELECTOR_XPATH)->getText();
+        $subTotal = $this->_rootElement->find($this->subtotal, Locator::SELECTOR_CSS)->getText();
         return $this->escapeCurrency($subTotal);
     }
 
     /**
-     * Method that escapes currency symbols
+     * Get Subtotal text.
+     *
+     * @return string|null
+     */
+    public function getSubtotalIncludingTax()
+    {
+        $priceElement = $this->_rootElement->find($this->subtotalInclTax, Locator::SELECTOR_CSS);
+        return $priceElement->isVisible() ? $this->escapeCurrency($priceElement->getText()) : null;
+    }
+
+    /**
+     * Get Subtotal text.
+     *
+     * @return string|null
+     */
+    public function getSubtotalExcludingTax()
+    {
+        $priceElement = $this->_rootElement->find($this->subtotalExclTax, Locator::SELECTOR_CSS);
+        return $priceElement->isVisible() ? $this->escapeCurrency($priceElement->getText()) : null;
+    }
+
+    /**
+     * Method that escapes currency symbols.
      *
      * @param string $price
-     * @return string
+     * @return string|null
      */
     protected function escapeCurrency($price)
     {
@@ -125,23 +198,67 @@ class Totals extends Block
     }
 
     /**
-     * Get shipping price
+     * Get discount.
      *
-     * @return string
+     * @return string|null
      */
-    public function getShippingPrice()
+    public function getDiscount()
     {
-        $shippingPrice = $this->_rootElement->find($this->shippingPriceSelector, Locator::SELECTOR_CSS)->getText();
-        return $this->escapeCurrency($shippingPrice);
+        $priceElement = $this->_rootElement->find($this->discount, Locator::SELECTOR_CSS);
+        return $priceElement->isVisible() ? $this->escapeCurrency($priceElement->getText()) : null;
     }
 
     /**
-     * Is visible shipping price block
+     * Get shipping price.
+     *
+     * @return string|null
+     */
+    public function getShippingPrice()
+    {
+        $priceElement = $this->_rootElement->find($this->shippingPriceSelector, Locator::SELECTOR_CSS);
+        return $priceElement->isVisible() ? $this->escapeCurrency($priceElement->getText()) : null;
+    }
+
+    /**
+     * Get shipping price.
+     *
+     * @return string|null
+     */
+    public function getShippingPriceInclTax()
+    {
+        $priceElement = $this->_rootElement->find($this->shippingPriceInclTaxSelector, Locator::SELECTOR_CSS);
+        return $priceElement->isVisible() ? $this->escapeCurrency($priceElement->getText()) : null;
+    }
+
+    /**
+     * Is visible shipping price block.
      *
      * @return bool
      */
     public function isVisibleShippingPriceBlock()
     {
         return  $this->_rootElement->find($this->shippingPriceBlockSelector, Locator::SELECTOR_CSS)->isVisible();
+    }
+
+    /**
+     * Wait for totals block to update contents asynchronously.
+     *
+     * @return void
+     */
+    public function waitForUpdatedTotals()
+    {
+        // Code under may use JavaScript delay at this point as well.
+        sleep(1);
+        $this->waitForElementNotVisible($this->blockWaitElement);
+    }
+
+    /**
+     * Wait for shipping block to appear
+     *
+     * @return bool|null
+     */
+    public function waitForShippingPriceBlock()
+    {
+        $this->waitForElementVisible($this->shippingPriceBlockSelector, Locator::SELECTOR_CSS);
     }
 }

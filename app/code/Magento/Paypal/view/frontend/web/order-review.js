@@ -1,34 +1,17 @@
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 /*jshint browser:true jquery:true*/
 /*global alert*/
 define([
     "jquery",
+    'Magento_Ui/js/modal/alert',
     "jquery/ui",
     "mage/translate",
     "mage/mage",
     "mage/validation"
-], function($){
+], function($, alert){
     "use strict";
 
     $.widget('mage.orderReview', {
@@ -45,7 +28,8 @@ define([
             updateShippingMethodSubmitSelector: "#update-shipping-method-submit",
             reviewSubmitSelector: "#review-submit",
             shippingMethodUpdateUrl: null,
-            updateOrderSubmitUrl: null
+            updateOrderSubmitUrl: null,
+            canEditShippingMethod: false
         },
 
         /**
@@ -67,7 +51,7 @@ define([
                 .find(this.options.updateShippingMethodSubmitSelector).hide().end()
                 .find(this.options.reviewSubmitSelector).hide();
             this._shippingTobilling();
-            if ($(this.options.shippingSubmitFormSelector).length) {
+            if ($(this.options.shippingSubmitFormSelector).length && this.options.canEditShippingMethod) {
                 this.isShippingSubmitForm = true;
                 $(this.options.shippingSubmitFormSelector).find(this.options.updateShippingMethodSubmitSelector).hide().end()
                     .on('change',
@@ -147,7 +131,9 @@ define([
                                     msg = msg.join("\n");
                                 }
                             }
-                            alert($.mage.__(msg));
+                            alert({
+                                content: $.mage.__(msg)
+                            });
                             return false;
                         }
                         if (response.redirect) {
@@ -159,11 +145,15 @@ define([
                             return false;
                         }
                         this._ajaxComplete();
-                        alert($.mage.__('Sorry, something went wrong.'));
+                        alert({
+                            content: $.mage.__('Sorry, something went wrong.')
+                        });
                     }
                 },
                 error: function () {
-                    alert($.mage.__('Sorry, something went wrong. Please try again later.'));
+                    alert({
+                        content: $.mage.__('Sorry, something went wrong. Please try again later.')
+                    });
                     this._ajaxComplete();
                 }
             });
@@ -176,6 +166,7 @@ define([
             if (this.element.data('mageValidation')) {
                 return this.element.validation().valid();
             }
+            return true;
         },
 
         /**
@@ -307,5 +298,6 @@ define([
             }
         }
     });
-
+    
+    return $.mage.orderReview;
 });

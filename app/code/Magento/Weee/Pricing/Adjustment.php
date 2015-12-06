@@ -1,34 +1,16 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Weee\Pricing;
 
-use Magento\Framework\Pricing\Adjustment\AdjustmentInterface;
-use Magento\Framework\Pricing\Object\SaleableInterface;
-use Magento\Weee\Helper\Data as WeeeHelper;
-use Magento\Tax\Pricing\Adjustment as TaxAdjustment;
 use Magento\Catalog\Pricing\Price\CustomOptionPriceInterface;
+use Magento\Framework\Pricing\Adjustment\AdjustmentInterface;
+use Magento\Framework\Pricing\SaleableInterface;
+use Magento\Framework\Pricing\PriceCurrencyInterface;
+use Magento\Weee\Helper\Data as WeeeHelper;
 
 /**
  * Weee pricing adjustment
@@ -55,14 +37,20 @@ class Adjustment implements AdjustmentInterface
     protected $sortOrder;
 
     /**
+     * @var PriceCurrencyInterface
+     */
+    protected $priceCurrency;
+    /**
      * Constructor
      *
      * @param WeeeHelper $weeeHelper
+     * @param PriceCurrencyInterface $priceCurrency
      * @param int $sortOrder
      */
-    public function __construct(WeeeHelper $weeeHelper, $sortOrder = null)
+    public function __construct(WeeeHelper $weeeHelper, PriceCurrencyInterface $priceCurrency, $sortOrder = null)
     {
         $this->weeeHelper = $weeeHelper;
+        $this->priceCurrency = $priceCurrency;
         $this->sortOrder = $sortOrder;
     }
 
@@ -98,7 +86,7 @@ class Adjustment implements AdjustmentInterface
             [
                 \Magento\Weee\Model\Tax::DISPLAY_INCL,
                 \Magento\Weee\Model\Tax::DISPLAY_INCL_DESCR,
-                \Magento\Weee\Model\Tax::DISPLAY_EXCL_DESCR_INCL
+                \Magento\Weee\Model\Tax::DISPLAY_EXCL_DESCR_INCL,
             ]
         );
     }
@@ -110,13 +98,11 @@ class Adjustment implements AdjustmentInterface
      * @param SaleableInterface $saleableItem
      * @param null|array $context
      * @return float
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function extractAdjustment($amount, SaleableInterface $saleableItem, $context = [])
     {
-        if (isset($context[CustomOptionPriceInterface::CONFIGURATION_OPTION_FLAG])) {
-            return 0;
-        }
-        return $this->getAmount($saleableItem);
+        return 0;
     }
 
     /**
@@ -143,7 +129,8 @@ class Adjustment implements AdjustmentInterface
      */
     public function isExcludedWith($adjustmentCode)
     {
-        return (($adjustmentCode == self::ADJUSTMENT_CODE) || ($adjustmentCode == TaxAdjustment::ADJUSTMENT_CODE));
+        return (($adjustmentCode == self::ADJUSTMENT_CODE) ||
+            ($adjustmentCode == \Magento\Tax\Pricing\Adjustment::ADJUSTMENT_CODE));
     }
 
     /**
@@ -154,7 +141,9 @@ class Adjustment implements AdjustmentInterface
      */
     protected function getAmount(SaleableInterface $saleableItem)
     {
-        return $this->weeeHelper->getAmount($saleableItem);
+        $weeeAmount = $this->weeeHelper->getAmountExclTax($saleableItem);
+        $weeeAmount = $this->priceCurrency->convert($weeeAmount);
+        return $weeeAmount;
     }
 
     /**
@@ -164,6 +153,6 @@ class Adjustment implements AdjustmentInterface
      */
     public function getSortOrder()
     {
-        return $this->weeeHelper->isTaxable() ? $this->sortOrder : -1;
+        return $this->sortOrder;
     }
 }

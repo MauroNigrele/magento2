@@ -1,42 +1,20 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\User\Test\TestCase;
 
 use Magento\Backend\Test\Page\AdminAuthLogin;
-use Magento\User\Test\Fixture\User;
-use Magento\User\Test\Fixture\AdminUserRole;
-use Mtf\Fixture\FixtureFactory;
-use Mtf\TestCase\Injectable;
 use Magento\Backend\Test\Page\Adminhtml\Dashboard;
+use Magento\User\Test\Fixture\User;
 use Magento\User\Test\Page\Adminhtml\UserEdit;
 use Magento\User\Test\Page\Adminhtml\UserIndex;
+use Magento\Mtf\Fixture\FixtureFactory;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
- * Test Creation for UpdateAdminUserEntity
- *
- * Test Flow:
  * Preconditions:
  * 1. Admin user with assigned full access role is created.
  * 2. Custom role with restricted permission: Sales is created
@@ -49,38 +27,54 @@ use Magento\User\Test\Page\Adminhtml\UserIndex;
  * 5. Save user
  * 6. Perform all assertions
  *
- * @group ACL_(MX)
+ * @group ACL_(PS)
  * @ZephyrId MAGETWO-24345
  */
 class UpdateAdminUserEntityTest extends Injectable
 {
+    /* tags */
+    const MVP = 'no';
+    const DOMAIN = 'PS';
+    const TEST_TYPE = 'acceptance_test';
+    /* end tags */
+
     /**
+     * User list page on backend.
+     *
      * @var UserIndex
      */
     protected $userIndex;
 
     /**
+     * User edit page on backend.
+     *
      * @var UserEdit
      */
     protected $userEdit;
 
     /**
+     * Dashboard page on backend.
+     *
      * @var Dashboard
      */
     protected $dashboard;
 
     /**
+     * Authorization page on backend.
+     *
      * @var AdminAuthLogin
      */
     protected $adminAuth;
 
     /**
+     * Fixture factory.
+     *
      * @var FixtureFactory
      */
     protected $fixtureFactory;
 
     /**
-     * Setup necessary data for test
+     * Setup necessary data for test.
      *
      * @param UserIndex $userIndex
      * @param UserEdit $userEdit
@@ -104,16 +98,17 @@ class UpdateAdminUserEntityTest extends Injectable
     }
 
     /**
-     * Runs Update Admin User test
+     * Runs Update Admin User test.
      *
-     * @param User $user
      * @param User $initialUser
+     * @param User $user
      * @param string $loginAsDefaultAdmin
      * @return array
+     * @throws \Exception
      */
     public function testUpdateAdminUser(
-        User $user,
         User $initialUser,
+        User $user,
         $loginAsDefaultAdmin
     ) {
         // Precondition
@@ -131,26 +126,24 @@ class UpdateAdminUserEntityTest extends Injectable
         $this->userEdit->getUserForm()->fill($user);
         $this->userEdit->getPageActions()->save();
 
-        return ['customAdmin' => $this->mergeUsers($user, $initialUser)];
+        return ['user' => $this->mergeUsers($initialUser, $user)];
     }
 
     /**
-     * Merging user data and returns custom user
+     * Merging user data and returns custom user.
      *
-     * @param User $user
      * @param User $initialUser
+     * @param User $user
      * @return User
      */
-    protected function mergeUsers(
-        User $user,
-        User $initialUser
-    ) {
+    protected function mergeUsers(User $initialUser, User $user)
+    {
         $data = array_merge($initialUser->getData(), $user->getData());
         if (isset($data['role_id'])) {
             $data['role_id'] = [
                 'role' => ($user->hasData('role_id'))
                     ? $user->getDataFieldConfig('role_id')['source']->getRole()
-                    : $initialUser->getDataFieldConfig('role_id')['source']->getRole()
+                    : $initialUser->getDataFieldConfig('role_id')['source']->getRole(),
             ];
         }
 
@@ -158,7 +151,7 @@ class UpdateAdminUserEntityTest extends Injectable
     }
 
     /**
-     * Logout Admin User from account
+     * Logout Admin User from account.
      *
      * @return void
      */

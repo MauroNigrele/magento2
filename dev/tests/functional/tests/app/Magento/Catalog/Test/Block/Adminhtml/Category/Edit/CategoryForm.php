@@ -1,61 +1,62 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Test\Block\Adminhtml\Category\Edit;
 
-use Mtf\Factory\Factory;
 use Magento\Backend\Test\Block\Widget\FormTabs;
+use Magento\Mtf\Client\Element\SimpleElement;
+use Magento\Mtf\Client\Locator;
+use Magento\Mtf\Fixture\FixtureInterface;
 
 /**
- * Class CategoryForm
- * Category container block
+ * Category container block.
  */
 class CategoryForm extends FormTabs
 {
     /**
-     * Save button
+     * Default sore switcher block locator.
      *
      * @var string
      */
-    protected $saveButton = '[data-ui-id=category-edit-form-save-button]';
+    protected $storeSwitcherBlock = '.store-switcher';
 
     /**
-     * Category Products grid
+     * Dropdown block locator.
      *
      * @var string
      */
-    protected $productsGridBlock = '#catalog_category_products';
+    protected $dropdownBlock = '.dropdown';
 
     /**
-     * Get Category edit form
+     * Selector for confirm.
      *
-     * @return \Magento\Catalog\Test\Block\Adminhtml\Category\Tab\ProductGrid
+     * @var string
      */
-    public function getCategoryProductsGrid()
+    protected $confirmModal = '.confirm._show[data-role=modal]';
+
+    /**
+     * Fill form with tabs.
+     *
+     * @param FixtureInterface $fixture
+     * @param SimpleElement|null $element
+     * @return FormTabs
+     */
+    public function fill(FixtureInterface $fixture, SimpleElement $element = null)
     {
-        return Factory::getBlockFactory()->getMagentoCatalogAdminhtmlCategoryTabProductGrid(
-            $this->_rootElement->find($this->productsGridBlock)
-        );
+        $tabs = $this->getFieldsByTabs($fixture);
+        if ($fixture->hasData('store_id')) {
+            $store = $fixture->getStoreId();
+            $storeSwitcherBlock = $this->browser->find($this->storeSwitcherBlock);
+            $storeSwitcherBlock->find($this->dropdownBlock, Locator::SELECTOR_CSS, 'liselectstore')->setValue($store);
+            $modalElement = $this->browser->find($this->confirmModal);
+            /** @var \Magento\Ui\Test\Block\Adminhtml\Modal $modal */
+            $modal = $this->blockFactory->create('Magento\Ui\Test\Block\Adminhtml\Modal', ['element' => $modalElement]);
+            $modal->acceptAlert();
+        }
+
+        return $this->fillTabs($tabs, $element);
     }
 }

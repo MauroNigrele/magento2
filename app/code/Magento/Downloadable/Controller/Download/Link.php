@@ -1,32 +1,14 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Downloadable\Controller\Download;
 
-use Magento\Framework\App\ResponseInterface;
 use Magento\Downloadable\Helper\Download as DownloadHelper;
 use Magento\Downloadable\Model\Link\Purchased\Item as PurchasedLink;
+use Magento\Framework\App\ResponseInterface;
 
 class Link extends \Magento\Downloadable\Controller\Download
 {
@@ -44,6 +26,10 @@ class Link extends \Magento\Downloadable\Controller\Download
      * Download link action
      *
      * @return void|ResponseInterface
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
+     * @SuppressWarnings(PHPMD.ExitExpression)
      */
     public function execute()
     {
@@ -72,21 +58,21 @@ class Link extends \Magento\Downloadable\Controller\Download
                 );
                 if ($product->getId()) {
                     $notice = __(
-                        'Please log in to download your product or purchase <a href="%1">%2</a>.',
+                        'Please sign in to download your product or purchase <a href="%1">%2</a>.',
                         $product->getProductUrl(),
                         $product->getName()
                     );
                 } else {
-                    $notice = __('Please log in to download your product.');
+                    $notice = __('Please sign in to download your product.');
                 }
                 $this->messageManager->addNotice($notice);
-                $session->authenticate($this);
+                $session->authenticate();
                 $session->setBeforeAuthUrl(
                     $this->_objectManager->create(
                         'Magento\Framework\UrlInterface'
                     )->getUrl(
                         'downloadable/customer/products/',
-                        array('_secure' => true)
+                        ['_secure' => true]
                     )
                 );
                 return;

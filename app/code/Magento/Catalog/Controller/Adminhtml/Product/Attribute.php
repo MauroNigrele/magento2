@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -27,7 +9,10 @@
  */
 namespace Magento\Catalog\Controller\Adminhtml\Product;
 
-class Attribute extends \Magento\Backend\App\Action
+use Magento\Framework\Controller\Result;
+use Magento\Framework\View\Result\PageFactory;
+
+abstract class Attribute extends \Magento\Backend\App\Action
 {
     /**
      * @var \Magento\Framework\Cache\FrontendInterface
@@ -47,17 +32,27 @@ class Attribute extends \Magento\Backend\App\Action
     protected $_coreRegistry = null;
 
     /**
+     * @var \Magento\Framework\View\Result\PageFactory
+     */
+    protected $resultPageFactory;
+
+    /**
+     * Constructor
+     *
      * @param \Magento\Backend\App\Action\Context $context
      * @param \Magento\Framework\Cache\FrontendInterface $attributeLabelCache
      * @param \Magento\Framework\Registry $coreRegistry
+     * @param \Magento\Framework\View\Result\PageFactory $resultPageFactory
      */
     public function __construct(
         \Magento\Backend\App\Action\Context $context,
         \Magento\Framework\Cache\FrontendInterface $attributeLabelCache,
-        \Magento\Framework\Registry $coreRegistry
+        \Magento\Framework\Registry $coreRegistry,
+        PageFactory $resultPageFactory
     ) {
         $this->_coreRegistry = $coreRegistry;
         $this->_attributeLabelCache = $attributeLabelCache;
+        $this->resultPageFactory = $resultPageFactory;
         parent::__construct($context);
     }
 
@@ -78,36 +73,31 @@ class Attribute extends \Magento\Backend\App\Action
     }
 
     /**
-     * @return $this
+     * @param \Magento\Framework\Phrase|null $title
+     * @return \Magento\Backend\Model\View\Result\Page
      */
-    protected function _initAction()
+    protected function createActionPage($title = null)
     {
-        $this->_title->add(__('Product Attributes'));
-
+        /** @var \Magento\Backend\Model\View\Result\Page $resultPage */
+        $resultPage = $this->resultPageFactory->create();
         if ($this->getRequest()->getParam('popup')) {
             if ($this->getRequest()->getParam('product_tab') == 'variations') {
-                $this->_view->loadLayout(
-                    array('popup', 'catalog_product_attribute_edit_product_tab_variations_popup')
-                );
+                $resultPage->addHandle(['popup', 'catalog_product_attribute_edit_product_tab_variations_popup']);
             } else {
-                $this->_view->loadLayout(array('popup', 'catalog_product_attribute_edit_popup'));
+                $resultPage->addHandle(['popup', 'catalog_product_attribute_edit_popup']);
             }
-            /** @var \Magento\Framework\View\Page\Config $pageConfig */
-            $pageConfig = $this->_objectManager->get('Magento\Framework\View\Page\Config');
+            $pageConfig = $resultPage->getConfig();
             $pageConfig->addBodyClass('attribute-popup');
         } else {
-            $this->_view->loadLayout();
-            $this->_addBreadcrumb(
-                __('Catalog'),
-                __('Catalog')
-            )->_addBreadcrumb(
-                __('Manage Product Attributes'),
-                __('Manage Product Attributes')
-            );
-            $this->_setActiveMenu('Magento_Catalog::catalog_attributes_attributes');
+            $resultPage->addBreadcrumb(__('Catalog'), __('Catalog'))
+                ->addBreadcrumb(__('Manage Product Attributes'), __('Manage Product Attributes'))
+                ->setActiveMenu('Magento_Catalog::catalog_attributes_attributes');
+            if (!empty($title)) {
+                $resultPage->addBreadcrumb($title, $title);
+            }
         }
-
-        return $this;
+        $resultPage->getConfig()->getTitle()->prepend(__('Product Attributes'));
+        return $resultPage;
     }
 
     /**
@@ -127,7 +117,7 @@ class Attribute extends \Magento\Backend\App\Action
             0,
             30
         );
-        $validatorAttrCode = new \Zend_Validate_Regex(array('pattern' => '/^[a-z][a-z_0-9]{0,29}[a-z0-9]$/'));
+        $validatorAttrCode = new \Zend_Validate_Regex(['pattern' => '/^[a-z][a-z_0-9]{0,29}[a-z0-9]$/']);
         if (!$validatorAttrCode->isValid($code)) {
             $code = 'attr_' . ($code ?: substr(md5(time()), 0, 8));
         }

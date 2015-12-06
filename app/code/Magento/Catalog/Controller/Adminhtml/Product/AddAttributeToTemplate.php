@@ -1,39 +1,40 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Controller\Adminhtml\Product;
 
 class AddAttributeToTemplate extends \Magento\Catalog\Controller\Adminhtml\Product
 {
     /**
-     * Add attribute to product template
+     * @var \Magento\Framework\Controller\Result\JsonFactory
+     */
+    protected $resultJsonFactory;
+
+    /**
+     * @param \Magento\Backend\App\Action\Context $context
+     * @param \Magento\Catalog\Controller\Adminhtml\Product\Builder $productBuilder
+     * @param \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
+     */
+    public function __construct(
+        \Magento\Backend\App\Action\Context $context,
+        \Magento\Catalog\Controller\Adminhtml\Product\Builder $productBuilder,
+        \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
+    ) {
+        parent::__construct($context, $productBuilder);
+        $this->resultJsonFactory = $resultJsonFactory;
+    }
+    /**
+     * Add attribute to attribute set
      *
-     * @return void
+     * @return \Magento\Framework\Controller\Result\Json
      */
     public function execute()
     {
         $request = $this->getRequest();
+        $resultJson = $this->resultJsonFactory->create();
         try {
             /** @var \Magento\Eav\Model\Entity\Attribute $attribute */
             $attribute = $this->_objectManager->create('Magento\Eav\Model\Entity\Attribute')
@@ -42,9 +43,9 @@ class AddAttributeToTemplate extends \Magento\Catalog\Controller\Adminhtml\Produ
             $attributeSet = $this->_objectManager->create('Magento\Eav\Model\Entity\Attribute\Set')
                 ->load($request->getParam('template_id'));
 
-            /** @var \Magento\Eav\Model\Resource\Entity\Attribute\Group\Collection $attributeGroupCollection */
+            /** @var \Magento\Eav\Model\ResourceModel\Entity\Attribute\Group\Collection $attributeGroupCollection */
             $attributeGroupCollection = $this->_objectManager->get(
-                'Magento\Eav\Model\Resource\Entity\Attribute\Group\Collection'
+                'Magento\Eav\Model\ResourceModel\Entity\Attribute\Group\Collection'
             );
             $attributeGroupCollection->setAttributeSetFilter($attributeSet->getId());
             $attributeGroupCollection->addFilter('attribute_group_code', $request->getParam('group'));
@@ -54,18 +55,18 @@ class AddAttributeToTemplate extends \Magento\Catalog\Controller\Adminhtml\Produ
 
             $attribute->setAttributeSetId($attributeSet->getId())->loadEntityAttributeIdBySet();
 
-            $attribute->setEntityTypeId($attributeSet->getEntityTypeId())
-                ->setAttributeSetId($request->getParam('template_id'))
+            $attribute->setAttributeSetId($request->getParam('template_id'))
                 ->setAttributeGroupId($attributeGroup->getId())
                 ->setSortOrder('0')
                 ->save();
 
-            $this->getResponse()->representJson($attribute->toJson());
+            $resultJson->setJsonData($attribute->toJson());
         } catch (\Exception $e) {
-            $response = new \Magento\Framework\Object();
+            $response = new \Magento\Framework\DataObject();
             $response->setError(false);
             $response->setMessage($e->getMessage());
-            $this->getResponse()->representJson($response->toJson());
+            $resultJson->setJsonData($response->toJson());
         }
+        return $resultJson;
     }
 }

@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Payment\Model\Method;
 
@@ -27,9 +9,12 @@ use Magento\Framework\Pricing\PriceCurrencyInterface;
 
 /**
  * Free payment method
+ * @method \Magento\Quote\Api\Data\PaymentMethodExtensionInterface getExtensionAttributes()
  */
 class Free extends \Magento\Payment\Model\Method\AbstractMethod
 {
+    const PAYMENT_METHOD_FREE_CODE = 'free';
+
     /**
      * XML Paths for configuration constants
      */
@@ -51,7 +36,7 @@ class Free extends \Magento\Payment\Model\Method\AbstractMethod
      *
      * @var string
      */
-    protected $_code = 'free';
+    protected $_code = self::PAYMENT_METHOD_FREE_CODE;
 
     /**
      * @var PriceCurrencyInterface
@@ -59,38 +44,71 @@ class Free extends \Magento\Payment\Model\Method\AbstractMethod
     protected $priceCurrency;
 
     /**
-     * @param \Magento\Framework\Event\ManagerInterface $eventManager
+     * @param \Magento\Framework\Model\Context $context
+     * @param \Magento\Framework\Registry $registry
+     * @param \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory
+     * @param \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory
      * @param \Magento\Payment\Helper\Data $paymentData
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
-     * @param \Magento\Framework\Logger\AdapterFactory $logAdapterFactory
+     * @param Logger $logger
      * @param PriceCurrencyInterface $priceCurrency
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
      * @param array $data
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
-        \Magento\Framework\Event\ManagerInterface $eventManager,
+        \Magento\Framework\Model\Context $context,
+        \Magento\Framework\Registry $registry,
+        \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory,
+        \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory,
         \Magento\Payment\Helper\Data $paymentData,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Magento\Framework\Logger\AdapterFactory $logAdapterFactory,
+        \Magento\Payment\Model\Method\Logger $logger,
         PriceCurrencyInterface $priceCurrency,
-        array $data = array()
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        array $data = []
     ) {
-        parent::__construct($eventManager, $paymentData, $scopeConfig, $logAdapterFactory, $data);
+        parent::__construct(
+            $context,
+            $registry,
+            $extensionFactory,
+            $customAttributeFactory,
+            $paymentData,
+            $scopeConfig,
+            $logger,
+            $resource,
+            $resourceCollection,
+            $data
+        );
         $this->priceCurrency = $priceCurrency;
     }
 
     /**
      * Check whether method is available
      *
-     * @param \Magento\Sales\Model\Quote|null $quote
+     * @param \Magento\Quote\Api\Data\CartInterface|\Magento\Quote\Model\Quote|null $quote
      * @return bool
      */
-    public function isAvailable($quote = null)
+    public function isAvailable(\Magento\Quote\Api\Data\CartInterface $quote = null)
     {
         return parent::isAvailable(
             $quote
-        ) && !empty($quote) && $this->priceCurrency->round(
+        ) && null !== $quote && $this->priceCurrency->round(
             $quote->getGrandTotal()
         ) == 0;
+    }
+
+    /**
+     * Check whether method is enabled in config
+     *
+     * @param \Magento\Quote\Model\Quote|null $quote
+     * @return bool
+     */
+    public function isAvailableInConfig($quote = null)
+    {
+        return parent::isAvailable($quote);
     }
 
     /**

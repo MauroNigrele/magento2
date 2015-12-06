@@ -1,116 +1,26 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Model\Order;
 
+use Magento\Framework\Api\AttributeValueFactory;
+use Magento\Sales\Api\Data\InvoiceInterface;
+use Magento\Sales\Model\AbstractModel;
 use Magento\Sales\Model\EntityInterface;
 
 /**
- * @method \Magento\Sales\Model\Resource\Order\Invoice _getResource()
- * @method \Magento\Sales\Model\Resource\Order\Invoice getResource()
- * @method int getStoreId()
- * @method \Magento\Sales\Model\Order\Invoice setStoreId(int $value)
- * @method float getBaseGrandTotal()
- * @method \Magento\Sales\Model\Order\Invoice setBaseGrandTotal(float $value)
- * @method float getShippingTaxAmount()
- * @method \Magento\Sales\Model\Order\Invoice setShippingTaxAmount(float $value)
- * @method float getTaxAmount()
- * @method \Magento\Sales\Model\Order\Invoice setTaxAmount(float $value)
- * @method float getBaseTaxAmount()
- * @method \Magento\Sales\Model\Order\Invoice setBaseTaxAmount(float $value)
- * @method float getStoreToOrderRate()
- * @method \Magento\Sales\Model\Order\Invoice setStoreToOrderRate(float $value)
- * @method float getBaseShippingTaxAmount()
- * @method \Magento\Sales\Model\Order\Invoice setBaseShippingTaxAmount(float $value)
- * @method float getBaseDiscountAmount()
- * @method \Magento\Sales\Model\Order\Invoice setBaseDiscountAmount(float $value)
- * @method float getBaseToOrderRate()
- * @method \Magento\Sales\Model\Order\Invoice setBaseToOrderRate(float $value)
- * @method float getGrandTotal()
- * @method \Magento\Sales\Model\Order\Invoice setGrandTotal(float $value)
- * @method float getShippingAmount()
- * @method \Magento\Sales\Model\Order\Invoice setShippingAmount(float $value)
- * @method float getSubtotalInclTax()
- * @method \Magento\Sales\Model\Order\Invoice setSubtotalInclTax(float $value)
- * @method float getBaseSubtotalInclTax()
- * @method \Magento\Sales\Model\Order\Invoice setBaseSubtotalInclTax(float $value)
- * @method float getStoreToBaseRate()
- * @method \Magento\Sales\Model\Order\Invoice setStoreToBaseRate(float $value)
- * @method float getBaseShippingAmount()
- * @method \Magento\Sales\Model\Order\Invoice setBaseShippingAmount(float $value)
- * @method float getTotalQty()
- * @method \Magento\Sales\Model\Order\Invoice setTotalQty(float $value)
- * @method float getBaseToGlobalRate()
- * @method \Magento\Sales\Model\Order\Invoice setBaseToGlobalRate(float $value)
- * @method float getSubtotal()
- * @method \Magento\Sales\Model\Order\Invoice setSubtotal(float $value)
- * @method float getBaseSubtotal()
- * @method \Magento\Sales\Model\Order\Invoice setBaseSubtotal(float $value)
- * @method float getDiscountAmount()
- * @method \Magento\Sales\Model\Order\Invoice setDiscountAmount(float $value)
- * @method int getBillingAddressId()
- * @method \Magento\Sales\Model\Order\Invoice setBillingAddressId(int $value)
- * @method int getIsUsedForRefund()
- * @method \Magento\Sales\Model\Order\Invoice setIsUsedForRefund(int $value)
- * @method int getOrderId()
- * @method \Magento\Sales\Model\Order\Invoice setOrderId(int $value)
- * @method int getEmailSent()
- * @method \Magento\Sales\Model\Order\Invoice setEmailSent(int $value)
- * @method int getCanVoidFlag()
- * @method \Magento\Sales\Model\Order\Invoice setCanVoidFlag(int $value)
- * @method int getState()
- * @method \Magento\Sales\Model\Order\Invoice setState(int $value)
- * @method int getShippingAddressId()
- * @method \Magento\Sales\Model\Order\Invoice setShippingAddressId(int $value)
- * @method string getStoreCurrencyCode()
- * @method \Magento\Sales\Model\Order\Invoice setStoreCurrencyCode(string $value)
- * @method string getTransactionId()
- * @method \Magento\Sales\Model\Order\Invoice setTransactionId(string $value)
- * @method string getOrderCurrencyCode()
- * @method \Magento\Sales\Model\Order\Invoice setOrderCurrencyCode(string $value)
- * @method string getBaseCurrencyCode()
- * @method \Magento\Sales\Model\Order\Invoice setBaseCurrencyCode(string $value)
- * @method string getGlobalCurrencyCode()
- * @method \Magento\Sales\Model\Order\Invoice setGlobalCurrencyCode(string $value)
- * @method \Magento\Sales\Model\Order\Invoice setIncrementId(string $value)
- * @method string getCreatedAt()
- * @method \Magento\Sales\Model\Order\Invoice setCreatedAt(string $value)
- * @method string getUpdatedAt()
- * @method \Magento\Sales\Model\Order\Invoice setUpdatedAt(string $value)
- * @method float getHiddenTaxAmount()
- * @method \Magento\Sales\Model\Order\Invoice setHiddenTaxAmount(float $value)
- * @method float getBaseHiddenTaxAmount()
- * @method \Magento\Sales\Model\Order\Invoice setBaseHiddenTaxAmount(float $value)
- * @method float getShippingHiddenTaxAmount()
- * @method \Magento\Sales\Model\Order\Invoice setShippingHiddenTaxAmount(float $value)
- * @method float getBaseShippingHiddenTaxAmnt()
- * @method \Magento\Sales\Model\Order\Invoice setBaseShippingHiddenTaxAmnt(float $value)
- * @method float getShippingInclTax()
- * @method \Magento\Sales\Model\Order\Invoice setShippingInclTax(float $value)
- * @method float getBaseShippingInclTax()
- * @method \Magento\Sales\Model\Order\Invoice setBaseShippingInclTax(float $value)
+ * @method \Magento\Sales\Model\Order\Invoice setSendEmail(bool $value)
+ * @method \Magento\Sales\Model\Order\Invoice setCustomerNote(string $value)
+ * @method string getCustomerNote()
+ * @method \Magento\Sales\Model\Order\Invoice setCustomerNoteNotify(bool $value)
+ * @method bool getCustomerNoteNotify()
+ * @SuppressWarnings(PHPMD.ExcessivePublicCount)
+ * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterface
+class Invoice extends AbstractModel implements EntityInterface, InvoiceInterface
 {
     /**
      * Invoice states
@@ -144,16 +54,6 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
     protected static $_states;
 
     /**
-     * @var \Magento\Sales\Model\Resource\Order\Invoice\Item\Collection
-     */
-    protected $_items;
-
-    /**
-     * @var \Magento\Sales\Model\Resource\Order\Invoice\Comment\Collection
-     */
-    protected $_comments;
-
-    /**
      * @var \Magento\Sales\Model\Order
      */
     protected $_order;
@@ -163,7 +63,7 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
      *
      * @var array
      */
-    protected $_rounders = array();
+    protected $_rounders = [];
 
     /**
      * @var bool
@@ -203,7 +103,7 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
     protected $_calculatorFactory;
 
     /**
-     * @var \Magento\Sales\Model\Resource\Order\Invoice\Item\CollectionFactory
+     * @var \Magento\Sales\Model\ResourceModel\Order\Invoice\Item\CollectionFactory
      */
     protected $_invoiceItemCollectionFactory;
 
@@ -213,39 +113,40 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
     protected $_invoiceCommentFactory;
 
     /**
-     * @var \Magento\Sales\Model\Resource\Order\Invoice\Comment\CollectionFactory
+     * @var \Magento\Sales\Model\ResourceModel\Order\Invoice\Comment\CollectionFactory
      */
     protected $_commentCollectionFactory;
 
     /**
      * @param \Magento\Framework\Model\Context $context
      * @param \Magento\Framework\Registry $registry
-     * @param \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate
-     * @param \Magento\Framework\Stdlib\DateTime $dateTime
+     * @param \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory
+     * @param AttributeValueFactory $customAttributeFactory
      * @param Invoice\Config $invoiceConfig
      * @param \Magento\Sales\Model\OrderFactory $orderFactory
      * @param \Magento\Framework\Math\CalculatorFactory $calculatorFactory
-     * @param \Magento\Sales\Model\Resource\Order\Invoice\Item\CollectionFactory $invoiceItemCollectionFactory
+     * @param \Magento\Sales\Model\ResourceModel\Order\Invoice\Item\CollectionFactory $invoiceItemCollectionFactory
      * @param Invoice\CommentFactory $invoiceCommentFactory
-     * @param \Magento\Sales\Model\Resource\Order\Invoice\Comment\CollectionFactory $commentCollectionFactory
-     * @param \Magento\Framework\Model\Resource\AbstractResource $resource
-     * @param \Magento\Framework\Data\Collection\Db $resourceCollection
+     * @param \Magento\Sales\Model\ResourceModel\Order\Invoice\Comment\CollectionFactory $commentCollectionFactory
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
      * @param array $data
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
         \Magento\Framework\Model\Context $context,
         \Magento\Framework\Registry $registry,
-        \Magento\Framework\Stdlib\DateTime\TimezoneInterface $localeDate,
-        \Magento\Framework\Stdlib\DateTime $dateTime,
+        \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory,
+        AttributeValueFactory $customAttributeFactory,
         \Magento\Sales\Model\Order\Invoice\Config $invoiceConfig,
         \Magento\Sales\Model\OrderFactory $orderFactory,
         \Magento\Framework\Math\CalculatorFactory $calculatorFactory,
-        \Magento\Sales\Model\Resource\Order\Invoice\Item\CollectionFactory $invoiceItemCollectionFactory,
+        \Magento\Sales\Model\ResourceModel\Order\Invoice\Item\CollectionFactory $invoiceItemCollectionFactory,
         \Magento\Sales\Model\Order\Invoice\CommentFactory $invoiceCommentFactory,
-        \Magento\Sales\Model\Resource\Order\Invoice\Comment\CollectionFactory $commentCollectionFactory,
-        \Magento\Framework\Model\Resource\AbstractResource $resource = null,
-        \Magento\Framework\Data\Collection\Db $resourceCollection = null,
-        array $data = array()
+        \Magento\Sales\Model\ResourceModel\Order\Invoice\Comment\CollectionFactory $commentCollectionFactory,
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        array $data = []
     ) {
         $this->_invoiceConfig = $invoiceConfig;
         $this->_orderFactory = $orderFactory;
@@ -253,7 +154,15 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
         $this->_invoiceItemCollectionFactory = $invoiceItemCollectionFactory;
         $this->_invoiceCommentFactory = $invoiceCommentFactory;
         $this->_commentCollectionFactory = $commentCollectionFactory;
-        parent::__construct($context, $registry, $localeDate, $dateTime, $resource, $resourceCollection, $data);
+        parent::__construct(
+            $context,
+            $registry,
+            $extensionFactory,
+            $customAttributeFactory,
+            $resource,
+            $resourceCollection,
+            $data
+        );
     }
 
     /**
@@ -263,7 +172,7 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
      */
     protected function _construct()
     {
-        $this->_init('Magento\Sales\Model\Resource\Order\Invoice');
+        $this->_init('Magento\Sales\Model\ResourceModel\Order\Invoice');
     }
 
     /**
@@ -389,8 +298,8 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
     public function canVoid()
     {
         if ($this->getState() == self::STATE_PAID) {
-            if (is_null($this->getCanVoidFlag())) {
-                return (bool)$this->getOrder()->getPayment()->canVoid($this);
+            if ($this->getCanVoidFlag() === null) {
+                return (bool)$this->getOrder()->getPayment()->canVoid();
             }
         }
         return (bool)$this->getCanVoidFlag();
@@ -448,17 +357,12 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
         }
         $this->_wasPayCalled = true;
 
-        $invoiceState = self::STATE_PAID;
-        if ($this->getOrder()->getPayment()->hasForcedState()) {
-            $invoiceState = $this->getOrder()->getPayment()->getForcedState();
-        }
-
-        $this->setState($invoiceState);
+        $this->setState(self::STATE_PAID);
 
         $this->getOrder()->getPayment()->pay($this);
         $this->getOrder()->setTotalPaid($this->getOrder()->getTotalPaid() + $this->getGrandTotal());
         $this->getOrder()->setBaseTotalPaid($this->getOrder()->getBaseTotalPaid() + $this->getBaseGrandTotal());
-        $this->_eventManager->dispatch('sales_order_invoice_pay', array($this->_eventObject => $this));
+        $this->_eventManager->dispatch('sales_order_invoice_pay', [$this->_eventObject => $this]);
         return $this;
     }
 
@@ -509,8 +413,12 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
         $order->setTaxInvoiced($order->getTaxInvoiced() - $this->getTaxAmount());
         $order->setBaseTaxInvoiced($order->getBaseTaxInvoiced() - $this->getBaseTaxAmount());
 
-        $order->setHiddenTaxInvoiced($order->getHiddenTaxInvoiced() - $this->getHiddenTaxAmount());
-        $order->setBaseHiddenTaxInvoiced($order->getBaseHiddenTaxInvoiced() - $this->getBaseHiddenTaxAmount());
+        $order->setDiscountTaxCompensationInvoiced(
+            $order->getDiscountTaxCompensationInvoiced() - $this->getDiscountTaxCompensationAmount()
+        );
+        $order->setBaseDiscountTaxCompensationInvoiced(
+            $order->getBaseDiscountTaxCompensationInvoiced() - $this->getBaseDiscountTaxCompensationAmount()
+        );
 
         $order->setShippingTaxInvoiced($order->getShippingTaxInvoiced() - $this->getShippingTaxAmount());
         $order->setBaseShippingTaxInvoiced($order->getBaseShippingTaxInvoiced() - $this->getBaseShippingTaxAmount());
@@ -522,14 +430,14 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
         $order->setBaseDiscountInvoiced($order->getBaseDiscountInvoiced() - $this->getBaseDiscountAmount());
         $order->setBaseTotalInvoicedCost($order->getBaseTotalInvoicedCost() - $this->getBaseCost());
 
-
         if ($this->getState() == self::STATE_PAID) {
-            $this->getOrder()->setTotalPaid($this->getOrder()->getTotalPaid() - $this->getGrandTotal());
-            $this->getOrder()->setBaseTotalPaid($this->getOrder()->getBaseTotalPaid() - $this->getBaseGrandTotal());
+            $order->setTotalPaid($order->getTotalPaid() - $this->getGrandTotal());
+            $order->setBaseTotalPaid($order->getBaseTotalPaid() - $this->getBaseGrandTotal());
         }
         $this->setState(self::STATE_CANCELED);
-        $this->getOrder()->setState(\Magento\Sales\Model\Order::STATE_PROCESSING, true);
-        $this->_eventManager->dispatch('sales_order_invoice_cancel', array($this->_eventObject => $this));
+        $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING)
+            ->setStatus($order->getConfig()->getStateDefaultStatus(\Magento\Sales\Model\Order::STATE_PROCESSING));
+        $this->_eventManager->dispatch('sales_order_invoice_cancel', [$this->_eventObject => $this]);
         return $this;
     }
 
@@ -558,7 +466,7 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
     {
         if ($price) {
             if (!isset($this->_rounders[$type])) {
-                $this->_rounders[$type] = $this->_calculatorFactory->create(array('scope' => $this->getStore()));
+                $this->_rounders[$type] = $this->_calculatorFactory->create(['scope' => $this->getStore()]);
             }
             $price = $this->_rounders[$type]->deltaRound($price, $negative);
         }
@@ -568,20 +476,20 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
     /**
      * Get invoice items collection
      *
-     * @return \Magento\Sales\Model\Resource\Order\Invoice\Item\Collection
+     * @return \Magento\Sales\Model\ResourceModel\Order\Invoice\Item\Collection
      */
     public function getItemsCollection()
     {
-        if (empty($this->_items)) {
-            $this->_items = $this->_invoiceItemCollectionFactory->create()->setInvoiceFilter($this->getId());
+        if (!$this->hasData(InvoiceInterface::ITEMS)) {
+            $this->setItems($this->_invoiceItemCollectionFactory->create()->setInvoiceFilter($this->getId()));
 
             if ($this->getId()) {
-                foreach ($this->_items as $item) {
+                foreach ($this->getItems() as $item) {
                     $item->setInvoice($this);
                 }
             }
         }
-        return $this->_items;
+        return $this->getItems();
     }
 
     /**
@@ -589,7 +497,7 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
      */
     public function getAllItems()
     {
-        $items = array();
+        $items = [];
         foreach ($this->getItemsCollection() as $item) {
             if (!$item->isDeleted()) {
                 $items[] = $item;
@@ -634,11 +542,11 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
     public static function getStates()
     {
         if (null === self::$_states) {
-            self::$_states = array(
+            self::$_states = [
                 self::STATE_OPEN => __('Pending'),
                 self::STATE_PAID => __('Paid'),
-                self::STATE_CANCELED => __('Canceled')
-            );
+                self::STATE_CANCELED => __('Canceled'),
+            ];
         }
         return self::$_states;
     }
@@ -647,11 +555,11 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
      * Retrieve invoice state name by state identifier
      *
      * @param   int|null $stateId
-     * @return  string
+     * @return \Magento\Framework\Phrase
      */
     public function getStateName($stateId = null)
     {
-        if (is_null($stateId)) {
+        if ($stateId === null) {
             $stateId = $this->getState();
         }
 
@@ -670,12 +578,13 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
      * Apply to order, order items etc.
      *
      * @return $this
-     * @throws \Magento\Framework\Model\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function register()
     {
         if ($this->getId()) {
-            throw new \Magento\Framework\Model\Exception(__('We cannot register an existing invoice'));
+            throw new \Magento\Framework\Exception\LocalizedException(__('We cannot register an existing invoice'));
         }
 
         foreach ($this->getAllItems() as $item) {
@@ -713,12 +622,15 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
         $order->setTaxInvoiced($order->getTaxInvoiced() + $this->getTaxAmount());
         $order->setBaseTaxInvoiced($order->getBaseTaxInvoiced() + $this->getBaseTaxAmount());
 
-        $order->setHiddenTaxInvoiced($order->getHiddenTaxInvoiced() + $this->getHiddenTaxAmount());
-        $order->setBaseHiddenTaxInvoiced($order->getBaseHiddenTaxInvoiced() + $this->getBaseHiddenTaxAmount());
+        $order->setDiscountTaxCompensationInvoiced(
+            $order->getDiscountTaxCompensationInvoiced() + $this->getDiscountTaxCompensationAmount()
+        );
+        $order->setBaseDiscountTaxCompensationInvoiced(
+            $order->getBaseDiscountTaxCompensationInvoiced() + $this->getBaseDiscountTaxCompensationAmount()
+        );
 
         $order->setShippingTaxInvoiced($order->getShippingTaxInvoiced() + $this->getShippingTaxAmount());
         $order->setBaseShippingTaxInvoiced($order->getBaseShippingTaxInvoiced() + $this->getBaseShippingTaxAmount());
-
 
         $order->setShippingInvoiced($order->getShippingInvoiced() + $this->getShippingAmount());
         $order->setBaseShippingInvoiced($order->getBaseShippingInvoiced() + $this->getBaseShippingAmount());
@@ -734,7 +646,7 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
 
         $this->_eventManager->dispatch(
             'sales_order_invoice_register',
-            array($this->_eventObject => $this, 'order' => $order)
+            [$this->_eventObject => $this, 'order' => $order]
         );
         return $this;
     }
@@ -784,27 +696,28 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
 
     /**
      * @param bool $reload
-     * @return \Magento\Sales\Model\Resource\Order\Invoice\Comment\Collection
+     * @return \Magento\Sales\Model\ResourceModel\Order\Invoice\Comment\Collection
      */
     public function getCommentsCollection($reload = false)
     {
-        if (is_null($this->_comments) || $reload) {
-            $this->_comments = $this->_commentCollectionFactory->create()->setInvoiceFilter(
-                $this->getId()
-            )->setCreatedAtOrder();
+        if (!$this->hasData(InvoiceInterface::COMMENTS) || $reload) {
+            $comments = $this->_commentCollectionFactory->create()->setInvoiceFilter($this->getId())
+                ->setCreatedAtOrder();
+
+            $this->setComments($comments);
             /**
              * When invoice created with adding comment, comments collection
              * must be loaded before we added this comment.
              */
-            $this->_comments->load();
+            $this->getComments()->load();
 
             if ($this->getId()) {
-                foreach ($this->_comments as $comment) {
+                foreach ($this->getComments() as $comment) {
                     $comment->setInvoice($this);
                 }
             }
         }
-        return $this->_comments;
+        return $this->getComments();
     }
 
     /**
@@ -816,8 +729,8 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
     {
         $this->unsetData();
         $this->_origData = null;
-        $this->_items = null;
-        $this->_comments = null;
+        $this->setItems(null);
+        $this->setComments(null);
         $this->_order = null;
         $this->_saveBeforeDestruct = false;
         $this->_wasPayCalled = false;
@@ -831,14 +744,7 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
      */
     protected function _beforeSave()
     {
-        parent::_beforeSave();
-
-        if (!$this->getOrderId() && $this->getOrder()) {
-            $this->setOrderId($this->getOrder()->getId());
-            $this->setBillingAddressId($this->getOrder()->getBillingAddress()->getId());
-        }
-
-        return $this;
+        return parent::_beforeSave();
     }
 
     /**
@@ -848,26 +754,44 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
      */
     protected function _afterSave()
     {
-
-        if (null !== $this->_items) {
-            /**
-             * Save invoice items
-             */
-            foreach ($this->_items as $item) {
-                $item->setOrderItem($item->getOrderItem());
-                $item->save();
-            }
-        }
-
-        if (null !== $this->_comments) {
-            foreach ($this->_comments as $comment) {
-                $comment->save();
-            }
-        }
-
         return parent::_afterSave();
     }
 
+    /**
+     * Returns invoice items
+     *
+     * @return \Magento\Sales\Api\Data\InvoiceItemInterface[]
+     */
+    public function getItems()
+    {
+        if ($this->getData(InvoiceInterface::ITEMS) === null && $this->getId()) {
+            $collection = $this->_invoiceItemCollectionFactory->create()->setInvoiceFilter($this->getId());
+            foreach ($collection as $item) {
+                $item->setInvoice($this);
+            }
+            $this->setData(InvoiceInterface::ITEMS, $collection->getItems());
+        }
+        return $this->getData(InvoiceInterface::ITEMS);
+    }
+
+    /**
+     * Return invoice comments
+     *
+     * @return \Magento\Sales\Api\Data\InvoiceCommentInterface[]
+     */
+    public function getComments()
+    {
+        if ($this->getData(InvoiceInterface::COMMENTS) === null && $this->getId()) {
+            $collection = $this->_commentCollectionFactory->create()->setInvoiceFilter($this->getId());
+            foreach ($collection as $comment) {
+                $comment->setInvoice($this);
+            }
+            $this->setData(InvoiceInterface::COMMENTS, $collection->getItems());
+        }
+        return $this->getData(InvoiceInterface::COMMENTS);
+    }
+
+    //@codeCoverageIgnoreStart
     /**
      * Returns increment id
      *
@@ -877,4 +801,809 @@ class Invoice extends \Magento\Sales\Model\AbstractModel implements EntityInterf
     {
         return $this->getData('increment_id');
     }
+
+    /**
+     * Returns base_total_refunded
+     *
+     * @return float
+     */
+    public function getBaseTotalRefunded()
+    {
+        return $this->getData(InvoiceInterface::BASE_TOTAL_REFUNDED);
+    }
+
+    /**
+     * Returns discount_description
+     *
+     * @return string
+     */
+    public function getDiscountDescription()
+    {
+        return $this->getData(InvoiceInterface::DISCOUNT_DESCRIPTION);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setItems($items)
+    {
+        return $this->setData(InvoiceInterface::ITEMS, $items);
+    }
+
+    /**
+     * Returns base_currency_code
+     *
+     * @return string
+     */
+    public function getBaseCurrencyCode()
+    {
+        return $this->getData(InvoiceInterface::BASE_CURRENCY_CODE);
+    }
+
+    /**
+     * Returns base_discount_amount
+     *
+     * @return float
+     */
+    public function getBaseDiscountAmount()
+    {
+        return $this->getData(InvoiceInterface::BASE_DISCOUNT_AMOUNT);
+    }
+
+    /**
+     * Returns base_grand_total
+     *
+     * @return float
+     */
+    public function getBaseGrandTotal()
+    {
+        return $this->getData(InvoiceInterface::BASE_GRAND_TOTAL);
+    }
+
+    /**
+     * Returns base_discount_tax_compensation_amount
+     *
+     * @return float
+     */
+    public function getBaseDiscountTaxCompensationAmount()
+    {
+        return $this->getData(InvoiceInterface::BASE_DISCOUNT_TAX_COMPENSATION_AMOUNT);
+    }
+
+    /**
+     * Returns base_shipping_amount
+     *
+     * @return float
+     */
+    public function getBaseShippingAmount()
+    {
+        return $this->getData(InvoiceInterface::BASE_SHIPPING_AMOUNT);
+    }
+
+    /**
+     * Returns base_shipping_discount_tax_compensation_amnt
+     *
+     * @return float
+     */
+    public function getBaseShippingDiscountTaxCompensationAmnt()
+    {
+        return $this->getData(InvoiceInterface::BASE_SHIPPING_DISCOUNT_TAX_COMPENSATION_AMNT);
+    }
+
+    /**
+     * Returns base_shipping_incl_tax
+     *
+     * @return float
+     */
+    public function getBaseShippingInclTax()
+    {
+        return $this->getData(InvoiceInterface::BASE_SHIPPING_INCL_TAX);
+    }
+
+    /**
+     * Returns base_shipping_tax_amount
+     *
+     * @return float
+     */
+    public function getBaseShippingTaxAmount()
+    {
+        return $this->getData(InvoiceInterface::BASE_SHIPPING_TAX_AMOUNT);
+    }
+
+    /**
+     * Returns base_subtotal
+     *
+     * @return float
+     */
+    public function getBaseSubtotal()
+    {
+        return $this->getData(InvoiceInterface::BASE_SUBTOTAL);
+    }
+
+    /**
+     * Returns base_subtotal_incl_tax
+     *
+     * @return float
+     */
+    public function getBaseSubtotalInclTax()
+    {
+        return $this->getData(InvoiceInterface::BASE_SUBTOTAL_INCL_TAX);
+    }
+
+    /**
+     * Returns base_tax_amount
+     *
+     * @return float
+     */
+    public function getBaseTaxAmount()
+    {
+        return $this->getData(InvoiceInterface::BASE_TAX_AMOUNT);
+    }
+
+    /**
+     * Returns base_to_global_rate
+     *
+     * @return float
+     */
+    public function getBaseToGlobalRate()
+    {
+        return $this->getData(InvoiceInterface::BASE_TO_GLOBAL_RATE);
+    }
+
+    /**
+     * Returns base_to_order_rate
+     *
+     * @return float
+     */
+    public function getBaseToOrderRate()
+    {
+        return $this->getData(InvoiceInterface::BASE_TO_ORDER_RATE);
+    }
+
+    /**
+     * Returns billing_address_id
+     *
+     * @return int
+     */
+    public function getBillingAddressId()
+    {
+        return $this->getData(InvoiceInterface::BILLING_ADDRESS_ID);
+    }
+
+    /**
+     * Returns can_void_flag
+     *
+     * @return int
+     */
+    public function getCanVoidFlag()
+    {
+        return $this->getData(InvoiceInterface::CAN_VOID_FLAG);
+    }
+
+    /**
+     * Returns created_at
+     *
+     * @return string
+     */
+    public function getCreatedAt()
+    {
+        return $this->getData(InvoiceInterface::CREATED_AT);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setCreatedAt($createdAt)
+    {
+        return $this->setData(InvoiceInterface::CREATED_AT, $createdAt);
+    }
+
+    /**
+     * Returns discount_amount
+     *
+     * @return float
+     */
+    public function getDiscountAmount()
+    {
+        return $this->getData(InvoiceInterface::DISCOUNT_AMOUNT);
+    }
+
+    /**
+     * Returns email_sent
+     *
+     * @return int
+     */
+    public function getEmailSent()
+    {
+        return $this->getData(InvoiceInterface::EMAIL_SENT);
+    }
+
+    /**
+     * Returns global_currency_code
+     *
+     * @return string
+     */
+    public function getGlobalCurrencyCode()
+    {
+        return $this->getData(InvoiceInterface::GLOBAL_CURRENCY_CODE);
+    }
+
+    /**
+     * Returns grand_total
+     *
+     * @return float
+     */
+    public function getGrandTotal()
+    {
+        return $this->getData(InvoiceInterface::GRAND_TOTAL);
+    }
+
+    /**
+     * Returns discount_tax_compensation_amount
+     *
+     * @return float
+     */
+    public function getDiscountTaxCompensationAmount()
+    {
+        return $this->getData(InvoiceInterface::DISCOUNT_TAX_COMPENSATION_AMOUNT);
+    }
+
+    /**
+     * Returns is_used_for_refund
+     *
+     * @return int
+     */
+    public function getIsUsedForRefund()
+    {
+        return $this->getData(InvoiceInterface::IS_USED_FOR_REFUND);
+    }
+
+    /**
+     * Returns order_currency_code
+     *
+     * @return string
+     */
+    public function getOrderCurrencyCode()
+    {
+        return $this->getData(InvoiceInterface::ORDER_CURRENCY_CODE);
+    }
+
+    /**
+     * Returns order_id
+     *
+     * @return int
+     */
+    public function getOrderId()
+    {
+        return $this->getData(InvoiceInterface::ORDER_ID);
+    }
+
+    /**
+     * Returns shipping_address_id
+     *
+     * @return int
+     */
+    public function getShippingAddressId()
+    {
+        return $this->getData(InvoiceInterface::SHIPPING_ADDRESS_ID);
+    }
+
+    /**
+     * Returns shipping_amount
+     *
+     * @return float
+     */
+    public function getShippingAmount()
+    {
+        return $this->getData(InvoiceInterface::SHIPPING_AMOUNT);
+    }
+
+    /**
+     * Returns shipping_discount_tax_compensation_amount
+     *
+     * @return float
+     */
+    public function getShippingDiscountTaxCompensationAmount()
+    {
+        return $this->getData(InvoiceInterface::SHIPPING_DISCOUNT_TAX_COMPENSATION_AMOUNT);
+    }
+
+    /**
+     * Returns shipping_incl_tax
+     *
+     * @return float
+     */
+    public function getShippingInclTax()
+    {
+        return $this->getData(InvoiceInterface::SHIPPING_INCL_TAX);
+    }
+
+    /**
+     * Returns shipping_tax_amount
+     *
+     * @return float
+     */
+    public function getShippingTaxAmount()
+    {
+        return $this->getData(InvoiceInterface::SHIPPING_TAX_AMOUNT);
+    }
+
+    /**
+     * Returns state
+     *
+     * @return int
+     */
+    public function getState()
+    {
+        return $this->getData(InvoiceInterface::STATE);
+    }
+
+    /**
+     * Returns store_currency_code
+     *
+     * @return string
+     */
+    public function getStoreCurrencyCode()
+    {
+        return $this->getData(InvoiceInterface::STORE_CURRENCY_CODE);
+    }
+
+    /**
+     * Returns store_id
+     *
+     * @return int
+     */
+    public function getStoreId()
+    {
+        return $this->getData(InvoiceInterface::STORE_ID);
+    }
+
+    /**
+     * Returns store_to_base_rate
+     *
+     * @return float
+     */
+    public function getStoreToBaseRate()
+    {
+        return $this->getData(InvoiceInterface::STORE_TO_BASE_RATE);
+    }
+
+    /**
+     * Returns store_to_order_rate
+     *
+     * @return float
+     */
+    public function getStoreToOrderRate()
+    {
+        return $this->getData(InvoiceInterface::STORE_TO_ORDER_RATE);
+    }
+
+    /**
+     * Returns subtotal
+     *
+     * @return float
+     */
+    public function getSubtotal()
+    {
+        return $this->getData(InvoiceInterface::SUBTOTAL);
+    }
+
+    /**
+     * Returns subtotal_incl_tax
+     *
+     * @return float
+     */
+    public function getSubtotalInclTax()
+    {
+        return $this->getData(InvoiceInterface::SUBTOTAL_INCL_TAX);
+    }
+
+    /**
+     * Returns tax_amount
+     *
+     * @return float
+     */
+    public function getTaxAmount()
+    {
+        return $this->getData(InvoiceInterface::TAX_AMOUNT);
+    }
+
+    /**
+     * Returns total_qty
+     *
+     * @return float
+     */
+    public function getTotalQty()
+    {
+        return $this->getData(InvoiceInterface::TOTAL_QTY);
+    }
+
+    /**
+     * Returns transaction_id
+     *
+     * @return string
+     */
+    public function getTransactionId()
+    {
+        return $this->getData(InvoiceInterface::TRANSACTION_ID);
+    }
+
+    /**
+     * Sets transaction_id
+     *
+     * @param string $transactionId
+     * @return $this
+     */
+    public function setTransactionId($transactionId)
+    {
+        return $this->setData(InvoiceInterface::TRANSACTION_ID, $transactionId);
+    }
+
+    /**
+     * Returns updated_at
+     *
+     * @return string
+     */
+    public function getUpdatedAt()
+    {
+        return $this->getData(InvoiceInterface::UPDATED_AT);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setComments($comments)
+    {
+        return $this->setData(InvoiceInterface::COMMENTS, $comments);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setUpdatedAt($timestamp)
+    {
+        return $this->setData(InvoiceInterface::UPDATED_AT, $timestamp);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setStoreId($id)
+    {
+        return $this->setData(InvoiceInterface::STORE_ID, $id);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseGrandTotal($amount)
+    {
+        return $this->setData(InvoiceInterface::BASE_GRAND_TOTAL, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setShippingTaxAmount($amount)
+    {
+        return $this->setData(InvoiceInterface::SHIPPING_TAX_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setTaxAmount($amount)
+    {
+        return $this->setData(InvoiceInterface::TAX_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseTaxAmount($amount)
+    {
+        return $this->setData(InvoiceInterface::BASE_TAX_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setStoreToOrderRate($rate)
+    {
+        return $this->setData(InvoiceInterface::STORE_TO_ORDER_RATE, $rate);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseShippingTaxAmount($amount)
+    {
+        return $this->setData(InvoiceInterface::BASE_SHIPPING_TAX_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseDiscountAmount($amount)
+    {
+        return $this->setData(InvoiceInterface::BASE_DISCOUNT_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseToOrderRate($rate)
+    {
+        return $this->setData(InvoiceInterface::BASE_TO_ORDER_RATE, $rate);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setGrandTotal($amount)
+    {
+        return $this->setData(InvoiceInterface::GRAND_TOTAL, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setShippingAmount($amount)
+    {
+        return $this->setData(InvoiceInterface::SHIPPING_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setSubtotalInclTax($amount)
+    {
+        return $this->setData(InvoiceInterface::SUBTOTAL_INCL_TAX, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseSubtotalInclTax($amount)
+    {
+        return $this->setData(InvoiceInterface::BASE_SUBTOTAL_INCL_TAX, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setStoreToBaseRate($rate)
+    {
+        return $this->setData(InvoiceInterface::STORE_TO_BASE_RATE, $rate);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseShippingAmount($amount)
+    {
+        return $this->setData(InvoiceInterface::BASE_SHIPPING_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setTotalQty($qty)
+    {
+        return $this->setData(InvoiceInterface::TOTAL_QTY, $qty);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseToGlobalRate($rate)
+    {
+        return $this->setData(InvoiceInterface::BASE_TO_GLOBAL_RATE, $rate);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setSubtotal($amount)
+    {
+        return $this->setData(InvoiceInterface::SUBTOTAL, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseSubtotal($amount)
+    {
+        return $this->setData(InvoiceInterface::BASE_SUBTOTAL, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setDiscountAmount($amount)
+    {
+        return $this->setData(InvoiceInterface::DISCOUNT_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBillingAddressId($id)
+    {
+        return $this->setData(InvoiceInterface::BILLING_ADDRESS_ID, $id);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setIsUsedForRefund($isUsedForRefund)
+    {
+        return $this->setData(InvoiceInterface::IS_USED_FOR_REFUND, $isUsedForRefund);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setOrderId($id)
+    {
+        return $this->setData(InvoiceInterface::ORDER_ID, $id);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setEmailSent($emailSent)
+    {
+        return $this->setData(InvoiceInterface::EMAIL_SENT, $emailSent);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setCanVoidFlag($canVoidFlag)
+    {
+        return $this->setData(InvoiceInterface::CAN_VOID_FLAG, $canVoidFlag);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setState($state)
+    {
+        return $this->setData(InvoiceInterface::STATE, $state);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setShippingAddressId($id)
+    {
+        return $this->setData(InvoiceInterface::SHIPPING_ADDRESS_ID, $id);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setStoreCurrencyCode($code)
+    {
+        return $this->setData(InvoiceInterface::STORE_CURRENCY_CODE, $code);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setOrderCurrencyCode($code)
+    {
+        return $this->setData(InvoiceInterface::ORDER_CURRENCY_CODE, $code);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseCurrencyCode($code)
+    {
+        return $this->setData(InvoiceInterface::BASE_CURRENCY_CODE, $code);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setGlobalCurrencyCode($code)
+    {
+        return $this->setData(InvoiceInterface::GLOBAL_CURRENCY_CODE, $code);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setIncrementId($id)
+    {
+        return $this->setData(InvoiceInterface::INCREMENT_ID, $id);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setDiscountTaxCompensationAmount($amount)
+    {
+        return $this->setData(InvoiceInterface::DISCOUNT_TAX_COMPENSATION_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseDiscountTaxCompensationAmount($amount)
+    {
+        return $this->setData(InvoiceInterface::BASE_DISCOUNT_TAX_COMPENSATION_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setShippingDiscountTaxCompensationAmount($amount)
+    {
+        return $this->setData(InvoiceInterface::SHIPPING_DISCOUNT_TAX_COMPENSATION_AMOUNT, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseShippingDiscountTaxCompensationAmnt($amnt)
+    {
+        return $this->setData(InvoiceInterface::BASE_SHIPPING_DISCOUNT_TAX_COMPENSATION_AMNT, $amnt);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setShippingInclTax($amount)
+    {
+        return $this->setData(InvoiceInterface::SHIPPING_INCL_TAX, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseShippingInclTax($amount)
+    {
+        return $this->setData(InvoiceInterface::BASE_SHIPPING_INCL_TAX, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setBaseTotalRefunded($amount)
+    {
+        return $this->setData(InvoiceInterface::BASE_TOTAL_REFUNDED, $amount);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setDiscountDescription($description)
+    {
+        return $this->setData(InvoiceInterface::DISCOUNT_DESCRIPTION, $description);
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @return \Magento\Sales\Api\Data\InvoiceExtensionInterface|null
+     */
+    public function getExtensionAttributes()
+    {
+        return $this->_getExtensionAttributes();
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @param \Magento\Sales\Api\Data\InvoiceExtensionInterface $extensionAttributes
+     * @return $this
+     */
+    public function setExtensionAttributes(\Magento\Sales\Api\Data\InvoiceExtensionInterface $extensionAttributes)
+    {
+        return $this->_setExtensionAttributes($extensionAttributes);
+    }
+    //@codeCoverageIgnoreEnd
 }

@@ -1,39 +1,19 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Downloadable\Test\TestCase;
 
-use Mtf\TestCase\Injectable;
-use Magento\Catalog\Test\Fixture\CatalogCategory;
-use Magento\Catalog\Test\Page\Adminhtml\CatalogProductNew;
+use Magento\Catalog\Test\Fixture\Category;
 use Magento\Catalog\Test\Page\Adminhtml\CatalogProductIndex;
-use Magento\Downloadable\Test\Fixture\DownloadableProductInjectable;
+use Magento\Catalog\Test\Page\Adminhtml\CatalogProductNew;
+use Magento\Downloadable\Test\Fixture\DownloadableProduct;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
- * Test Creation for Create DownloadableProductEntity
- *
- * Test Flow:
+ * Steps:
  * 1. Log in to Backend.
  * 2. Navigate to Products > Catalog.
  * 3. Start to create new Downloadable product.
@@ -42,15 +22,21 @@ use Magento\Downloadable\Test\Fixture\DownloadableProductInjectable;
  * 6. Save product.
  * 7. Verify created product.
  *
- * @group Downloadable_Product_(CS)
+ * @group Downloadable_Product_(MX)
  * @ZephyrId MAGETWO-23425
  */
 class CreateDownloadableProductEntityTest extends Injectable
 {
+    /* tags */
+    const TEST_TYPE = 'acceptance_test';
+    const MVP = 'yes';
+    const DOMAIN = 'MX';
+    /* end tags */
+
     /**
      * Fixture category
      *
-     * @var CatalogCategory
+     * @var Category
      */
     protected $category;
 
@@ -71,10 +57,10 @@ class CreateDownloadableProductEntityTest extends Injectable
     /**
      * Persist category
      *
-     * @param CatalogCategory $category
+     * @param Category $category
      * @return array
      */
-    public function __prepare(CatalogCategory $category)
+    public function __prepare(Category $category)
     {
         $category->persist();
         return [
@@ -85,13 +71,13 @@ class CreateDownloadableProductEntityTest extends Injectable
     /**
      * Filling objects of the class
      *
-     * @param CatalogCategory $category
+     * @param Category $category
      * @param CatalogProductIndex $catalogProductIndexNewPage
      * @param CatalogProductNew $catalogProductNewPage
      * @return void
      */
     public function __inject(
-        CatalogCategory $category,
+        Category $category,
         CatalogProductIndex $catalogProductIndexNewPage,
         CatalogProductNew $catalogProductNewPage
     ) {
@@ -103,12 +89,13 @@ class CreateDownloadableProductEntityTest extends Injectable
     /**
      * Test create downloadable product
      *
-     * @param DownloadableProductInjectable $product
-     * @param CatalogCategory $category
+     * @param DownloadableProduct $product
+     * @param Category $category
      * @return void
      */
-    public function testCreateDownloadableProduct(DownloadableProductInjectable $product, CatalogCategory $category)
+    public function test(DownloadableProduct $product, Category $category)
     {
+        // Steps
         $this->catalogProductIndex->open();
         $this->catalogProductIndex->getGridPageActionBlock()->addProduct('downloadable');
         $productBlockForm = $this->catalogProductNew->getProductForm();

@@ -1,37 +1,19 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Review\Test\Block\Adminhtml\Edit;
 
-use Mtf\Client\Driver\Selenium\Element;
-use Mtf\Client\Element\Locator;
+use Magento\Mtf\Client\Locator;
+use Magento\Mtf\Client\Element\SimpleElement;
 
 /**
  * Class RatingElement
  * Rating typified element
  */
-class RatingElement extends Element
+class RatingElement extends SimpleElement
 {
     /**
      * Rating selector
@@ -71,10 +53,10 @@ class RatingElement extends Element
     /**
      * Get rating vote
      *
-     * @param Element $rating
+     * @param SimpleElement $rating
      * @return int
      */
-    protected function getRatingVote(Element $rating)
+    protected function getRatingVote(SimpleElement $rating)
     {
         $ratingVote = 5;
         $ratingVoteElement = $rating->find(sprintf($this->checkedRating, $ratingVote));
@@ -100,7 +82,7 @@ class RatingElement extends Element
         while ($rating->isVisible()) {
             $ratings[$count] = [
                 'title' => $rating->find('./label/span', Locator::SELECTOR_XPATH)->getText(),
-                'rating' => $this->getRatingVote($rating)
+                'rating' => $this->getRatingVote($rating),
             ];
 
             ++$count;

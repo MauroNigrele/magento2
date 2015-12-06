@@ -1,26 +1,8 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Contact\Controller\Index;
 
@@ -34,7 +16,7 @@ class Post extends \Magento\Contact\Controller\Index
      */
     public function execute()
     {
-        $post = $this->getRequest()->getPost();
+        $post = $this->getRequest()->getPostValue();
         if (!$post) {
             $this->_redirect('*/*/');
             return;
@@ -42,7 +24,7 @@ class Post extends \Magento\Contact\Controller\Index
 
         $this->inlineTranslation->suspend();
         try {
-            $postObject = new \Magento\Framework\Object();
+            $postObject = new \Magento\Framework\DataObject();
             $postObject->setData($post);
 
             $error = false;
@@ -68,11 +50,11 @@ class Post extends \Magento\Contact\Controller\Index
                 ->setTemplateIdentifier($this->scopeConfig->getValue(self::XML_PATH_EMAIL_TEMPLATE, $storeScope))
                 ->setTemplateOptions(
                     [
-                        'area' => \Magento\Framework\App\Area::AREA_FRONTEND,
-                        'store' => $this->storeManager->getStore()->getId()
+                        'area' => \Magento\Backend\App\Area\FrontNameResolver::AREA_CODE,
+                        'store' => \Magento\Store\Model\Store::DEFAULT_STORE_ID,
                     ]
                 )
-                ->setTemplateVars(array('data' => $postObject))
+                ->setTemplateVars(['data' => $postObject])
                 ->setFrom($this->scopeConfig->getValue(self::XML_PATH_EMAIL_SENDER, $storeScope))
                 ->addTo($this->scopeConfig->getValue(self::XML_PATH_EMAIL_RECIPIENT, $storeScope))
                 ->setReplyTo($post['email'])
@@ -83,14 +65,14 @@ class Post extends \Magento\Contact\Controller\Index
             $this->messageManager->addSuccess(
                 __('Thanks for contacting us with your comments and questions. We\'ll respond to you very soon.')
             );
-            $this->_redirect('*/*/');
+            $this->_redirect('contact/index');
             return;
         } catch (\Exception $e) {
             $this->inlineTranslation->resume();
             $this->messageManager->addError(
                 __('We can\'t process your request right now. Sorry, that\'s all we know.')
             );
-            $this->_redirect('*/*/');
+            $this->_redirect('contact/index');
             return;
         }
     }

@@ -1,56 +1,48 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 ?>
-<?php if($this->hasMethods()): ?>
+<?php if ($block->hasMethods()): ?>
 <div id="order-billing_method_form">
-    <dl class="payment-methods">
+    <dl class="admin__payment-methods">
     <?php
-        $_methods       = $this->getMethods();
+        $_methods       = $block->getMethods();
         $_methodsCount  = count($_methods);
         $_counter = 0;
     ?>
     <?php foreach ($_methods as $_method): $_code = $_method->getCode(); $_counter++; ?>
-        <dt>
+        <dt class="admin__field-option">
         <?php if ($_methodsCount > 1): ?>
-            <input id="p_method_<?php echo $_code ?>" value="<?php echo $_code ?>" type="radio" name="payment[method]" title="<?php echo $this->escapeHtml($_method->getTitle()) ?>" onclick="payment.switchMethod('<?php echo $_code ?>')"<?php if($this->getSelectedMethodCode()==$_code): ?> checked="checked"<?php endif; ?> <?php if ($_counter == $_methodsCount) : ?>class="validate-one-required-by-name"<?php endif;?>/>
+            <input id="p_method_<?php /* @escapeNotVerified */ echo $_code ?>" value="<?php /* @escapeNotVerified */ echo $_code ?>" type="radio" name="payment[method]"
+                   title="<?php echo $block->escapeHtml($_method->getTitle()) ?>"
+                   onclick="payment.switchMethod('<?php /* @escapeNotVerified */ echo $_code ?>')"<?php if ($block->getSelectedMethodCode() == $_code): ?> checked="checked"<?php endif; ?>
+                   class="admin__control-radio<?php if ($_counter == $_methodsCount) : ?> validate-one-required-by-name<?php endif; ?>"/>
         <?php else :?>
-            <span class="no-display"><input id="p_method_<?php echo $_code ?>" value="<?php echo $_code ?>" type="radio" name="payment[method]" checked="checked" /></span>
+            <span class="no-display">
+                <input id="p_method_<?php /* @escapeNotVerified */ echo $_code ?>" value="<?php /* @escapeNotVerified */ echo $_code ?>" type="radio"
+                       name="payment[method]" class="admin__control-radio"
+                       checked="checked"/>
+            </span>
         <?php endif;?>
 
-            <label for="p_method_<?php echo $_code ?>"><?php echo $this->escapeHtml($_method->getTitle()) ?></label>
+            <label class="admin__field-label" for="p_method_<?php /* @escapeNotVerified */ echo $_code ?>"><?php echo $block->escapeHtml($_method->getTitle()) ?></label>
         </dt>
-        <dd>
-            <?php echo $this->getChildHtml('payment.method.'.$_code) ?>
+        <dd class="admin__payment-method-wapper">
+            <?php /* @escapeNotVerified */ echo $block->getChildHtml('payment.method.' . $_code) ?>
         </dd>
     <?php endforeach; ?>
     </dl>
 </div>
-<script type="text/javascript">
+<script>
     require(["Magento_Sales/order/create/form"], function(){
-        order.setPaymentMethod('<?php echo $this->getSelectedMethodCode() ?>')
+        order.setPaymentMethod('<?php /* @escapeNotVerified */ echo $block->getSelectedMethodCode() ?>')
     });
 </script>
 <?php else: ?>
-    <div><?php echo __('No Payment Methods') ?></div>
+    <div class="admin__message-empty"><?php /* @escapeNotVerified */ echo __('No Payment Methods') ?></div>
 <?php endif; ?>

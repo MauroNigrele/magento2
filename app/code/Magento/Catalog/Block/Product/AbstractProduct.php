@@ -1,37 +1,21 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Block\Product;
 
 /**
- * Catalog Product Abstract Block
+ * Class AbstractProduct
+ * @SuppressWarnings(PHPMD.NumberOfChildren)
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-abstract class AbstractProduct extends \Magento\Framework\View\Element\Template
+class AbstractProduct extends \Magento\Framework\View\Element\Template
 {
     /**
      * @var array
      */
-    protected $_priceBlock = array();
+    protected $_priceBlock = [];
 
     /**
      * Flag which allow/disallow to use link for as low as price
@@ -52,14 +36,7 @@ abstract class AbstractProduct extends \Magento\Framework\View\Element\Template
      *
      * @var array
      */
-    protected $_columnCountLayoutDepend = array();
-
-    /**
-     * Default MAP renderer type
-     *
-     * @var string
-     */
-    protected $_mapRenderer = 'msrp';
+    protected $_columnCountLayoutDepend = [];
 
     /**
      * Core registry
@@ -67,13 +44,6 @@ abstract class AbstractProduct extends \Magento\Framework\View\Element\Template
      * @var \Magento\Framework\Registry
      */
     protected $_coreRegistry;
-
-    /**
-     * Catalog data
-     *
-     * @var \Magento\Catalog\Helper\Data
-     */
-    protected $_catalogData;
 
     /**
      * Tax data
@@ -120,29 +90,27 @@ abstract class AbstractProduct extends \Magento\Framework\View\Element\Template
     protected $reviewRenderer;
 
     /**
-     * @var \Magento\CatalogInventory\Service\V1\StockItemService
+     * @var \Magento\CatalogInventory\Api\StockRegistryInterface
      */
-    protected $stockItemService;
+    protected $stockRegistry;
 
     /**
      * @param Context $context
      * @param array $data
      */
-    public function __construct(
-        \Magento\Catalog\Block\Product\Context $context,
-        array $data = array()
-    ) {
+    public function __construct(\Magento\Catalog\Block\Product\Context $context, array $data = [])
+    {
         $this->_imageHelper = $context->getImageHelper();
+        $this->imageBuilder = $context->getImageBuilder();
         $this->_compareProduct = $context->getCompareProduct();
         $this->_wishlistHelper = $context->getWishlistHelper();
         $this->_cartHelper = $context->getCartHelper();
         $this->_catalogConfig = $context->getCatalogConfig();
         $this->_coreRegistry = $context->getRegistry();
         $this->_taxData = $context->getTaxData();
-        $this->_catalogData = $context->getCatalogHelper();
         $this->_mathRandom = $context->getMathRandom();
         $this->reviewRenderer = $context->getReviewRenderer();
-        $this->stockItemService = $context->getStockItemService();
+        $this->stockRegistry = $context->getStockRegistry();
         parent::__construct($context, $data);
     }
 
@@ -154,14 +122,14 @@ abstract class AbstractProduct extends \Magento\Framework\View\Element\Template
      * @param array $additional
      * @return string
      */
-    public function getAddToCartUrl($product, $additional = array())
+    public function getAddToCartUrl($product, $additional = [])
     {
         if ($product->getTypeInstance()->hasRequiredOptions($product)) {
             if (!isset($additional['_escape'])) {
                 $additional['_escape'] = true;
             }
             if (!isset($additional['_query'])) {
-                $additional['_query'] = array();
+                $additional['_query'] = [];
             }
             $additional['_query']['options'] = 'cart';
 
@@ -180,12 +148,12 @@ abstract class AbstractProduct extends \Magento\Framework\View\Element\Template
      * @param array $additional
      * @return string
      */
-    public function getSubmitUrl($product, $additional = array())
+    public function getSubmitUrl($product, $additional = [])
     {
         $submitRouteData = $this->getData('submit_route_data');
         if ($submitRouteData) {
             $route = $submitRouteData['route'];
-            $params = isset($submitRouteData['params']) ? $submitRouteData['params'] : array();
+            $params = isset($submitRouteData['params']) ? $submitRouteData['params'] : [];
             $submitUrl = $this->getUrl($route, array_merge($params, $additional));
         } else {
             $submitUrl = $this->getAddToCartUrl($product, $additional);
@@ -222,7 +190,8 @@ abstract class AbstractProduct extends \Magento\Framework\View\Element\Template
      */
     public function getMinimalQty($product)
     {
-        $minSaleQty = $this->stockItemService->getMinSaleQty($product->getId());
+        $stockItem = $this->stockRegistry->getStockItem($product->getId(), $product->getStore()->getWebsiteId());
+        $minSaleQty = $stockItem->getMinSaleQty();
         return $minSaleQty > 0 ? $minSaleQty : null;
     }
 
@@ -260,11 +229,12 @@ abstract class AbstractProduct extends \Magento\Framework\View\Element\Template
      * to get correct values in different products lists.
      * E.g. crosssells, upsells, new products, recently viewed
      *
-     * @param \Magento\Catalog\Model\Resource\Product\Collection $collection
-     * @return \Magento\Catalog\Model\Resource\Product\Collection
+     * @param \Magento\Catalog\Model\ResourceModel\Product\Collection $collection
+     * @return \Magento\Catalog\Model\ResourceModel\Product\Collection
      */
-    protected function _addProductAttributesAndPrices(\Magento\Catalog\Model\Resource\Product\Collection $collection)
-    {
+    protected function _addProductAttributesAndPrices(
+        \Magento\Catalog\Model\ResourceModel\Product\Collection $collection
+    ) {
         return $collection
             ->addMinimalPrice()
             ->addFinalPrice()
@@ -274,35 +244,13 @@ abstract class AbstractProduct extends \Magento\Framework\View\Element\Template
     }
 
     /**
-     * Retrieve given media attribute label or product name if no label
-     *
-     * @param \Magento\Catalog\Model\Product $product
-     * @param string $mediaAttributeCode
-     *
-     * @return string
-     */
-    public function getImageLabel($product = null, $mediaAttributeCode = 'image')
-    {
-        if (is_null($product)) {
-            $product = $this->getProduct();
-        }
-
-        $label = $product->getData($mediaAttributeCode . '_label');
-        if (empty($label)) {
-            $label = $product->getName();
-        }
-
-        return $label;
-    }
-
-    /**
      * Retrieve Product URL using UrlDataObject
      *
      * @param \Magento\Catalog\Model\Product $product
      * @param array $additional the route params
      * @return string
      */
-    public function getProductUrl($product, $additional = array())
+    public function getProductUrl($product, $additional = [])
     {
         if ($this->hasProductUrl($product)) {
             if (!isset($additional['_escape'])) {
@@ -411,6 +359,7 @@ abstract class AbstractProduct extends \Magento\Framework\View\Element\Template
      *
      * @param \Magento\Catalog\Model\Product $product
      * @return bool
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName)
      */
     public function getCanShowProductPrice($product)
     {
@@ -424,141 +373,9 @@ abstract class AbstractProduct extends \Magento\Framework\View\Element\Template
      */
     public function displayProductStockStatus()
     {
-        $statusInfo = new \Magento\Framework\Object(array('display_status' => true));
-        $this->_eventManager->dispatch('catalog_block_product_status_display', array('status' => $statusInfo));
+        $statusInfo = new \Magento\Framework\DataObject(['display_status' => true]);
+        $this->_eventManager->dispatch('catalog_block_product_status_display', ['status' => $statusInfo]);
         return (bool) $statusInfo->getDisplayStatus();
-    }
-
-    /**
-     * Product thumbnail image url getter
-     *
-     * @param \Magento\Catalog\Model\Product $product
-     * @return string
-     */
-    public function getThumbnailUrl($product)
-    {
-        return (string) $this->_imageHelper->init($product, 'thumbnail')
-            ->resize($this->getThumbnailSize());
-    }
-
-    /**
-     * Thumbnail image size getter
-     *
-     * @return int
-     */
-    public function getThumbnailSize()
-    {
-        return $this->getVar('product_thumbnail_image_size', 'Magento_Catalog');
-    }
-
-    /**
-     * Product thumbnail image sidebar url getter
-     *
-     * @param \Magento\Catalog\Model\Product $product
-     * @return string
-     */
-    public function getThumbnailSidebarUrl($product)
-    {
-        return (string) $this->_imageHelper->init($product, 'thumbnail')
-            ->resize($this->getThumbnailSidebarSize());
-    }
-
-    /**
-     * Thumbnail image sidebar size getter
-     *
-     * @return int
-     */
-    public function getThumbnailSidebarSize()
-    {
-        return $this->getVar('product_thumbnail_image_sidebar_size', 'Magento_Catalog');
-    }
-
-    /**
-     * Product small image url getter
-     *
-     * @param \Magento\Catalog\Model\Product $product
-     * @return string
-     */
-    public function getSmallImageUrl($product)
-    {
-        return (string) $this->_imageHelper->init($product, 'small_image')
-            ->resize($this->getSmallImageSize());
-    }
-
-    /**
-     * Small image size getter
-     *
-     * @return int
-     */
-    public function getSmallImageSize()
-    {
-        return $this->getVar('product_small_image_size', 'Magento_Catalog');
-    }
-
-    /**
-     * Product small image sidebar url getter
-     *
-     * @param \Magento\Catalog\Model\Product $product
-     * @return string
-     */
-    public function getSmallImageSidebarUrl($product)
-    {
-        return (string) $this->_imageHelper->init($product, 'small_image')
-            ->resize($this->getSmallImageSidebarSize());
-    }
-
-    /**
-     * Small image sidebar size getter
-     *
-     * @return int
-     */
-    public function getSmallImageSidebarSize()
-    {
-        return $this->getVar('product_small_image_sidebar_size', 'Magento_Catalog');
-    }
-
-    /**
-     * Product base image url getter
-     *
-     * @param \Magento\Catalog\Model\Product $product
-     * @return string
-     */
-    public function getBaseImageUrl($product)
-    {
-        return (string) $this->_imageHelper->init($product, 'image')
-            ->resize($this->getBaseImageSize());
-    }
-
-    /**
-     * Base image size getter
-     *
-     * @return int
-     */
-    public function getBaseImageSize()
-    {
-        return $this->getVar('product_base_image_size', 'Magento_Catalog');
-    }
-
-    /**
-     * Product base image icon url getter
-     *
-     * @param \Magento\Catalog\Model\Product $product
-     * @return string
-     */
-    public function getBaseImageIconUrl($product)
-    {
-        return (string) $this->_imageHelper->init($product, 'image')
-            ->resize($this->getBaseImageIconSize());
-    }
-
-    /**
-     * Base image icon size getter
-     *
-     * @return int
-     */
-    public function getBaseImageIconSize()
-    {
-        return $this->getVar('product_base_image_icon_size', 'Magento_Catalog');
     }
 
     /**
@@ -615,5 +432,78 @@ abstract class AbstractProduct extends \Magento\Framework\View\Element\Template
             $price = $priceRender->render($priceType, $product, $arguments);
         }
         return $price;
+    }
+
+    /**
+     * Whether redirect to cart enabled
+     *
+     * @return bool
+     */
+    public function isRedirectToCartEnabled()
+    {
+        return $this->_scopeConfig->getValue(
+            'checkout/cart/redirect_to_cart',
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE
+        );
+    }
+
+    /**
+     * Retrieve product details html
+     *
+     * @param \Magento\Catalog\Model\Product $product
+     * @return mixed
+     */
+    public function getProductDetailsHtml(\Magento\Catalog\Model\Product $product)
+    {
+        $renderer = $this->getDetailsRenderer($product->getTypeId());
+        if ($renderer) {
+            $renderer->setProduct($product);
+            return $renderer->toHtml();
+        }
+        return '';
+    }
+
+    /**
+     * @param null $type
+     * @return bool|\Magento\Framework\View\Element\AbstractBlock
+     */
+    public function getDetailsRenderer($type = null)
+    {
+        if ($type === null) {
+            $type = 'default';
+        }
+        $rendererList = $this->getDetailsRendererList();
+        if ($rendererList) {
+            return $rendererList->getRenderer($type, 'default');
+        }
+        return null;
+    }
+
+    /**
+     * @return \Magento\Framework\View\Element\RendererList
+     */
+    protected function getDetailsRendererList()
+    {
+        return $this->getDetailsRendererListName() ? $this->getLayout()->getBlock(
+            $this->getDetailsRendererListName()
+        ) : $this->getChildBlock(
+            'details.renderers'
+        );
+    }
+
+    /**
+     * Retrieve product image
+     *
+     * @param \Magento\Catalog\Model\Product $product
+     * @param string $imageId
+     * @param array $attributes
+     * @return \Magento\Catalog\Block\Product\Image
+     */
+    public function getImage($product, $imageId, $attributes = [])
+    {
+        return $this->imageBuilder->setProduct($product)
+            ->setImageId($imageId)
+            ->setAttributes($attributes)
+            ->create();
     }
 }

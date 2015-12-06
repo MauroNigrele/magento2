@@ -1,28 +1,15 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Authorizenet\Controller\Adminhtml\Authorizenet\Directpost\Payment;
+
+use Magento\Backend\App\Action;
+use Magento\Backend\Model\View\Result\ForwardFactory;
+use Magento\Framework\View\Result\LayoutFactory;
+use Magento\Framework\View\Result\PageFactory;
+use Magento\Payment\Block\Transparent\Iframe;
 
 class Redirect extends \Magento\Sales\Controller\Adminhtml\Order\Create
 {
@@ -31,20 +18,48 @@ class Redirect extends \Magento\Sales\Controller\Adminhtml\Order\Create
      *
      * @var \Magento\Framework\Registry
      */
-    protected $_coreRegistry = null;
+    protected $_coreRegistry;
 
     /**
-     * @param \Magento\Backend\App\Action\Context $context
+     * @var LayoutFactory
+     */
+    protected $resultLayoutFactory;
+
+    /**
+     * @var \Magento\Authorizenet\Helper\Backend\Data
+     */
+    protected $helper;
+
+    /**
+     * @param Action\Context $context
      * @param \Magento\Catalog\Helper\Product $productHelper
+     * @param \Magento\Framework\Escaper $escaper
+     * @param PageFactory $resultPageFactory
+     * @param ForwardFactory $resultForwardFactory
      * @param \Magento\Framework\Registry $coreRegistry
+     * @param LayoutFactory $resultLayoutFactory
+     * @param \Magento\Authorizenet\Helper\Backend\Data $helper
      */
     public function __construct(
-        \Magento\Backend\App\Action\Context $context,
+        Action\Context $context,
         \Magento\Catalog\Helper\Product $productHelper,
-        \Magento\Framework\Registry $coreRegistry
+        \Magento\Framework\Escaper $escaper,
+        PageFactory $resultPageFactory,
+        ForwardFactory $resultForwardFactory,
+        \Magento\Framework\Registry $coreRegistry,
+        LayoutFactory $resultLayoutFactory,
+        \Magento\Authorizenet\Helper\Backend\Data $helper
     ) {
         $this->_coreRegistry = $coreRegistry;
-        parent::__construct($context, $productHelper);
+        $this->resultLayoutFactory = $resultLayoutFactory;
+        $this->helper = $helper;
+        parent::__construct(
+            $context,
+            $productHelper,
+            $escaper,
+            $resultPageFactory,
+            $resultForwardFactory
+        );
     }
 
     /**
@@ -73,34 +88,26 @@ class Redirect extends \Magento\Sales\Controller\Adminhtml\Order\Create
     /**
      * Retrieve params and put javascript into iframe
      *
-     * @return void
+     * @return \Magento\Framework\View\Result\Layout
      */
     public function execute()
     {
         $redirectParams = $this->getRequest()->getParams();
-        $params = array();
-        if (!empty($redirectParams['success']) && isset(
-            $redirectParams['x_invoice_num']
-        ) && isset(
-            $redirectParams['controller_action_name']
-        )
+        $params = [];
+        if (!empty($redirectParams['success'])
+            && isset($redirectParams['x_invoice_num'])
+            && isset($redirectParams['controller_action_name'])
         ) {
-            $params['redirect_parent'] = $this->_objectManager->get(
-                'Magento\Authorizenet\Helper\HelperInterface'
-            )->getSuccessOrderUrl(
-                $redirectParams
-            );
+            $params['redirect_parent'] = $this->helper->getSuccessOrderUrl($redirectParams);
             $directpostSession = $this->_objectManager->get('Magento\Authorizenet\Model\Directpost\Session');
             $directpostSession->unsetData('quote_id');
             //cancel old order
             $oldOrder = $this->_getOrderCreateModel()->getSession()->getOrder();
             if ($oldOrder->getId()) {
                 /* @var $order \Magento\Sales\Model\Order */
-                $order = $this->_objectManager->create(
-                    'Magento\Sales\Model\Order'
-                )->loadByIncrementId(
-                    $redirectParams['x_invoice_num']
-                );
+                $order = $this->_objectManager->create('Magento\Sales\Model\Order')
+                    ->loadByIncrementId($redirectParams['x_invoice_num']);
+
                 if ($order->getId()) {
                     $oldOrder->cancel()->save();
                     $order->save();
@@ -119,7 +126,7 @@ class Redirect extends \Magento\Sales\Controller\Adminhtml\Order\Create
             $this->_returnQuote($cancelOrder, $redirectParams['error_msg']);
         }
 
-        $this->_coreRegistry->register('authorizenet_directpost_form_params', array_merge($params, $redirectParams));
-        $this->_view->loadLayout(false)->renderLayout();
+        $this->_coreRegistry->register(Iframe::REGISTRY_KEY, array_merge($params, $redirectParams));
+        return $this->resultLayoutFactory->create();
     }
 }

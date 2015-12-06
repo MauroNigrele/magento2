@@ -1,27 +1,15 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Test\Integrity\App\Language;
+
+use Magento\Framework\App\Utility\Files;
+use Magento\Framework\Component\ComponentRegistrar;
+use Magento\Setup\Module\I18n\Dictionary\Options\ResolverFactory;
+use Magento\Setup\Module\I18n\Locale;
+use Magento\Setup\Module\I18n\Pack\Writer\File\Csv;
 
 /**
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
@@ -31,7 +19,7 @@ class TranslationFilesTest extends TranslationFiles
     /**
      * Context
      *
-     * @var \Magento\Tools\I18n\Code\Context
+     * @var \Magento\Setup\Module\I18n\Context
      */
     protected $context;
 
@@ -63,15 +51,12 @@ class TranslationFilesTest extends TranslationFiles
     {
         $parser = $this->prepareParser();
 
-        $optionResolverFactory = new \Magento\Tools\I18n\Code\Dictionary\Options\ResolverFactory();
-        $optionResolver = $optionResolverFactory->create(
-            \Magento\TestFramework\Utility\Files::init()->getPathToSource(),
-            true
-        );
+        $optionResolverFactory = new ResolverFactory();
+        $optionResolver = $optionResolverFactory->create(Files::init()->getPathToSource(), true);
 
         $parser->parse($optionResolver->getOptions());
 
-        $defaultLocale = array();
+        $defaultLocale = [];
         foreach ($parser->getPhrases() as $key => $phrase) {
             if (!$phrase->getContextType() || !$phrase->getContextValue()) {
                 throw new \RuntimeException(sprintf('Missed context in row #%d.', $key + 1));
@@ -88,49 +73,49 @@ class TranslationFilesTest extends TranslationFiles
     }
 
     /**
-     * @param \Magento\Tools\I18n\Code\Dictionary\Phrase $phrase
+     * @param \Magento\Setup\Module\I18n\Dictionary\Phrase $phrase
      * @param array $context
      * @return string
      */
     protected function buildFilePath($phrase, $context)
     {
         $path = $this->getContext()->buildPathToLocaleDirectoryByContext($phrase->getContextType(), $context);
-        return \Magento\TestFramework\Utility\Files::init()->getPathToSource() . '/'
-        . $path . \Magento\Tools\I18n\Code\Locale::DEFAULT_SYSTEM_LOCALE
-        . '.' . \Magento\Tools\I18n\Code\Pack\Writer\File\Csv::FILE_EXTENSION;
+        $sourcePath = Files::init()->getPathToSource();
+        return $sourcePath . '/' . $path . Locale::DEFAULT_SYSTEM_LOCALE . '.' . Csv::FILE_EXTENSION;
     }
 
     /**
-     * @return \Magento\Tools\I18n\Code\Context
+     * @return \Magento\Setup\Module\I18n\Context
      */
     protected function getContext()
     {
         if ($this->context === null) {
-            $this->context = new \Magento\Tools\I18n\Code\Context();
+            $this->context = new \Magento\Setup\Module\I18n\Context(new ComponentRegistrar());
         }
         return $this->context;
     }
 
     /**
-     * @return \Magento\Tools\I18n\Code\Parser\Contextual
+     * @return \Magento\Setup\Module\I18n\Parser\Contextual
      */
     protected function prepareParser()
     {
-        $filesCollector = new \Magento\Tools\I18n\Code\FilesCollector();
+        $filesCollector = new \Magento\Setup\Module\I18n\FilesCollector();
 
-        $phraseCollector = new \Magento\Tools\I18n\Code\Parser\Adapter\Php\Tokenizer\PhraseCollector(
-            new \Magento\Tools\I18n\Code\Parser\Adapter\Php\Tokenizer()
+        $phraseCollector = new \Magento\Setup\Module\I18n\Parser\Adapter\Php\Tokenizer\PhraseCollector(
+            new \Magento\Setup\Module\I18n\Parser\Adapter\Php\Tokenizer()
         );
-        $adapters = array(
-            'php' => new \Magento\Tools\I18n\Code\Parser\Adapter\Php($phraseCollector),
-            'js' =>  new \Magento\Tools\I18n\Code\Parser\Adapter\Js(),
-            'xml' => new \Magento\Tools\I18n\Code\Parser\Adapter\Xml()
-        );
+        $adapters = [
+            'php' => new \Magento\Setup\Module\I18n\Parser\Adapter\Php($phraseCollector),
+            'js' =>  new \Magento\Setup\Module\I18n\Parser\Adapter\Js(),
+            'xml' => new \Magento\Setup\Module\I18n\Parser\Adapter\Xml(),
+            'html' => new \Magento\Setup\Module\I18n\Parser\Adapter\Html(),
+        ];
 
-        $parserContextual = new \Magento\Tools\I18n\Code\Parser\Contextual(
+        $parserContextual = new \Magento\Setup\Module\I18n\Parser\Contextual(
             $filesCollector,
-            new \Magento\Tools\I18n\Code\Factory(),
-            new \Magento\Tools\I18n\Code\Context()
+            new \Magento\Setup\Module\I18n\Factory(),
+            new \Magento\Setup\Module\I18n\Context(new ComponentRegistrar())
         );
         foreach ($adapters as $type => $adapter) {
             $parserContextual->addAdapter($type, $adapter);
@@ -141,7 +126,7 @@ class TranslationFilesTest extends TranslationFiles
 
     /**
      * @param string $text
-     * @return mixed
+     * @return string
      */
     protected function eliminateSpecialChars($text)
     {
@@ -160,7 +145,7 @@ class TranslationFilesTest extends TranslationFiles
         $this->markTestSkipped('MAGETWO-26083');
         $files = $this->getCsvFiles($placePath);
 
-        $failures = array();
+        $failures = [];
         foreach ($files as $locale => $file) {
             $fileData = $this->csvParser->getDataPairs($file);
             foreach ($fileData as $key => $translate) {

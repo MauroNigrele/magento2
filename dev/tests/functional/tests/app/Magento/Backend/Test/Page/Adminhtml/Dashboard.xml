@@ -1,44 +1,19 @@
 <?xml version="1.0" ?>
 <!--
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
--->
-<page mca="admin/dashboard" module="Magento_Backend">
-    <blocks>
-        <adminPanelHeader>
-            <class>Magento\Backend\Test\Block\Page\Header</class>
-            <locator>.page-header</locator>
-            <strategy>css selector</strategy>
-        </adminPanelHeader>
-        <titleBlock>
-            <class>Magento\Theme\Test\Block\Html\Title</class>
-            <locator>.page-title</locator>
-            <strategy>css selector</strategy>
-        </titleBlock>
-        <menuBlock>
-            <class>Magento\Backend\Test\Block\Menu</class>
-            <locator>.navigation</locator>
-            <strategy>css selector</strategy>
-        </menuBlock>
-    </blocks>
-</page>
+ -->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../../../../vendor/magento/mtf/etc/pages.xsd">
+    <page name="Dashboard" area="Adminhtml" mca="admin/dashboard" module="Magento_Backend">
+        <block name="adminPanelHeader" class="Magento\Backend\Test\Block\Page\Header" locator=".page-header" strategy="css selector" />
+        <block name="titleBlock" class="Magento\Theme\Test\Block\Html\Title" locator=".page-title-wrapper" strategy="css selector" />
+        <block name="mainBlock" class="Magento\Backend\Test\Block\Page\Main" locator=".dashboard-main" strategy="css selector" />
+        <block name="menuBlock" class="Magento\Backend\Test\Block\Menu" locator=".admin__menu" strategy="css selector" />
+        <block name="storeStatsBlock" class="Magento\Backend\Test\Block\Dashboard\StoreStats" locator=".dashboard-store-stats" strategy="css selector" />
+        <block name="errorBlock" class="Magento\Backend\Test\Block\Page\Error" locator="[id='page:main-container']" strategy="css selector" />
+        <block name="accessDeniedBlock" class="Magento\Backend\Test\Block\Denied" locator="#anchor-content" strategy="css selector" />
+        <block name="systemMessageDialog" class="Magento\AdminNotification\Test\Block\System\Messages" locator='[role="dialog"].ui-popup-message' strategy="css selector" />
+    </page>
+</config>

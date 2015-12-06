@@ -1,101 +1,86 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Review\Test\TestCase;
 
-use Magento\Catalog\Test\Fixture\CatalogProductSimple;
-use Magento\Review\Test\Fixture\ReviewInjectable;
 use Magento\Review\Test\Fixture\Rating;
+use Magento\Review\Test\Fixture\Review;
 use Magento\Review\Test\Page\Adminhtml\RatingEdit;
 use Magento\Review\Test\Page\Adminhtml\RatingIndex;
 use Magento\Review\Test\Page\Adminhtml\ReviewEdit;
 use Magento\Review\Test\Page\Adminhtml\ReviewIndex;
-use Mtf\TestCase\Injectable;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
- * Test Creation for Create ProductReviewEntity Backend
- *
- * Test Flow:
  * Preconditions:
- * 1. Simple Product created
+ * 1. Simple Product created.
  *
  * Steps:
- * 1. Login to backend
- * 2. Navigate to Marketing -> User Content -> Reviews
- * 3. Click the "+" (Add New Review) button
- * 4. Select the product in the Products Grid
- * 5. Fill data according to DataSet
- * 6. Click "Save Review" button
- * 7. Perform Asserts
+ * 1. Login to backend.
+ * 2. Navigate to Marketing > User Content > Reviews.
+ * 3. Click the "+" (Add New Review) button.
+ * 4. Select the product in the Products Grid.
+ * 5. Fill data according to DataSet.
+ * 6. Click "Save Review" button.
+ * 7. Perform Asserts.
  *
  * @group Reviews_and_Ratings_(MX)
  * @ZephyrId MAGETWO-26476
  */
 class CreateProductReviewBackendEntityTest extends Injectable
 {
+    /* tags */
+    const MVP = 'no';
+    const DOMAIN = 'MX';
+    /* end tags */
+
     /**
-     * ReviewIndex page
+     * ReviewIndex page.
      *
      * @var ReviewIndex
      */
     protected $reviewIndex;
 
     /**
-     * ReviewEdit page
+     * ReviewEdit page.
      *
      * @var ReviewEdit
      */
     protected $reviewEdit;
 
     /**
-     * RatingIndex page
+     * RatingIndex page.
      *
      * @var RatingIndex
      */
     protected $ratingIndex;
 
     /**
-     * RatingEdit page
+     * RatingEdit page.
      *
      * @var RatingEdit
      */
     protected $ratingEdit;
 
     /**
+     * Product rating fixture.
+     *
      * @var Rating
      */
     protected $productRating;
 
     /**
-     * Review fixture
+     * Review fixture.
      *
-     * @var ReviewInjectable
+     * @var Review
      */
     protected $review;
 
     /**
-     * Inject pages into test
+     * Inject pages into test.
      *
      * @param ReviewIndex $reviewIndex
      * @param ReviewEdit $reviewEdit
@@ -116,12 +101,12 @@ class CreateProductReviewBackendEntityTest extends Injectable
     }
 
     /**
-     * Run Create Product Review Entity Backend Test
+     * Run Create Product Review Entity Backend Test.
      *
-     * @param ReviewInjectable $review
+     * @param Review $review
      * @return array
      */
-    public function test(ReviewInjectable $review)
+    public function test(Review $review)
     {
         // Precondition:
         $product = $review->getDataFieldConfig('entity_id')['source']->getEntity();
@@ -139,17 +124,18 @@ class CreateProductReviewBackendEntityTest extends Injectable
     }
 
     /**
-     * Clear data after test
+     * Clear data after test.
      *
      * @return void
      */
     public function tearDown()
     {
         $this->ratingIndex->open();
-        if ($this->review instanceof ReviewInjectable) {
+        if ($this->review instanceof Review) {
             foreach ($this->review->getRatings() as $rating) {
                 $this->ratingIndex->getRatingGrid()->searchAndOpen(['rating_code' => $rating['title']]);
                 $this->ratingEdit->getPageActions()->delete();
+                $this->ratingEdit->getModalBlock()->acceptAlert();
             }
         }
     }

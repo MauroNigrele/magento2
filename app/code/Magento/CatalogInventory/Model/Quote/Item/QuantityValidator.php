@@ -2,28 +2,13 @@
 /**
  * Product inventory data validator
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\CatalogInventory\Model\Quote\Item;
+
+use Magento\CatalogInventory\Api\StockRegistryInterface;
+use Magento\CatalogInventory\Api\StockStateInterface;
 
 class QuantityValidator
 {
@@ -38,23 +23,31 @@ class QuantityValidator
     protected $stockItemInitializer;
 
     /**
-     * @var \Magento\CatalogInventory\Model\Stock\ItemFactory
+     * @var StockRegistryInterface
      */
-    protected $stockItemFactory;
+    protected $stockRegistry;
+
+    /**
+     * @var StockStateInterface
+     */
+    protected $stockState;
 
     /**
      * @param QuantityValidator\Initializer\Option $optionInitializer
      * @param QuantityValidator\Initializer\StockItem $stockItemInitializer
-     * @param \Magento\CatalogInventory\Model\Stock\ItemFactory $stockItemFactory
+     * @param StockRegistryInterface $stockRegistry
+     * @param StockStateInterface $stockState
      */
     public function __construct(
         QuantityValidator\Initializer\Option $optionInitializer,
         QuantityValidator\Initializer\StockItem $stockItemInitializer,
-        \Magento\CatalogInventory\Model\Stock\ItemFactory $stockItemFactory
+        StockRegistryInterface $stockRegistry,
+        StockStateInterface $stockState
     ) {
         $this->optionInitializer = $optionInitializer;
         $this->stockItemInitializer = $stockItemInitializer;
-        $this->stockItemFactory = $stockItemFactory;
+        $this->stockRegistry = $stockRegistry;
+        $this->stockState = $stockState;
     }
 
     /**
@@ -63,11 +56,14 @@ class QuantityValidator
      * @param \Magento\Framework\Event\Observer $observer
      *
      * @return void
-     * @throws \Magento\Framework\Model\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      */
     public function validate(\Magento\Framework\Event\Observer $observer)
     {
-        /* @var $quoteItem \Magento\Sales\Model\Quote\Item */
+        /* @var $quoteItem \Magento\Quote\Model\Quote\Item */
         $quoteItem = $observer->getEvent()->getItem();
 
         if (!$quoteItem ||
@@ -81,7 +77,14 @@ class QuantityValidator
         $qty = $quoteItem->getQty();
 
         /** @var \Magento\CatalogInventory\Model\Stock\Item $stockItem */
-        $stockItem = $this->stockItemFactory->create()->loadByProduct($quoteItem->getProduct());
+        $stockItem = $this->stockRegistry->getStockItem(
+            $quoteItem->getProduct()->getId(),
+            $quoteItem->getProduct()->getStore()->getWebsiteId()
+        );
+        /* @var $stockItem \Magento\CatalogInventory\Api\Data\StockItemInterface */
+        if (!$stockItem instanceof \Magento\CatalogInventory\Api\Data\StockItemInterface) {
+            throw new \Magento\Framework\Exception\LocalizedException(__('The stock item for Product is not valid.'));
+        }
 
         $parentStockItem = false;
 
@@ -89,8 +92,11 @@ class QuantityValidator
          * Check if product in stock. For composite products check base (parent) item stock status
          */
         if ($quoteItem->getParentItem()) {
-            $parentStockItem = $this->stockItemFactory->create()
-                ->loadByProduct($quoteItem->getParentItem()->getProduct());
+            $product = $quoteItem->getParentItem()->getProduct();
+            $parentStockItem = $this->stockRegistry->getStockItem(
+                $product->getId(),
+                $product->getStore()->getWebsiteId()
+            );
         }
 
         if ($stockItem) {
@@ -104,7 +110,7 @@ class QuantityValidator
                     'stock',
                     'cataloginventory',
                     \Magento\CatalogInventory\Helper\Data::ERROR_QTY,
-                    __('Some of the products are currently out of stock.')
+                    __('Some of the products are out of stock.')
                 );
                 return;
             } else {
@@ -119,9 +125,12 @@ class QuantityValidator
         if (($options = $quoteItem->getQtyOptions()) && $qty > 0) {
             $qty = $quoteItem->getProduct()->getTypeInstance()->prepareQuoteItemQty($qty, $quoteItem->getProduct());
             $quoteItem->setData('qty', $qty);
-
             if ($stockItem) {
-                $result = $stockItem->checkQtyIncrements($qty);
+                $result = $this->stockState->checkQtyIncrements(
+                    $quoteItem->getProduct()->getId(),
+                    $qty,
+                    $quoteItem->getProduct()->getStore()->getWebsiteId()
+                );
                 if ($result->getHasError()) {
                     $quoteItem->addErrorInfo(
                         'cataloginventory',
@@ -145,7 +154,6 @@ class QuantityValidator
             }
 
             foreach ($options as $option) {
-
                 $result = $this->optionInitializer->initialize($option, $quoteItem, $qty);
                 if ($result->getHasError()) {
                     $option->setHasError(true);
@@ -168,13 +176,7 @@ class QuantityValidator
                 }
             }
         } else {
-            /* @var $stockItem \Magento\CatalogInventory\Model\Stock\Item */
-            if (!$stockItem instanceof \Magento\CatalogInventory\Model\Stock\Item) {
-                throw new \Magento\Framework\Model\Exception(__('The stock item for Product in option is not valid.'));
-            }
-
             $result = $this->stockItemInitializer->initialize($stockItem, $quoteItem, $qty);
-
             if ($result->getHasError()) {
                 $quoteItem->addErrorInfo(
                     'cataloginventory',
@@ -198,14 +200,14 @@ class QuantityValidator
     /**
      * Removes error statuses from quote and item, set by this observer
      *
-     * @param \Magento\Sales\Model\Quote\Item $item
+     * @param \Magento\Quote\Model\Quote\Item $item
      * @param int $code
      * @return void
      */
     protected function _removeErrorsFromQuoteAndItem($item, $code)
     {
         if ($item->getHasError()) {
-            $params = array('origin' => 'cataloginventory', 'code' => $code);
+            $params = ['origin' => 'cataloginventory', 'code' => $code];
             $item->removeErrorInfosByParams($params);
         }
 
@@ -232,7 +234,7 @@ class QuantityValidator
         }
 
         if ($quote->getHasError() && $canRemoveErrorFromQuote) {
-            $params = array('origin' => 'cataloginventory', 'code' => $code);
+            $params = ['origin' => 'cataloginventory', 'code' => $code];
             $quote->removeErrorInfosByParams(null, $params);
         }
     }

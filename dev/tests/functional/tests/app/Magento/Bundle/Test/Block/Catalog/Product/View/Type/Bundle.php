@@ -1,38 +1,19 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Bundle\Test\Block\Catalog\Product\View\Type;
 
-use Mtf\Block\Block;
-use Mtf\Client\Element;
-use Mtf\Client\Element\Locator;
-use Magento\Bundle\Test\Block\Catalog\Product\View\Type\Option;
-use Magento\Catalog\Test\Page\Product\CatalogProductView;
-use Mtf\Fixture\FixtureInterface;
-use Mtf\Fixture\InjectableFixture;
-use Magento\Bundle\Test\Fixture\Bundle as BundleDataFixture;
 use Magento\Bundle\Test\Fixture\BundleProduct;
+use Magento\Catalog\Test\Page\Product\CatalogProductView;
+use Magento\Bundle\Test\Block\Catalog\Product\View\Type\Option;
+use Magento\Mtf\Client\Element\SimpleElement;
+use Magento\Mtf\Block\Block;
+use Magento\Mtf\Client\Locator;
+use Magento\Mtf\Fixture\FixtureInterface;
+use Magento\Mtf\Fixture\InjectableFixture;
 
 /**
  * Class Bundle
@@ -111,15 +92,9 @@ class Bundle extends Block
      */
     public function getOptions(FixtureInterface $product)
     {
-        if ($product instanceof InjectableFixture) {
-            /** @var BundleProduct  $product */
-            $bundleSelections = $product->getBundleSelections();
-            $bundleOptions = isset($bundleSelections['bundle_options']) ? $bundleSelections['bundle_options'] : [];
-        } else {
-            // TODO: Removed after refactoring(removed) old product fixture.
-            /** @var BundleDataFixture $product */
-            $bundleOptions = $product->getBundleOptions();
-        }
+        /** @var BundleProduct  $product */
+        $bundleSelections = $product->getBundleSelections();
+        $bundleOptions = isset($bundleSelections['bundle_options']) ? $bundleSelections['bundle_options'] : [];
 
         $listFormOptions = $this->getListOptions();
         $formOptions = [];
@@ -130,7 +105,7 @@ class Bundle extends Block
                 throw new \Exception("Can't find option: \"{$title}\"");
             }
 
-            /** @var Element $optionElement */
+            /** @var SimpleElement $optionElement */
             $optionElement = $listFormOptions[$title];
             $getTypeData = 'get' . $this->optionNameConvert($option['type']) . 'Data';
 
@@ -171,10 +146,10 @@ class Bundle extends Block
     /**
      * Get data of "Drop-down" option
      *
-     * @param Element $option
+     * @param SimpleElement $option
      * @return array
      */
-    protected function getDropdownData(Element $option)
+    protected function getDropdownData(SimpleElement $option)
     {
         $select = $option->find($this->selectOption, Locator::SELECTOR_XPATH, 'select');
         // Skip "Choose option ..."(option #1)
@@ -184,10 +159,10 @@ class Bundle extends Block
     /**
      * Get data of "Multiple select" option
      *
-     * @param Element $option
+     * @param SimpleElement $option
      * @return array
      */
-    protected function getMultipleselectData(Element $option)
+    protected function getMultipleselectData(SimpleElement $option)
     {
         $multiselect = $option->find($this->selectOption, Locator::SELECTOR_XPATH, 'multiselect');
         $data = $this->getSelectOptionsData($multiselect, 1);
@@ -203,13 +178,13 @@ class Bundle extends Block
     /**
      * Get data of "Radio buttons" option
      *
-     * @param Element $option
+     * @param SimpleElement $option
      * @return array
      */
-    protected function getRadiobuttonsData(Element $option)
+    protected function getRadiobuttonsData(SimpleElement $option)
     {
         $listOptions = [];
-        $optionLabels = $option->find($this->optionLabel, Locator::SELECTOR_XPATH)->getElements();
+        $optionLabels = $option->getElements($this->optionLabel, Locator::SELECTOR_XPATH);
 
         foreach ($optionLabels as $optionLabel) {
             if ($optionLabel->isVisible()) {
@@ -223,10 +198,10 @@ class Bundle extends Block
     /**
      * Get data of "Checkbox" option
      *
-     * @param Element $option
+     * @param SimpleElement $option
      * @return array
      */
-    protected function getCheckboxData(Element $option)
+    protected function getCheckboxData(SimpleElement $option)
     {
         $data =  $this->getRadiobuttonsData($option);
 
@@ -241,11 +216,11 @@ class Bundle extends Block
     /**
      * Get data from option of select and multiselect
      *
-     * @param Element $element
+     * @param SimpleElement $element
      * @param int $firstOption
      * @return array
      */
-    protected function getSelectOptionsData(Element $element, $firstOption = 1)
+    protected function getSelectOptionsData(SimpleElement $element, $firstOption = 1)
     {
         $listOptions = [];
 
@@ -268,7 +243,7 @@ class Bundle extends Block
      */
     protected function parseOptionText($optionText)
     {
-        preg_match('`^(.*?)\+ ?\$(\d.*?)$`', $optionText, $match);
+        preg_match('`^(.*?)\+ ?\$(\d.*?)$`sim', $optionText, $match);
         $optionPrice = isset($match[2]) ? str_replace(',', '', $match[2]) : 0;
         $optionTitle = isset($match[1]) ? trim($match[1]) : $optionText;
 

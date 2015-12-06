@@ -1,33 +1,15 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\UrlRewrite\Test\TestCase;
 
 use Magento\UrlRewrite\Test\Fixture\UrlRewrite;
-use Mtf\TestCase\Injectable;
-use Magento\UrlRewrite\Test\Page\Adminhtml\UrlrewriteEdit;
-use Magento\UrlRewrite\Test\Page\Adminhtml\UrlrewriteIndex;
+use Magento\UrlRewrite\Test\Page\Adminhtml\UrlRewriteEdit;
+use Magento\UrlRewrite\Test\Page\Adminhtml\UrlRewriteIndex;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
  * Test Creation for Delete Category URL Rewrites Entity
@@ -39,9 +21,9 @@ use Magento\UrlRewrite\Test\Page\Adminhtml\UrlrewriteIndex;
  *
  * Steps:
  * 1. Open Backend
- * 2. Go to Marketing->URL Redirects
- * 3. Search and open created URL Redirect
- * 4. Delete URL Redirect
+ * 2. Go to Marketing->URL Rewrites
+ * 3. Search and open created URL Rewrite
+ * 4. Delete URL Rewrite
  * 5. Perform all assertions
  *
  * @group URL_Rewrites_(PS)
@@ -49,28 +31,33 @@ use Magento\UrlRewrite\Test\Page\Adminhtml\UrlrewriteIndex;
  */
 class DeleteCategoryUrlRewriteEntityTest extends Injectable
 {
+    /* tags */
+    const MVP = 'yes';
+    const DOMAIN = 'PS';
+    /* end tags */
+
     /**
      * Url rewrite index page
      *
-     * @var UrlrewriteIndex
+     * @var UrlRewriteIndex
      */
     protected $urlRewriteIndex;
 
     /**
      * Url rewrite edit page
      *
-     * @var UrlrewriteEdit
+     * @var UrlRewriteEdit
      */
     protected $urlRewriteEdit;
 
     /**
      * Inject pages
      *
-     * @param UrlrewriteIndex $urlRewriteIndex
-     * @param UrlrewriteEdit $urlRewriteEdit
+     * @param UrlRewriteIndex $urlRewriteIndex
+     * @param UrlRewriteEdit $urlRewriteEdit
      * @return void
      */
-    public function __inject(UrlrewriteIndex $urlRewriteIndex, UrlrewriteEdit $urlRewriteEdit)
+    public function __inject(UrlRewriteIndex $urlRewriteIndex, UrlRewriteEdit $urlRewriteEdit)
     {
         $this->urlRewriteIndex = $urlRewriteIndex;
         $this->urlRewriteEdit = $urlRewriteEdit;
@@ -82,7 +69,7 @@ class DeleteCategoryUrlRewriteEntityTest extends Injectable
      * @param UrlRewrite $urlRewrite
      * @return void
      */
-    public function testDeleteCategoryUrlRewrite(UrlRewrite $urlRewrite)
+    public function test(UrlRewrite $urlRewrite)
     {
         //Precondition
         $urlRewrite->persist();
@@ -91,9 +78,10 @@ class DeleteCategoryUrlRewriteEntityTest extends Injectable
         if ($urlRewrite->getRequestPath()) {
             $filter = ['request_path' => $urlRewrite->getRequestPath()];
         } else {
-            $filter = ['id_path' => $urlRewrite->getIdPath()];
+            $filter = ['target_path' => $urlRewrite->getTargetPath()];
         }
         $this->urlRewriteIndex->getUrlRedirectGrid()->searchAndOpen($filter);
         $this->urlRewriteEdit->getPageMainActions()->delete();
+        $this->urlRewriteEdit->getModalBlock()->acceptAlert();
     }
 }

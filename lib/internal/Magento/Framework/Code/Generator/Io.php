@@ -1,27 +1,12 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Code\Generator;
+
+use Magento\Framework\Exception\FileSystemException;
+use Magento\Framework\Filesystem\DriverInterface;
 
 class Io
 {
@@ -32,11 +17,6 @@ class Io
     const DEFAULT_DIRECTORY = 'var/generation';
 
     /**
-     * \Directory permission for created directories
-     */
-    const DIRECTORY_PERMISSION = 0777;
-
-    /**
      * Path to directory where new file must be created
      *
      * @var string
@@ -44,28 +24,18 @@ class Io
     private $_generationDirectory;
 
     /**
-     * Autoloader instance
-     *
-     * @var \Magento\Framework\Autoload\IncludePath
-     */
-    private $_autoloader;
-
-    /**
      * @var \Magento\Framework\Filesystem\Driver\File
      */
     private $filesystemDriver;
 
     /**
-     * @param \Magento\Framework\Filesystem\Driver\File   $filesystemDriver
-     * @param \Magento\Framework\Autoload\IncludePath     $autoLoader
-     * @param null $generationDirectory
+     * @param \Magento\Framework\Filesystem\Driver\File $filesystemDriver
+     * @param null|string $generationDirectory
      */
     public function __construct(
         \Magento\Framework\Filesystem\Driver\File $filesystemDriver,
-        \Magento\Framework\Autoload\IncludePath $autoLoader = null,
         $generationDirectory = null
     ) {
-        $this->_autoloader = $autoLoader ?: new \Magento\Framework\Autoload\IncludePath();
         $this->filesystemDriver = $filesystemDriver;
         $this->initGeneratorDirectory($generationDirectory);
     }
@@ -91,7 +61,7 @@ class Io
      */
     public function getResultFileDirectory($className)
     {
-        $fileName = $this->getResultFileName($className);
+        $fileName = $this->generateResultFileName($className);
         $pathParts = explode('/', $fileName);
         unset($pathParts[count($pathParts) - 1]);
 
@@ -102,22 +72,44 @@ class Io
      * @param string $className
      * @return string
      */
-    public function getResultFileName($className)
+    public function generateResultFileName($className)
     {
-        $autoloader = $this->_autoloader;
-        $resultFileName = $autoloader->getFilePath($className);
-        return $this->_generationDirectory . $resultFileName;
+        return $this->_generationDirectory . ltrim(str_replace(['\\', '_'], '/', $className), '/') . '.php';
     }
 
     /**
      * @param string $fileName
      * @param string $content
+     * @throws FileSystemException
      * @return bool
      */
     public function writeResultFile($fileName, $content)
     {
+        /**
+         * Rename is atomic on *nix systems, while file_put_contents is not. Writing to a
+         * temporary file whose name is process-unique and renaming to the real location helps
+         * avoid race conditions. Race condition can occur if the compiler has not been run, when
+         * multiple processes are attempting to access the generated file simultaneously.
+         */
         $content = "<?php\n" . $content;
-        return $this->filesystemDriver->filePutContents($fileName, $content);
+        $tmpFile = $fileName . "." . getmypid();
+        $this->filesystemDriver->filePutContents($tmpFile, $content);
+
+        try {
+            $success = $this->filesystemDriver->rename($tmpFile, $fileName);
+        } catch (FileSystemException $e) {
+            if (!$this->fileExists($fileName)) {
+                throw $e;
+            } else {
+                /**
+                 * Due to race conditions, file may have already been written, causing rename to fail. As long as
+                 * the file exists, everything is okay.
+                 */
+                $success = true;
+            }
+        }
+
+        return $success;
     }
 
     /**
@@ -155,6 +147,18 @@ class Io
     }
 
     /**
+     * Wrapper for include
+     *
+     * @param string $fileName
+     * @return mixed
+     * @codeCoverageIgnore
+     */
+    public function includeFile($fileName)
+    {
+        return include $fileName;
+    }
+
+    /**
      * @param string $directory
      * @return bool
      */
@@ -165,10 +169,10 @@ class Io
         }
         try {
             if (!$this->filesystemDriver->isDirectory($directory)) {
-                $this->filesystemDriver->createDirectory($directory, self::DIRECTORY_PERMISSION);
+                $this->filesystemDriver->createDirectory($directory, DriverInterface::WRITEABLE_DIRECTORY_MODE);
             }
             return true;
-        } catch (\Magento\Framework\Filesystem\FilesystemException $e) {
+        } catch (FileSystemException $e) {
             return false;
         }
     }

@@ -1,124 +1,98 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Test\Block\Product;
 
-use Mtf\Block\Block;
-use Mtf\Client\Element\Locator;
-use Mtf\Fixture\FixtureInterface;
-use Mtf\Fixture\InjectableFixture;
+use Magento\Catalog\Test\Block\AbstractConfigureBlock;
 use Magento\Catalog\Test\Fixture\CatalogProductSimple;
+use Magento\Mtf\Client\Locator;
+use Magento\Mtf\Fixture\FixtureInterface;
+use Magento\Mtf\Fixture\InjectableFixture;
 
 /**
- * Class View
- * Product view block on the product page
+ * Product view block on the product page.
  *
  * @SuppressWarnings(PHPMD.TooManyFields)
  * @SuppressWarnings(PHPMD.ExcessivePublicCount)
  * @SuppressWarnings(PHPMD.NPathComplexity)
  */
-class View extends Block
+class View extends AbstractConfigureBlock
 {
     /**
-     * XPath selector for tab
+     * XPath selector for tab.
      *
      * @var string
      */
     protected $tabSelector = './/div[@data-role="collapsible" and a[contains(text(),"%s")]]';
 
     /**
-     * Custom options CSS selector
+     * Custom options CSS selector.
      *
      * @var string
      */
     protected $customOptionsSelector = '.product-options-wrapper';
 
     /**
-     * 'Add to Cart' button
+     * 'Add to Cart' button.
      *
      * @var string
      */
     protected $addToCart = '.tocart';
 
     /**
-     * Quantity input id
+     * Quantity input id.
      *
      * @var string
      */
     protected $qty = '#qty';
 
     /**
-     * 'Check out with PayPal' button
+     * Add to cart form id.
+     *
+     * @var string
+     */
+    protected $addToCartForm = '#product_addtocart_form';
+
+    /**
+     * 'Check out with PayPal' button.
      *
      * @var string
      */
     protected $paypalCheckout = '[data-action=checkout-form-submit]';
 
     /**
-     * Product name element
+     * Product name element.
      *
      * @var string
      */
-    protected $productName = '.page-title.product h1.title .base';
+    protected $productName = '.page-title-wrapper.product h1.page-title .base';
 
     /**
-     * Product sku element
+     * Product sku element.
      *
      * @var string
      */
     protected $productSku = '[itemprop="sku"]';
 
     /**
-     * Product description element
+     * Product description element.
      *
      * @var string
      */
     protected $productDescription = '.product.attibute.description';
 
     /**
-     * Product short-description element
+     * Product short-description element.
      *
      * @var string
      */
     protected $productShortDescription = '.product.attibute.overview';
 
     /**
-     * Click for Price link on Product page
-     *
-     * @var string
-     */
-    protected $clickForPrice = '[id*=msrp-popup]';
-
-    /**
-     * MAP popup on Product page
-     *
-     * @var string
-     */
-    protected $mapPopup = '#map-popup-click-for-price';
-
-    /**
-     * Stock Availability control
+     * Stock Availability control.
      *
      * @var string
      */
@@ -132,30 +106,65 @@ class View extends Block
     protected $tierPricesSelector = "//ul[contains(@class,'tier')]//*[@class='item'][%line-number%]";
 
     /**
-     * Selector for price block
+     * Selector for price block.
      *
      * @var string
      */
     protected $priceBlock = '//*[@class="product-info-main"]//*[contains(@class,"price-box")]';
 
     /**
-     * 'Add to Compare' button
+     * 'Add to Compare' button.
      *
      * @var string
      */
     protected $clickAddToCompare = '.action.tocompare';
 
     /**
-     * "Add to Wishlist" button
+     * Locator value for "Add to Wish List" button.
      *
      * @var string
      */
     protected $addToWishlist = '[data-action="add-to-wishlist"]';
 
     /**
-     * Get block price
+     * Messages block locator.
      *
-     * @return \Magento\Catalog\Test\Block\Product\Price
+     * @var string
+     */
+    protected $messageBlock = '.page.messages';
+
+    /**
+     * Minicart block locator.
+     *
+     * @var string
+     */
+    protected $miniCartBlock = '[data-block="minicart"]';
+
+    /**
+     * Success message selector.
+     *
+     * @var string
+     */
+    protected $successMessage = '[data-ui-id$=message-success]';
+
+    /**
+     * Product media gallery selector.
+     *
+     * @var string
+     */
+    protected $mediaGallery = '[data-gallery-role="gallery"] img';
+
+    /**
+     * Locator for page with ajax loading state.
+     *
+     * @var string
+     */
+    protected $ajaxLoading = 'body.ajax-loading';
+
+    /**
+     * Get block price.
+     *
+     * @return Price
      */
     public function getPriceBlock()
     {
@@ -166,38 +175,32 @@ class View extends Block
     }
 
     /**
-     * This method returns the custom options block.
-     *
-     * @return \Magento\Catalog\Test\Block\Product\View\CustomOptions
-     */
-    public function getCustomOptionsBlock()
-    {
-        return $this->blockFactory->create(
-            'Magento\Catalog\Test\Block\Product\View\CustomOptions',
-            ['element' => $this->_rootElement->find($this->customOptionsSelector)]
-        );
-    }
-
-    /**
-     * Add product to shopping cart
+     * Add product to shopping cart.
      *
      * @param FixtureInterface $product
      * @return void
      */
     public function addToCart(FixtureInterface $product)
     {
+        /** @var \Magento\Checkout\Test\Block\Cart\Sidebar $miniCart */
+        $miniCart = $this->blockFactory->create(
+            '\Magento\Checkout\Test\Block\Cart\Sidebar',
+            ['element' => $this->browser->find($this->miniCartBlock)]
+        );
         /** @var CatalogProductSimple $product */
         $checkoutData = $product->getCheckoutData();
 
+        $miniCart->waitInit();
         $this->fillOptions($product);
         if (isset($checkoutData['qty'])) {
-            $this->_rootElement->find($this->qty)->setValue($checkoutData['qty']);
+            $this->setQty($checkoutData['qty']);
         }
         $this->clickAddToCart();
+        $miniCart->waitLoader();
     }
 
     /**
-     * Click link
+     * Click link.
      *
      * @return void
      */
@@ -207,7 +210,7 @@ class View extends Block
     }
 
     /**
-     * Set quantity and click add to cart
+     * Set quantity and click add to cart.
      *
      * @param int $qty
      * @return void
@@ -219,7 +222,19 @@ class View extends Block
     }
 
     /**
-     * Find Add To Cart button
+     * Set quantity.
+     *
+     * @param int $qty
+     * @return void
+     */
+    public function setQty($qty)
+    {
+        $this->_rootElement->find($this->qty)->setValue($qty);
+        $this->_rootElement->find($this->addToCartForm)->click();
+    }
+
+    /**
+     * Find Add To Cart button.
      *
      * @return bool
      */
@@ -229,17 +244,18 @@ class View extends Block
     }
 
     /**
-     * Press 'Check out with PayPal' button
+     * Press 'Check out with PayPal' button.
      *
      * @return void
      */
     public function paypalCheckout()
     {
         $this->_rootElement->find($this->paypalCheckout, Locator::SELECTOR_CSS)->click();
+        $this->waitForElementNotVisible($this->paypalCheckout);
     }
 
     /**
-     * Get product name displayed on page
+     * Get product name displayed on page.
      *
      * @return string
      */
@@ -249,7 +265,7 @@ class View extends Block
     }
 
     /**
-     * Get product sku displayed on page
+     * Get product sku displayed on page.
      *
      * @return string
      */
@@ -259,7 +275,7 @@ class View extends Block
     }
 
     /**
-     * Return product short description on page
+     * Return product short description on page.
      *
      * @return string|null
      */
@@ -272,7 +288,7 @@ class View extends Block
     }
 
     /**
-     * Return product description on page
+     * Return product description on page.
      *
      * @return string|null
      */
@@ -285,7 +301,7 @@ class View extends Block
     }
 
     /**
-     * Return product options
+     * Return product options.
      *
      * @param FixtureInterface $product
      * @return array
@@ -296,83 +312,15 @@ class View extends Block
         $dataConfig = $product->getDataConfig();
         $typeId = isset($dataConfig['type_id']) ? $dataConfig['type_id'] : null;
 
-        return $this->hasRender($typeId)
-            ? $this->callRender($typeId, 'getOptions', ['product' => $product])
-            : $this->getCustomOptionsBlock()->getOptions($product);
+        return $this->hasRender($typeId) ? $this->callRender(
+            $typeId,
+            'getOptions',
+            ['product' => $product]
+        ) : $this->getCustomOptionsBlock()->getOptions($product);
     }
 
     /**
-     * Fill in the option specified for the product
-     *
-     * @param FixtureInterface $product
-     * @return void
-     */
-    public function fillOptions(FixtureInterface $product)
-    {
-        $dataConfig = $product->getDataConfig();
-        $typeId = isset($dataConfig['type_id']) ? $dataConfig['type_id'] : null;
-        $checkoutData = null;
-
-        /** @var CatalogProductSimple $product */
-        if ($this->hasRender($typeId)) {
-            $this->callRender($typeId, 'fillOptions', ['product' => $product]);
-        } else {
-            $checkoutCustomOptions = [];
-
-            if ($product instanceof InjectableFixture) {
-                /** @var CatalogProductSimple $product */
-                $checkoutData = $product->getCheckoutData();
-                $checkoutCustomOptions = isset($checkoutData['options']['custom_options'])
-                    ? $checkoutData['options']['custom_options']
-                    : [];
-                $customOptions = $product->hasData('custom_options')
-                    ? $product->getDataFieldConfig('custom_options')['source']->getCustomOptions()
-                    : [];
-
-                $checkoutCustomOptions = $this->prepareCheckoutData($customOptions, $checkoutCustomOptions);
-            }
-
-            $this->getCustomOptionsBlock()->fillCustomOptions($checkoutCustomOptions);
-        }
-
-        if (isset($checkoutData['options']['qty'])) {
-            $this->_rootElement->find($this->qty)->setValue($checkoutData['options']['qty']);
-        }
-    }
-
-    /**
-     * Replace index fields to name fields in checkout data
-     *
-     * @param array $options
-     * @param array $checkoutData
-     * @return array
-     */
-    protected function prepareCheckoutData(array $options, array $checkoutData)
-    {
-        $result = [];
-
-        foreach ($checkoutData as $checkoutOption) {
-            $attribute = str_replace('attribute_key_', '', $checkoutOption['title']);
-            $option = str_replace('option_key_', '', $checkoutOption['value']);
-
-            if (isset($options[$attribute])) {
-                $result[] = [
-                    'type' => strtolower(preg_replace('/[^a-z]/i', '', $options[$attribute]['type'])),
-                    'title' => isset($options[$attribute]['title'])
-                            ? $options[$attribute]['title']
-                            : $attribute,
-                    'value' => isset($options[$attribute]['options'][$option]['title'])
-                            ? $options[$attribute]['options'][$option]['title']
-                            : $option
-                ];
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * This method return array tier prices
+     * This method return array tier prices.
      *
      * @param int $lineNumber [optional]
      * @return array
@@ -386,7 +334,7 @@ class View extends Block
     }
 
     /**
-     * Click "ADD TO CART" button
+     * Click "ADD TO CART" button.
      *
      * @return void
      */
@@ -396,28 +344,17 @@ class View extends Block
     }
 
     /**
-     * Open MAP block on Product View page
-     *
-     * @return void
-     */
-    public function openMapBlockOnProductPage()
-    {
-        $this->_rootElement->find($this->clickForPrice, Locator::SELECTOR_CSS)->click();
-        $this->waitForElementVisible($this->mapPopup, Locator::SELECTOR_CSS);
-    }
-
-    /**
-     * Check 'Add to card' button visible
+     * Check 'Add to card' button visible.
      *
      * @return bool
      */
-    public function checkAddToCardButton()
+    public function isVisibleAddToCardButton()
     {
         return $this->_rootElement->find($this->addToCart, Locator::SELECTOR_CSS)->isVisible();
     }
 
     /**
-     * Get text of Stock Availability control
+     * Get text of Stock Availability control.
      *
      * @return string
      */
@@ -427,27 +364,50 @@ class View extends Block
     }
 
     /**
-     * Click "Add to Compare" button
+     * Click "Add to Compare" button.
      *
      * @return void
      */
     public function clickAddToCompare()
     {
+        /** @var \Magento\Backend\Test\Block\Messages $messageBlock */
+        $messageBlock = $this->blockFactory->create(
+            'Magento\Backend\Test\Block\Messages',
+            ['element' => $this->browser->find($this->messageBlock)]
+        );
         $this->_rootElement->find($this->clickAddToCompare, Locator::SELECTOR_CSS)->click();
+        $messageBlock->waitSuccessMessage();
     }
 
     /**
-     * Click "Add to Wishlist" button
+     * Add product to Wishlist.
+     *
+     * @param FixtureInterface $product
+     * @return void
+     */
+    public function addToWishlist(FixtureInterface $product)
+    {
+        /** @var CatalogProductSimple $product */
+        $checkoutData = $product->getCheckoutData();
+        $this->fillOptions($product);
+        if (isset($checkoutData['qty'])) {
+            $this->setQty($checkoutData['qty']);
+        }
+        $this->clickAddToWishlist();
+    }
+
+    /**
+     * Click "Add to Wish List".
      *
      * @return void
      */
-    public function addToWishlist()
+    public function clickAddToWishlist()
     {
-        $this->_rootElement->find($this->addToWishlist, Locator::SELECTOR_CSS)->click();
+        $this->_rootElement->find($this->addToWishlist)->click();
     }
 
     /**
-     * Select tab on the product page
+     * Select tab on the product page.
      *
      * @param string $name
      * @return void
@@ -455,5 +415,25 @@ class View extends Block
     public function selectTab($name)
     {
         $this->_rootElement->find(sprintf($this->tabSelector, $name), Locator::SELECTOR_XPATH)->click();
+    }
+
+    /**
+     * Wait loading block.
+     *
+     * @return void
+     */
+    public function waitLoader()
+    {
+        $this->waitForElementNotVisible($this->ajaxLoading);
+    }
+
+    /**
+     * Check id media gallery is visible for the product.
+     *
+     * @return bool
+     */
+    public function isGalleryVisible()
+    {
+        return $this->_rootElement->find($this->mediaGallery)->isVisible();
     }
 }

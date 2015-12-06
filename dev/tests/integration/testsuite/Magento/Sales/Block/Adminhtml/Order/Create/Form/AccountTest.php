@@ -2,26 +2,8 @@
 /**
  * Test class for \Magento\Sales\Block\Adminhtml\Order\Create\Form\Account
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Block\Adminhtml\Order\Create\Form;
 
@@ -34,16 +16,21 @@ class AccountTest extends \PHPUnit_Framework_TestCase
     protected $_accountBlock;
 
     /**
+     * @var \Magento\TestFramework\Helper\Bootstrap
+     */
+    protected $_objectManager;
+
+    /**
      * @magentoDataFixture Magento/Sales/_files/quote.php
      */
     protected function setUp()
     {
         $this->_objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
-        $quote = $this->_objectManager->create('Magento\Sales\Model\Quote')->load(1);
+        $quote = $this->_objectManager->create('Magento\Quote\Model\Quote')->load(1);
         $sessionQuoteMock = $this->getMockBuilder(
             'Magento\Backend\Model\Session\Quote'
         )->disableOriginalConstructor()->setMethods(
-            array('getCustomerId', 'getStore', 'getStoreId', 'getQuote')
+            ['getCustomerId', 'getStore', 'getStoreId', 'getQuote']
         )->getMock();
         $sessionQuoteMock->expects($this->any())->method('getCustomerId')->will($this->returnValue(1));
         $sessionQuoteMock->expects($this->any())->method('getQuote')->will($this->returnValue($quote));
@@ -52,7 +39,7 @@ class AccountTest extends \PHPUnit_Framework_TestCase
         $this->_accountBlock = $layout->createBlock(
             'Magento\Sales\Block\Adminhtml\Order\Create\Form\Account',
             'address_block' . rand(),
-            array('sessionQuote' => $sessionQuoteMock)
+            ['sessionQuote' => $sessionQuoteMock]
         );
         parent::setUp();
     }
@@ -62,7 +49,7 @@ class AccountTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetForm()
     {
-        $expectedFields = array('group_id', 'email');
+        $expectedFields = ['group_id', 'email'];
         $form = $this->_accountBlock->getForm();
         $this->assertEquals(1, $form->getElements()->count(), "Form has invalid number of fieldsets");
         $fieldset = $form->getElements()[0];

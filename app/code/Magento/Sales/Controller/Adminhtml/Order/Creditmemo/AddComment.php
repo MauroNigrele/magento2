@@ -1,31 +1,12 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Controller\Adminhtml\Order\Creditmemo;
 
 use Magento\Backend\App\Action;
-use Magento\Sales\Model\Order\Email\Sender\CreditmemoSender;
+use Magento\Sales\Model\Order\Email\Sender\CreditmemoCommentSender;
 
 class AddComment extends \Magento\Backend\App\Action
 {
@@ -35,22 +16,46 @@ class AddComment extends \Magento\Backend\App\Action
     protected $creditmemoLoader;
 
     /**
-     * @var CreditmemoSender
+     * @var CreditmemoCommentSender
      */
-    protected $creditmemoSender;
+    protected $creditmemoCommentSender;
+
+    /**
+     * @var \Magento\Framework\View\Result\PageFactory
+     */
+    protected $pagePageFactory;
+
+    /**
+     * @var \Magento\Framework\Controller\Result\JsonFactory
+     */
+    protected $resultJsonFactory;
+
+    /**
+     * @var \Magento\Framework\Controller\Result\RawFactory
+     */
+    protected $resultRawFactory;
 
     /**
      * @param Action\Context $context
      * @param \Magento\Sales\Controller\Adminhtml\Order\CreditmemoLoader $creditmemoLoader
-     * @param CreditmemoSender $creditmemoSender
+     * @param CreditmemoCommentSender $creditmemoCommentSender
+     * @param \Magento\Framework\View\Result\PageFactory $resultPageFactory
+     * @param \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
+     * @param \Magento\Framework\Controller\Result\RawFactory $resultRawFactory
      */
     public function __construct(
         Action\Context $context,
         \Magento\Sales\Controller\Adminhtml\Order\CreditmemoLoader $creditmemoLoader,
-        CreditmemoSender $creditmemoSender
+        CreditmemoCommentSender $creditmemoCommentSender,
+        \Magento\Framework\View\Result\PageFactory $resultPageFactory,
+        \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory,
+        \Magento\Framework\Controller\Result\RawFactory $resultRawFactory
     ) {
         $this->creditmemoLoader = $creditmemoLoader;
-        $this->creditmemoSender = $creditmemoSender;
+        $this->creditmemoCommentSender = $creditmemoCommentSender;
+        $this->resultPageFactory = $resultPageFactory;
+        $this->resultJsonFactory = $resultJsonFactory;
+        $this->resultRawFactory = $resultRawFactory;
         parent::__construct($context);
     }
 
@@ -65,7 +70,7 @@ class AddComment extends \Magento\Backend\App\Action
     /**
      * Add comment to creditmemo history
      *
-     * @return void
+     * @return \Magento\Framework\Controller\Result\Raw|\Magento\Framework\Controller\Result\Json
      */
     public function execute()
     {
@@ -73,9 +78,10 @@ class AddComment extends \Magento\Backend\App\Action
             $this->getRequest()->setParam('creditmemo_id', $this->getRequest()->getParam('id'));
             $data = $this->getRequest()->getPost('comment');
             if (empty($data['comment'])) {
-                throw new \Magento\Framework\Model\Exception(__('The Comment Text field cannot be empty.'));
+                throw new \Magento\Framework\Exception\LocalizedException(
+                    __('Please enter a comment.')
+                );
             }
-            $this->_title->add(__('Credit Memos'));
             $this->creditmemoLoader->setOrderId($this->getRequest()->getParam('order_id'));
             $this->creditmemoLoader->setCreditmemoId($this->getRequest()->getParam('creditmemo_id'));
             $this->creditmemoLoader->setCreditmemo($this->getRequest()->getParam('creditmemo'));
@@ -88,20 +94,22 @@ class AddComment extends \Magento\Backend\App\Action
             );
             $comment->save();
 
-            $this->creditmemoSender->send($creditmemo, !empty($data['is_customer_notified']), $data['comment']);
-
-            $this->_view->loadLayout();
-            $response = $this->_view->getLayout()->getBlock('creditmemo_comments')->toHtml();
-        } catch (\Magento\Framework\Model\Exception $e) {
-            $response = array('error' => true, 'message' => $e->getMessage());
+            $this->creditmemoCommentSender->send($creditmemo, !empty($data['is_customer_notified']), $data['comment']);
+            $resultPage = $this->resultPageFactory->create();
+            $response = $resultPage->getLayout()->getBlock('creditmemo_comments')->toHtml();
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+            $response = ['error' => true, 'message' => $e->getMessage()];
         } catch (\Exception $e) {
-            $response = array('error' => true, 'message' => __('Cannot add new comment.'));
+            $response = ['error' => true, 'message' => __('Cannot add new comment.')];
         }
         if (is_array($response)) {
-            $response = $this->_objectManager->get('Magento\Core\Helper\Data')->jsonEncode($response);
-            $this->getResponse()->representJson($response);
+            $resultJson = $this->resultJsonFactory->create();
+            $resultJson->setData($response);
+            return $resultJson;
         } else {
-            $this->getResponse()->setBody($response);
+            $resultRaw = $this->resultRawFactory->create();
+            $resultRaw->setContents($response);
+            return $resultRaw;
         }
     }
 }

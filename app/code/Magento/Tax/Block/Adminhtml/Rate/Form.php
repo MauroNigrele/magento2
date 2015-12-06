@@ -1,26 +1,10 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
 
 /**
  * Admin product tax class add form
@@ -32,6 +16,9 @@ namespace Magento\Tax\Block\Adminhtml\Rate;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Tax\Controller\RegistryConstants;
 
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 class Form extends \Magento\Backend\Block\Widget\Form\Generic
 {
     const FORM_ELEMENT_ID = 'rate-form';
@@ -69,14 +56,19 @@ class Form extends \Magento\Backend\Block\Widget\Form\Generic
     protected $_regionFactory;
 
     /**
-     * @var \Magento\Tax\Service\V1\TaxRateServiceInterface
+     * @var \Magento\Tax\Api\TaxRateRepositoryInterface
      */
-    protected $_taxRateService;
+    protected $_taxRateRepository;
 
     /**
-     * @var \Magento\Tax\Service\V1\Collection\TaxRateCollection
+     * @var \Magento\Tax\Model\TaxRateCollection
      */
     protected $_taxRateCollection;
+
+    /**
+     * @var \Magento\Tax\Model\Calculation\Rate\Converter
+     */
+    protected $_taxRateConverter;
 
     /**
      * @param \Magento\Backend\Block\Template\Context $context
@@ -86,9 +78,11 @@ class Form extends \Magento\Backend\Block\Widget\Form\Generic
      * @param \Magento\Directory\Model\Config\Source\Country $country
      * @param \Magento\Tax\Block\Adminhtml\Rate\Title\FieldsetFactory $fieldsetFactory
      * @param \Magento\Tax\Helper\Data $taxData
-     * @param \Magento\Tax\Service\V1\TaxRateServiceInterface $taxRateService
-     * @param \Magento\Tax\Service\V1\Collection\TaxRateCollection $taxRateCollection
+     * @param \Magento\Tax\Api\TaxRateRepositoryInterface $taxRateRepository
+     * @param \Magento\Tax\Model\TaxRateCollection $taxRateCollection
+     * @param \Magento\Tax\Model\Calculation\Rate\Converter $taxRateConverter
      * @param array $data
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
@@ -98,16 +92,18 @@ class Form extends \Magento\Backend\Block\Widget\Form\Generic
         \Magento\Directory\Model\Config\Source\Country $country,
         \Magento\Tax\Block\Adminhtml\Rate\Title\FieldsetFactory $fieldsetFactory,
         \Magento\Tax\Helper\Data $taxData,
-        \Magento\Tax\Service\V1\TaxRateServiceInterface $taxRateService,
-        \Magento\Tax\Service\V1\Collection\TaxRateCollection $taxRateCollection,
-        array $data = array()
+        \Magento\Tax\Api\TaxRateRepositoryInterface $taxRateRepository,
+        \Magento\Tax\Model\TaxRateCollection $taxRateCollection,
+        \Magento\Tax\Model\Calculation\Rate\Converter $taxRateConverter,
+        array $data = []
     ) {
         $this->_regionFactory = $regionFactory;
         $this->_country = $country;
         $this->_fieldsetFactory = $fieldsetFactory;
         $this->_taxData = $taxData;
-        $this->_taxRateService = $taxRateService;
+        $this->_taxRateRepository = $taxRateRepository;
         $this->_taxRateCollection = $taxRateCollection;
+        $this->_taxRateConverter = $taxRateConverter;
         parent::__construct($context, $registry, $formFactory, $data);
     }
 
@@ -122,6 +118,9 @@ class Form extends \Magento\Backend\Block\Widget\Form\Generic
 
     /**
      * @return $this
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      */
     protected function _prepareForm()
     {
@@ -129,14 +128,14 @@ class Form extends \Magento\Backend\Block\Widget\Form\Generic
 
         try {
             if ($taxRateId) {
-                $taxRateDataObject = $this->_taxRateService->getTaxRate($taxRateId);
+                $taxRateDataObject = $this->_taxRateRepository->get($taxRateId);
             }
         } catch (NoSuchEntityException $e) {
             /* tax rate not found */
         }
 
         $sessionFormValues = (array)$this->_coreRegistry->registry(RegistryConstants::CURRENT_TAX_RATE_FORM_DATA);
-        $formData = isset($taxRateDataObject) ? $this->extractTaxRateData($taxRateDataObject) : [];
+        $formData = isset($taxRateDataObject) ? $this->_taxRateConverter->createArrayFromServiceObject($taxRateDataObject) : [];
         $formData = array_merge($formData, $sessionFormValues);
 
         if (isset($formData['zip_is_range']) && $formData['zip_is_range'] && !isset($formData['tax_postcode'])) {
@@ -171,36 +170,36 @@ class Form extends \Magento\Backend\Block\Widget\Form\Generic
         if ($regions) {
             $regions[0]['label'] = '*';
         } else {
-            $regions = array(array('value' => '', 'label' => '*'));
+            $regions = [['value' => '', 'label' => '*']];
         }
 
         $legend = $this->getShowLegend() ? __('Tax Rate Information') : '';
-        $fieldset = $form->addFieldset('base_fieldset', array('legend' => $legend));
+        $fieldset = $form->addFieldset('base_fieldset', ['legend' => $legend, 'class' => 'form-inline']);
 
         if (isset($formData['tax_calculation_rate_id']) && $formData['tax_calculation_rate_id'] > 0) {
             $fieldset->addField(
                 'tax_calculation_rate_id',
                 'hidden',
-                array('name' => 'tax_calculation_rate_id', 'value' => $formData['tax_calculation_rate_id'])
+                ['name' => 'tax_calculation_rate_id', 'value' => $formData['tax_calculation_rate_id']]
             );
         }
 
         $fieldset->addField(
             'code',
             'text',
-            array(
+            [
                 'name' => 'code',
                 'label' => __('Tax Identifier'),
                 'title' => __('Tax Identifier'),
                 'class' => 'required-entry',
                 'required' => true
-            )
+            ]
         );
 
         $fieldset->addField(
             'zip_is_range',
             'checkbox',
-            array('name' => 'zip_is_range', 'label' => __('Zip/Post is Range'), 'value' => '1')
+            ['name' => 'zip_is_range', 'label' => __('Zip/Post is Range'), 'value' => '1']
         );
 
         if (!isset($formData['tax_postcode'])) {
@@ -213,64 +212,64 @@ class Form extends \Magento\Backend\Block\Widget\Form\Generic
         $fieldset->addField(
             'tax_postcode',
             'text',
-            array(
+            [
                 'name' => 'tax_postcode',
                 'label' => __('Zip/Post Code'),
                 'note' => __(
                     "'*' - matches any; 'xyz*' - matches any that begins on 'xyz' and are not longer than %1.",
                     $this->_taxData->getPostCodeSubStringLength()
                 )
-            )
+            ]
         );
 
         $fieldset->addField(
             'zip_from',
             'text',
-            array(
+            [
                 'name' => 'zip_from',
                 'label' => __('Range From'),
                 'required' => true,
                 'maxlength' => 9,
                 'class' => 'validate-digits',
                 'css_class' => 'hidden'
-            )
+            ]
         );
 
         $fieldset->addField(
             'zip_to',
             'text',
-            array(
+            [
                 'name' => 'zip_to',
                 'label' => __('Range To'),
                 'required' => true,
                 'maxlength' => 9,
                 'class' => 'validate-digits',
                 'css_class' => 'hidden'
-            )
+            ]
         );
 
         $fieldset->addField(
             'tax_region_id',
             'select',
-            array('name' => 'tax_region_id', 'label' => __('State'), 'values' => $regions)
+            ['name' => 'tax_region_id', 'label' => __('State'), 'values' => $regions]
         );
 
         $fieldset->addField(
             'tax_country_id',
             'select',
-            array('name' => 'tax_country_id', 'label' => __('Country'), 'required' => true, 'values' => $countries)
+            ['name' => 'tax_country_id', 'label' => __('Country'), 'required' => true, 'values' => $countries]
         );
 
         $fieldset->addField(
             'rate',
             'text',
-            array(
+            [
                 'name' => 'rate',
                 'label' => __('Rate Percent'),
                 'title' => __('Rate Percent'),
                 'required' => true,
                 'class' => 'validate-not-negative-number'
-            )
+            ]
         );
 
         $form->setAction($this->getUrl('tax/rate/save'));
@@ -294,68 +293,5 @@ class Form extends \Magento\Backend\Block\Widget\Form\Generic
         );
 
         return parent::_prepareForm();
-    }
-
-    /**
-     * Get Tax Rates Collection
-     *
-     * @return mixed
-     */
-    public function getRateCollection()
-    {
-        if ($this->getData('rate_collection') == null) {
-            $items = $this->_taxRateCollection->getItems();
-            $rates = array();
-            foreach ($items as $rate) {
-                $rateData = $rate->getData();
-                if (isset($rateData['titles'])) {
-                    foreach ($rateData['titles'] as $storeId => $value) {
-                        $rateData['title[' . $storeId . ']'] = $value;
-                    }
-                }
-                unset($rateData['titles']);
-                $rates[] = $rateData;
-            }
-
-            $this->setRateCollection($rates);
-        }
-        return $this->getData('rate_collection');
-    }
-
-    /**
-     * Extract tax rate data in a format which is
-     *
-     * @param \Magento\Tax\Service\V1\Data\TaxRate $taxRate
-     * @return array
-     */
-    protected function extractTaxRateData($taxRate)
-    {
-        $zipRange = $taxRate->getZipRange();
-
-        $formData = [
-            'tax_calculation_rate_id' => $taxRate->getId(),
-            'tax_country_id' => $taxRate->getCountryId(),
-            'tax_region_id' => $taxRate->getRegionId(),
-            'tax_postcode' => $taxRate->getPostcode(),
-            'code' => $taxRate->getCode(),
-            'rate' => $taxRate->getPercentageRate(),
-            'zip_is_range' => false
-        ];
-
-        if ($zipRange) {
-            $formData['zip_is_range'] = true;
-            $formData['zip_from'] = $zipRange->getFrom();
-            $formData['zip_to'] = $zipRange->getTo();
-        }
-
-        if ($taxRate->getTitles()) {
-            $titleData = [];
-            foreach ($taxRate->getTitles() as $title) {
-                $titleData[] = [$title->getStoreId() => $title->getValue()];
-            }
-            $formData['title'] = $titleData;
-        }
-
-        return $formData;
     }
 }

@@ -1,43 +1,57 @@
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 'use strict';
-var main = angular.module('main', []);
-main.controller('navigationController', ['$scope', '$state', '$rootScope', 'navigationService', function ($scope, $state, $rootScope, navigationService) {
-    navigationService.load();
+var main = angular.module('main', ['ngStorage']);
+main.controller('navigationController',
+        ['$scope', '$state', '$rootScope', '$window', 'navigationService', '$localStorage',
+            function ($scope, $state, $rootScope, $window, navigationService, $localStorage) {
+
+    function loadMenu() {
+        angular.element(document).ready(function() {
+            $scope.menu = $localStorage.menu;
+        });
+    }
+
+    navigationService.load().then(loadMenu);
+
     $rootScope.isMenuEnabled = true;
     $scope.itemStatus = function (order) {
         return $state.$current.order <= order || !$rootScope.isMenuEnabled;
     };
 }])
-.controller('mainController', [
-    '$scope', '$state', 'navigationService',
-    function ($scope, $state, navigationService) {
-        $scope.$on('$stateChangeSuccess', function (event, state) {
-            $scope.class = 'col-lg-9';
-            if (state.main) {
-                $scope.class = 'col-lg-offset-3 col-lg-6';
+.controller('headerController', ['$scope', '$localStorage', '$window',
+        function ($scope, $localStorage, $window) {
+            if ($localStorage.titles) {
+                $scope.titles = $localStorage.titles;
             }
+            $scope.redirectTo = function (url) {
+                if (url) {
+                    $window.location.href = url;
+                }
+            };
+        }
+    ]
+)
+.controller('mainController', [
+    '$scope', '$state', 'navigationService', '$localStorage', '$interval', '$http',
+    function ($scope, $state, navigationService, $localStorage, $interval, $http) {
+        $interval(
+            function () {
+                $http.post('index.php/session/prolong')
+                    .success(function (result) {
+                    })
+                    .error(function (result) {
+                    });
+            },
+            120000
+        );
+
+        $scope.moduleName = $localStorage.moduleName;
+        $scope.$on('$stateChangeSuccess', function (event, state) {
+            $scope.valid = true;
         });
 
         $scope.nextState = function () {
@@ -47,8 +61,15 @@ main.controller('navigationController', ['$scope', '$state', '$rootScope', 'navi
             }
         };
 
+        $scope.goToState = function (stateId) {
+            $state.go(stateId)
+        }
+
+        $scope.state = $state;
+
         $scope.previousState = function () {
-            $state.go(navigationService.getPreviousState().id);
+                $scope.valid = true;
+                $state.go(navigationService.getPreviousState().id);
         };
 
         // Flag indicating the validity of the form
@@ -67,18 +88,43 @@ main.controller('navigationController', ['$scope', '$state', '$rootScope', 'navi
             $scope.valid = data;
             event.stopPropagation();
         });
+
+        $scope.endsWith = function(str, suffix) {
+            return str.indexOf(suffix, str.length - suffix.length) !== -1;
+        }
+
+        $scope.goToStart = function() {
+            if ($state.current.type === 'install') {
+                $state.go('root.landing-install');
+            } else if ($state.current.type === 'upgrade') {
+                $state.go('root.upgrade');
+            } else {
+                $state.go('root.update');
+            }
+        }
+
+        $scope.goToBackup = function() {
+            $state.go('root.create-backup-uninstall');
+        }
     }
 ])
-.service('navigationService', ['$location', '$state', '$http', function ($location, $state, $http) {
+.service('navigationService', ['$location', '$state', '$http', '$localStorage',
+    function ($location, $state, $http, $localStorage) {
     return {
         mainState: {},
         states: [],
+        titlesWithModuleName: ['enable', 'disable', 'update', 'uninstall'],
         load: function () {
             var self = this;
-            $http.get('data/states').success(function (data) {
+            return $http.get('index.php/navigation').success(function (data) {
                 var currentState = $location.path().replace('/', '');
                 var isCurrentStateFound = false;
                 self.states = data.nav;
+                $localStorage.menu = data.menu;
+                self.titlesWithModuleName.forEach(function (value) {
+                    data.titles[value] = data.titles[value] + $localStorage.moduleName;
+                });
+                $localStorage.titles = data.titles;
                 data.nav.forEach(function (item) {
                     app.stateProvider.state(item.id, item);
                     if (item.default) {
@@ -98,7 +144,7 @@ main.controller('navigationController', ['$scope', '$state', '$rootScope', 'navi
         getNextState: function () {
             var nItem = {};
             this.states.forEach(function (item) {
-                if (item.order == $state.$current.order + 1) {
+                if (item.order == $state.$current.order + 1 && item.type == $state.$current.type) {
                     nItem = item;
                 }
             });
@@ -107,7 +153,7 @@ main.controller('navigationController', ['$scope', '$state', '$rootScope', 'navi
         getPreviousState: function () {
             var nItem = {};
             this.states.forEach(function (item) {
-                if (item.order == $state.$current.order - 1) {
+                if (item.order == $state.$current.order - 1 && item.type == $state.$current.type) {
                     nItem = item;
                 }
             });

@@ -1,31 +1,24 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Paypal\Controller\Payflow;
 
-class ReturnUrl extends \Magento\Paypal\Controller\Payflow
+use Magento\Paypal\Controller\Payflow;
+use Magento\Sales\Model\Order;
+
+class ReturnUrl extends Payflow
 {
+    /**
+     * @var array of allowed order states on frontend
+     */
+    protected $allowedOrderStates = [
+        Order::STATE_PROCESSING,
+        Order::STATE_COMPLETE,
+    ];
+
     /**
      * When a customer return to website from payflow gateway.
      *
@@ -34,23 +27,20 @@ class ReturnUrl extends \Magento\Paypal\Controller\Payflow
     public function execute()
     {
         $this->_view->loadLayout(false);
+        /** @var \Magento\Checkout\Block\Onepage\Success $redirectBlock */
         $redirectBlock = $this->_view->getLayout()->getBlock($this->_redirectBlockName);
 
         if ($this->_checkoutSession->getLastRealOrderId()) {
+            /** @var \Magento\Sales\Model\Order $order */
             $order = $this->_orderFactory->create()->loadByIncrementId($this->_checkoutSession->getLastRealOrderId());
 
-            if ($order && $order->getIncrementId() == $this->_checkoutSession->getLastRealOrderId()) {
-                $allowedOrderStates = array(
-                    \Magento\Sales\Model\Order::STATE_PROCESSING,
-                    \Magento\Sales\Model\Order::STATE_COMPLETE
-                );
-                if (in_array($order->getState(), $allowedOrderStates)) {
-                    $this->_checkoutSession->unsLastRealOrderId();
-                    $redirectBlock->setGotoSuccessPage(true);
+            if ($order->getIncrementId()) {
+                if (in_array($order->getState(), $this->allowedOrderStates)) {
+                    $redirectBlock->setData('goto_success_page', true);
                 } else {
                     $gotoSection = $this->_cancelPayment(strval($this->getRequest()->getParam('RESPMSG')));
-                    $redirectBlock->setGotoSection($gotoSection);
-                    $redirectBlock->setErrorMsg(__('Your payment has been declined. Please try again.'));
+                    $redirectBlock->setData('goto_section', $gotoSection);
+                    $redirectBlock->setData('error_msg', __('Your payment has been declined. Please try again.'));
                 }
             }
         }

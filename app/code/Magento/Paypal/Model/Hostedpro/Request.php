@@ -1,34 +1,18 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Paypal\Model\Hostedpro;
+
+use \Magento\Sales\Model\Order;
 
 /**
  *  Website Payments Pro Hosted Solution request model to get token.
  *
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-class Request extends \Magento\Framework\Object
+class Request extends \Magento\Framework\DataObject
 {
     /**
      * Request's order model
@@ -45,7 +29,7 @@ class Request extends \Magento\Framework\Object
     protected $_paymentMethod;
 
     /**
-     * Name formate for button variables
+     * Name format for button variables
      *
      * @var string
      */
@@ -56,7 +40,7 @@ class Request extends \Magento\Framework\Object
      *
      * @var string[]
      */
-    protected $_notButtonVars = array('METHOD', 'BUTTONCODE', 'BUTTONTYPE');
+    protected $_notButtonVars = ['METHOD', 'BUTTONCODE', 'BUTTONTYPE'];
 
     /**
      * Customer address
@@ -66,16 +50,35 @@ class Request extends \Magento\Framework\Object
     protected $_customerAddress = null;
 
     /**
-     * Constructor
+     * Tax data
      *
-     * By default is looking for first argument as array and assigns it as object
-     * attributes This behavior may change in child classes
-     *
-     * @param \Magento\Customer\Helper\Address $customerAddress
+     * @var \Magento\Tax\Helper\Data
      */
-    public function __construct(\Magento\Customer\Helper\Address $customerAddress)
-    {
+    protected $_taxData;
+
+    /**
+     * Locale Resolver
+     *
+     * @var \Magento\Framework\Locale\Resolver
+     */
+    protected $localeResolver;
+
+    /**
+     * @param \Magento\Framework\Locale\Resolver $localeResolver
+     * @param \Magento\Customer\Helper\Address $customerAddress
+     * @param \Magento\Tax\Helper\Data $taxData
+     * @param array $data
+     */
+    public function __construct(
+        \Magento\Framework\Locale\Resolver $localeResolver,
+        \Magento\Customer\Helper\Address $customerAddress,
+        \Magento\Tax\Helper\Data $taxData,
+        array $data = []
+    ) {
         $this->_customerAddress = $customerAddress;
+        $this->localeResolver = $localeResolver;
+        $this->_taxData = $taxData;
+        parent::__construct($data);
     }
 
     /**
@@ -85,7 +88,7 @@ class Request extends \Magento\Framework\Object
      */
     public function getRequestData()
     {
-        $requestData = array();
+        $requestData = [];
         if (!empty($this->_data)) {
             // insert params to request as additional button variables,
             // except special params from _notButtonVars list
@@ -135,28 +138,87 @@ class Request extends \Magento\Framework\Object
     }
 
     /**
-     * Get peymet request data as array
+     * Add amount data to request
+     *
+     * @access public
+     * @param \Magento\Sales\Model\Order $order
+     * @return $this
+     */
+    public function setAmount(Order $order)
+    {
+        $this->addData($this->_getAmountData($order));
+        return $this;
+    }
+
+    /**
+     * Calculate amount for order
+     * @param \Magento\Sales\Model\Order $order
+     * @return array
+     * @throws \Exception
+     */
+    protected function _getAmountData(Order $order)
+    {
+        // if tax is included - need add to request only total amount
+        if ($this->_taxData->getConfig()->priceIncludesTax()) {
+            return $this->getTaxableAmount($order);
+        } else {
+            return $this->getNonTaxableAmount($order);
+        }
+    }
+
+    /**
+     * Get payment amount data with excluded tax
+     * @param \Magento\Sales\Model\Order $order
+     * @return array
+     */
+    private function getNonTaxableAmount(Order $order)
+    {
+        return [
+            'subtotal' => $this->_formatPrice($order->getBaseSubtotal()),
+            'total' => $this->_formatPrice($order->getPayment()->getBaseAmountAuthorized()),
+            'tax' => $this->_formatPrice($order->getBaseTaxAmount()),
+            'shipping' => $this->_formatPrice($order->getBaseShippingAmount()),
+            'discount' => $this->_formatPrice(abs($order->getBaseDiscountAmount()))
+        ];
+    }
+
+    /**
+     * Get order amount data with included tax
+     * @param \Magento\Sales\Model\Order $order
+     * @return array
+     */
+    private function getTaxableAmount(Order $order)
+    {
+        $amount = $this->_formatPrice($order->getPayment()->getBaseAmountAuthorized());
+        return [
+            'amount' => $amount,
+            'subtotal' => $amount // subtotal always is required
+        ];
+    }
+
+    /**
+     * Get payment request data as array
      *
      * @param \Magento\Paypal\Model\Hostedpro $paymentMethod
      * @return array
      */
     protected function _getPaymentData(\Magento\Paypal\Model\Hostedpro $paymentMethod)
     {
-        $request = array(
+        $request = [
             'paymentaction' => strtolower($paymentMethod->getConfigData('payment_action')),
             'notify_url' => $paymentMethod->getNotifyUrl(),
             'cancel_return' => $paymentMethod->getCancelUrl(),
             'return' => $paymentMethod->getReturnUrl(),
-            'lc' => $paymentMethod->getMerchantCountry(),
-            'template' => 'templateD',
+            'lc' => \Locale::getRegion($this->localeResolver->getLocale()),
+            'template' => 'mobile-iframe',
             'showBillingAddress' => 'false',
             'showShippingAddress' => 'true',
             'showBillingEmail' => 'false',
             'showBillingPhone' => 'false',
             'showCustomerName' => 'false',
             'showCardInfo' => 'true',
-            'showHostedThankyouPage' => 'false'
-        );
+            'showHostedThankyouPage' => 'false',
+        ];
 
         return $request;
     }
@@ -169,23 +231,12 @@ class Request extends \Magento\Framework\Object
      */
     protected function _getOrderData(\Magento\Sales\Model\Order $order)
     {
-        $request = array(
-            'subtotal' => $this->_formatPrice(
-                $this->_formatPrice(
-                    $order->getPayment()->getBaseAmountAuthorized()
-                ) - $this->_formatPrice(
-                    $order->getBaseTaxAmount()
-                ) - $this->_formatPrice(
-                    $order->getBaseShippingAmount()
-                )
-            ),
-            'tax' => $this->_formatPrice($order->getBaseTaxAmount()),
-            'shipping' => $this->_formatPrice($order->getBaseShippingAmount()),
+        $request = [
             'invoice' => $order->getIncrementId(),
             'address_override' => 'true',
             'currency_code' => $order->getBaseCurrencyCode(),
-            'buyer_email' => $order->getCustomerEmail()
-        );
+            'buyer_email' => $order->getCustomerEmail(),
+        ];
 
         // append to request billing address data
         if ($billingAddress = $order->getBillingAddress()) {
@@ -203,20 +254,21 @@ class Request extends \Magento\Framework\Object
     /**
      * Get shipping address request data
      *
-     * @param \Magento\Framework\Object $address
+     * @param \Magento\Framework\DataObject $address
      * @return array
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
-    protected function _getShippingAddress(\Magento\Framework\Object $address)
+    protected function _getShippingAddress(\Magento\Framework\DataObject $address)
     {
         $region = $address->getRegionCode() ? $address->getRegionCode() : $address->getRegion();
-        $request = array(
+        $request = [
             'first_name' => $address->getFirstname(),
             'last_name' => $address->getLastname(),
             'city' => $address->getCity(),
             'state' => $region ? $region : $address->getCity(),
             'zip' => $address->getPostcode(),
-            'country' => $address->getCountry()
-        );
+            'country' => $address->getCountryId(),
+        ];
 
         // convert streets to tow lines format
         $street = $this->_customerAddress->convertStreetLines($address->getStreet(), 2);
@@ -230,20 +282,21 @@ class Request extends \Magento\Framework\Object
     /**
      * Get billing address request data
      *
-     * @param \Magento\Framework\Object $address
+     * @param \Magento\Framework\DataObject $address
      * @return array
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
-    protected function _getBillingAddress(\Magento\Framework\Object $address)
+    protected function _getBillingAddress(\Magento\Framework\DataObject $address)
     {
         $region = $address->getRegionCode() ? $address->getRegionCode() : $address->getRegion();
-        $request = array(
+        $request = [
             'billing_first_name' => $address->getFirstname(),
             'billing_last_name' => $address->getLastname(),
             'billing_city' => $address->getCity(),
             'billing_state' => $region ? $region : $address->getCity(),
             'billing_zip' => $address->getPostcode(),
-            'billing_country' => $address->getCountry()
-        );
+            'billing_country' => $address->getCountryId(),
+        ];
 
         // convert streets to tow lines format
         $street = $this->_customerAddress->convertStreetLines($address->getStreet(), 2);

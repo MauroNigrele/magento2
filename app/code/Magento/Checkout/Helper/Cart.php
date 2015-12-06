@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Checkout\Helper;
 
@@ -28,7 +10,7 @@ namespace Magento\Checkout\Helper;
  *
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-class Cart extends \Magento\Core\Helper\Url
+class Cart extends \Magento\Framework\Url\Helper\Data
 {
     /**
      * Path to controller to delete item from cart
@@ -46,20 +28,6 @@ class Cart extends \Magento\Core\Helper\Url
     const COUPON_CODE_MAX_LENGTH = 255;
 
     /**
-     * Core data
-     *
-     * @var \Magento\Core\Helper\Data
-     */
-    protected $_coreData = null;
-
-    /**
-     * Core store config
-     *
-     * @var \Magento\Framework\App\Config\ScopeConfigInterface
-     */
-    protected $_scopeConfig;
-
-    /**
      * @var \Magento\Checkout\Model\Cart
      */
     protected $_checkoutCart;
@@ -71,31 +39,25 @@ class Cart extends \Magento\Core\Helper\Url
 
     /**
      * @param \Magento\Framework\App\Helper\Context $context
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
-     * @param \Magento\Core\Helper\Data $coreData
-     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
      * @param \Magento\Checkout\Model\Cart $checkoutCart
      * @param \Magento\Checkout\Model\Session $checkoutSession
+     * @codeCoverageIgnore
      */
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
-        \Magento\Framework\StoreManagerInterface $storeManager,
-        \Magento\Core\Helper\Data $coreData,
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Checkout\Model\Cart $checkoutCart,
         \Magento\Checkout\Model\Session $checkoutSession
     ) {
-        $this->_coreData = $coreData;
-        $this->_scopeConfig = $scopeConfig;
         $this->_checkoutCart = $checkoutCart;
         $this->_checkoutSession = $checkoutSession;
-        parent::__construct($context, $storeManager);
+        parent::__construct($context);
     }
 
     /**
      * Retrieve cart instance
      *
      * @return \Magento\Checkout\Model\Cart
+     * @codeCoverageIgnore
      */
     public function getCart()
     {
@@ -109,12 +71,16 @@ class Cart extends \Magento\Core\Helper\Url
      * @param array $additional
      * @return  string
      */
-    public function getAddUrl($product, $additional = array())
+    public function getAddUrl($product, $additional = [])
     {
-        $continueUrl = $this->_coreData->urlEncode($this->_urlBuilder->getCurrentUrl());
-        $urlParamName = \Magento\Framework\App\Action\Action::PARAM_NAME_URL_ENCODED;
+        $continueUrl = $this->urlEncoder->encode($this->_urlBuilder->getCurrentUrl());
+        $urlParamName = \Magento\Framework\App\ActionInterface::PARAM_NAME_URL_ENCODED;
 
-        $routeParams = array($urlParamName => $continueUrl, 'product' => $product->getEntityId());
+        $routeParams = [
+            $urlParamName => $continueUrl,
+            'product' => $product->getEntityId(),
+            '_secure' => $this->_getRequest()->isSecure()
+        ];
 
         if (!empty($additional)) {
             $routeParams = array_merge($routeParams, $additional);
@@ -125,7 +91,8 @@ class Cart extends \Magento\Core\Helper\Url
             $routeParams['_scope_to_url'] = true;
         }
 
-        if ($this->_getRequest()->getRouteName() == 'checkout' && $this->_getRequest()->getControllerName() == 'cart'
+        if ($this->_getRequest()->getRouteName() == 'checkout'
+            && $this->_getRequest()->getControllerName() == 'cart'
         ) {
             $routeParams['in_cart'] = 1;
         }
@@ -136,22 +103,22 @@ class Cart extends \Magento\Core\Helper\Url
     /**
      * Retrieve url for remove product from cart
      *
-     * @param   \Magento\Sales\Model\Quote\Item $item
+     * @param   \Magento\Quote\Model\Quote\Item\AbstractItem $item
      * @return  string
      */
     public function getRemoveUrl($item)
     {
-        $params = array(
+        $params = [
             'id' => $item->getId(),
-            \Magento\Framework\App\Action\Action::PARAM_NAME_BASE64_URL => $this->getCurrentBase64Url()
-        );
+            \Magento\Framework\App\ActionInterface::PARAM_NAME_BASE64_URL => $this->getCurrentBase64Url(),
+        ];
         return $this->_getUrl(self::DELETE_URL, $params);
     }
 
     /**
      * Get post parameters for delete from cart
      *
-     * @param \Magento\Sales\Model\Quote\Item $item
+     * @param \Magento\Quote\Model\Quote\Item\AbstractItem $item
      * @return string
      */
     public function getDeletePostJson($item)
@@ -160,15 +127,16 @@ class Cart extends \Magento\Core\Helper\Url
 
         $data = ['id' => $item->getId()];
         if (!$this->_request->isAjax()) {
-            $data[\Magento\Framework\App\Action\Action::PARAM_NAME_URL_ENCODED] = $this->getCurrentBase64Url();
+            $data[\Magento\Framework\App\ActionInterface::PARAM_NAME_URL_ENCODED] = $this->getCurrentBase64Url();
         }
-        return json_encode(array('action' => $url, 'data' => $data));
+        return json_encode(['action' => $url, 'data' => $data]);
     }
 
     /**
      * Retrieve shopping cart url
      *
      * @return string
+     * @codeCoverageIgnore
      */
     public function getCartUrl()
     {
@@ -178,7 +146,8 @@ class Cart extends \Magento\Core\Helper\Url
     /**
      * Retrieve current quote instance
      *
-     * @return \Magento\Sales\Model\Quote
+     * @return \Magento\Quote\Model\Quote
+     * @codeCoverageIgnore
      */
     public function getQuote()
     {
@@ -189,6 +158,7 @@ class Cart extends \Magento\Core\Helper\Url
      * Get shopping cart items count
      *
      * @return int
+     * @codeCoverageIgnore
      */
     public function getItemsCount()
     {
@@ -199,6 +169,7 @@ class Cart extends \Magento\Core\Helper\Url
      * Get shopping cart summary qty
      *
      * @return int|float
+     * @codeCoverageIgnore
      */
     public function getItemsQty()
     {
@@ -209,6 +180,7 @@ class Cart extends \Magento\Core\Helper\Url
      * Get shopping cart items summary (include config settings)
      *
      * @return int|float
+     * @codeCoverageIgnore
      */
     public function getSummaryCount()
     {
@@ -219,6 +191,8 @@ class Cart extends \Magento\Core\Helper\Url
      * Check quote for virtual products only
      *
      * @return bool
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName)
+     * @codeCoverageIgnore
      */
     public function getIsVirtualQuote()
     {
@@ -230,9 +204,15 @@ class Cart extends \Magento\Core\Helper\Url
      *
      * @param int|string|\Magento\Store\Model\Store $store
      * @return bool
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName)
+     * @codeCoverageIgnore
      */
     public function getShouldRedirectToCart($store = null)
     {
-        return $this->_scopeConfig->isSetFlag(self::XML_PATH_REDIRECT_TO_CART, \Magento\Store\Model\ScopeInterface::SCOPE_STORE, $store);
+        return $this->scopeConfig->isSetFlag(
+            self::XML_PATH_REDIRECT_TO_CART,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $store
+        );
     }
 }

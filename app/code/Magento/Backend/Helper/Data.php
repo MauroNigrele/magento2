@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Backend\Helper;
 
@@ -111,7 +93,7 @@ class Data extends AbstractHelper
      */
     public function setPageHelpUrl($url = null)
     {
-        if (is_null($url)) {
+        if ($url === null) {
             $request = $this->_request;
             $frontModule = $request->getControllerModule();
             if (!$frontModule) {
@@ -123,7 +105,7 @@ class Data extends AbstractHelper
                 }
             }
             $url = 'http://www.magentocommerce.com/gethelp/';
-            $url .= $this->_locale->getLocaleCode() . '/';
+            $url .= $this->_locale->getLocale() . '/';
             $url .= $frontModule . '/';
             $url .= $request->getControllerName() . '/';
             $url .= $request->getActionName() . '/';
@@ -150,7 +132,7 @@ class Data extends AbstractHelper
      * @param array $params
      * @return string
      */
-    public function getUrl($route = '', $params = array())
+    public function getUrl($route = '', $params = [])
     {
         return $this->_backendUrl->getUrl($route, $params);
     }
@@ -174,7 +156,7 @@ class Data extends AbstractHelper
      */
     public function prepareFilterString($filterString)
     {
-        $data = array();
+        $data = [];
         $filterString = base64_decode($filterString);
         parse_str($filterString, $data);
         array_walk_recursive(
@@ -216,10 +198,11 @@ class Data extends AbstractHelper
     /**
      * Return Backend area front name
      *
-     * @return string
+     * @param bool $checkHost
+     * @return bool|string
      */
-    public function getAreaFrontName()
+    public function getAreaFrontName($checkHost = false)
     {
-        return $this->_frontNameResolver->getFrontName();
+        return $this->_frontNameResolver->getFrontName($checkHost);
     }
 }

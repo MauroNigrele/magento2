@@ -71,7 +71,7 @@ Authorization,Authorization
 "IPN ""%1""","IPN ""%1"""
 "Billing Agreements","Billing Agreements"
 "Reference ID","Reference ID"
-"Billing Agreement #%1","Billing Agreement #%1"
+"Billing Agreement # ","Billing Agreement # "
 "Related Orders","Related Orders"
 "Billing Agreement View","Billing Agreement View"
 "View Transaction Details","View Transaction Details"
@@ -105,7 +105,6 @@ Help,Help
 "We found nothing to fetch because of an empty configuration.","We found nothing to fetch because of an empty configuration."
 "We fetched %1 report rows from '%2@%3'.","We fetched %1 report rows from '%2@%3'."
 "We couldn't fetch reports from '%1@%2'.","We couldn't fetch reports from '%1@%2'."
-"Billing Agreement # %1","Billing Agreement # %1"
 "We couldn't start the billing agreement wizard.","We couldn't start the billing agreement wizard."
 "The billing agreement ""%1"" has been created.","The billing agreement ""%1"" has been created."
 "We couldn't finish the billing agreement wizard.","We couldn't finish the billing agreement wizard."
@@ -201,8 +200,6 @@ Auto,Auto
 "CVV2 Check Result by PayPal","CVV2 Check Result by PayPal"
 "Buyer's Tax ID","Buyer's Tax ID"
 "Buyer's Tax ID Type","Buyer's Tax ID Type"
-"PayPal/Centinel Visa Payer Authentication Service Result","PayPal/Centinel Visa Payer Authentication Service Result"
-"PayPal/Centinel Electronic Commerce Indicator","PayPal/Centinel Electronic Commerce Indicator"
 Chargeback,Chargeback
 Complaint,Complaint
 Dispute,Dispute
@@ -361,7 +358,7 @@ Funding,Funding
 "The PayPal certificate file is empty.","The PayPal certificate file is empty."
 "Header (center)","Header (center)"
 "Sidebar (right)","Sidebar (right)"
-"Near Bill Me Later checkout button","Near Bill Me Later checkout button"
+"Near PayPal Credit checkout button","Near PayPal Credit checkout button"
 "Every 3 days","Every 3 days"
 "Every 7 days","Every 7 days"
 "Every 10 days","Every 10 days"
@@ -374,7 +371,9 @@ Funding,Funding
 "Created At","Created At"
 "Updated At","Updated At"
 "-- Please Select Billing Agreement--","-- Please Select Billing Agreement--"
-"Not sure what PayPal payment method to use? Click <a href=""%1"" target=""_blank"">here</a> to learn more.","Not sure what PayPal payment method to use? Click <a href=""%1"" target=""_blank"">here</a> to learn more."
+"Not sure what PayPal payment method to use? Click ","Not sure what PayPal payment method to use? Click "
+"here","here"
+" to learn more."," to learn more."
 "Important: ","Important: "
 "To use PayPal Payments Advanced, you must configure  your PayPal Payments Advanced account on the PayPal website.","To use PayPal Payments Advanced, you must configure  your PayPal Payments Advanced account on the PayPal website."
 "Once you log into your PayPal Advanced account, navigate to the Service Settings - Hosted Checkout Pages - Set Up menu and set the options described below","Once you log into your PayPal Advanced account, navigate to the Service Settings - Hosted Checkout Pages - Set Up menu and set the options described below"
@@ -392,7 +391,7 @@ Updated:,Updated:
 "New Billing Agreement","New Billing Agreement"
 "You will be redirected to the payment system website.","You will be redirected to the payment system website."
 Create...,Create...
-"Your billing agreement # is: %1.","Your billing agreement # is: %1."
+"Your billing agreement # is: ","Your billing agreement # is: "
 "Review Order","Review Order"
 "Please select a shipping method...","Please select a shipping method..."
 "Update Shipping Method","Update Shipping Method"
@@ -416,7 +415,6 @@ Size,Size
 "3D Secure","3D Secure"
 "Severe 3D Secure Card Validation","Severe 3D Secure Card Validation"
 "Severe Validation Removes Chargeback Liability on Merchant","Severe Validation Removes Chargeback Liability on Merchant"
-"Centinel API URL","Centinel API URL"
 "Debug Mode","Debug Mode"
 "Sandbox Mode","Sandbox Mode"
 1,1
@@ -428,19 +426,19 @@ Size,Size
 "Required PayPal Settings","Required PayPal Settings"
 "Website Payments Pro and Express Checkout","Website Payments Pro and Express Checkout"
 "Enable this Solution","Enable this Solution"
-"Advertise Bill Me Later","Advertise Bill Me Later"
+"Advertise PayPal Credit","Advertise PayPal Credit"
 "
                             <a href=""https://financing.paypal.com/ppfinportal/content/whyUseFinancing"" target=""_blank"">Why Advertise Financing?</a><br/>
                                             <strong>Give your sales a boost when you advertise financing.</strong><br/>PayPal helps turn browsers into buyers with financing
-                                            from Bill Me Later&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
-                                            Use PayPal’s free banner ads that let you advertise Bill Me Later&#174; financing as a payment option when your customers check out with PayPal.
+                                            from PayPal Credit&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
+                                            Use PayPal’s free banner ads that let you advertise PayPal Credit&#174; financing as a payment option when your customers check out with PayPal.
                                             The PayPal Advertising Program has been shown to generate additional purchases as well as increase consumer's average purchase sizes by 15%
                                             or more. <a href=""https://financing.paypal.com/ppfinportal/content/forrester"" target=""_blank"">See Details</a>.
                         ","
                             <a href=""https://financing.paypal.com/ppfinportal/content/whyUseFinancing"" target=""_blank"">Why Advertise Financing?</a><br/>
                                             <strong>Give your sales a boost when you advertise financing.</strong><br/>PayPal helps turn browsers into buyers with financing
-                                            from Bill Me Later&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
-                                            Use PayPal’s free banner ads that let you advertise Bill Me Later&#174; financing as a payment option when your customers check out with PayPal.
+                                            from PayPal Credit&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
+                                            Use PayPal’s free banner ads that let you advertise PayPal Credit&#174; financing as a payment option when your customers check out with PayPal.
                                             The PayPal Advertising Program has been shown to generate additional purchases as well as increase consumer's average purchase sizes by 15%
                                             or more. <a href=""https://financing.paypal.com/ppfinportal/content/forrester"" target=""_blank"">See Details</a>.
                         "
@@ -462,7 +460,6 @@ Size,Size
 "Enable SSL verification","Enable SSL verification"
 "Transfer Cart Line Items","Transfer Cart Line Items"
 "Require CVV Entry","Require CVV Entry"
-"Centinel Custom API URL","Centinel Custom API URL"
 "If empty, a default value will be used. Custom URL may be provided by CardinalCommerce agreement.","If empty, a default value will be used. Custom URL may be provided by CardinalCommerce agreement."
 "PayPal Billing Agreement Settings","PayPal Billing Agreement Settings"
 "Settlement Report Settings","Settlement Report Settings"
@@ -499,15 +496,15 @@ Vendor,Vendor
 "
                             <a href=""https:/financing.paypal.com/ppfinportal/content/whyUseFinancing"" target=""_blank"">Why Advertise Financing?</a><br/>
                         <strong>Give your sales a boost when you advertise financing.</strong><br/>PayPal helps turn browsers into buyers with financing
-                        from Bill Me Later&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
-                        Use PayPal’s free banner ads that let you advertise Bill Me Later&#174; financing as a payment option when your customers check out with PayPal.
+                        from PayPal Credit&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
+                        Use PayPal’s free banner ads that let you advertise PayPal Credit&#174; financing as a payment option when your customers check out with PayPal.
                         The PayPal Advertising Program has been shown to generate additional purchases as well as increase consumer's average purchase sizes by 15%
                         or more. <a href=""https:/financing.paypal.com/ppfinportal/content/forrester"" target=""_blank"">See Details</a>.
                         ","
                             <a href=""https:/financing.paypal.com/ppfinportal/content/whyUseFinancing"" target=""_blank"">Why Advertise Financing?</a><br/>
                         <strong>Give your sales a boost when you advertise financing.</strong><br/>PayPal helps turn browsers into buyers with financing
-                        from Bill Me Later&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
-                        Use PayPal’s free banner ads that let you advertise Bill Me Later&#174; financing as a payment option when your customers check out with PayPal.
+                        from PayPal Credit&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
+                        Use PayPal’s free banner ads that let you advertise PayPal Credit&#174; financing as a payment option when your customers check out with PayPal.
                         The PayPal Advertising Program has been shown to generate additional purchases as well as increase consumer's average purchase sizes by 15%
                         or more. <a href=""https:/financing.paypal.com/ppfinportal/content/forrester"" target=""_blank"">See Details</a>.
                         "
@@ -530,12 +527,12 @@ Vendor,Vendor
 "Get Credentials from PayPal","Get Credentials from PayPal"
 "Sandbox Credentials","Sandbox Credentials"
 "API Uses Proxy","API Uses Proxy"
-"Enable Bill Me Later","Enable Bill Me Later"
-"PayPal Express Checkout lets you give customers access to financing through Bill Me Later&#174; - at no additional cost to you.
-                        You get paid up front, even though customers have more time to pay. A pre-integrated payment button lets customers pay quickly with Bill Me Later&#174;.
+"Enable PayPal Credit","Enable PayPal Credit"
+"PayPal Express Checkout lets you give customers access to financing through PayPal Credit&#174; - at no additional cost to you.
+                        You get paid up front, even though customers have more time to pay. A pre-integrated payment button lets customers pay quickly with PayPal Credit&#174;.
                         <a href=""https:/www.paypal.com/webapps/mpp/promotional-financing"" target=""_blank"">Learn More</a>
-                        ","PayPal Express Checkout lets you give customers access to financing through Bill Me Later&#174; - at no additional cost to you.
-                        You get paid up front, even though customers have more time to pay. A pre-integrated payment button lets customers pay quickly with Bill Me Later&#174;.
+                        ","PayPal Express Checkout lets you give customers access to financing through PayPal Credit&#174; - at no additional cost to you.
+                        You get paid up front, even though customers have more time to pay. A pre-integrated payment button lets customers pay quickly with PayPal Credit&#174;.
                         <a href=""https:/www.paypal.com/webapps/mpp/promotional-financing"" target=""_blank"">Learn More</a>
                         "
 "Publisher ID","Publisher ID"
@@ -617,15 +614,15 @@ Vendor,Vendor
 "
                             <a href=""https:/financing.paypal.com/ppfinportal/content/whyUseFinancing"" target=""_blank"">Why Advertise Financing?</a><br/>
                             <strong>Give your sales a boost when you advertise financing.</strong><br/>PayPal helps turn browsers into buyers with financing
-                            from Bill Me Later&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
-                            Use PayPal’s free banner ads that let you advertise Bill Me Later&#174; financing as a payment option when your customers check out with PayPal.
+                            from PayPal Credit&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
+                            Use PayPal’s free banner ads that let you advertise PayPal Credit&#174; financing as a payment option when your customers check out with PayPal.
                             The PayPal Advertising Program has been shown to generate additional purchases as well as increase consumer's average purchase sizes by 15%
                             or more. <a href=""https:/financing.paypal.com/ppfinportal/content/forrester"" target=""_blank"">See Details</a>.
                         ","
                             <a href=""https:/financing.paypal.com/ppfinportal/content/whyUseFinancing"" target=""_blank"">Why Advertise Financing?</a><br/>
                             <strong>Give your sales a boost when you advertise financing.</strong><br/>PayPal helps turn browsers into buyers with financing
-                            from Bill Me Later&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
-                            Use PayPal’s free banner ads that let you advertise Bill Me Later&#174; financing as a payment option when your customers check out with PayPal.
+                            from PayPal Credit&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
+                            Use PayPal’s free banner ads that let you advertise PayPal Credit&#174; financing as a payment option when your customers check out with PayPal.
                             The PayPal Advertising Program has been shown to generate additional purchases as well as increase consumer's average purchase sizes by 15%
                             or more. <a href=""https:/financing.paypal.com/ppfinportal/content/forrester"" target=""_blank"">See Details</a>.
                         "
@@ -647,15 +644,15 @@ Vendor,Vendor
 "
                                 <a href=""https://financing.paypal.com/ppfinportal/content/whyUseFinancing"" target=""_blank"">Why Advertise Financing?</a><br/>
                                             <strong>Give your sales a boost when you advertise financing.</strong><br/>PayPal helps turn browsers into buyers with financing
-                                            from Bill Me Later&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
-                                            Use PayPal’s free banner ads that let you advertise Bill Me Later&#174; financing as a payment option when your customers check out with PayPal.
+                                            from PayPal Credit&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
+                                            Use PayPal’s free banner ads that let you advertise PayPal Credit&#174; financing as a payment option when your customers check out with PayPal.
                                             The PayPal Advertising Program has been shown to generate additional purchases as well as increase consumer's average purchase sizes by 15%
                                             or more. <a href=""https://financing.paypal.com/ppfinportal/content/forrester"" target=""_blank"">See Details</a>.
                             ","
                                 <a href=""https://financing.paypal.com/ppfinportal/content/whyUseFinancing"" target=""_blank"">Why Advertise Financing?</a><br/>
                                             <strong>Give your sales a boost when you advertise financing.</strong><br/>PayPal helps turn browsers into buyers with financing
-                                            from Bill Me Later&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
-                                            Use PayPal’s free banner ads that let you advertise Bill Me Later&#174; financing as a payment option when your customers check out with PayPal.
+                                            from PayPal Credit&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
+                                            Use PayPal’s free banner ads that let you advertise PayPal Credit&#174; financing as a payment option when your customers check out with PayPal.
                                             The PayPal Advertising Program has been shown to generate additional purchases as well as increase consumer's average purchase sizes by 15%
                                             or more. <a href=""https://financing.paypal.com/ppfinportal/content/forrester"" target=""_blank"">See Details</a>.
                             "
@@ -672,15 +669,15 @@ Vendor,Vendor
 "
                                 <a href=""https:/financing.paypal.com/ppfinportal/content/whyUseFinancing"" target=""_blank"">Why Advertise Financing?</a><br/>
                                 <strong>Give your sales a boost when you advertise financing.</strong><br/>PayPal helps turn browsers into buyers with financing
-                                from Bill Me Later&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
-                                Use PayPal’s free banner ads that let you advertise Bill Me Later&#174; financing as a payment option when your customers check out with PayPal.
+                                from PayPal Credit&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
+                                Use PayPal’s free banner ads that let you advertise PayPal Credit&#174; financing as a payment option when your customers check out with PayPal.
                                 The PayPal Advertising Program has been shown to generate additional purchases as well as increase consumer's average purchase sizes by 15%
                                 or more. <a href=""https:/financing.paypal.com/ppfinportal/content/forrester"" target=""_blank"">See Details</a>.
                             ","
                                 <a href=""https:/financing.paypal.com/ppfinportal/content/whyUseFinancing"" target=""_blank"">Why Advertise Financing?</a><br/>
                                 <strong>Give your sales a boost when you advertise financing.</strong><br/>PayPal helps turn browsers into buyers with financing
-                                from Bill Me Later&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
-                                Use PayPal’s free banner ads that let you advertise Bill Me Later&#174; financing as a payment option when your customers check out with PayPal.
+                                from PayPal Credit&#174;. Your customers have more time to pay, while you get paid up front – at no additional cost to you.
+                                Use PayPal’s free banner ads that let you advertise PayPal Credit&#174; financing as a payment option when your customers check out with PayPal.
                                 The PayPal Advertising Program has been shown to generate additional purchases as well as increase consumer's average purchase sizes by 15%
                                 or more. <a href=""https:/financing.paypal.com/ppfinportal/content/forrester"" target=""_blank"">See Details</a>.
                             "
@@ -690,3 +687,9 @@ Vendor,Vendor
 "Website Payments Pro Hosted Solution and Express Checkout","Website Payments Pro Hosted Solution and Express Checkout"
 "Basic Settings - PayPal Website Payments Pro Hosted Solution","Basic Settings - PayPal Website Payments Pro Hosted Solution"
 "PayPal Payment Solutions","PayPal Payment Solutions"
+"Display on Product Details Page","Display on Product Details Page"
+verified,verified
+unverified,unverified
+Eligible,Eligible
+Ineligible,Inligible
+"PayPal Express Checkout","PayPal Express Checkout"

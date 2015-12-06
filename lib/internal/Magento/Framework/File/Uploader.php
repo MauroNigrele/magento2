@@ -1,27 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\File;
+
+use Magento\Framework\Filesystem\DriverInterface;
 
 /**
  * File upload class
@@ -132,7 +116,7 @@ class Uploader
      * @var array
      * @access protected
      */
-    protected $_validateCallbacks = array();
+    protected $_validateCallbacks = [];
 
     /**#@+
      * File upload type (multiple or single)
@@ -169,7 +153,7 @@ class Uploader
     /**
      * Init upload
      *
-     * @param string $fileId
+     * @param string|array $fileId
      * @throws \Exception
      */
     public function __construct($fileId)
@@ -177,7 +161,7 @@ class Uploader
         $this->_setUploadFileId($fileId);
         if (!file_exists($this->_file['tmp_name'])) {
             $code = empty($this->_file['tmp_name']) ? self::TMP_NAME_EMPTY : 0;
-            throw new \Exception('File was not uploaded.', $code);
+            throw new \Exception('The file was not uploaded.', $code);
         } else {
             $this->_fileExists = true;
         }
@@ -188,6 +172,7 @@ class Uploader
      *
      * @param  array $result
      * @return $this
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     protected function _afterSave($result)
     {
@@ -202,6 +187,7 @@ class Uploader
      * @param string $newFileName
      * @return array
      * @throws \Exception
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function save($destinationFolder, $newFileName = null)
     {
@@ -237,7 +223,7 @@ class Uploader
         $this->_result = $this->_moveFile($this->_file['tmp_name'], $destinationFile);
 
         if ($this->_result) {
-            chmod($destinationFile, 0777);
+            $this->chmod($destinationFile);
             if ($this->_enableFilesDispersion) {
                 $fileName = str_replace('\\', '/', self::_addDirSeparator($this->_dispretionPath)) . $fileName;
             }
@@ -251,6 +237,15 @@ class Uploader
         }
 
         return $this->_result;
+    }
+
+    /**
+     * @param string $file
+     * @return void
+     */
+    protected function chmod($file)
+    {
+        chmod($file, DriverInterface::WRITEABLE_DIRECTORY_MODE);
     }
 
     /**
@@ -317,7 +312,7 @@ class Uploader
      */
     public function addValidateCallback($callbackName, $callbackObject, $callbackMethod)
     {
-        $this->_validateCallbacks[$callbackName] = array('object' => $callbackObject, 'method' => $callbackMethod);
+        $this->_validateCallbacks[$callbackName] = ['object' => $callbackObject, 'method' => $callbackMethod];
         return $this;
     }
 
@@ -388,7 +383,7 @@ class Uploader
      * @access public
      * @return bool
      */
-    public function checkMimeType($validTypes = array())
+    public function checkMimeType($validTypes = [])
     {
         if (count($validTypes) > 0) {
             if (!in_array($this->_getMimeType(), $validTypes)) {
@@ -466,7 +461,7 @@ class Uploader
      * @param string[] $extensions
      * @return $this
      */
-    public function setAllowedExtensions($extensions = array())
+    public function setAllowedExtensions($extensions = [])
     {
         foreach ((array)$extensions as $extension) {
             $this->_allowedExtensions[] = strtolower($extension);
@@ -502,9 +497,10 @@ class Uploader
     /**
      * Set upload field id
      *
-     * @param string $fileId
+     * @param string|array $fileId
      * @return void
      * @throws \Exception
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     private function _setUploadFileId($fileId)
     {
@@ -523,7 +519,7 @@ class Uploader
                 $this->_uploadType = self::MULTIPLE_STYLE;
 
                 $fileAttributes = $_FILES[$file[0]];
-                $tmpVar = array();
+                $tmpVar = [];
 
                 foreach ($fileAttributes as $attributeName => $attributeValue) {
                     $tmpVar[$attributeName] = $attributeValue[$file[1]];
@@ -557,7 +553,9 @@ class Uploader
             $destinationFolder = substr($destinationFolder, 0, -1);
         }
 
-        if (!(@is_dir($destinationFolder) || @mkdir($destinationFolder, 0777, true))) {
+        if (!(@is_dir($destinationFolder)
+            || @mkdir($destinationFolder, DriverInterface::WRITEABLE_DIRECTORY_MODE, true)
+        )) {
             throw new \Exception("Unable to create directory '{$destinationFolder}'.");
         }
         return $this;

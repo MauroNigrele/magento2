@@ -1,30 +1,12 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Backend\Model\Auth;
 
-use \Magento\Framework\Stdlib\CookieManager;
-use \Magento\Framework\Stdlib\Cookie\CookieMetadataFactory;
+use Magento\Framework\Stdlib\Cookie\CookieMetadataFactory;
+use Magento\Framework\Stdlib\CookieManagerInterface;
 
 /**
  * Backend Auth session model
@@ -77,11 +59,14 @@ class Session extends \Magento\Framework\Session\SessionManager implements \Mage
      * @param \Magento\Framework\Session\SaveHandlerInterface $saveHandler
      * @param \Magento\Framework\Session\ValidatorInterface $validator
      * @param \Magento\Framework\Session\StorageInterface $storage
-     * @param CookieManager $cookieManager
+     * @param CookieManagerInterface $cookieManager
      * @param CookieMetadataFactory $cookieMetadataFactory
+     * @param \Magento\Framework\App\State $appState
      * @param \Magento\Framework\Acl\Builder $aclBuilder
      * @param \Magento\Backend\Model\UrlInterface $backendUrl
      * @param \Magento\Backend\App\ConfigInterface $config
+     * @throws \Magento\Framework\Exception\SessionException
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
         \Magento\Framework\App\Request\Http $request,
@@ -90,8 +75,9 @@ class Session extends \Magento\Framework\Session\SessionManager implements \Mage
         \Magento\Framework\Session\SaveHandlerInterface $saveHandler,
         \Magento\Framework\Session\ValidatorInterface $validator,
         \Magento\Framework\Session\StorageInterface $storage,
-        CookieManager $cookieManager,
+        CookieManagerInterface $cookieManager,
         CookieMetadataFactory $cookieMetadataFactory,
+        \Magento\Framework\App\State $appState,
         \Magento\Framework\Acl\Builder $aclBuilder,
         \Magento\Backend\Model\UrlInterface $backendUrl,
         \Magento\Backend\App\ConfigInterface $config
@@ -107,9 +93,9 @@ class Session extends \Magento\Framework\Session\SessionManager implements \Mage
             $validator,
             $storage,
             $cookieManager,
-            $cookieMetadataFactory
+            $cookieMetadataFactory,
+            $appState
         );
-        $this->start();
     }
 
     /**
@@ -120,7 +106,7 @@ class Session extends \Magento\Framework\Session\SessionManager implements \Mage
      */
     public function refreshAcl($user = null)
     {
-        if (is_null($user)) {
+        if ($user === null) {
             $user = $this->getUser();
         }
         if (!$user) {
@@ -214,7 +200,7 @@ class Session extends \Magento\Framework\Session\SessionManager implements \Mage
      */
     public function isFirstPageAfterLogin()
     {
-        if (is_null($this->_isFirstAfterLogin)) {
+        if ($this->_isFirstAfterLogin === null) {
             $this->_isFirstAfterLogin = $this->getData('is_first_visit', true);
         }
         return $this->_isFirstAfterLogin;
@@ -270,6 +256,7 @@ class Session extends \Magento\Framework\Session\SessionManager implements \Mage
      * @param string $path
      * @return bool
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     * @codeCoverageIgnore
      */
     public function isValidForPath($path)
     {

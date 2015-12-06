@@ -1,69 +1,66 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
 
 /**
- * Template for block \Magento\Customer\Block\Adminhtml\Edit\Tab\View\Status\PersonalInfo
+ * @var $block \Magento\Customer\Block\Adminhtml\Edit\Tab\View\PersonalInfo
  */
 
-$createDateAdmin    = $this->getCreateDate();
-$createDateStore    = $this->getStoreCreateDate();
+$lastLoginDateAdmin = $block->getLastLoginDate();
+$lastLoginDateStore = $block->getStoreLastLoginDate();
+
+$createDateAdmin = $block->getCreateDate();
+$createDateStore = $block->getStoreCreateDate();
 ?>
 
 <div class="fieldset-wrapper customer-information">
     <div class="fieldset-wrapper-title">
-        <span class="title"><?php echo __('Personal Information') ?></span>
+        <span class="title"><?php /* @escapeNotVerified */ echo __('Personal Information') ?></span>
     </div>
-    <table class="data-table">
+    <table class="admin__table-secondary">
         <tbody>
-        <?php echo $this->getChildHtml(); ?>
+        <?php echo $block->getChildHtml(); ?>
         <tr>
-            <th><?php echo __('Confirmed email:') ?></th>
-            <td><?php echo $this->getIsConfirmedStatus() ?></td>
+            <th><?php /* @escapeNotVerified */ echo __('Last Logged In:') ?></th>
+            <td><?php /* @escapeNotVerified */ echo $lastLoginDateAdmin ?> (<?php /* @escapeNotVerified */ echo $block->getCurrentStatus() ?>)</td>
+        </tr>
+        <?php if ($lastLoginDateAdmin != $lastLoginDateStore): ?>
+        <tr>
+            <th><?php /* @escapeNotVerified */ echo __('Last Logged In (%1):', $block->getStoreLastLoginDateTimezone()) ?></th>
+            <td><?php /* @escapeNotVerified */ echo $lastLoginDateStore ?> (<?php /* @escapeNotVerified */ echo $block->getCurrentStatus() ?>)</td>
+        </tr>
+        <?php endif; ?>
+        <tr>
+            <th><?php /* @escapeNotVerified */ echo __('Confirmed email:') ?></th>
+            <td><?php /* @escapeNotVerified */ echo $block->getIsConfirmedStatus() ?></td>
         </tr>
         <tr>
-            <th><?php echo __('Account Created on:') ?></th>
-            <td><?php echo $createDateAdmin ?></td>
+            <th><?php /* @escapeNotVerified */ echo __('Account Created:') ?></th>
+            <td><?php /* @escapeNotVerified */ echo $createDateAdmin ?></td>
         </tr>
         <?php if ($createDateAdmin != $createDateStore): ?>
             <tr>
-                <th><?php echo __('Account Created on (%1):', $this->getStoreCreateDateTimezone()) ?></th>
-                <td><?php echo $createDateStore ?></td>
+                <th><?php /* @escapeNotVerified */ echo __('Account Created on (%1):', $block->getStoreCreateDateTimezone()) ?></th>
+                <td><?php /* @escapeNotVerified */ echo $createDateStore ?></td>
             </tr>
         <?php endif; ?>
         <tr>
-            <th><?php echo __('Account Created in:') ?></th>
-            <td><?php echo $this->getCreatedInStore() ?></td>
+            <th><?php /* @escapeNotVerified */ echo __('Account Created in:') ?></th>
+            <td><?php /* @escapeNotVerified */ echo $block->getCreatedInStore() ?></td>
         </tr>
         <tr>
-            <th><?php echo __('Customer Group:') ?></th>
-            <td><?php echo $this->getGroupName() ?></td>
+            <th><?php /* @escapeNotVerified */ echo __('Customer Group:') ?></th>
+            <td><?php /* @escapeNotVerified */ echo $block->getGroupName() ?></td>
         </tr>
         </tbody>
     </table>
     <address>
-        <strong><?php echo __('Default Billing Address') ?></strong><br/>
-        <?php echo $this->getBillingAddressHtml() ?>
+        <strong><?php /* @escapeNotVerified */ echo __('Default Billing Address') ?></strong><br/>
+        <?php echo $block->getBillingAddressHtml() ?>
     </address>
 
 </div>

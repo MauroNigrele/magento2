@@ -1,35 +1,17 @@
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 .field-category_ids .category-select {
-    margin: 0 0 6px 0;
+    margin: 0 0 6px;
     padding: 2px;
     width: 67.999999997%;
 }
 
 .mage-new-category-dialog .category-select {
-    width: 100%;
     padding: 0;
+    width: 100%;
 }
 
 .field-category_ids .mage-suggest-inner {
@@ -42,19 +24,33 @@
     width: 28.4%;
 }
 
+.field-category_ids .mage-suggest-search-label:after,
+.mage-new-category-dialog .mage-suggest-search-label:after {
+    color: #b2b2b2;
+    content: '\e013'; /* unordered list icon */
+    font-family: 'MUI-Icons';
+    font-size: 20px;
+    -webkit-font-smoothing: antialiased;
+    font-style: normal;
+    font-weight: normal;
+    position: absolute;
+    right: 5px;
+    speak: none;
+    top: 0;
+}
+
+/* Remove search icon for category search suggest field */
 .field-category_ids .category-select:after,
 .mage-new-category-dialog .category-select:after {
-    position: absolute;
-    top: 0;
-    right: 5px;
-    font-family: 'MUI-Icons';
-    font-style: normal;
-    speak: none;
-    font-weight: normal;
-    -webkit-font-smoothing: antialiased;
-    content: '\e013'; /* unordered list icon */
-    font-size: 20px;
-    color: #b2b2b2;
+    display: none;
+}
+
+.admin__scope-old .mage-suggest-search-label {
+    display: block;
+}
+
+.mage-suggest-search-label input {
+    border: none;
 }
 
 /* Category Selector in "Create New Category" popup */
@@ -62,23 +58,24 @@
     border: none;
     box-shadow: none;
 }
+
 .mage-new-category-dialog .mage-suggest .mage-suggest-inner {
     padding: 0;
 }
 
-.mage-new-category-dialog .mage-suggest-search-field > input.mage-suggest-state-loading {
+.mage-new-category-dialog .mage-suggest-search-field input.mage-suggest-state-loading {
     padding-right: 15px;
 }
 
 .mage-new-category-dialog .mage-suggest-choices {
-    position: relative;
-    padding: 2px 22px 2px 2px;
     background-color: #fff;
     border: 1px solid #ccc;
     border-radius: 3px;
-    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-    -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+       -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+            box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+    padding: 2px 22px 2px 2px;
+    position: relative;
 }
 
 .mage-new-category-dialog .ui-dialog-content,
@@ -91,9 +88,9 @@
 }
 
 .mage-suggest-choices {
+    list-style: none;
     margin: 0;
     padding: 0;
-    list-style: none;
 }
 
 .mage-suggest-choices > li {
@@ -101,43 +98,43 @@
 }
 
 .mage-suggest-search-field {
-    width: 100%;
-    white-space: nowrap;
     margin: 0;
     padding: 0;
+    white-space: nowrap;
+    width: 100%;
 }
 
-.mage-suggest-search-field > input,
-.mage-suggest-search-field > input:focus,
-.mage-suggest-search-field > input:active {
-    width: 100%;
-    height: 22px;
-    line-height: 22px;
-    outline: 0 none;
+.mage-suggest-search-field input,
+.mage-suggest-search-field input:focus,
+.mage-suggest-search-field input:active {
     border: 0 none;
     box-shadow: none;
+    height: 22px;
+    line-height: 22px;
     padding: 0 3px;
+    width: 100%;
 }
 
-.mage-suggest-search-field > input.mage-suggest-state-loading {
+.mage-suggest-search-field input.mage-suggest-state-loading {
     background: #fff url('images/spinner.gif') no-repeat 100%;
-    padding-right: 19px;
+    padding-right: 22px;
     position: relative;
     z-index: 1;
 }
 
-.mage-suggest-choice {
-    position: relative;
+.admin__scope-old .mage-suggest-choice {
     background: #cdecf6;
     border: 1px solid #a7cedb;
     border-radius: 3px;
-    padding: 2px 22px 1px 9px;
-    margin: 1px 2px 1px 0;
-    vertical-align: top;
     cursor: default;
-    -moz-transition: background .3s;
+    height: auto;
+    margin: 1px 2px 1px 0;
+    padding: 2px 22px 1px 9px;
+    position: relative;
     -webkit-transition: background .3s;
-    transition: background .3s;
+       -moz-transition: background .3s;
+            transition: background .3s;
+    vertical-align: top;
 }
 
 .mage-suggest-choice:hover {
@@ -145,15 +142,15 @@
 }
 
 .mage-suggest-choice-close {
-    position: absolute;
-    top: 0;
-    right: 0;
     bottom: 0;
-    width: 20px;
-    line-height: 16px;
-    text-align: center;
     color: #7b94a1;
     cursor: pointer;
+    line-height: 16px;
+    position: absolute;
+    right: 0;
+    text-align: center;
+    top: 0;
+    width: 20px;
 }
 
 .mage-suggest-choice-close:hover {
@@ -161,13 +158,13 @@
 }
 
 .mage-suggest-choice-close:before {
-    font-family: 'MUI-Icons';
-    font-style: normal;
-    speak: none;
-    font-weight: normal;
-    -webkit-font-smoothing: antialiased;
     content: '\e07d'; /* close icon */
+    font-family: 'MUI-Icons';
     font-size: 6px;
+    -webkit-font-smoothing: antialiased;
+    font-style: normal;
+    font-weight: normal;
+    speak: none;
 }
 
 .mage-suggest-no-records {

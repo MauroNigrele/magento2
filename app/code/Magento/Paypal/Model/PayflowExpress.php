@@ -1,31 +1,16 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Paypal\Model;
 
 use Magento\Sales\Model\Order\Payment\Transaction;
 
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 class PayflowExpress extends \Magento\Paypal\Model\Express
 {
     /**
@@ -51,44 +36,80 @@ class PayflowExpress extends \Magento\Paypal\Model\Express
     protected $_paypalInfoFactory;
 
     /**
-     * @param \Magento\Framework\Event\ManagerInterface $eventManager
+     * Availability option
+     *
+     * @var bool
+     */
+    protected $_canFetchTransactionInfo = false;
+
+    /**
+     * Payment Method feature
+     *
+     * @var bool
+     */
+    protected $_canReviewPayment = false;
+
+    /**
+     * @param \Magento\Framework\Model\Context $context
+     * @param \Magento\Framework\Registry $registry
+     * @param \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory
+     * @param \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory
      * @param \Magento\Payment\Helper\Data $paymentData
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
-     * @param \Magento\Framework\Logger\AdapterFactory $logAdapterFactory
+     * @param \Magento\Payment\Model\Method\Logger $logger
      * @param ProFactory $proFactory
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param \Magento\Framework\UrlInterface $urlBuilder
      * @param CartFactory $cartFactory
      * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\Framework\Model\ExceptionFactory $exception
+     * @param \Magento\Framework\Exception\LocalizedExceptionFactory $exception
+     * @param \Magento\Sales\Api\TransactionRepositoryInterface $transactionRepository
+     * @param Transaction\BuilderInterface $transactionBuilder
      * @param InfoFactory $paypalInfoFactory
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
      * @param array $data
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
-        \Magento\Framework\Event\ManagerInterface $eventManager,
+        \Magento\Framework\Model\Context $context,
+        \Magento\Framework\Registry $registry,
+        \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory,
+        \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory,
         \Magento\Payment\Helper\Data $paymentData,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Magento\Framework\Logger\AdapterFactory $logAdapterFactory,
+        \Magento\Payment\Model\Method\Logger $logger,
         ProFactory $proFactory,
-        \Magento\Framework\StoreManagerInterface $storeManager,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Framework\UrlInterface $urlBuilder,
         CartFactory $cartFactory,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Framework\Model\ExceptionFactory $exception,
+        \Magento\Framework\Exception\LocalizedExceptionFactory $exception,
+        \Magento\Sales\Api\TransactionRepositoryInterface $transactionRepository,
+        \Magento\Sales\Model\Order\Payment\Transaction\BuilderInterface $transactionBuilder,
         InfoFactory $paypalInfoFactory,
-        array $data = array()
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        array $data = []
     ) {
         parent::__construct(
-            $eventManager,
+            $context,
+            $registry,
+            $extensionFactory,
+            $customAttributeFactory,
             $paymentData,
             $scopeConfig,
-            $logAdapterFactory,
+            $logger,
             $proFactory,
             $storeManager,
             $urlBuilder,
             $cartFactory,
             $checkoutSession,
             $exception,
+            $transactionRepository,
+            $transactionBuilder,
+            $resource,
+            $resourceCollection,
             $data
         );
         $this->_paypalInfoFactory = $paypalInfoFactory;
@@ -97,10 +118,10 @@ class PayflowExpress extends \Magento\Paypal\Model\Express
     /**
      * EC PE won't be available if the EC is available
      *
-     * @param \Magento\Sales\Model\Quote|null $quote
+     * @param \Magento\Quote\Api\Data\CartInterface|\Magento\Quote\Model\Quote|null $quote
      * @return bool
      */
-    public function isAvailable($quote = null)
+    public function isAvailable(\Magento\Quote\Api\Data\CartInterface $quote = null)
     {
         if (!parent::isAvailable($quote)) {
             return false;
@@ -110,10 +131,10 @@ class PayflowExpress extends \Magento\Paypal\Model\Express
                 Config::METHOD_WPP_EXPRESS
             );
         }
-        if ($quote && $this->_ecInstance) {
+        if ($quote) {
             $this->_ecInstance->setStore($quote->getStoreId());
         }
-        return $this->_ecInstance ? !$this->_ecInstance->isAvailable() : false;
+        return !$this->_ecInstance->isAvailable();
     }
 
     /**
@@ -146,7 +167,7 @@ class PayflowExpress extends \Magento\Paypal\Model\Express
      * Checkout redirect URL getter for onepage checkout (hardcode)
      *
      * @see \Magento\Checkout\Controller\Onepage::savePaymentAction()
-     * @see \Magento\Sales\Model\Quote\Payment::getCheckoutRedirectUrl()
+     * @see \Magento\Quote\Model\Quote\Payment::getCheckoutRedirectUrl()
      * @return string
      */
     public function getCheckoutRedirectUrl()
@@ -166,7 +187,11 @@ class PayflowExpress extends \Magento\Paypal\Model\Express
         /** @var \Magento\Sales\Model\Order\Payment $payment */
         $payment = $this->getInfoInstance();
         // we need the last capture transaction was made
-        $captureTransaction = $payment->lookupTransaction('', Transaction::TYPE_CAPTURE);
+        $captureTransaction = $this->transactionRepository->getByTransactionType(
+            Transaction::TYPE_CAPTURE,
+            $payment->getId(),
+            $payment->getOrder()->getId()
+        );
         return $captureTransaction && $captureTransaction->getAdditionalInformation(
             Payflow\Pro::TRANSPORT_PAYFLOW_TXN_ID
         ) && $this->_canRefund;

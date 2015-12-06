@@ -2,42 +2,27 @@
 /**
  * Config data. Represents loaded and cached configuration data. Should be used to gain access to different types
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- * 
- * @copyright Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Config;
 
+/**
+ * @SuppressWarnings(PHPMD.NumberOfChildren)
+ */
 class Data implements \Magento\Framework\Config\DataInterface
 {
     /**
      * Configuration reader model
      *
-     * @var \Magento\Framework\Config\ReaderInterface
+     * @var ReaderInterface
      */
     protected $_reader;
 
     /**
      * Configuration cache model
      *
-     * @var \Magento\Framework\Config\CacheInterface
+     * @var CacheInterface
      */
     protected $_cache;
 
@@ -49,28 +34,62 @@ class Data implements \Magento\Framework\Config\DataInterface
     protected $_cacheId;
 
     /**
+     * Cache tags
+     *
+     * @var array
+     */
+    protected $cacheTags = [];
+
+    /**
      * Config data
      *
      * @var array
      */
-    protected $_data = array();
+    protected $_data = [];
+
+    /**
+     * @var ReaderInterface
+     */
+    private $reader;
+
+    /**
+     * @var CacheInterface
+     */
+    private $cache;
+
+    /**
+     * @var string
+     */
+    private $cacheId;
 
     /**
      * Constructor
      *
-     * @param \Magento\Framework\Config\ReaderInterface $reader
-     * @param \Magento\Framework\Config\CacheInterface $cache
+     * @param ReaderInterface $reader
+     * @param CacheInterface $cache
      * @param string $cacheId
      */
     public function __construct(
-        \Magento\Framework\Config\ReaderInterface $reader,
-        \Magento\Framework\Config\CacheInterface $cache,
+        ReaderInterface $reader,
+        CacheInterface $cache,
         $cacheId
     ) {
-        $data = $cache->load($cacheId);
+        $this->reader = $reader;
+        $this->cache = $cache;
+        $this->cacheId = $cacheId;
+        $this->initData();
+    }
+
+    /**
+     * Initialise data for configuration
+     * @return void
+     */
+    protected function initData()
+    {
+        $data = $this->cache->load($this->cacheId);
         if (false === $data) {
-            $data = $reader->read();
-            $cache->save(serialize($data), $cacheId);
+            $data = $this->reader->read();
+            $this->cache->save(serialize($data), $this->cacheId, $this->cacheTags);
         } else {
             $data = unserialize($data);
         }
@@ -110,5 +129,14 @@ class Data implements \Magento\Framework\Config\DataInterface
             }
         }
         return $data;
+    }
+
+    /**
+     * Clear cache data
+     * @return void
+     */
+    public function reset()
+    {
+        $this->cache->remove($this->cacheId);
     }
 }

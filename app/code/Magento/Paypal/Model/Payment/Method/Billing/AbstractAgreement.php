@@ -1,30 +1,16 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Paypal\Model\Payment\Method\Billing;
 
 /**
  * Billing Agreement Payment Method Abstract model
+ *
+ * @method \Magento\Quote\Api\Data\PaymentMethodExtensionInterface getExtensionAttributes()
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 abstract class AbstractAgreement extends \Magento\Payment\Model\Method\AbstractMethod
 {
@@ -58,34 +44,56 @@ abstract class AbstractAgreement extends \Magento\Payment\Model\Method\AbstractM
     protected $_agreementFactory;
 
     /**
-     * @param \Magento\Framework\Event\ManagerInterface $eventManager
+     * @param \Magento\Framework\Model\Context $context
+     * @param \Magento\Framework\Registry $registry
+     * @param \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory
+     * @param \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory
      * @param \Magento\Payment\Helper\Data $paymentData
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
-     * @param \Magento\Framework\Logger\AdapterFactory $logAdapterFactory
+     * @param \Magento\Payment\Model\Method\Logger $logger
      * @param \Magento\Paypal\Model\Billing\AgreementFactory $agreementFactory
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
      * @param array $data
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
-        \Magento\Framework\Event\ManagerInterface $eventManager,
+        \Magento\Framework\Model\Context $context,
+        \Magento\Framework\Registry $registry,
+        \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory,
+        \Magento\Framework\Api\AttributeValueFactory $customAttributeFactory,
         \Magento\Payment\Helper\Data $paymentData,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Magento\Framework\Logger\AdapterFactory $logAdapterFactory,
+        \Magento\Payment\Model\Method\Logger $logger,
         \Magento\Paypal\Model\Billing\AgreementFactory $agreementFactory,
-        array $data = array()
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        array $data = []
     ) {
         $this->_agreementFactory = $agreementFactory;
-        parent::__construct($eventManager, $paymentData, $scopeConfig, $logAdapterFactory, $data);
+        parent::__construct(
+            $context,
+            $registry,
+            $extensionFactory,
+            $customAttributeFactory,
+            $paymentData,
+            $scopeConfig,
+            $logger,
+            $resource,
+            $resourceCollection,
+            $data
+        );
     }
 
     /**
      * Check whether method is available
      *
-     * @param \Magento\Paypal\Model\Quote|null $quote
+     * @param \Magento\Paypal\Model\Quote|\Magento\Quote\Api\Data\CartInterface|null $quote
      * @return bool
      */
-    public function isAvailable($quote = null)
+    public function isAvailable(\Magento\Quote\Api\Data\CartInterface $quote = null)
     {
-        if (is_null($this->_isAvailable)) {
+        if ($this->_isAvailable === null) {
             $this->_isAvailable = parent::isAvailable($quote) && $this->_isAvailable($quote);
             $this->_canUseCheckout = $this->_isAvailable && $this->_canUseCheckout;
             $this->_canUseInternal = $this->_isAvailable && $this->_canUseInternal;
@@ -96,10 +104,11 @@ abstract class AbstractAgreement extends \Magento\Payment\Model\Method\AbstractM
     /**
      * Assign data to info model instance
      *
-     * @param mixed $data
+     * @param \Magento\Framework\DataObject $data
      * @return \Magento\Payment\Model\Info
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
-    public function assignData($data)
+    public function assignData(\Magento\Framework\DataObject $data)
     {
         $result = parent::assignData($data);
 
@@ -107,7 +116,7 @@ abstract class AbstractAgreement extends \Magento\Payment\Model\Method\AbstractM
         $id = false;
         if (is_array($data) && isset($data[$key])) {
             $id = $data[$key];
-        } elseif ($data instanceof \Magento\Framework\Object && $data->getData($key)) {
+        } elseif ($data instanceof \Magento\Framework\DataObject && $data->getData($key)) {
             $id = $data->getData($key);
         }
         if ($id) {

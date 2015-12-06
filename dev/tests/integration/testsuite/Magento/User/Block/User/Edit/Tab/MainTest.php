@@ -1,32 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\User\Block\User\Edit\Tab;
 
 /**
  * @magentoAppArea adminhtml
  */
-class MainTest extends \Magento\Backend\Utility\Controller
+class MainTest extends \Magento\TestFramework\TestCase\AbstractBackendController
 {
     /**
      * @var \Magento\User\Block\User\Edit\Tab\Main
@@ -67,13 +49,18 @@ class MainTest extends \Magento\Backend\Utility\Controller
         $actualHtml = $this->_block->toHtml();
         $this->assertSelectCount(
             'input.required-entry[type="password"]',
-            0,
+            1,
             $actualHtml,
-            'All password fields have to be optional.'
+            'There should be 1 required password entry: current user password.'
         );
         $this->assertSelectCount('input.validate-admin-password[type="password"][name="password"]', 1, $actualHtml);
         $this->assertSelectCount(
             'input.validate-cpassword[type="password"][name="password_confirmation"]',
+            1,
+            $actualHtml
+        );
+        $this->assertSelectCount(
+            'input.validate-current-password[type="password"][name="' . Main::CURRENT_USER_PASSWORD_FIELD . '"]',
             1,
             $actualHtml
         );

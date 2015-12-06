@@ -1,52 +1,63 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Controller\Adminhtml\Product;
+
+use Magento\Framework\Controller\ResultFactory;
+use Magento\Catalog\Controller\Adminhtml\Product\Builder;
+use Magento\Backend\App\Action\Context;
+use Magento\Ui\Component\MassAction\Filter;
+use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory;
 
 class MassDelete extends \Magento\Catalog\Controller\Adminhtml\Product
 {
     /**
-     * @return void
+     * Massactions filter
+     *
+     * @var Filter
+     */
+    protected $filter;
+
+    /**
+     * @var CollectionFactory
+     */
+    protected $collectionFactory;
+
+    /**
+     * @param Context $context
+     * @param Builder $productBuilder
+     * @param Filter $filter
+     * @param CollectionFactory $collectionFactory
+     */
+    public function __construct(
+        Context $context,
+        Builder $productBuilder,
+        Filter $filter,
+        CollectionFactory $collectionFactory
+    ) {
+        $this->filter = $filter;
+        $this->collectionFactory = $collectionFactory;
+        parent::__construct($context, $productBuilder);
+    }
+
+    /**
+     * @return \Magento\Backend\Model\View\Result\Redirect
      */
     public function execute()
     {
-        $productIds = $this->getRequest()->getParam('product');
-        if (!is_array($productIds) || empty($productIds)) {
-            $this->messageManager->addError(__('Please select product(s).'));
-        } else {
-            try {
-                foreach ($productIds as $productId) {
-                    $product = $this->_objectManager->get('Magento\Catalog\Model\Product')->load($productId);
-                    $product->delete();
-                }
-                $this->messageManager->addSuccess(
-                    __('A total of %1 record(s) have been deleted.', count($productIds))
-                );
-            } catch (\Exception $e) {
-                $this->messageManager->addError($e->getMessage());
-            }
+        $collection = $this->filter->getCollection($this->collectionFactory->create());
+        $productDeleted = 0;
+        foreach ($collection->getItems() as $product) {
+            $product->delete();
+            $productDeleted++;
         }
-        $this->_redirect('catalog/*/index');
+        $this->messageManager->addSuccess(
+            __('A total of %1 record(s) have been deleted.', $productDeleted)
+        );
+
+        return $this->resultFactory->create(ResultFactory::TYPE_REDIRECT)->setPath('catalog/*/index');
     }
 }

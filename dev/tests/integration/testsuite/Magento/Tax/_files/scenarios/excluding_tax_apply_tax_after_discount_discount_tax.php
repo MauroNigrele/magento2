@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 use Magento\Tax\Model\Config;
@@ -39,13 +21,13 @@ $taxCalculationData['excluding_tax_apply_tax_after_discount_discount_tax'] = [
             [
                 //tax rule for product
                 'code' => 'Product Tax Rule',
-                'tax_product_class' => [SetupUtil::PRODUCT_TAX_CLASS_1],
+                'product_tax_class_ids' => [SetupUtil::PRODUCT_TAX_CLASS_1],
             ],
             [
                 //tax rule for shipping
                 'code' => 'Shipping Tax Rule',
-                'tax_product_class' => [SetupUtil::SHIPPING_TAX_CLASS],
-                'tax_rate' => [SetupUtil::TAX_RATE_SHIPPING],
+                'product_tax_class_ids' => [SetupUtil::SHIPPING_TAX_CLASS],
+                'tax_rate_ids' => [SetupUtil::TAX_RATE_SHIPPING],
             ],
         ],
     ],
@@ -86,10 +68,10 @@ $taxCalculationData['excluding_tax_apply_tax_after_discount_discount_tax'] = [
             'base_shipping_tax_amount' => 0.75,
             'discount_amount' => -12,
             'base_discount_amount' => -12,
-            'hidden_tax_amount' => 0,
-            'base_hidden_tax_amount' => 0,
-            'shipping_hidden_tax_amount' => 0,
-            'base_shipping_hidden_tax_amount' => 0,
+            'discount_tax_compensation_amount' => 0,
+            'base_discount_tax_compensation_amount' => 0,
+            'shipping_discount_tax_compensation_amount' => 0,
+            'base_shipping_discount_tax_compensation_amount' => 0,
             'grand_total' => 20.35,
             'base_grand_total' => 20.35,
             'applied_taxes' => [
@@ -135,8 +117,8 @@ $taxCalculationData['excluding_tax_apply_tax_after_discount_discount_tax'] = [
                 'discount_amount' => 12,
                 'base_discount_amount' => 12,
                 'discount_percent' => 50,
-                'hidden_tax_amount' => 0,
-                'base_hidden_tax_amount' => 0,
+                'discount_tax_compensation_amount' => 0,
+                'base_discount_tax_compensation_amount' => 0,
             ],
         ],
     ],

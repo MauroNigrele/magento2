@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Data\Form\Element;
 
@@ -42,7 +24,7 @@ class Checkboxes extends AbstractElement
         Factory $factoryElement,
         CollectionFactory $factoryCollection,
         Escaper $escaper,
-        $data = array()
+        $data = []
     ) {
         parent::__construct($factoryElement, $factoryCollection, $escaper, $data);
         $this->setType('checkbox');
@@ -56,7 +38,18 @@ class Checkboxes extends AbstractElement
      */
     public function getHtmlAttributes()
     {
-        return array('type', 'name', 'class', 'style', 'checked', 'onclick', 'onchange', 'disabled');
+        return [
+            'type',
+            'name',
+            'class',
+            'style',
+            'checked',
+            'onclick',
+            'onchange',
+            'disabled',
+            'data-role',
+            'data-action'
+        ];
     }
 
     /**
@@ -66,12 +59,12 @@ class Checkboxes extends AbstractElement
      */
     protected function _prepareValues()
     {
-        $options = array();
-        $values = array();
+        $options = [];
+        $values = [];
 
         if ($this->getValues()) {
             if (!is_array($this->getValues())) {
-                $options = array($this->getValues());
+                $options = [$this->getValues()];
             } else {
                 $options = $this->getValues();
             }
@@ -84,10 +77,10 @@ class Checkboxes extends AbstractElement
                     if (!isset($v['label'])) {
                         $v['label'] = $v['value'];
                     }
-                    $values[] = array('label' => $v['label'], 'value' => $v['value']);
+                    $values[] = ['label' => $v['label'], 'value' => $v['value']];
                 }
             } else {
-                $values[] = array('label' => $v, 'value' => $k);
+                $values[] = ['label' => $v, 'value' => $k];
             }
         }
 
@@ -128,7 +121,7 @@ class Checkboxes extends AbstractElement
             return;
         }
         if (!is_array($checked)) {
-            $checked = array(strval($checked));
+            $checked = [strval($checked)];
         } else {
             foreach ($checked as $k => $v) {
                 $checked[$k] = strval($v);
@@ -148,7 +141,7 @@ class Checkboxes extends AbstractElement
     {
         if ($disabled = $this->getData('disabled')) {
             if (!is_array($disabled)) {
-                $disabled = array(strval($disabled));
+                $disabled = [strval($disabled)];
             } else {
                 foreach ($disabled as $k => $v) {
                     $disabled[$k] = strval($v);
@@ -201,10 +194,10 @@ class Checkboxes extends AbstractElement
     {
         $id = $this->getHtmlId() . '_' . $this->_escape($option['value']);
 
-        $html = '<div class="field choice"><input id="' . $id . '"';
+        $html = '<div class="field choice admin__field admin__field-option"><input id="' . $id . '"';
         foreach ($this->getHtmlAttributes() as $attribute) {
             if ($value = $this->getDataUsingMethod($attribute, $option['value'])) {
-                $html .= ' ' . $attribute . '="' . $value . '"';
+                $html .= ' ' . $attribute . '="' . $value . '" class="admin__control-checkbox"';
             }
         }
         $html .= ' value="' .
@@ -212,9 +205,9 @@ class Checkboxes extends AbstractElement
             '" />' .
             ' <label for="' .
             $id .
-            '">' .
+            '" class="admin__field-label"><span>' .
             $option['label'] .
-            '</label></div>' .
+            '</span></label></div>' .
             "\n";
         return $html;
     }

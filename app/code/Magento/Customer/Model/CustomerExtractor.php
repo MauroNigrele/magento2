@@ -1,30 +1,12 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Customer\Model;
 
-use Magento\Customer\Service\V1\CustomerGroupServiceInterface;
+use Magento\Customer\Api\GroupManagementInterface;
 use Magento\Framework\App\RequestInterface;
 
 class CustomerExtractor
@@ -35,70 +17,74 @@ class CustomerExtractor
     protected $formFactory;
 
     /**
-     * @var \Magento\Customer\Service\V1\Data\CustomerBuilder
+     * @var \Magento\Customer\Api\Data\CustomerInterfaceFactory
      */
-    protected $customerBuilder;
+    protected $customerFactory;
 
     /**
-     * @var \Magento\Framework\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $storeManager;
 
     /**
-     * @var CustomerGroupServiceInterface
+     * @var GroupManagementInterface
      */
-    protected $groupService;
+    protected $customerGroupManagement;
+
+    /**
+     * @var \Magento\Framework\Api\DataObjectHelper
+     */
+    protected $dataObjectHelper;
 
     /**
      * @param Metadata\FormFactory $formFactory
-     * @param \Magento\Customer\Service\V1\Data\CustomerBuilder $customerBuilder
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
-     * @param CustomerGroupServiceInterface $groupService
+     * @param \Magento\Customer\Api\Data\CustomerInterfaceFactory $customerFactory
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param GroupManagementInterface $customerGroupManagement
+     * @param \Magento\Framework\Api\DataObjectHelper $dataObjectHelper
      */
     public function __construct(
         \Magento\Customer\Model\Metadata\FormFactory $formFactory,
-        \Magento\Customer\Service\V1\Data\CustomerBuilder $customerBuilder,
-        \Magento\Framework\StoreManagerInterface $storeManager,
-        CustomerGroupServiceInterface $groupService
+        \Magento\Customer\Api\Data\CustomerInterfaceFactory $customerFactory,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        GroupManagementInterface $customerGroupManagement,
+        \Magento\Framework\Api\DataObjectHelper $dataObjectHelper
     ) {
         $this->formFactory = $formFactory;
-        $this->customerBuilder = $customerBuilder;
+        $this->customerFactory = $customerFactory;
         $this->storeManager = $storeManager;
-        $this->groupService = $groupService;
+        $this->customerGroupManagement = $customerGroupManagement;
+        $this->dataObjectHelper = $dataObjectHelper;
     }
 
     /**
      * @param string $formCode
      * @param RequestInterface $request
-     * @return \Magento\Customer\Service\V1\Data\Customer
+     * @return \Magento\Customer\Api\Data\CustomerInterface
      */
     public function extract($formCode, RequestInterface $request)
     {
         $customerForm = $this->formFactory->create('customer', $formCode);
-
+        $customerData = $customerForm->extractData($request);
         $allowedAttributes = $customerForm->getAllowedAttributes();
-        $isGroupIdEmpty = true;
-        $customerData = array();
-        foreach ($allowedAttributes as $attribute) {
-            // confirmation in request param is the repeated password, not a confirmation code.
-            if ($attribute === 'confirmation') {
-                continue;
-            }
-            $attributeCode = $attribute->getAttributeCode();
-            if ($attributeCode == 'group_id') {
-                $isGroupIdEmpty = false;
-            }
-            $customerData[$attributeCode] = $request->getParam($attributeCode);
-        }
-        $this->customerBuilder->populateWithArray($customerData);
+        $isGroupIdEmpty = isset($allowedAttributes['group_id']);
+
+        $customerDataObject = $this->customerFactory->create();
+        $this->dataObjectHelper->populateWithArray(
+            $customerDataObject,
+            $customerData,
+            '\Magento\Customer\Api\Data\CustomerInterface'
+        );
         $store = $this->storeManager->getStore();
         if ($isGroupIdEmpty) {
-            $this->customerBuilder->setGroupId($this->groupService->getDefaultGroup($store->getId())->getId());
+            $customerDataObject->setGroupId(
+                $this->customerGroupManagement->getDefaultGroup($store->getId())->getId()
+            );
         }
 
-        $this->customerBuilder->setWebsiteId($store->getWebsiteId());
-        $this->customerBuilder->setStoreId($store->getId());
+        $customerDataObject->setWebsiteId($store->getWebsiteId());
+        $customerDataObject->setStoreId($store->getId());
 
-        return $this->customerBuilder->create();
+        return $customerDataObject;
     }
 }

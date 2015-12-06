@@ -1,31 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Framework\Stdlib\Cookie;
 
 use Magento\Framework\Exception\InputException;
-use Magento\Framework\Stdlib\CookieManager as CookieManager;
+use Magento\Framework\Stdlib\CookieManagerInterface;
+use Magento\Framework\Phrase;
 
 /**
  * CookieManager helps manage the setting, retrieving and deleting of cookies.
@@ -33,20 +16,21 @@ use Magento\Framework\Stdlib\CookieManager as CookieManager;
  * To aid in security, the cookie manager will make it possible for the application to indicate if the cookie contains
  * sensitive data so that extra protection can be added to the contents of the cookie as well as how the browser
  * stores the cookie.
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-class PhpCookieManager implements CookieManager
+class PhpCookieManager implements CookieManagerInterface
 {
     /**#@+
      * Constants for Cookie manager.
      * RFC 2109 - Page 15
-     * http://www.ietf.org/rfc/rfc2109.txt
+     * http://www.ietf.org/rfc/rfc6265.txt
      */
-    const MAX_NUM_COOKIES = 20;
+    const MAX_NUM_COOKIES = 50;
     const MAX_COOKIE_SIZE = 4096;
     const EXPIRE_NOW_TIME = 1;
     const EXPIRE_AT_END_OF_SESSION_TIME = 0;
     /**#@-*/
-
 
     /**#@+
      * Constant for metadata array key
@@ -54,18 +38,24 @@ class PhpCookieManager implements CookieManager
     const KEY_EXPIRE_TIME = 'expiry';
     /**#@-*/
 
-
     /**
      * @var CookieScopeInterface
      */
     private $scope;
 
     /**
-     * @param CookieScopeInterface $scope
+     * @var CookieReaderInterface
      */
-    public function __construct(CookieScopeInterface $scope)
+    private $reader;
+
+    /**
+     * @param CookieScopeInterface $scope
+     * @param CookieReaderInterface $reader
+     */
+    public function __construct(CookieScopeInterface $scope, CookieReaderInterface $reader)
     {
         $this->scope = $scope;
+        $this->reader = $reader;
     }
 
     /**
@@ -136,12 +126,15 @@ class PhpCookieManager implements CookieManager
         );
 
         if (!$phpSetcookieSuccess) {
-
             $params['name'] = $name;
             if ($value == '') {
-                throw new FailureToSendException('Unable to delete the cookie with cookieName = %name', $params);
+                throw new FailureToSendException(
+                    new Phrase('Unable to delete the cookie with cookieName = %name', $params)
+                );
             } else {
-                throw new FailureToSendException('Unable to send the cookie with cookieName = %name', $params);
+                throw new FailureToSendException(
+                    new Phrase('Unable to send the cookie with cookieName = %name', $params)
+                );
             }
         }
     }
@@ -174,7 +167,9 @@ class PhpCookieManager implements CookieManager
     {
         if ($name == '' || preg_match("/[=,; \t\r\n\013\014]/", $name)) {
             throw new InputException(
-                'Cookie name cannot be empty and cannot contain these characters: =,; \\t\\r\\n\\013\\014'
+                new Phrase(
+                    'Cookie name cannot be empty and cannot contain these characters: =,; \\t\\r\\n\\013\\014'
+                )
             );
         }
 
@@ -188,17 +183,19 @@ class PhpCookieManager implements CookieManager
 
         if ($numCookies > PhpCookieManager::MAX_NUM_COOKIES) {
             throw new CookieSizeLimitReachedException(
-                'Unable to send the cookie. Maximum number of cookies would be exceeded.'
+                new Phrase('Unable to send the cookie. Maximum number of cookies would be exceeded.')
             );
         }
 
         if ($sizeOfCookie > PhpCookieManager::MAX_COOKIE_SIZE) {
             throw new CookieSizeLimitReachedException(
-                "Unable to send the cookie. Size of '%name' is %size bytes.",
-                [
-                    'name' => $name,
-                    'size' => $sizeOfCookie,
-                ]
+                new Phrase(
+                    'Unable to send the cookie. Size of \'%name\' is %size bytes.',
+                    [
+                        'name' => $name,
+                        'size' => $sizeOfCookie,
+                    ]
+                )
             );
         }
     }
@@ -253,7 +250,7 @@ class PhpCookieManager implements CookieManager
      */
     public function getCookie($name, $default = null)
     {
-        return (isset($_COOKIE[$name])) ? $_COOKIE[$name] : $default;
+        return $this->reader->getCookie($name, $default);
     }
 
     /**

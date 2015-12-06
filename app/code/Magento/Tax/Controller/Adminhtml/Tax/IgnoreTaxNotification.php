@@ -1,36 +1,41 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Tax\Controller\Adminhtml\Tax;
 
+use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Controller\ResultFactory;
+
 class IgnoreTaxNotification extends \Magento\Tax\Controller\Adminhtml\Tax
 {
+    /**
+     * @var \Magento\Framework\App\Cache\TypeListInterface
+     */
+    protected $_cacheTypeList;
+
+    /**
+     * @param \Magento\Backend\App\Action\Context $context
+     * @param \Magento\Tax\Api\TaxClassRepositoryInterface $taxClassService
+     * @param \Magento\Tax\Api\Data\TaxClassInterfaceFactory $taxClassDataObjectFactory
+     * @param \Magento\Framework\App\Cache\TypeListInterface $cacheTypeList
+     */
+    public function __construct(
+        \Magento\Backend\App\Action\Context $context,
+        \Magento\Tax\Api\TaxClassRepositoryInterface $taxClassService,
+        \Magento\Tax\Api\Data\TaxClassInterfaceFactory $taxClassDataObjectFactory,
+        \Magento\Framework\App\Cache\TypeListInterface $cacheTypeList
+    ) {
+        $this->_cacheTypeList = $cacheTypeList;
+        parent::__construct($context, $taxClassService, $taxClassDataObjectFactory);
+    }
 
     /**
      * Set tax ignore notification flag and redirect back
      *
-     * @return \Magento\Framework\App\ResponseInterface
+     * @return \Magento\Backend\Model\View\Result\Redirect
      */
     public function execute()
     {
@@ -38,12 +43,19 @@ class IgnoreTaxNotification extends \Magento\Tax\Controller\Adminhtml\Tax
         if ($section) {
             try {
                 $path = 'tax/notification/ignore_' . $section;
-                $this->_objectManager->get('\Magento\Core\Model\Resource\Config')->saveConfig($path, 1, \Magento\Framework\App\ScopeInterface::SCOPE_DEFAULT, 0);
+                $this->_objectManager->get('Magento\Config\Model\ResourceModel\Config')
+                    ->saveConfig($path, 1, ScopeConfigInterface::SCOPE_TYPE_DEFAULT, 0);
             } catch (\Exception $e) {
                 $this->messageManager->addError($e->getMessage());
             }
         }
 
-        $this->getResponse()->setRedirect($this->_redirect->getRefererUrl());
+        // clear the block html cache
+        $this->_cacheTypeList->cleanType('block_html');
+        $this->_eventManager->dispatch('adminhtml_cache_refresh_type', ['type' => 'block_html']);
+
+        /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
+        $resultRedirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
+        return $resultRedirect->setRefererUrl();
     }
 }

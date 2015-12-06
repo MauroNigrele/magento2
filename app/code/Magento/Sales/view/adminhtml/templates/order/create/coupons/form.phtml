@@ -1,26 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 ?>
 <?php
 /**
@@ -28,23 +13,26 @@
  *
  */
 ?>
-<div class="box-left">
-    <h4><?php echo __('Apply Coupon Code') ?></h4>
-    <fieldset>
-        <div class="content">
-            <input type="text" class="input-text" id="coupons:code" value="" name="coupon_code" />
-            <?php echo $this->getButtonHtml(__('Apply'), 'order.applyCoupon($F(\'coupons:code\'))') ?>
-            <?php if($this->getCouponCode()): ?>
-            <p><strong><?php echo $this->escapeHtml($this->getCouponCode()) ?></strong> [<a href="#" onclick="order.applyCoupon(''); return false;" title="<?php echo __('Remove Coupon Code') ?>"><?php echo __('Remove') ?></a>]</p>
-            <?php endif; ?>
-            <script type="text/javascript">
+
+<div class="admin__field field-apply-coupon-code">
+    <label class="admin__field-label"><span><?php /* @escapeNotVerified */ echo __('Apply Coupon Code') ?></span></label>
+    <div class="admin__field-control">
+        <input type="text" class="admin__control-text" id="coupons:code" value="" name="coupon_code" />
+        <?php echo $block->getButtonHtml(__('Apply'), 'order.applyCoupon($F(\'coupons:code\'))') ?>
+        <?php if ($block->getCouponCode()): ?>
+        <p class="added-coupon-code">
+            <span><?php echo $block->escapeHtml($block->getCouponCode()) ?></span>
+            <a href="#" onclick="order.applyCoupon(''); return false;" title="<?php /* @escapeNotVerified */ echo __('Remove Coupon Code') ?>"
+               class="action-remove"><span><?php /* @escapeNotVerified */ echo __('Remove') ?></span></a>
+        </p>
+        <?php endif; ?>
+        <script>
             require(["Magento_Sales/order/create/form"], function(){
 
-                order.overlay('shipping-method-overlay', <?php if ($this->getQuote()->isVirtual()): ?>false<?php else: ?>true<?php endif; ?>);
-                order.overlay('address-shipping-overlay', <?php if ($this->getQuote()->isVirtual()): ?>false<?php else: ?>true<?php endif; ?>);
-                        
+                order.overlay('shipping-method-overlay', <?php if ($block->getQuote()->isVirtual()): ?>false<?php else: ?>true<?php endif; ?>);
+                order.overlay('address-shipping-overlay', <?php if ($block->getQuote()->isVirtual()): ?>false<?php else: ?>true<?php endif; ?>);
+
             });
-</script>
-        </div>
-    </fieldset>
+        </script>
+    </div>
 </div>

@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\View\Asset;
 
@@ -29,7 +11,12 @@ namespace Magento\Framework\View\Asset;
 class Merged implements \Iterator
 {
     /**
-     * @var \Magento\Framework\Logger
+     * Directory for dynamically generated public view files, relative to STATIC_VIEW
+     */
+    const CACHE_VIEW_REL = '_cache';
+
+    /**
+     * @var \Psr\Log\LoggerInterface
      */
     protected $logger;
 
@@ -59,14 +46,14 @@ class Merged implements \Iterator
     protected $isInitialized = false;
 
     /**
-     * @param \Magento\Framework\Logger $logger
+     * @param \Psr\Log\LoggerInterface $logger
      * @param MergeStrategyInterface $mergeStrategy
      * @param \Magento\Framework\View\Asset\Repository $assetRepo
      * @param MergeableInterface[] $assets
      * @throws \InvalidArgumentException
      */
     public function __construct(
-        \Magento\Framework\Logger $logger,
+        \Psr\Log\LoggerInterface $logger,
         MergeStrategyInterface $mergeStrategy,
         \Magento\Framework\View\Asset\Repository $assetRepo,
         array $assets
@@ -87,7 +74,7 @@ class Merged implements \Iterator
             }
             if (!$this->contentType) {
                 $this->contentType = $asset->getContentType();
-            } else if ($asset->getContentType() != $this->contentType) {
+            } elseif ($asset->getContentType() != $this->contentType) {
                 throw new \InvalidArgumentException(
                     "Content type '{$asset->getContentType()}' cannot be merged with '{$this->contentType}'."
                 );
@@ -108,9 +95,9 @@ class Merged implements \Iterator
             try {
                 $mergedAsset = $this->createMergedAsset($this->assets);
                 $this->mergeStrategy->merge($this->assets, $mergedAsset);
-                $this->assets = array($mergedAsset);
+                $this->assets = [$mergedAsset];
             } catch (\Exception $e) {
-                $this->logger->logException($e);
+                $this->logger->critical($e);
             }
         }
     }
@@ -123,7 +110,7 @@ class Merged implements \Iterator
      */
     private function createMergedAsset(array $assets)
     {
-        $paths = array();
+        $paths = [];
         /** @var MergeableInterface $asset */
         foreach ($assets as $asset) {
             $paths[] = $asset->getPath();
@@ -181,12 +168,12 @@ class Merged implements \Iterator
     }
 
     /**
-     * Returns directory for storing merged files relative to STATIC_VIEW_DIR
+     * Returns directory for storing merged files relative to STATIC_VIEW
      *
      * @return string
      */
     public static function getRelativeDir()
     {
-        return \Magento\Framework\App\Filesystem\DirectoryList::CACHE_VIEW_REL_DIR . '/merged';
+        return self::CACHE_VIEW_REL . '/merged';
     }
 }

@@ -1,31 +1,14 @@
 <?php
 /**
- * Compiled class definitions. Should be used for maximum performance in production.
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     {license_link
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\ObjectManager\Definition;
 
-abstract class Compiled implements \Magento\Framework\ObjectManager\Definition
+/**
+ * Compiled class definitions. Should be used for maximum performance in production.
+ */
+abstract class Compiled implements \Magento\Framework\ObjectManager\DefinitionInterface
 {
     /**
      * Class definitions
@@ -35,11 +18,18 @@ abstract class Compiled implements \Magento\Framework\ObjectManager\Definition
     protected $_definitions;
 
     /**
-     * @param array $definitions
+     * @var \Magento\Framework\Code\Reader\ClassReader
      */
-    public function __construct(array $definitions)
+    protected $reader ;
+
+    /**
+     * @param array $definitions
+     * @param \Magento\Framework\Code\Reader\ClassReader $reader
+     */
+    public function __construct(array $definitions, \Magento\Framework\Code\Reader\ClassReader $reader = null)
     {
         list($this->_signatures, $this->_definitions) = $definitions;
+        $this->reader = $reader ?: new \Magento\Framework\Code\Reader\ClassReader();
     }
 
     /**
@@ -68,6 +58,11 @@ abstract class Compiled implements \Magento\Framework\ObjectManager\Definition
      */
     public function getParameters($className)
     {
+        // if the definition isn't found in the list gathered from the compiled file then  using reflection to find it
+        if (!array_key_exists($className, $this->_definitions)) {
+            return $this->reader->getConstructor($className);
+        }
+
         $definition = $this->_definitions[$className];
         if ($definition !== null) {
             if (is_string($this->_signatures[$definition])) {

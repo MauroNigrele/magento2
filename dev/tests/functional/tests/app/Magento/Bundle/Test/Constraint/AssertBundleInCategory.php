@@ -1,86 +1,43 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Bundle\Test\Constraint;
 
-use Magento\Cms\Test\Page\CmsIndex;
-use Mtf\Constraint\AbstractConstraint;
+use Magento\Catalog\Test\Fixture\Category;
 use Magento\Bundle\Test\Fixture\BundleProduct;
-use Magento\Catalog\Test\Fixture\CatalogCategory;
 use Magento\Catalog\Test\Page\Category\CatalogCategoryView;
+use Magento\Catalog\Test\Constraint\AssertProductInCategory;
+use Magento\Mtf\Fixture\FixtureInterface;
 
 /**
- * Class AssertProductInCategory
+ * Check bundle product on the category page.
  */
-class AssertBundleInCategory extends AbstractConstraint
+class AssertBundleInCategory extends AssertProductInCategory
 {
     /**
-     * Constraint severeness
+     * Verify product price on category view page.
      *
-     * @var string
-     */
-    protected $severeness = 'low';
-
-    /**
-     * Check bundle product on the category page
-     *
-     * @param CatalogCategoryView $catalogCategoryView
-     * @param CmsIndex $cmsIndex
-     * @param BundleProduct $product
-     * @param CatalogCategory $category
-     * @return void
-     */
-    public function processAssert(
-        CatalogCategoryView $catalogCategoryView,
-        CmsIndex $cmsIndex,
-        BundleProduct $product,
-        CatalogCategory $category
-    ) {
-        //Open category view page
-        $cmsIndex->open();
-        $cmsIndex->getTopmenu()->selectCategoryByName($category->getName());
-
-        //Process asserts
-        $this->assertPrice($product, $catalogCategoryView);
-    }
-
-    /**
-     * Verify product price on category view page
-     *
-     * @param BundleProduct $bundle
+     * @param FixtureInterface $bundle
      * @param CatalogCategoryView $catalogCategoryView
      * @return void
      */
-    protected function assertPrice(BundleProduct $bundle, CatalogCategoryView $catalogCategoryView)
+    protected function assertPrice(FixtureInterface $bundle, CatalogCategoryView $catalogCategoryView)
     {
-        $priceData = $bundle->getDataFieldConfig('price')['source']->getPreset();
+        /** @var BundleProduct $bundle */
+        $priceData = $bundle->getDataFieldConfig('price')['source']->getPriceData();
         //Price from/to verification
-        $priceBlock = $catalogCategoryView->getListProductBlock()->getProductPriceBlock($bundle->getName());
+        $priceBlock = $catalogCategoryView->getListProductBlock()->getProductItem($bundle)->getPriceBlock();
 
-        $priceLow = ($bundle->getPriceView() == 'Price Range')
-            ? $priceBlock->getPriceFrom()
-            : $priceBlock->getRegularPrice();
+        if ($bundle->hasData('special_price')) {
+            $priceLow = $priceBlock->getPrice();
+        } else {
+            $priceLow = ($bundle->getPriceView() == 'Price Range')
+                ? $priceBlock->getPriceFrom()
+                : $priceBlock->getPrice();
+        }
 
         \PHPUnit_Framework_Assert::assertEquals(
             $priceData['price_from'],
@@ -97,7 +54,7 @@ class AssertBundleInCategory extends AbstractConstraint
     }
 
     /**
-     * Text of Visible in category assert
+     * Text of Visible in category assert.
      *
      * @return string
      */

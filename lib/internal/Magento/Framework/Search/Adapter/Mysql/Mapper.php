@@ -1,33 +1,20 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Search\Adapter\Mysql;
 
-use Magento\Framework\App\Resource\Config;
+use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\DB\Ddl\Table;
 use Magento\Framework\DB\Select;
 use Magento\Framework\Search\Adapter\Mysql\Filter\Builder;
-use Magento\Framework\Search\Adapter\Mysql\Query\Builder\Match as MatchQueryBuilder;
-use Magento\Framework\Search\Request\Query\Bool as BoolQuery;
+use Magento\Framework\Search\Adapter\Mysql\Query\Builder\Match;
+use Magento\Framework\Search\Adapter\Mysql\Query\MatchContainer;
+use Magento\Framework\Search\Adapter\Mysql\Query\QueryContainer;
+use Magento\Framework\Search\Adapter\Mysql\Query\QueryContainerFactory;
+use Magento\Framework\Search\EntityMetadata;
+use Magento\Framework\Search\Request\Query\BoolExpression as BoolQuery;
 use Magento\Framework\Search\Request\Query\Filter as FilterQuery;
 use Magento\Framework\Search\Request\Query\Match as MatchQuery;
 use Magento\Framework\Search\Request\QueryInterface as RequestQueryInterface;
@@ -35,73 +22,150 @@ use Magento\Framework\Search\RequestInterface;
 
 /**
  * Mapper class. Maps library request to specific adapter dependent query
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class Mapper
 {
-    const BOOL_MUST_NOT = true;
-    const BOOL_MUST = false;
-
-    /**
-     * @var \Magento\Framework\App\Resource
-     */
-    private $resource;
-
     /**
      * @var ScoreBuilder
      */
     private $scoreBuilderFactory;
 
     /**
-     * @var \Magento\Framework\Search\Adapter\Mysql\Query\Builder\Match
-     */
-    private $matchQueryBuilder;
-    /**
      * @var Filter\Builder
      */
     private $filterBuilder;
-    /**
-     * @var Dimensions
-     */
-    private $dimensionsBuilder;
 
     /**
-     * @param \Magento\Framework\App\Resource $resource
+     * @var ConditionManager
+     */
+    private $conditionManager;
+
+    /**
+     * @var IndexBuilderInterface[]
+     */
+    private $indexProviders;
+
+    /**
+     * @var Resource
+     */
+    private $resource;
+
+    /**
+     * @var EntityMetadata
+     */
+    private $entityMetadata;
+
+    /**
+     * @var QueryContainerFactory
+     */
+    private $queryContainerFactory;
+
+    /**
+     * @var Query\Builder\Match
+     */
+    private $matchBuilder;
+
+    /**
+     * @var TemporaryStorage
+     */
+    private $temporaryStorage;
+
+    /**
      * @param ScoreBuilderFactory $scoreBuilderFactory
-     * @param MatchQueryBuilder $matchQueryBuilder
      * @param Builder $filterBuilder
-     * @param Dimensions $dimensionsBuilder
+     * @param ConditionManager $conditionManager
+     * @param ResourceConnection $resource
+     * @param EntityMetadata $entityMetadata
+     * @param QueryContainerFactory $queryContainerFactory
+     * @param Query\Builder\Match $matchBuilder
+     * @param TemporaryStorageFactory $temporaryStorageFactory
+     * @param IndexBuilderInterface[] $indexProviders
      */
     public function __construct(
-        \Magento\Framework\App\Resource $resource,
         ScoreBuilderFactory $scoreBuilderFactory,
-        MatchQueryBuilder $matchQueryBuilder,
         Builder $filterBuilder,
-        Dimensions $dimensionsBuilder
+        ConditionManager $conditionManager,
+        ResourceConnection $resource,
+        EntityMetadata $entityMetadata,
+        QueryContainerFactory $queryContainerFactory,
+        Match $matchBuilder,
+        TemporaryStorageFactory $temporaryStorageFactory,
+        array $indexProviders
     ) {
-        $this->resource = $resource;
         $this->scoreBuilderFactory = $scoreBuilderFactory;
-        $this->matchQueryBuilder = $matchQueryBuilder;
         $this->filterBuilder = $filterBuilder;
-        $this->dimensionsBuilder = $dimensionsBuilder;
+        $this->conditionManager = $conditionManager;
+        $this->resource = $resource;
+        $this->entityMetadata = $entityMetadata;
+        $this->indexProviders = $indexProviders;
+        $this->queryContainerFactory = $queryContainerFactory;
+        $this->matchBuilder = $matchBuilder;
+        $this->temporaryStorage = $temporaryStorageFactory->create();
     }
 
     /**
      * Build adapter dependent query
      *
      * @param RequestInterface $request
+     * @throws \LogicException
      * @return Select
      */
     public function buildQuery(RequestInterface $request)
     {
+        if (!array_key_exists($request->getIndex(), $this->indexProviders)) {
+            throw new \LogicException('Index provider not configured');
+        }
+
+        $indexBuilder = $this->indexProviders[$request->getIndex()];
+
+        $queryContainer = $this->queryContainerFactory->create(
+            [
+                'indexBuilder' => $indexBuilder,
+                'request' => $request,
+            ]
+        );
+        $select = $indexBuilder->build($request);
         /** @var ScoreBuilder $scoreBuilder */
         $scoreBuilder = $this->scoreBuilderFactory->create();
-        $select = $this->processQuery($scoreBuilder, $request->getQuery(), $this->getSelect(), self::BOOL_MUST);
-        $select = $this->processDimensions($request, $select);
-        $tableName = $this->resource->getTableName($request->getIndex());
-        $select->from($tableName)
-            ->columns($scoreBuilder->build())
-            ->order($scoreBuilder->getScoreAlias() . ' ' . Select::SQL_DESC);
+        $select = $this->processQuery(
+            $scoreBuilder,
+            $request->getQuery(),
+            $select,
+            BoolQuery::QUERY_CONDITION_MUST,
+            $queryContainer
+        );
+
+        $select = $this->addDerivedQueries(
+            $request,
+            $queryContainer,
+            $scoreBuilder,
+            $select,
+            $indexBuilder
+        );
+
+        $select->limit($request->getSize());
+        $select->order('relevance ' . Select::SQL_DESC);
         return $select;
+    }
+
+    /**
+     * @param Select $select
+     * @param ScoreBuilder $scoreBuilder
+     * @param string $scorePattern
+     * @return Select
+     */
+    private function createAroundSelect(Select $select, ScoreBuilder $scoreBuilder)
+    {
+        $parentSelect = $this->getConnection()->select();
+        $parentSelect->from(
+            ['main_select' => $select],
+            [
+                $this->entityMetadata->getEntityId() => 'entity_id',
+                'relevance' => sprintf('MAX(%s)', $scoreBuilder->getScoreAlias())
+            ]
+        )->group($this->entityMetadata->getEntityId());
+        return $parentSelect;
     }
 
     /**
@@ -110,7 +174,8 @@ class Mapper
      * @param ScoreBuilder $scoreBuilder
      * @param RequestQueryInterface $query
      * @param Select $select
-     * @param bool $isNot
+     * @param string $conditionType
+     * @param QueryContainer $queryContainer
      * @return Select
      * @throws \InvalidArgumentException
      */
@@ -118,27 +183,25 @@ class Mapper
         ScoreBuilder $scoreBuilder,
         RequestQueryInterface $query,
         Select $select,
-        $isNot
+        $conditionType,
+        QueryContainer $queryContainer
     ) {
         switch ($query->getType()) {
             case RequestQueryInterface::TYPE_MATCH:
                 /** @var MatchQuery $query */
-                $scoreBuilder->startQuery();
-                $select = $this->matchQueryBuilder->build(
-                    $scoreBuilder,
+                $select = $queryContainer->addMatchQuery(
                     $select,
                     $query,
-                    $isNot
+                    $conditionType
                 );
-                $scoreBuilder->endQuery($query->getBoost());
                 break;
             case RequestQueryInterface::TYPE_BOOL:
                 /** @var BoolQuery $query */
-                $select = $this->processBoolQuery($scoreBuilder, $query, $select);
+                $select = $this->processBoolQuery($scoreBuilder, $query, $select, $queryContainer);
                 break;
             case RequestQueryInterface::TYPE_FILTER:
                 /** @var FilterQuery $query */
-                $select = $this->processFilterQuery($scoreBuilder, $query, $select, $isNot);
+                $select = $this->processFilterQuery($scoreBuilder, $query, $select, $conditionType, $queryContainer);
                 break;
             default:
                 throw new \InvalidArgumentException(sprintf('Unknown query type \'%s\'', $query->getType()));
@@ -152,31 +215,39 @@ class Mapper
      * @param ScoreBuilder $scoreBuilder
      * @param BoolQuery $query
      * @param Select $select
+     * @param QueryContainer $queryContainer
      * @return Select
      */
-    private function processBoolQuery(ScoreBuilder $scoreBuilder, BoolQuery $query, Select $select)
-    {
+    private function processBoolQuery(
+        ScoreBuilder $scoreBuilder,
+        BoolQuery $query,
+        Select $select,
+        QueryContainer $queryContainer
+    ) {
         $scoreBuilder->startQuery();
 
         $select = $this->processBoolQueryCondition(
             $scoreBuilder,
             $query->getMust(),
             $select,
-            self::BOOL_MUST
+            BoolQuery::QUERY_CONDITION_MUST,
+            $queryContainer
         );
 
         $select = $this->processBoolQueryCondition(
             $scoreBuilder,
             $query->getShould(),
             $select,
-            self::BOOL_MUST
+            BoolQuery::QUERY_CONDITION_SHOULD,
+            $queryContainer
         );
 
         $select = $this->processBoolQueryCondition(
             $scoreBuilder,
             $query->getMustNot(),
             $select,
-            self::BOOL_MUST_NOT
+            BoolQuery::QUERY_CONDITION_NOT,
+            $queryContainer
         );
 
         $scoreBuilder->endQuery($query->getBoost());
@@ -190,17 +261,19 @@ class Mapper
      * @param ScoreBuilder $scoreBuilder
      * @param RequestQueryInterface[] $subQueryList
      * @param Select $select
-     * @param bool $isNot
+     * @param string $conditionType
+     * @param QueryContainer $queryContainer
      * @return Select
      */
     private function processBoolQueryCondition(
         ScoreBuilder $scoreBuilder,
         array $subQueryList,
         Select $select,
-        $isNot
+        $conditionType,
+        QueryContainer $queryContainer
     ) {
         foreach ($subQueryList as $subQuery) {
-            $select = $this->processQuery($scoreBuilder, $subQuery, $select, $isNot);
+            $select = $this->processQuery($scoreBuilder, $subQuery, $select, $conditionType, $queryContainer);
         }
         return $select;
     }
@@ -211,61 +284,139 @@ class Mapper
      * @param ScoreBuilder $scoreBuilder
      * @param FilterQuery $query
      * @param Select $select
-     * @param bool $isNot
+     * @param string $conditionType
+     * @param QueryContainer $queryContainer
      * @return Select
      */
-    private function processFilterQuery(ScoreBuilder $scoreBuilder, FilterQuery $query, Select $select, $isNot)
-    {
+    private function processFilterQuery(
+        ScoreBuilder $scoreBuilder,
+        FilterQuery $query,
+        Select $select,
+        $conditionType,
+        QueryContainer $queryContainer
+    ) {
+        $scoreBuilder->startQuery();
         switch ($query->getReferenceType()) {
             case FilterQuery::REFERENCE_QUERY:
-                $scoreBuilder->startQuery();
-                $select = $this->processQuery($scoreBuilder, $query->getReference(), $select, $isNot);
+                $select = $this->processQuery(
+                    $scoreBuilder,
+                    $query->getReference(),
+                    $select,
+                    $conditionType,
+                    $queryContainer
+                );
                 $scoreBuilder->endQuery($query->getBoost());
                 break;
             case FilterQuery::REFERENCE_FILTER:
-                $filterCondition = $this->filterBuilder->build($query->getReference());
-                if ($isNot === true) {
-                    $filterCondition = '!' . $filterCondition;
+                $filterCondition = $this->filterBuilder->build($query->getReference(), $conditionType);
+                if ($filterCondition) {
+                    $select->where($filterCondition);
                 }
-                $select->where($filterCondition);
-                $scoreBuilder->addCondition(1, $query->getBoost());
                 break;
         }
+        $scoreBuilder->endQuery($query->getBoost());
         return $select;
     }
 
     /**
-     * Get empty Select
-     *
+     * @param RequestInterface $request
+     * @param QueryContainer $queryContainer
+     * @param ScoreBuilder $scoreBuilder
+     * @param Select $select
+     * @param IndexBuilderInterface $indexBuilder
      * @return Select
+     * @throws \Zend_Db_Exception
      */
-    private function getSelect()
-    {
-        return $this->resource->getConnection(\Magento\Framework\App\Resource::DEFAULT_READ_RESOURCE)->select();
+    private function addDerivedQueries(
+        RequestInterface $request,
+        QueryContainer $queryContainer,
+        ScoreBuilder $scoreBuilder,
+        Select $select,
+        IndexBuilderInterface $indexBuilder
+    ) {
+        $matchQueries = $queryContainer->getMatchQueries();
+        if (!$matchQueries) {
+            $select->columns($scoreBuilder->build());
+            $select = $this->createAroundSelect($select, $scoreBuilder);
+        } else {
+            $matchContainer = array_shift($matchQueries);
+            $this->matchBuilder->build(
+                $scoreBuilder,
+                $select,
+                $matchContainer->getRequest(),
+                $matchContainer->getConditionType()
+            );
+            $select->columns($scoreBuilder->build());
+            $select = $this->createAroundSelect($select, $scoreBuilder);
+            $select = $this->addMatchQueries($request, $select, $indexBuilder, $matchQueries);
+        }
+
+        return $select;
     }
 
     /**
-     * Add filtering by dimensions
-     *
+     * @return false|\Magento\Framework\DB\Adapter\AdapterInterface
+     */
+    private function getConnection()
+    {
+        return $this->resource->getConnection();
+    }
+
+    /**
      * @param RequestInterface $request
      * @param Select $select
-     * @return \Magento\Framework\DB\Select
+     * @param IndexBuilderInterface $indexBuilder
+     * @param MatchContainer[] $matchQueries
+     * @return Select
      */
-    private function processDimensions(RequestInterface $request, Select $select)
-    {
-        $dimensions = [];
-        foreach ($request->getDimensions() as $dimension) {
-            $dimensions[] = $this->dimensionsBuilder->build($dimension);
+    private function addMatchQueries(
+        RequestInterface $request,
+        Select $select,
+        IndexBuilderInterface $indexBuilder,
+        array $matchQueries
+    ) {
+        $queriesCount = count($matchQueries);
+        if ($queriesCount) {
+            $table = $this->temporaryStorage->storeDocumentsFromSelect($select);
+            foreach ($matchQueries as $matchContainer) {
+                $queriesCount--;
+                $matchScoreBuilder = $this->scoreBuilderFactory->create();
+                $matchSelect = $this->matchBuilder->build(
+                    $matchScoreBuilder,
+                    $indexBuilder->build($request),
+                    $matchContainer->getRequest(),
+                    $matchContainer->getConditionType()
+                );
+                $select = $this->joinPreviousResultToSelect($matchSelect, $table, $matchScoreBuilder);
+                if ($queriesCount) {
+                    $previousResultTable = $table;
+                    $table = $this->temporaryStorage->storeDocumentsFromSelect($select);
+                    $this->getConnection()->dropTable($previousResultTable->getName());
+                }
+            }
         }
-
-        if (!empty($dimensions)) {
-            $query = sprintf(
-                '(%s)',
-                implode(' ' . Select::SQL_OR . ' ', $dimensions)
-            );
-            $select->where($query);
-        }
-
         return $select;
+    }
+
+    /**
+     * @param Select $query
+     * @param Table $previousResultTable
+     * @param ScoreBuilder $scoreBuilder
+     * @return Select
+     * @throws \Zend_Db_Exception
+     */
+    private function joinPreviousResultToSelect(Select $query, Table $previousResultTable, ScoreBuilder $scoreBuilder)
+    {
+        $query->joinInner(
+            ['previous_results' => $previousResultTable->getName()],
+            'previous_results.entity_id = search_index.entity_id',
+            []
+        );
+        $scoreBuilder->addCondition('previous_results.score', false);
+        $query->columns($scoreBuilder->build());
+
+        $query = $this->createAroundSelect($query, $scoreBuilder);
+
+        return $query;
     }
 }

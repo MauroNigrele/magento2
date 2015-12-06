@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -29,7 +11,7 @@ namespace Magento\Paypal\Block\Adminhtml\System\Config\Field;
 
 use Magento\Paypal\Model\Config\StructurePlugin;
 
-class Country extends \Magento\Backend\Block\System\Config\Form\Field
+class Country extends \Magento\Config\Block\System\Config\Form\Field
 {
     /**
      * Config path for merchant country selector
@@ -59,28 +41,28 @@ class Country extends \Magento\Backend\Block\System\Config\Form\Field
     protected $_jsHelper;
 
     /**
-     * @var \Magento\Core\Helper\Data
+     * @var \Magento\Directory\Helper\Data
      */
-    protected $_coreHelper;
+    protected $directoryHelper;
 
     /**
      * @param \Magento\Backend\Block\Template\Context $context
      * @param \Magento\Backend\Model\Url $url
      * @param \Magento\Framework\View\Helper\Js $jsHelper
-     * @param \Magento\Core\Helper\Data $coreHelper
+     * @param \Magento\Directory\Helper\Data $directoryHelper
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
         \Magento\Backend\Model\Url $url,
         \Magento\Framework\View\Helper\Js $jsHelper,
-        \Magento\Core\Helper\Data $coreHelper,
-        array $data = array()
+        \Magento\Directory\Helper\Data $directoryHelper,
+        array $data = []
     ) {
         parent::__construct($context, $data);
         $this->_url = $url;
         $this->_jsHelper = $jsHelper;
-        $this->_coreHelper = $coreHelper;
+        $this->directoryHelper = $directoryHelper;
     }
 
     /**
@@ -99,7 +81,7 @@ class Country extends \Magento\Backend\Block\System\Config\Form\Field
         if ($element->getCanUseDefaultValue()) {
             $this->_defaultCountry = $this->_scopeConfig->getValue(self::FIELD_CONFIG_PATH);
             if (!$this->_defaultCountry) {
-                $this->_defaultCountry = $this->_coreHelper->getDefaultCountry();
+                $this->_defaultCountry = $this->directoryHelper->getDefaultCountry();
             }
             if ($country) {
                 $shouldInherit = $country == $this->_defaultCountry
@@ -126,7 +108,7 @@ class Country extends \Magento\Backend\Block\System\Config\Form\Field
             'section' => $this->getRequest()->getParam('section'),
             'website' => $this->getRequest()->getParam('website'),
             'store' => $this->getRequest()->getParam('store'),
-            StructurePlugin::REQUEST_PARAM_COUNTRY => '__country__'
+            StructurePlugin::REQUEST_PARAM_COUNTRY => '__country__',
         ];
         $urlString = $this->_escaper->escapeJsQuote($this->_url->getUrl('*/*/*', $urlParams));
         $jsString = '
@@ -150,7 +132,7 @@ class Country extends \Magento\Backend\Block\System\Config\Form\Field
         }
 
         return parent::_getElementHtml($element) . $this->_jsHelper->getScript(
-            'document.observe("dom:loaded", function() {' . $jsString . '});'
+            'require([\'prototype\'], function(){document.observe("dom:loaded", function() {' . $jsString . '});});'
         );
     }
 }

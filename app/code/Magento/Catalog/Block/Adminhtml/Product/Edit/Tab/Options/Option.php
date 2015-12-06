@@ -1,26 +1,10 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
 
 /**
  * Customers defined options
@@ -38,7 +22,7 @@ class Option extends Widget
     protected $_productInstance;
 
     /**
-     * @var \Magento\Framework\Object[]
+     * @var \Magento\Framework\DataObject[]
      */
     protected $_values;
 
@@ -70,7 +54,7 @@ class Option extends Widget
     protected $_product;
 
     /**
-     * @var \Magento\Backend\Model\Config\Source\Yesno
+     * @var \Magento\Config\Model\Config\Source\Yesno
      */
     protected $_configYesNo;
 
@@ -81,7 +65,7 @@ class Option extends Widget
 
     /**
      * @param \Magento\Backend\Block\Template\Context $context
-     * @param \Magento\Backend\Model\Config\Source\Yesno $configYesNo
+     * @param \Magento\Config\Model\Config\Source\Yesno $configYesNo
      * @param \Magento\Catalog\Model\Config\Source\Product\Options\Type $optionType
      * @param Product $product
      * @param \Magento\Framework\Registry $registry
@@ -90,12 +74,12 @@ class Option extends Widget
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
-        \Magento\Backend\Model\Config\Source\Yesno $configYesNo,
+        \Magento\Config\Model\Config\Source\Yesno $configYesNo,
         \Magento\Catalog\Model\Config\Source\Product\Options\Type $optionType,
         Product $product,
         \Magento\Framework\Registry $registry,
         \Magento\Catalog\Model\ProductOptions\ConfigInterface $productOptionConfig,
-        array $data = array()
+        array $data = []
     ) {
         $this->_optionType = $optionType;
         $this->_configYesNo = $configYesNo;
@@ -224,12 +208,12 @@ class Option extends Widget
         $select = $this->getLayout()->createBlock(
             'Magento\Framework\View\Element\Html\Select'
         )->setData(
-            array(
-                'id' => $this->getFieldId() . '_${id}_type',
-                'class' => 'select select-product-option-type required-option-select'
-            )
+            [
+                'id' => $this->getFieldId() . '_<%- data.id %>_type',
+                'class' => 'select select-product-option-type required-option-select',
+            ]
         )->setName(
-            $this->getFieldName() . '[${id}][type]'
+            $this->getFieldName() . '[<%- data.id %>][type]'
         )->setOptions(
             $this->_optionType->toOptionArray()
         );
@@ -245,9 +229,9 @@ class Option extends Widget
         $select = $this->getLayout()->createBlock(
             'Magento\Framework\View\Element\Html\Select'
         )->setData(
-            array('id' => $this->getFieldId() . '_${id}_is_require', 'class' => 'select')
+            ['id' => $this->getFieldId() . '_<%- data.id %>_is_require', 'class' => 'select']
         )->setName(
-            $this->getFieldName() . '[${id}][is_require]'
+            $this->getFieldName() . '[<%- data.id %>][is_require]'
         )->setOptions(
             $this->_configYesNo->toOptionArray()
         );
@@ -286,15 +270,21 @@ class Option extends Widget
     }
 
     /**
-     * @return \Magento\Framework\Object[]
+     * @return \Magento\Framework\DataObject[]
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      */
     public function getOptionValues()
     {
         $optionsArr = $this->getProduct()->getOptions();
+        if ($optionsArr == null) {
+            $optionsArr = [];
+        }
 
         if (!$this->_values || $this->getIgnoreCaching()) {
             $showPrice = $this->getCanReadPrice();
-            $values = array();
+            $values = [];
             $scope = (int)$this->_scopeConfig->getValue(
                 \Magento\Store\Model\Store::XML_PATH_PRICE_SCOPE,
                 \Magento\Store\Model\ScopeInterface::SCOPE_STORE
@@ -304,12 +294,12 @@ class Option extends Widget
 
                 $this->setItemCount($option->getOptionId());
 
-                $value = array();
+                $value = [];
 
                 $value['id'] = $option->getOptionId();
                 $value['item_count'] = $this->getItemCount();
                 $value['option_id'] = $option->getOptionId();
-                $value['title'] = $this->escapeHtml($option->getTitle());
+                $value['title'] = $option->getTitle();
                 $value['type'] = $option->getType();
                 $value['is_require'] = $option->getIsRequire();
                 $value['sort_order'] = $option->getSortOrder();
@@ -329,19 +319,19 @@ class Option extends Widget
                     $itemCount = 0;
                     foreach ($option->getValues() as $_value) {
                         /* @var $_value \Magento\Catalog\Model\Product\Option\Value */
-                        $value['optionValues'][$i] = array(
+                        $value['optionValues'][$i] = [
                             'item_count' => max($itemCount, $_value->getOptionTypeId()),
                             'option_id' => $_value->getOptionId(),
                             'option_type_id' => $_value->getOptionTypeId(),
-                            'title' => $this->escapeHtml($_value->getTitle()),
+                            'title' => $_value->getTitle(),
                             'price' => $showPrice ? $this->getPriceValue(
                                 $_value->getPrice(),
                                 $_value->getPriceType()
                             ) : '',
                             'price_type' => $showPrice ? $_value->getPriceType() : 0,
-                            'sku' => $this->escapeHtml($_value->getSku()),
+                            'sku' => $_value->getSku(),
                             'sort_order' => $_value->getSortOrder(),
-                        );
+                        ];
 
                         if ($this->getProduct()->getStoreId() != '0') {
                             $value['optionValues'][$i]['checkboxScopeTitle'] = $this->getCheckboxScopeHtml(
@@ -374,7 +364,7 @@ class Option extends Widget
                         $option->getPriceType()
                     ) : '';
                     $value['price_type'] = $option->getPriceType();
-                    $value['sku'] = $this->escapeHtml($option->getSku());
+                    $value['sku'] = $option->getSku();
                     $value['max_characters'] = $option->getMaxCharacters();
                     $value['file_extension'] = $option->getFileExtension();
                     $value['image_size_x'] = $option->getImageSizeX();
@@ -390,7 +380,7 @@ class Option extends Widget
                         $value['scopePriceDisabled'] = is_null($option->getStorePrice()) ? 'disabled' : null;
                     }
                 }
-                $values[] = new \Magento\Framework\Object($value);
+                $values[] = new \Magento\Framework\DataObject($value);
             }
             $this->_values = $values;
         }
@@ -470,5 +460,15 @@ class Option extends Widget
     public function getCustomOptionsUrl()
     {
         return $this->getUrl('catalog/*/customOptions');
+    }
+
+    /**
+     * Return current product id
+     *
+     * @return null|int
+     */
+    public function getCurrentProductId()
+    {
+        return $this->getProduct()->getId();
     }
 }

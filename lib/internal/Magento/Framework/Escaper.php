@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework;
 
@@ -38,7 +20,7 @@ class Escaper
     public function escapeHtml($data, $allowedTags = null)
     {
         if (is_array($data)) {
-            $result = array();
+            $result = [];
             foreach ($data as $item) {
                 $result[] = $this->escapeHtml($item);
             }
@@ -78,7 +60,7 @@ class Escaper
     public function escapeJsQuote($data, $quote = '\'')
     {
         if (is_array($data)) {
-            $result = array();
+            $result = [];
             foreach ($data as $item) {
                 $result[] = $this->escapeJsQuote($item, $quote);
             }
@@ -86,6 +68,24 @@ class Escaper
             $result = str_replace($quote, '\\' . $quote, $data);
         }
         return $result;
+    }
+
+    /**
+     * Escape xss in urls
+     *
+     * @param string $data
+     * @return string
+     */
+    public function escapeXssInUrl($data)
+    {
+        $result = $data;
+        $urlQuery = parse_url($data, PHP_URL_QUERY);
+        if ($urlQuery !== null && strpos($urlQuery, 'javascript') !== false) {
+            $result = str_replace($urlQuery, '', $data);
+        } elseif (parse_url($data, PHP_URL_HOST) === null) {
+            $result = str_replace('javascript', '', $data);
+        }
+        return htmlspecialchars($result, ENT_COMPAT, 'UTF-8', false);
     }
 
     /**

@@ -2,29 +2,22 @@
 /**
  * Import entity configurable product type model
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 namespace Magento\ConfigurableImportExport\Model\Import\Product\Type;
 
+use Magento\CatalogImportExport\Model\Import\Product as ImportProduct;
+
+/**
+ * Importing configurable products
+ * @package Magento\ConfigurableImportExport\Model\Import\Product\Type
+ * @SuppressWarnings(PHPMD.TooManyFields)
+ * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
+ */
 class Configurable extends \Magento\CatalogImportExport\Model\Import\Product\Type\AbstractType
 {
     /**
@@ -32,36 +25,35 @@ class Configurable extends \Magento\CatalogImportExport\Model\Import\Product\Typ
      */
     const ERROR_ATTRIBUTE_CODE_IS_NOT_SUPER = 'attrCodeIsNotSuper';
 
-    const ERROR_INVALID_PRICE_CORRECTION = 'invalidPriceCorr';
-
     const ERROR_INVALID_OPTION_VALUE = 'invalidOptionValue';
 
     const ERROR_INVALID_WEBSITE = 'invalidSuperAttrWebsite';
+
+    const ERROR_DUPLICATED_VARIATIONS = 'duplicatedVariations';
 
     /**
      * Validation failure message template definitions
      *
      * @var array
      */
-    protected $_messageTemplates = array(
+    protected $_messageTemplates = [
         self::ERROR_ATTRIBUTE_CODE_IS_NOT_SUPER => 'Attribute with this code is not super',
-        self::ERROR_INVALID_PRICE_CORRECTION => 'Super attribute price correction value is invalid',
         self::ERROR_INVALID_OPTION_VALUE => 'Invalid option value',
-        self::ERROR_INVALID_WEBSITE => 'Invalid website code for super attribute'
-    );
+        self::ERROR_INVALID_WEBSITE => 'Invalid website code for super attribute',
+        self::ERROR_DUPLICATED_VARIATIONS => 'SKU %s contains duplicated variations',
+    ];
 
     /**
      * Column names that holds values with particular meaning.
      *
      * @var string[]
      */
-    protected $_specialAttributes = array(
+    protected $_specialAttributes = [
         '_super_products_sku',
         '_super_attribute_code',
         '_super_attribute_option',
-        '_super_attribute_price_corr',
-        '_super_attribute_price_website'
-    );
+        '_super_attribute_price_website',
+    ];
 
     /**
      * Reference array of existing product-attribute to product super attribute ID.
@@ -73,7 +65,7 @@ class Configurable extends \Magento\CatalogImportExport\Model\Import\Product\Typ
      *
      * @var array
      */
-    protected $_productSuperAttrs = array();
+    protected $_productSuperAttrs = [];
 
     /**
      * Array of SKU to array of super attribute values for all products.
@@ -92,7 +84,7 @@ class Configurable extends \Magento\CatalogImportExport\Model\Import\Product\Typ
      *
      * @var array
      */
-    protected $_skuSuperAttributeValues = array();
+    protected $_skuSuperAttributeValues = [];
 
     /**
      * Array of SKU to array of super attributes data for validation new associated products.
@@ -111,14 +103,14 @@ class Configurable extends \Magento\CatalogImportExport\Model\Import\Product\Typ
      *
      * @var array
      */
-    protected $_skuSuperData = array();
+    protected $_skuSuperData = [];
 
     /**
      * Super attributes codes in a form of code => TRUE array pairs.
      *
      * @var array
      */
-    protected $_superAttributes = array();
+    protected $_superAttributes = [];
 
     /**
      * All super attributes values combinations for each attribute set.
@@ -133,43 +125,88 @@ class Configurable extends \Magento\CatalogImportExport\Model\Import\Product\Typ
     protected $_productTypesConfig;
 
     /**
-     * @var \Magento\ImportExport\Model\Resource\Helper
+     * @var \Magento\ImportExport\Model\ResourceModel\Helper
      */
     protected $_resourceHelper;
 
     /**
-     * @var \Magento\Framework\App\Resource
+     * @var \Magento\Framework\App\ResourceConnection
      */
     protected $_resource;
 
     /**
-     * @var \Magento\Catalog\Model\Resource\Product\CollectionFactory
+     * Instance of database adapter.
+     *
+     * @var \Magento\Framework\DB\Adapter\AdapterInterface
+     */
+    protected $_connection;
+
+    /**
+     * Instance of product collection factory.
+     *
+     * @var \Magento\Catalog\Model\ResourceModel\Product\CollectionFactory
      */
     protected $_productColFac;
 
     /**
-     * @param \Magento\Eav\Model\Resource\Entity\Attribute\Set\CollectionFactory $attrSetColFac
-     * @param \Magento\Catalog\Model\Resource\Product\Attribute\CollectionFactory $prodAttrColFac
+     * Product data.
+     *
+     * @var array
+     */
+    protected $_productData;
+
+    /**
+     * Product super data.
+     *
+     * @var array
+     */
+    protected $_productSuperData;
+
+    /**
+     * Simple product ids to delete.
+     *
+     * @var array
+     */
+    protected $_simpleIdsToDelete;
+
+    /**
+     * Super attributes data.
+     *
+     * @var array
+     */
+    protected $_superAttributesData;
+
+    /**
+     * Next attribute id.
+     *
+     * @var null|int
+     */
+    protected $_nextAttrId;
+
+    /**
+     * @param \Magento\Eav\Model\ResourceModel\Entity\Attribute\Set\CollectionFactory $attrSetColFac
+     * @param \Magento\Catalog\Model\ResourceModel\Product\Attribute\CollectionFactory $prodAttrColFac
+     * @param \Magento\Framework\App\ResourceConnection $resource
      * @param array $params
      * @param \Magento\Catalog\Model\ProductTypes\ConfigInterface $productTypesConfig
-     * @param \Magento\ImportExport\Model\Resource\Helper $resourceHelper
-     * @param \Magento\Framework\App\Resource $resource
-     * @param \Magento\Catalog\Model\Resource\Product\CollectionFactory $_productColFac
+     * @param \Magento\ImportExport\Model\ResourceModel\Helper $resourceHelper
+     * @param \Magento\Catalog\Model\ResourceModel\Product\CollectionFactory $_productColFac
      */
     public function __construct(
-        \Magento\Eav\Model\Resource\Entity\Attribute\Set\CollectionFactory $attrSetColFac,
-        \Magento\Catalog\Model\Resource\Product\Attribute\CollectionFactory $prodAttrColFac,
+        \Magento\Eav\Model\ResourceModel\Entity\Attribute\Set\CollectionFactory $attrSetColFac,
+        \Magento\Catalog\Model\ResourceModel\Product\Attribute\CollectionFactory $prodAttrColFac,
+        \Magento\Framework\App\ResourceConnection $resource,
         array $params,
         \Magento\Catalog\Model\ProductTypes\ConfigInterface $productTypesConfig,
-        \Magento\ImportExport\Model\Resource\Helper $resourceHelper,
-        \Magento\Framework\App\Resource $resource,
-        \Magento\Catalog\Model\Resource\Product\CollectionFactory $_productColFac
+        \Magento\ImportExport\Model\ResourceModel\Helper $resourceHelper,
+        \Magento\Catalog\Model\ResourceModel\Product\CollectionFactory $_productColFac
     ) {
         $this->_productTypesConfig = $productTypesConfig;
         $this->_resourceHelper = $resourceHelper;
         $this->_resource = $resource;
         $this->_productColFac = $_productColFac;
-        parent::__construct($attrSetColFac, $prodAttrColFac, $params);
+        parent::__construct($attrSetColFac, $prodAttrColFac, $resource, $params);
+        $this->_connection = $this->_entityModel->getConnection();
     }
 
     /**
@@ -183,7 +220,7 @@ class Configurable extends \Magento\CatalogImportExport\Model\Import\Product\Typ
     protected function _addAttributeParams($attrSetName, array $attrParams, $attribute)
     {
         // save super attributes for simplier and quicker search in future
-        if ('select' == $attrParams['type'] && 1 == $attrParams['is_global'] && $attribute->getIsConfigurable()) {
+        if ('select' == $attrParams['type'] && 1 == $attrParams['is_global']) {
             $this->_superAttributes[$attrParams['code']] = $attrParams;
         }
         return parent::_addAttributeParams($attrSetName, $attrParams, $attribute);
@@ -250,14 +287,6 @@ class Configurable extends \Magento\CatalogImportExport\Model\Import\Product\Typ
                     $this->_entityModel->addRowError(self::ERROR_INVALID_OPTION_VALUE, $rowNum);
                     return false;
                 }
-                // check price value
-                if (!empty($rowData['_super_attribute_price_corr']) && !$this->_isPriceCorr(
-                    $rowData['_super_attribute_price_corr']
-                )
-                ) {
-                    $this->_entityModel->addRowError(self::ERROR_INVALID_PRICE_CORRECTION, $rowNum);
-                    return false;
-                }
             }
         }
         return true;
@@ -270,19 +299,29 @@ class Configurable extends \Magento\CatalogImportExport\Model\Import\Product\Typ
      * @param array $newSku - imported variations list
      * @param array $oldSku - present variations list
      * @return $this
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     protected function _loadSkuSuperAttributeValues($bunch, $newSku, $oldSku)
     {
         if ($this->_superAttributes) {
             $attrSetIdToName = $this->_entityModel->getAttrSetIdToName();
 
-            $productIds = array();
+            $productIds = [];
             foreach ($bunch as $rowData) {
-                if (!empty($rowData['_super_products_sku'])) {
-                    if (isset($newSku[$rowData['_super_products_sku']])) {
-                        $productIds[] = $newSku[$rowData['_super_products_sku']]['entity_id'];
-                    } elseif (isset($oldSku[$rowData['_super_products_sku']])) {
-                        $productIds[] = $oldSku[$rowData['_super_products_sku']]['entity_id'];
+                $dataWithExtraVirtualRows = $this->_parseVariations($rowData);
+                if (!empty($dataWithExtraVirtualRows)) {
+                    array_unshift($dataWithExtraVirtualRows, $rowData);
+                } else {
+                    $dataWithExtraVirtualRows[] = $rowData;
+                }
+
+                foreach ($dataWithExtraVirtualRows as $data) {
+                    if (!empty($data['_super_products_sku'])) {
+                        if (isset($newSku[$data['_super_products_sku']])) {
+                            $productIds[] = $newSku[$data['_super_products_sku']]['entity_id'];
+                        } elseif (isset($oldSku[$data['_super_products_sku']])) {
+                            $productIds[] = $oldSku[$data['_super_products_sku']]['entity_id'];
+                        }
                     }
                 }
             }
@@ -292,7 +331,7 @@ class Configurable extends \Magento\CatalogImportExport\Model\Import\Product\Typ
                 $this->_productTypesConfig->getComposableTypes()
             )->addFieldToFilter(
                 'entity_id',
-                array('in' => $productIds)
+                ['in' => $productIds]
             )->addAttributeToSelect(
                 array_keys($this->_superAttributes)
             ) as $product) {
@@ -311,32 +350,46 @@ class Configurable extends \Magento\CatalogImportExport\Model\Import\Product\Typ
     /**
      * Array of SKU to array of super attribute values for all products.
      *
+     * @param array $bunch
      * @return $this
      */
-    protected function _loadSkuSuperData()
+    protected function _loadSkuSuperDataForBunch(array $bunch)
     {
-        if (!$this->_skuSuperData) {
-            $connection = $this->_entityModel->getConnection();
+        $newSku = $this->_entityModel->getNewSku();
+        $oldSku = $this->_entityModel->getOldSku();
+        $productIds = [];
+        foreach ($bunch as $rowData) {
+            $sku = $rowData[ImportProduct::COL_SKU];
+            $productData = isset($newSku[$sku]) ? $newSku[$sku] : $oldSku[$sku];
+            $productIds[] = $productData['entity_id'];
+        }
+
+        $this->_productSuperAttrs = [];
+        $this->_skuSuperData = [];
+        if (!empty($productIds)) {
             $mainTable = $this->_resource->getTableName('catalog_product_super_attribute');
-            $priceTable = $this->_resource->getTableName('catalog_product_super_attribute_pricing');
-            $select = $connection->select()->from(
-                array('m' => $mainTable),
-                array('product_id', 'attribute_id', 'product_super_attribute_id')
+            $optionTable = $this->_resource->getTableName('eav_attribute_option');
+            $select = $this->_connection->select()->from(
+                ['m' => $mainTable],
+                ['product_id', 'attribute_id', 'product_super_attribute_id']
             )->joinLeft(
-                array('p' => $priceTable),
-                $connection->quoteIdentifier(
-                    'p.product_super_attribute_id'
-                ) . ' = ' . $connection->quoteIdentifier(
-                    'm.product_super_attribute_id'
+                ['o' => $optionTable],
+                $this->_connection->quoteIdentifier(
+                    'o.attribute_id'
+                ) . ' = ' . $this->_connection->quoteIdentifier(
+                    'o.attribute_id'
                 ),
-                array('value_index')
+                ['option_id']
+            )->where(
+                'product_id IN ( ? )',
+                $productIds
             );
 
-            foreach ($connection->fetchAll($select) as $row) {
+            foreach ($this->_connection->fetchAll($select) as $row) {
                 $attrId = $row['attribute_id'];
                 $productId = $row['product_id'];
-                if ($row['value_index']) {
-                    $this->_skuSuperData[$productId][$attrId][$row['value_index']] = true;
+                if ($row['option_id']) {
+                    $this->_skuSuperData[$productId][$attrId][$row['option_id']] = true;
                 }
                 $this->_productSuperAttrs["{$productId}_{$attrId}"] = $row['product_super_attribute_id'];
             }
@@ -347,31 +400,30 @@ class Configurable extends \Magento\CatalogImportExport\Model\Import\Product\Typ
     /**
      * Validate and prepare data about super attributes and associated products.
      *
-     * @param array $superData
-     * @param array $superAttributes
      * @return $this
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
-    protected function _processSuperData(array $superData, array &$superAttributes)
+    protected function _processSuperData()
     {
-        if ($superData) {
-            $usedCombs = array();
+        if ($this->_productSuperData) {
+            $usedCombs = [];
             // is associated products applicable?
-            foreach (array_keys($superData['assoc_ids']) as $assocId) {
-                if (!isset($this->_skuSuperAttributeValues[$superData['attr_set_code']][$assocId])) {
+            foreach (array_keys($this->_productSuperData['assoc_ids']) as $assocId) {
+                if (!isset($this->_skuSuperAttributeValues[$this->_productSuperData['attr_set_code']][$assocId])) {
                     continue;
                 }
-                if ($superData['used_attributes']) {
-                    $skuSuperValues = $this->_skuSuperAttributeValues[$superData['attr_set_code']][$assocId];
-                    $usedCombParts = array();
+                if ($this->_productSuperData['used_attributes']) {
+                    $skuSuperValues = $this
+                        ->_skuSuperAttributeValues[$this->_productSuperData['attr_set_code']][$assocId];
+                    $usedCombParts = [];
 
-                    foreach ($superData['used_attributes'] as $usedAttrId => $usedValues) {
+                    foreach ($this->_productSuperData['used_attributes'] as $usedAttrId => $usedValues) {
                         if (empty($skuSuperValues[$usedAttrId]) || !isset($usedValues[$skuSuperValues[$usedAttrId]])) {
                             // invalid value or value does not exists for associated product
                             continue;
                         }
                         $usedCombParts[] = $skuSuperValues[$usedAttrId];
-                        $superData['used_attributes'][$usedAttrId][$skuSuperValues[$usedAttrId]] = true;
+                        $this->_productSuperData['used_attributes'][$usedAttrId][$skuSuperValues[$usedAttrId]] = true;
                     }
                     $comb = implode('|', $usedCombParts);
 
@@ -381,28 +433,274 @@ class Configurable extends \Magento\CatalogImportExport\Model\Import\Product\Typ
                     }
                     $usedCombs[$comb] = true;
                 }
-                $superAttributes['super_link'][] = array(
+                $this->_superAttributesData['super_link'][] = [
                     'product_id' => $assocId,
-                    'parent_id' => $superData['product_id']
-                );
-                $superAttributes['relation'][] = array(
-                    'parent_id' => $superData['product_id'],
-                    'child_id' => $assocId
-                );
+                    'parent_id' => $this->_productSuperData['product_id'],
+                ];
+                $this->_superAttributesData['relation'][] = [
+                    'parent_id' => $this->_productSuperData['product_id'],
+                    'child_id' => $assocId,
+                ];
             }
-            // clean up unused values pricing
-            foreach ($superData['used_attributes'] as $usedAttrId => $usedValues) {
-                foreach ($usedValues as $optionId => $isUsed) {
-                    if (!$isUsed && isset($superAttributes['pricing'][$superData['product_id']][$usedAttrId])) {
-                        foreach ($superAttributes['pricing'][$superData['product_id']][$usedAttrId] as $k => $params) {
-                            if ($optionId == $params['value_index']) {
-                                unset($superAttributes['pricing'][$superData['product_id']][$usedAttrId][$k]);
-                            }
-                        }
+        }
+        return $this;
+    }
+
+    /**
+     * Parse variations string to inner format.
+     *
+     * @param array $rowData
+     *
+     * @return array
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     */
+    protected function _parseVariations($rowData)
+    {
+        $additionalRows = [];
+        if (!isset($rowData['configurable_variations'])) {
+            return $additionalRows;
+        }
+        $variations = explode(ImportProduct::PSEUDO_MULTI_LINE_SEPARATOR, $rowData['configurable_variations']);
+        foreach ($variations as $variation) {
+            $fieldAndValuePairsText = explode($this->_entityModel->getMultipleValueSeparator(), $variation);
+            $additionalRow = [];
+
+            $fieldAndValuePairs = [];
+            foreach ($fieldAndValuePairsText as $nameAndValue) {
+                $nameAndValue = explode(ImportProduct::PAIR_NAME_VALUE_SEPARATOR, $nameAndValue);
+                if (!empty($nameAndValue)) {
+                    $value = isset($nameAndValue[1]) ? trim($nameAndValue[1]) : '';
+                    $fieldName  = trim($nameAndValue[0]);
+                    if ($fieldName) {
+                        $fieldAndValuePairs[$fieldName] = $value;
                     }
                 }
             }
+
+            if (!empty($fieldAndValuePairs['sku'])) {
+                $additionalRow['_super_products_sku'] = $fieldAndValuePairs['sku'];
+                unset($fieldAndValuePairs['sku']);
+                $additionalRow['display'] = isset($fieldAndValuePairs['display']) ? $fieldAndValuePairs['display'] : 1;
+                unset($fieldAndValuePairs['display']);
+                foreach ($fieldAndValuePairs as $attrCode => $attrValue) {
+                    $additionalRow['_super_attribute_code'] = $attrCode;
+                    $additionalRow['_super_attribute_option'] = $attrValue;
+                    $additionalRows[] = $additionalRow;
+                    $additionalRow = [];
+                }
+            }
         }
+        return $additionalRows;
+    }
+
+    /**
+     * Parse variation labels to array
+     *  ...attribute_code => label ...
+     *  ...attribute_code2 => label2 ...
+     *
+     * @param array $rowData
+     *
+     * @return array
+     */
+    protected function _parseVariationLabels($rowData)
+    {
+        $labels = [];
+        if (!isset($rowData['configurable_variation_labels'])) {
+            return $labels;
+        }
+        $pairFieldAndValue = explode(
+            $this->_entityModel->getMultipleValueSeparator(),
+            $rowData['configurable_variation_labels']
+        );
+
+        foreach ($pairFieldAndValue as $nameAndValue) {
+            $nameAndValue = explode(ImportProduct::PAIR_NAME_VALUE_SEPARATOR, $nameAndValue);
+            if (!empty($nameAndValue)) {
+                $value = isset($nameAndValue[1]) ? trim($nameAndValue[1]) : '';
+                $attrCode  = trim($nameAndValue[0]);
+                if ($attrCode) {
+                    $labels[$attrCode] = $value;
+                }
+            }
+        }
+        return $labels;
+    }
+
+    /**
+     * Delete unnecessary links.
+     *
+     * @return $this
+     */
+    protected function _deleteData()
+    {
+        $linkTable = $this->_resource->getTableName('catalog_product_super_link');
+        $relationTable = $this->_resource->getTableName('catalog_product_relation');
+
+        if (($this->_entityModel->getBehavior() == \Magento\ImportExport\Model\Import::BEHAVIOR_APPEND)
+            && !empty($this->_productSuperData['product_id'])
+            && !empty($this->_simpleIdsToDelete)
+        ) {
+            $quoted = $this->_connection->quoteInto('IN (?)', [$this->_productSuperData['product_id']]);
+            $quotedChildren = $this->_connection->quoteInto('IN (?)', $this->_simpleIdsToDelete);
+            $this->_connection->delete($linkTable, "parent_id {$quoted} AND product_id {$quotedChildren}");
+            $this->_connection->delete($relationTable, "parent_id {$quoted} AND child_id {$quotedChildren}");
+        }
+        return $this;
+    }
+
+    /**
+     *  Collected link data insertion.
+     *
+     * @return $this
+     * @throws \Zend_Db_Exception
+     */
+    protected function _insertData()
+    {
+        $mainTable = $this->_resource->getTableName('catalog_product_super_attribute');
+        $labelTable = $this->_resource->getTableName('catalog_product_super_attribute_label');
+        $linkTable = $this->_resource->getTableName('catalog_product_super_link');
+        $relationTable = $this->_resource->getTableName('catalog_product_relation');
+
+        $mainData = [];
+        foreach ($this->_superAttributesData['attributes'] as $productId => $attributesData) {
+            foreach ($attributesData as $attrId => $row) {
+                $row['product_id'] = $productId;
+                $row['attribute_id'] = $attrId;
+                $mainData[] = $row;
+            }
+        }
+        if ($mainData) {
+            $this->_connection->insertOnDuplicate($mainTable, $mainData);
+        }
+        if ($this->_superAttributesData['labels']) {
+            $this->_connection->insertOnDuplicate($labelTable, $this->_superAttributesData['labels']);
+        }
+        if ($this->_superAttributesData['super_link']) {
+            $this->_connection->insertOnDuplicate($linkTable, $this->_superAttributesData['super_link']);
+        }
+        if ($this->_superAttributesData['relation']) {
+            $this->_connection->insertOnDuplicate($relationTable, $this->_superAttributesData['relation']);
+        }
+        return $this;
+    }
+
+    /**
+     * Get new supper attribute id.
+     *
+     * @return int
+     */
+    protected function _getNextAttrId()
+    {
+        if (!$this->_nextAttrId) {
+            $mainTable = $this->_resource->getTableName('catalog_product_super_attribute');
+            $this->_nextAttrId = $this->_resourceHelper->getNextAutoincrement($mainTable);
+        }
+        $this->_nextAttrId++;
+        return $this->_nextAttrId;
+    }
+
+    /**
+     *  Collect super data.
+     *
+     * @param array $rowData
+     * @return $this
+     */
+    protected function _collectSuperData($rowData)
+    {
+        $productId = $this->_productData['entity_id'];
+
+        $this->_processSuperData();
+
+        $this->_productSuperData = [
+            'product_id' => $productId,
+            'attr_set_code' => $this->_productData['attr_set_code'],
+            'used_attributes' => empty($this->_skuSuperData[$productId]) ? [] : $this
+                ->_skuSuperData[$productId],
+            'assoc_ids' => [],
+        ];
+
+        $additionalRows = $this->_parseVariations($rowData);
+        $variationLabels = $this->_parseVariationLabels($rowData);
+        //@codingStandardsIgnoreStart
+        foreach ($additionalRows as $data) {
+            $this->_collectAssocIds($data);
+
+            if (!isset($this->_superAttributes[$data['_super_attribute_code']])) {
+                continue;
+            }
+            $attrParams = $this->_superAttributes[$data['_super_attribute_code']];
+
+            if ($this->_getSuperAttributeId($productId, $attrParams['id'])) {
+                $productSuperAttrId = $this->_getSuperAttributeId($productId, $attrParams['id']);
+            } elseif (isset($this->_superAttributesData['attributes'][$productId][$attrParams['id']])) {
+                $attributes = $this->_superAttributesData['attributes'];
+                $productSuperAttrId = $attributes[$productId][$attrParams['id']]['product_super_attribute_id'];
+                $this->_collectSuperDataLabels($data, $productSuperAttrId, $productId, $variationLabels);
+            } else {
+                $productSuperAttrId = $this->_getNextAttrId();
+                $this->_collectSuperDataLabels($data, $productSuperAttrId, $productId, $variationLabels);
+            }
+        }
+        //@codingStandardsIgnoreEnd
+
+        return $this;
+    }
+
+    /**
+     *  Collect assoc ids and simpleIds to break links.
+     *
+     * @param array $data
+     * @return $this
+     */
+    protected function _collectAssocIds($data)
+    {
+        $newSku = $this->_entityModel->getNewSku();
+        $oldSku = $this->_entityModel->getOldSku();
+        if (!empty($data['_super_products_sku'])) {
+            $superProductId = '';
+            if (isset($newSku[$data['_super_products_sku']])) {
+                $superProductId = $newSku[$data['_super_products_sku']]['entity_id'];
+            } elseif (isset($oldSku[$data['_super_products_sku']])) {
+                $superProductId = $oldSku[$data['_super_products_sku']]['entity_id'];
+            }
+
+            if ($superProductId) {
+                if (isset($data['display']) && $data['display'] == 0) {
+                    $this->_simpleIdsToDelete[] = $superProductId;
+                } else {
+                    $this->_productSuperData['assoc_ids'][$superProductId] = true;
+                }
+            }
+        }
+        return $this;
+    }
+
+    /**
+     *  Collect super data labels.
+     *
+     * @param array $data
+     * @param integer|string $productSuperAttrId
+     * @param integer|string $productId
+     * @param array $variationLabels
+     * @return $this
+     */
+    protected function _collectSuperDataLabels($data, $productSuperAttrId, $productId, $variationLabels)
+    {
+        $attrParams = $this->_superAttributes[$data['_super_attribute_code']];
+        $this->_superAttributesData['attributes'][$productId][$attrParams['id']] = [
+            'product_super_attribute_id' => $productSuperAttrId,
+            'position' => 0,
+        ];
+        $label = isset($variationLabels[$data['_super_attribute_code']])
+                ? $variationLabels[$data['_super_attribute_code']]
+                : $attrParams['frontend_label'];
+        $this->_superAttributesData['labels'][] = [
+            'product_super_attribute_id' => $productSuperAttrId,
+            'store_id' => 0,
+            'use_default' => $label ? 0 : 1,
+            'value' => $label,
+        ];
         return $this;
     }
 
@@ -412,35 +710,30 @@ class Configurable extends \Magento\CatalogImportExport\Model\Import\Product\Typ
      * @throws \Exception
      * @return \Magento\CatalogImportExport\Model\Import\Product\Type\AbstractType
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
-     * @SuppressWarnings(PHPMD.NPathComplexity)
-     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      */
     public function saveData()
     {
-        $connection = $this->_entityModel->getConnection();
-        $mainTable = $this->_resource->getTableName('catalog_product_super_attribute');
-        $labelTable = $this->_resource->getTableName('catalog_product_super_attribute_label');
-        $priceTable = $this->_resource->getTableName('catalog_product_super_attribute_pricing');
-        $linkTable = $this->_resource->getTableName('catalog_product_super_link');
-        $relationTable = $this->_resource->getTableName('catalog_product_relation');
         $newSku = $this->_entityModel->getNewSku();
         $oldSku = $this->_entityModel->getOldSku();
-        $productSuperData = array();
-        $productData = null;
-        $nextAttrId = $this->_resourceHelper->getNextAutoincrement($mainTable);
-
-        if ($this->_entityModel->getBehavior() == \Magento\ImportExport\Model\Import::BEHAVIOR_APPEND) {
-            $this->_loadSkuSuperData();
-        }
+        $this->_productSuperData = [];
+        $this->_productData = null;
 
         while ($bunch = $this->_entityModel->getNextBunch()) {
-            $superAttributes = array(
-                'attributes' => array(),
-                'labels' => array(),
-                'pricing' => array(),
-                'super_link' => array(),
-                'relation' => array()
-            );
+            if ($this->_entityModel->getBehavior() == \Magento\ImportExport\Model\Import::BEHAVIOR_APPEND) {
+                $this->_loadSkuSuperDataForBunch($bunch);
+            }
+            if (!$this->configurableInBunch($bunch)) {
+                continue;
+            }
+
+            $this->_superAttributesData = [
+                'attributes' => [],
+                'labels' => [],
+                'super_link' => [],
+                'relation' => [],
+            ];
+
+            $this->_simpleIdsToDelete = [];
 
             $this->_loadSkuSuperAttributeValues($bunch, $newSku, $oldSku);
 
@@ -450,112 +743,81 @@ class Configurable extends \Magento\CatalogImportExport\Model\Import\Product\Typ
                 }
                 // remember SCOPE_DEFAULT row data
                 $scope = $this->_entityModel->getRowScope($rowData);
-                if (\Magento\CatalogImportExport\Model\Import\Product::SCOPE_DEFAULT == $scope) {
-                    $productData = $newSku[$rowData[\Magento\CatalogImportExport\Model\Import\Product::COL_SKU]];
+                if ((\Magento\CatalogImportExport\Model\Import\Product::SCOPE_DEFAULT == $scope) &&
+                    !empty($rowData[\Magento\CatalogImportExport\Model\Import\Product::COL_SKU])) {
 
-                    if ($this->_type != $productData['type_id']) {
-                        $productData = null;
+                    $this->_productData = isset($newSku[$rowData[ImportProduct::COL_SKU]])
+                                        ? $newSku[$rowData[ImportProduct::COL_SKU]]
+                                        : $oldSku[$rowData[ImportProduct::COL_SKU]];
+
+                    if ($this->_type != $this->_productData['type_id']) {
+                        $this->_productData = null;
                         continue;
                     }
-                    $productId = $productData['entity_id'];
-
-                    $this->_processSuperData($productSuperData, $superAttributes);
-
-                    $productSuperData = array(
-                        'product_id' => $productId,
-                        'attr_set_code' => $productData['attr_set_code'],
-                        'used_attributes' => empty($this->_skuSuperData[$productId]) ? array() : $this
-                            ->_skuSuperData[$productId],
-                        'assoc_ids' => array()
-                    );
-                } elseif (null === $productData) {
-                    continue;
-                }
-                if (!empty($rowData['_super_products_sku'])) {
-                    if (isset($newSku[$rowData['_super_products_sku']])) {
-                        $productSuperData['assoc_ids'][$newSku[$rowData['_super_products_sku']]['entity_id']] = true;
-                    } elseif (isset($oldSku[$rowData['_super_products_sku']])) {
-                        $productSuperData['assoc_ids'][$oldSku[$rowData['_super_products_sku']]['entity_id']] = true;
-                    }
-                }
-                if (empty($rowData['_super_attribute_code'])) {
-                    continue;
-                }
-                $attrParams = $this->_superAttributes[$rowData['_super_attribute_code']];
-
-                if ($this->_getSuperAttributeId($productId, $attrParams['id'])) {
-                    $productSuperAttrId = $this->_getSuperAttributeId($productId, $attrParams['id']);
-                } elseif (!isset($superAttributes['attributes'][$productId][$attrParams['id']])) {
-                    $productSuperAttrId = $nextAttrId++;
-                    $superAttributes['attributes'][$productId][$attrParams['id']] = array(
-                        'product_super_attribute_id' => $productSuperAttrId,
-                        'position' => 0
-                    );
-                    $superAttributes['labels'][] = array(
-                        'product_super_attribute_id' => $productSuperAttrId,
-                        'store_id' => 0,
-                        'use_default' => 1,
-                        'value' => $attrParams['frontend_label']
-                    );
-                }
-                if (isset($rowData['_super_attribute_option']) && strlen($rowData['_super_attribute_option'])) {
-                    $optionId = $attrParams['options'][strtolower($rowData['_super_attribute_option'])];
-
-                    if (!isset($productSuperData['used_attributes'][$attrParams['id']][$optionId])) {
-                        $productSuperData['used_attributes'][$attrParams['id']][$optionId] = false;
-                    }
-                    if (!empty($rowData['_super_attribute_price_corr'])) {
-                        $superAttributes['pricing'][] = array(
-                            'product_super_attribute_id' => $productSuperAttrId,
-                            'value_index' => $optionId,
-                            'is_percent' => '%' == substr($rowData['_super_attribute_price_corr'], -1),
-                            'pricing_value' => (double)rtrim($rowData['_super_attribute_price_corr'], '%'),
-                            'website_id' => 0
-                        );
-                    }
+                    $this->_collectSuperData($rowData);
                 }
             }
+
             // save last product super data
-            $this->_processSuperData($productSuperData, $superAttributes);
+            $this->_processSuperData();
 
-            // remove old data if needed
-            if ($this->_entityModel->getBehavior() != \Magento\ImportExport\Model\Import::BEHAVIOR_APPEND &&
-                $superAttributes['attributes']
-            ) {
-                $quoted = $connection->quoteInto('IN (?)', array_keys($superAttributes['attributes']));
-                $connection->delete($mainTable, "product_id {$quoted}");
-                $connection->delete($linkTable, "parent_id {$quoted}");
-                $connection->delete($relationTable, "parent_id {$quoted}");
-            }
-            $mainData = array();
+            $this->_deleteData();
 
-            foreach ($superAttributes['attributes'] as $productId => $attributesData) {
-                foreach ($attributesData as $attrId => $row) {
-                    $row['product_id'] = $productId;
-                    $row['attribute_id'] = $attrId;
-                    $mainData[] = $row;
-                }
-            }
-            if ($mainData) {
-                $connection->insertOnDuplicate($mainTable, $mainData);
-            }
-            if ($superAttributes['labels']) {
-                $connection->insertOnDuplicate($labelTable, $superAttributes['labels']);
-            }
-            if ($superAttributes['pricing']) {
-                $connection->insertOnDuplicate(
-                    $priceTable,
-                    $superAttributes['pricing'],
-                    array('is_percent', 'pricing_value')
-                );
-            }
-            if ($superAttributes['super_link']) {
-                $connection->insertOnDuplicate($linkTable, $superAttributes['super_link']);
-            }
-            if ($superAttributes['relation']) {
-                $connection->insertOnDuplicate($relationTable, $superAttributes['relation']);
-            }
+            $this->_insertData();
         }
         return $this;
+    }
+
+    /**
+     * Configurable in bunch
+     *
+     * @param array $bunch
+     * @return bool
+     */
+    protected function configurableInBunch($bunch)
+    {
+        $newSku = $this->_entityModel->getNewSku();
+        foreach ($bunch as $rowNum => $rowData) {
+            $productData = $newSku[$rowData[\Magento\CatalogImportExport\Model\Import\Product::COL_SKU]];
+            if (($this->_type == $productData['type_id']) &&
+                ($rowData == $this->_entityModel->isRowAllowedToImport($rowData, $rowNum))
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Validate row attributes. Pass VALID row data ONLY as argument.
+     *
+     * @param array $rowData
+     * @param int $rowNum
+     * @param bool $isNewProduct Optional
+     *
+     * @return bool
+     */
+    public function isRowValid(array $rowData, $rowNum, $isNewProduct = true)
+    {
+        $error = false;
+        $dataWithExtraVirtualRows = $this->_parseVariations($rowData);
+        $skus = [];
+        $rowData['price'] = isset($rowData['price']) && $rowData['price'] ? $rowData['price'] : '0.00';
+        if (!empty($dataWithExtraVirtualRows)) {
+            array_unshift($dataWithExtraVirtualRows, $rowData);
+        } else {
+            $dataWithExtraVirtualRows[] = $rowData;
+        }
+        foreach ($dataWithExtraVirtualRows as $option) {
+            if (isset($option['_super_products_sku'])) {
+                if (in_array($option['_super_products_sku'], $skus)) {
+                    $error = true;
+                    $this->_entityModel->addRowError(sprintf($this->_messageTemplates[self::ERROR_DUPLICATED_VARIATIONS], $option['_super_products_sku']), $rowNum);
+                }
+                $skus[] = $option['_super_products_sku'];
+            }
+            $error |= !parent::isRowValid($option, $rowNum, $isNewProduct);
+        }
+        return !$error;
     }
 }

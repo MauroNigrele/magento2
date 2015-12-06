@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Framework\Stdlib\DateTime;
@@ -57,6 +39,7 @@ class DateTime
      *
      * @param  string|null $timezone
      * @return int offset between timezone and gmt
+     * @api
      */
     public function calculateOffset($timezone = null)
     {
@@ -67,7 +50,7 @@ class DateTime
             $result = date_default_timezone_set($timezone);
         }
         if ($result === true) {
-            $offset = gmmktime(0, 0, 0, 1, 2, 1970) - mktime(0, 0, 0, 1, 2, 1970);
+            $offset = (int)date('Z');
         }
         if ($timezone !== null) {
             date_default_timezone_set($oldZone);
@@ -102,6 +85,7 @@ class DateTime
      * @param  string $format
      * @param  int|string $input date in GMT timezone
      * @return string
+     * @api
      */
     public function date($format = null, $input = null)
     {
@@ -132,7 +116,7 @@ class DateTime
             return false;
         }
         $date = $this->_localeDate->date($result);
-        $timestamp = $date->get(\Zend_Date::TIMESTAMP) - $date->get(\Zend_Date::TIMEZONE_SECS);
+        $timestamp = $date->getTimestamp();
         unset($date);
         return $timestamp;
     }
@@ -154,7 +138,7 @@ class DateTime
             $result = strtotime($input);
         }
         $date = $this->_localeDate->date($result);
-        $timestamp = $date->get(\Zend_Date::TIMESTAMP) + $date->get(\Zend_Date::TIMEZONE_SECS);
+        $timestamp = $date->getTimestamp();
         unset($date);
         return $timestamp;
     }
@@ -164,6 +148,7 @@ class DateTime
      *
      * @param  string $type
      * @return int
+     * @api
      */
     public function getGmtOffset($type = 'seconds')
     {

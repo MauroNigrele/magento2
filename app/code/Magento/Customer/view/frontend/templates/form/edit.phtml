@@ -1,104 +1,80 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
-/** @var \Magento\Customer\Block\Form\Edit $this */
+// @codingStandardsIgnoreFile
+
+/** @var \Magento\Customer\Block\Form\Edit $block */
 ?>
-<form class="form form-edit-account" action="<?php echo $this->getUrl('customer/account/editPost') ?>" method="post" id="form-validate" enctype="multipart/form-data" data-hasrequired="<?php echo __('* Required Fields') ?>" autocomplete="off">
+<form class="form form-edit-account" action="<?php /* @escapeNotVerified */ echo $block->getUrl('customer/account/editPost') ?>" method="post" id="form-validate" enctype="multipart/form-data" data-hasrequired="<?php /* @escapeNotVerified */ echo __('* Required Fields') ?>" autocomplete="off">
     <fieldset class="fieldset info">
-        <?php echo $this->getBlockHtml('formkey')?>
-        <legend class="legend"><span><?php echo __('Account Information') ?></span></legend><br>
-        <?php echo $this->getLayout()->createBlock('Magento\Customer\Block\Widget\Name')->setObject($this->getCustomer())->toHtml() ?>
+        <?php echo $block->getBlockHtml('formkey')?>
+        <legend class="legend"><span><?php /* @escapeNotVerified */ echo __('Account Information') ?></span></legend><br>
+        <?php echo $block->getLayout()->createBlock('Magento\Customer\Block\Widget\Name')->setObject($block->getCustomer())->toHtml() ?>
         <div class="field email required">
-            <label class="label" for="email"><span><?php echo __('Email Address') ?></span></label>
+            <label class="label" for="email"><span><?php /* @escapeNotVerified */ echo __('Email') ?></span></label>
             <div class="control">
-                <input type="email" name="email" id="email" value="<?php echo $this->escapeHtml($this->getCustomer()->getEmail()) ?>" title="<?php echo __('Email Address') ?>" class="input-text" data-validate="{required:true, 'validate-email':true}">
+                <input type="email" name="email" id="email" value="<?php echo $block->escapeHtml($block->getCustomer()->getEmail()) ?>" title="<?php /* @escapeNotVerified */ echo __('Email') ?>" class="input-text" data-validate="{required:true, 'validate-email':true}">
             </div>
         </div>
-        <?php $_dob = $this->getLayout()->createBlock('Magento\Customer\Block\Widget\Dob') ?>
-        <?php $_taxvat = $this->getLayout()->createBlock('Magento\Customer\Block\Widget\Taxvat') ?>
-        <?php $_gender = $this->getLayout()->createBlock('Magento\Customer\Block\Widget\Gender') ?>
+        <?php $_dob = $block->getLayout()->createBlock('Magento\Customer\Block\Widget\Dob') ?>
+        <?php $_taxvat = $block->getLayout()->createBlock('Magento\Customer\Block\Widget\Taxvat') ?>
+        <?php $_gender = $block->getLayout()->createBlock('Magento\Customer\Block\Widget\Gender') ?>
         <?php if ($_dob->isEnabled()): ?>
-            <?php echo $_dob->setDate($this->getCustomer()->getDob())->toHtml() ?>
+            <?php echo $_dob->setDate($block->getCustomer()->getDob())->toHtml() ?>
         <?php endif ?>
         <?php if ($_taxvat->isEnabled()): ?>
-            <?php echo $_taxvat->setTaxvat($this->getCustomer()->getTaxvat())->toHtml() ?>
+            <?php echo $_taxvat->setTaxvat($block->getCustomer()->getTaxvat())->toHtml() ?>
         <?php endif ?>
         <?php if ($_gender->isEnabled()): ?>
-            <?php echo $_gender->setGender($this->getCustomer()->getGender())->toHtml() ?>
+            <?php echo $_gender->setGender($block->getCustomer()->getGender())->toHtml() ?>
         <?php endif ?>
         <div class="field choice">
-            <input type="checkbox" name="change_password" id="change-password" value="1" title="<?php echo __('Change Password') ?>"<?php if($this->getChangePassword()): ?> checked="checked"<?php endif; ?> class="checkbox"/>
-            <label class="label" for="change-password"><span><?php echo __('Change Password') ?></span></label>
+            <input type="checkbox" name="change_password" id="change-password" value="1" title="<?php /* @escapeNotVerified */ echo __('Change Password') ?>"<?php if ($block->getChangePassword()): ?> checked="checked"<?php endif; ?> class="checkbox"/>
+            <label class="label" for="change-password"><span><?php /* @escapeNotVerified */ echo __('Change Password') ?></span></label>
         </div>
     </fieldset>
 
     <fieldset class="fieldset password">
-        <legend class="legend"><span><?php echo __('Change Password') ?></span></legend><br>
+        <legend class="legend"><span><?php /* @escapeNotVerified */ echo __('Change Password') ?></span></legend><br>
         <div class="field password current required">
-            <label class="label" for="current-password"><span><?php echo __('Current Password') ?></span></label>
+            <label class="label" for="current-password"><span><?php /* @escapeNotVerified */ echo __('Current Password') ?></span></label>
             <div class="control">
-                <input type="password" class="input-text" name="current_password" id="current-password">
+                <input type="password" class="input-text" name="current_password" id="current-password" autocomplete="off">
             </div>
         </div>
         <div class="field new password required">
-            <label class="label" for="password"><span><?php echo __('New Password') ?></span></label>
+            <label class="label" for="password"><span><?php /* @escapeNotVerified */ echo __('New Password') ?></span></label>
             <div class="control">
-                <input type="password" class="input-text" name="password" id="password">
+                <input type="password" class="input-text" name="password" id="password" autocomplete="off">
             </div>
         </div>
         <div class="field confirm password required">
-            <label class="label" for="confirmation"><span><?php echo __('Confirm New Password') ?></span></label>
+            <label class="label" for="password-confirmation"><span><?php /* @escapeNotVerified */ echo __('Confirm New Password') ?></span></label>
             <div class="control">
-                <input type="password" class="input-text" name="confirmation" id="confirmation">
+                <input type="password" class="input-text" name="password_confirmation" id="password-confirmation" autocomplete="off">
             </div>
         </div>
     </fieldset>
     <div class="actions-toolbar">
         <div class="primary">
-            <button type="submit" class="action save primary" title="<?php echo __('Save') ?>"><span><?php echo __('Save') ?></span></button>
+            <button type="submit" class="action save primary" title="<?php /* @escapeNotVerified */ echo __('Save') ?>"><span><?php /* @escapeNotVerified */ echo __('Save') ?></span></button>
         </div>
         <div class="secondary">
-            <a class="action back" href="<?php echo $this->escapeUrl($this->getBackUrl()) ?>"><span><?php echo __('Go back') ?></span></a>
+            <a class="action back" href="<?php echo $block->escapeUrl($block->getBackUrl()) ?>"><span><?php /* @escapeNotVerified */ echo __('Go back') ?></span></a>
         </div>
     </div>
 </form>
-<script type="text/javascript">
+<script>
     require([
         "jquery",
         "mage/mage"
     ], function($){
-
-        $('#change-password').mage('setPassword', {
-            'currentPasswordId': '#current-password',
-            'passwordId': '#password',
-            'confirmationId': '#confirmation',
-            'passwordContainer': 'fieldset.fieldset.password',
-            'showOnDefault': <?php echo $this->getChangePassword() ? 'true' : 'false' ?>
-        });
-
         var dataForm = $('#form-validate');
-        var ignore = <?php echo $_dob->isEnabled() ? '\'input[id$="full"]\'' : 'null'; ?>;
+        var ignore = <?php /* @escapeNotVerified */ echo $_dob->isEnabled() ? '\'input[id$="full"]\'' : 'null'; ?>;
+        
         dataForm.mage('validation', {
         <?php if ($_dob->isEnabled()): ?>
             errorPlacement: function(error, element) {
@@ -120,4 +96,17 @@
         });
 
     });
+</script>
+<script type="text/x-magento-init">
+    {
+        "#change-password": {
+            "setPassword": {
+                "currentPasswordId": "#current-password",
+                "passwordId": "#password",
+                "confirmationId": "#password-confirmation",
+                "passwordContainer": "fieldset.fieldset.password",
+                "showOnDefault": <?php /* @escapeNotVerified */ echo $block->getChangePassword() ? 'true' : 'false' ?>
+            }
+        }
+    }
 </script>

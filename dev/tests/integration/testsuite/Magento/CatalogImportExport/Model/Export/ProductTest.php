@@ -1,28 +1,13 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\CatalogImportExport\Model\Export;
 
+/**
+ * @magentoDataFixtureBeforeTransaction Magento/Catalog/_files/enable_reindex_schedule.php
+ */
 class ProductTest extends \PHPUnit_Framework_TestCase
 {
     /**
@@ -35,7 +20,7 @@ class ProductTest extends \PHPUnit_Framework_TestCase
      *
      * @var array
      */
-    public static $stockItemAttributes = array(
+    public static $stockItemAttributes = [
         'qty',
         'min_qty',
         'use_config_min_qty',
@@ -55,8 +40,8 @@ class ProductTest extends \PHPUnit_Framework_TestCase
         'qty_increments',
         'use_config_enable_qty_inc',
         'enable_qty_increments',
-        'is_decimal_divided'
-    );
+        'is_decimal_divided',
+    ];
 
     protected function setUp()
     {
@@ -68,7 +53,7 @@ class ProductTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @magentoDataFixture Magento/ImportExport/_files/product.php
+     * @magentoDataFixture Magento/CatalogImportExport/_files/product_export_data.php
      */
     public function testExport()
     {
@@ -84,21 +69,15 @@ class ProductTest extends \PHPUnit_Framework_TestCase
      * Verify that all stock item attribute values are exported (aren't equal to empty string)
      *
      * @covers \Magento\CatalogImportExport\Model\Export\Product::export
-     * @magentoDataFixture Magento/ImportExport/_files/product.php
+     * @magentoDataFixture Magento/CatalogImportExport/_files/product_export_data.php
      */
     public function testExportStockItemAttributesAreFilled()
     {
-        $filesystemMock = $this->getMock('Magento\Framework\App\Filesystem', array(), array(), '', false);
-        $directoryMock = $this->getMock('Magento\Framework\Filesystem\Directory\Write', array(), array(), '', false);
-
-        $filesystemMock->expects($this->once())->method('getDirectoryWrite')->will($this->returnValue($directoryMock));
-
+        $fileWrite = $this->getMock('Magento\Framework\Filesystem\File\Write', [], [], '', false);
+        $directoryMock = $this->getMock('Magento\Framework\Filesystem\Directory\Write', [], [], '', false);
         $directoryMock->expects($this->any())->method('getParentDirectory')->will($this->returnValue('some#path'));
-
         $directoryMock->expects($this->any())->method('isWritable')->will($this->returnValue(true));
-
         $directoryMock->expects($this->any())->method('isFile')->will($this->returnValue(true));
-
         $directoryMock->expects(
             $this->any()
         )->method(
@@ -106,6 +85,10 @@ class ProductTest extends \PHPUnit_Framework_TestCase
         )->will(
             $this->returnValue('some string read from file')
         );
+        $directoryMock->expects($this->once())->method('openFile')->will($this->returnValue($fileWrite));
+
+        $filesystemMock = $this->getMock('Magento\Framework\Filesystem', [], [], '', false);
+        $filesystemMock->expects($this->once())->method('getDirectoryWrite')->will($this->returnValue($directoryMock));
 
         $exportAdapter = new \Magento\ImportExport\Model\Export\Adapter\Csv($filesystemMock);
 
@@ -142,5 +125,50 @@ class ProductTest extends \PHPUnit_Framework_TestCase
                 "Stock item attribute {$stockItemAttribute} value is empty string"
             );
         }
+    }
+
+    /**
+     * Verifies if exception processing works properly
+     *
+     * @magentoDataFixture Magento/CatalogImportExport/_files/product_export_data.php
+     */
+    public function testExceptionInGetExportData()
+    {
+        $exception = new \Exception('Error');
+
+        $rowCustomizerMock = $this->getMockBuilder('Magento\CatalogImportExport\Model\Export\RowCustomizerInterface')
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $loggerMock = $this->getMockBuilder('\Psr\Log\LoggerInterface')->getMock();
+
+        $directoryMock = $this->getMock('Magento\Framework\Filesystem\Directory\Write', [], [], '', false);
+        $directoryMock->expects($this->any())->method('getParentDirectory')->will($this->returnValue('some#path'));
+        $directoryMock->expects($this->any())->method('isWritable')->will($this->returnValue(true));
+
+        $filesystemMock = $this->getMock('Magento\Framework\Filesystem', [], [], '', false);
+        $filesystemMock->expects($this->once())->method('getDirectoryWrite')->will($this->returnValue($directoryMock));
+
+        $exportAdapter = new \Magento\ImportExport\Model\Export\Adapter\Csv($filesystemMock);
+
+        $rowCustomizerMock->expects($this->once())->method('prepareData')->willThrowException($exception);
+        $loggerMock->expects($this->once())->method('critical')->with($exception);
+
+        $collection = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
+            '\Magento\Catalog\Model\ResourceModel\Product\Collection'
+        );
+
+        /** @var \Magento\CatalogImportExport\Model\Export\Product $model */
+        $model = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
+            'Magento\CatalogImportExport\Model\Export\Product',
+            [
+                'rowCustomizer' => $rowCustomizerMock,
+                'logger' => $loggerMock,
+                'collection' => $collection
+            ]
+        );
+
+        $data = $model->setWriter($exportAdapter)->export();
+        $this->assertEmpty($data);
     }
 }

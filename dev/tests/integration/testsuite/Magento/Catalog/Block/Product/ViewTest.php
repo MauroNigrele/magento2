@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Block\Product;
 
@@ -52,17 +34,19 @@ class ViewTest extends \PHPUnit_Framework_TestCase
 
     public function testSetLayout()
     {
-        /** @var $layout \Magento\Framework\View\Layout */
-        $layout = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
-            'Magento\Framework\View\LayoutInterface'
-        );
-        $headBlock = $layout->createBlock('Magento\Framework\View\Element\Template', 'head');
-        $layout->addBlock($this->_block);
+        $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
 
-        $this->assertNotEmpty($headBlock->getTitle());
-        $this->assertEquals($this->_product->getMetaTitle(), $headBlock->getTitle());
-        $this->assertEquals($this->_product->getMetaKeyword(), $headBlock->getKeywords());
-        $this->assertEquals($this->_product->getMetaDescription(), $headBlock->getDescription());
+        /** @var $layout \Magento\Framework\View\Layout */
+        $layout = $objectManager->get('Magento\Framework\View\LayoutInterface');
+        /** @var $pageConfig \Magento\Framework\View\Page\Config */
+        $pageConfig = $objectManager->get('Magento\Framework\View\Page\Config');
+
+        $layout->createBlock('Magento\Catalog\Block\Product\View');
+
+        $this->assertNotEmpty($pageConfig->getTitle()->get());
+        $this->assertEquals($this->_product->getMetaTitle(), $pageConfig->getTitle()->get());
+        $this->assertEquals($this->_product->getMetaKeyword(), $pageConfig->getKeywords());
+        $this->assertEquals($this->_product->getMetaDescription(), $pageConfig->getDescription());
     }
 
     public function testGetProduct()

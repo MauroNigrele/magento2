@@ -1,49 +1,33 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\CatalogRule\Controller\Adminhtml\Promo\Catalog;
 
-use Magento\Framework\Model\Exception;
+use Magento\Framework\Exception\LocalizedException;
 
 class Save extends \Magento\CatalogRule\Controller\Adminhtml\Promo\Catalog
 {
     /**
      * @return void
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function execute()
     {
-        if ($this->getRequest()->getPost()) {
+        if ($this->getRequest()->getPostValue()) {
             try {
+                /** @var \Magento\CatalogRule\Model\Rule $model */
                 $model = $this->_objectManager->create('Magento\CatalogRule\Model\Rule');
                 $this->_eventManager->dispatch(
                     'adminhtml_controller_catalogrule_prepare_save',
-                    array('request' => $this->getRequest())
+                    ['request' => $this->getRequest()]
                 );
-                $data = $this->getRequest()->getPost();
+                $data = $this->getRequest()->getPostValue();
                 $inputFilter = new \Zend_Filter_Input(
-                    array('from_date' => $this->_dateFilter, 'to_date' => $this->_dateFilter),
-                    array(),
+                    ['from_date' => $this->_dateFilter, 'to_date' => $this->_dateFilter],
+                    [],
                     $data
                 );
                 $data = $inputFilter->getUnescaped();
@@ -51,17 +35,17 @@ class Save extends \Magento\CatalogRule\Controller\Adminhtml\Promo\Catalog
                 if ($id) {
                     $model->load($id);
                     if ($id != $model->getId()) {
-                        throw new Exception(__('Wrong rule specified.'));
+                        throw new LocalizedException(__('Wrong rule specified.'));
                     }
                 }
 
-                $validateResult = $model->validateData(new \Magento\Framework\Object($data));
+                $validateResult = $model->validateData(new \Magento\Framework\DataObject($data));
                 if ($validateResult !== true) {
                     foreach ($validateResult as $errorMessage) {
                         $this->messageManager->addError($errorMessage);
                     }
                     $this->_getSession()->setPageData($data);
-                    $this->_redirect('catalog_rule/*/edit', array('id' => $model->getId()));
+                    $this->_redirect('catalog_rule/*/edit', ['id' => $model->getId()]);
                     return;
                 }
 
@@ -74,29 +58,35 @@ class Save extends \Magento\CatalogRule\Controller\Adminhtml\Promo\Catalog
 
                 $model->save();
 
-                $this->messageManager->addSuccess(__('The rule has been saved.'));
+                $this->messageManager->addSuccess(__('You saved the rule.'));
                 $this->_objectManager->get('Magento\Backend\Model\Session')->setPageData(false);
                 if ($this->getRequest()->getParam('auto_apply')) {
                     $this->getRequest()->setParam('rule_id', $model->getId());
                     $this->_forward('applyRules');
                 } else {
-                    $this->_objectManager->create('Magento\CatalogRule\Model\Flag')->loadSelf()->setState(1)->save();
+                    if ($model->isRuleBehaviorChanged()) {
+                        $this->_objectManager
+                            ->create('Magento\CatalogRule\Model\Flag')
+                            ->loadSelf()
+                            ->setState(1)
+                            ->save();
+                    }
                     if ($this->getRequest()->getParam('back')) {
-                        $this->_redirect('catalog_rule/*/edit', array('id' => $model->getId()));
+                        $this->_redirect('catalog_rule/*/edit', ['id' => $model->getId()]);
                         return;
                     }
                     $this->_redirect('catalog_rule/*/');
                 }
                 return;
-            } catch (Exception $e) {
+            } catch (LocalizedException $e) {
                 $this->messageManager->addError($e->getMessage());
             } catch (\Exception $e) {
                 $this->messageManager->addError(
-                    __('An error occurred while saving the rule data. Please review the log and try again.')
+                    __('Something went wrong while saving the rule data. Please review the error log.')
                 );
-                $this->_objectManager->get('Magento\Framework\Logger')->logException($e);
+                $this->_objectManager->get('Psr\Log\LoggerInterface')->critical($e);
                 $this->_objectManager->get('Magento\Backend\Model\Session')->setPageData($data);
-                $this->_redirect('catalog_rule/*/edit', array('id' => $this->getRequest()->getParam('rule_id')));
+                $this->_redirect('catalog_rule/*/edit', ['id' => $this->getRequest()->getParam('rule_id')]);
                 return;
             }
         }

@@ -1,34 +1,23 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Framework\View\Asset\File;
+
+use Magento\Framework\App\Filesystem\DirectoryList;
 
 /**
  * An advanced context that contains information necessary for view files fallback system
  */
 class FallbackContext extends Context
 {
+    /**
+     * Secure path
+     */
+    const SECURE_PATH = 'secure';
+
     /**
      * @var string
      */
@@ -45,17 +34,24 @@ class FallbackContext extends Context
     private $locale;
 
     /**
+     * @var bool
+     */
+    private $isSecure;
+
+    /**
      * @param string $baseUrl
      * @param string $areaType
      * @param string $themePath
      * @param string $localeCode
+     * @param bool $isSecure
      */
-    public function __construct($baseUrl, $areaType, $themePath, $localeCode)
+    public function __construct($baseUrl, $areaType, $themePath, $localeCode, $isSecure = false)
     {
         $this->area = $areaType;
         $this->theme = $themePath;
         $this->locale = $localeCode;
-        parent::__construct($baseUrl, \Magento\Framework\App\Filesystem::STATIC_VIEW_DIR, $this->generatePath());
+        $this->isSecure = $isSecure;
+        parent::__construct($baseUrl, DirectoryList::STATIC_VIEW, $this->generatePath());
     }
 
     /**
@@ -83,7 +79,7 @@ class FallbackContext extends Context
      *
      * @return string
      */
-    public function getLocaleCode()
+    public function getLocale()
     {
         return $this->locale;
     }
@@ -95,6 +91,18 @@ class FallbackContext extends Context
      */
     private function generatePath()
     {
-        return $this->area . ($this->theme ? '/' . $this->theme : '') . ($this->locale ? '/' . $this->locale : '');
+        return $this->area .
+            ($this->theme ? '/' . $this->theme : '') .
+            ($this->locale ? '/' . $this->locale : '');
+    }
+
+    /**
+     * Returns path to Require.js config object depending on HTTPS or HTTP protocol being used
+     *
+     * @return string
+     */
+    public function getConfigPath()
+    {
+        return $this->getPath() . ($this->isSecure ? '/' . self::SECURE_PATH : '');
     }
 }

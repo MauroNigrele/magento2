@@ -1,50 +1,38 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Backend\Test\Block\System\Store;
 
-use Mtf\Client\Element\Locator;
+use Magento\Backend\Test\Block\Widget\Grid;
+use Magento\Store\Test\Fixture\Store;
 use Magento\Store\Test\Fixture\StoreGroup;
 use Magento\Store\Test\Fixture\Website;
-use Magento\Store\Test\Fixture\Store;
-use Magento\Backend\Test\Block\Widget\Grid as GridInterface;
+use Magento\Mtf\Client\Locator;
 
 /**
- * Class StoreGrid
- * Adminhtml Store View management grid
+ * Adminhtml Store View management grid.
  */
-class StoreGrid extends GridInterface
+class StoreGrid extends Grid
 {
     /**
-     * Locator value for opening needed row
+     * Locator value for opening needed row.
      *
      * @var string
      */
     protected $editLink = 'td[data-column="store_title"] > a';
 
     /**
-     * Filters array mapping
+     * Secondary part of row locator template for getRow() method with strict option.
+     *
+     * @var string
+     */
+    protected $rowTemplateStrict = '//*[text()[normalize-space()="%s"]]';
+
+    /**
+     * Filters array mapping.
      *
      * @var array
      */
@@ -53,29 +41,29 @@ class StoreGrid extends GridInterface
             'selector' => '#storeGrid_filter_store_title',
         ],
         'group_title' => [
-            'selector' => '#storeGrid_filter_group_title'
+            'selector' => '#storeGrid_filter_group_title',
         ],
         'website_title' => [
-            'selector' => '#storeGrid_filter_website_title'
-        ]
+            'selector' => '#storeGrid_filter_website_title',
+        ],
     ];
 
     /**
-     * Store title format for XPATH
+     * Store title format for XPATH.
      *
      * @var string
      */
     protected $titleFormat = '//td[a[.="%s"]]';
 
     /**
-     * Store name link selector
+     * Store name link selector.
      *
      * @var string
      */
     protected $storeName = '//a[.="%s"]';
 
     /**
-     * Check if store exists
+     * Check if store exists.
      *
      * @param string $title
      * @return bool
@@ -87,7 +75,7 @@ class StoreGrid extends GridInterface
     }
 
     /**
-     * Check if website exists
+     * Check if website exists.
      *
      * @param Website $website
      * @return bool
@@ -99,7 +87,7 @@ class StoreGrid extends GridInterface
     }
 
     /**
-     * Search and open appropriate Website
+     * Search and open appropriate Website.
      *
      * @param Website $website
      * @return void
@@ -112,7 +100,7 @@ class StoreGrid extends GridInterface
     }
 
     /**
-     * Search and open appropriate Store View
+     * Search and open appropriate Store View.
      *
      * @param Store $store
      * @return void
@@ -125,7 +113,7 @@ class StoreGrid extends GridInterface
     }
 
     /**
-     * Search and open appropriate Store
+     * Search and open appropriate Store.
      *
      * @param StoreGroup $storeGroup
      * @return void

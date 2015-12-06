@@ -1,169 +1,196 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Customer\Controller\Account;
 
+use Magento\Customer\Model\Account\Redirect as AccountRedirect;
+use Magento\Customer\Api\Data\AddressInterface;
+use Magento\Framework\Api\DataObjectHelper;
+use Magento\Framework\App\Action\Context;
+use Magento\Customer\Model\Session;
+use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Store\Model\StoreManagerInterface;
+use Magento\Customer\Api\AccountManagementInterface;
+use Magento\Customer\Helper\Address;
+use Magento\Framework\UrlFactory;
+use Magento\Customer\Model\Metadata\FormFactory;
+use Magento\Newsletter\Model\SubscriberFactory;
+use Magento\Customer\Api\Data\RegionInterfaceFactory;
+use Magento\Customer\Api\Data\AddressInterfaceFactory;
+use Magento\Customer\Api\Data\CustomerInterfaceFactory;
+use Magento\Customer\Model\Url as CustomerUrl;
+use Magento\Customer\Model\Registration;
+use Magento\Framework\Escaper;
+use Magento\Customer\Model\CustomerExtractor;
 use Magento\Framework\Exception\StateException;
 use Magento\Framework\Exception\InputException;
-use Magento\Customer\Service\V1\CustomerAccountServiceInterface;
 
 /**
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-class CreatePost extends \Magento\Customer\Controller\Account
+class CreatePost extends \Magento\Customer\Controller\AbstractAccount
 {
-    /** @var \Magento\Customer\Model\CustomerExtractor */
-    protected $customerExtractor;
+    /** @var AccountManagementInterface */
+    protected $accountManagement;
 
-    /** @var \Magento\Customer\Model\Metadata\FormFactory */
-    protected $_formFactory;
+    /** @var Address */
+    protected $addressHelper;
 
-    /** @var \Magento\Newsletter\Model\SubscriberFactory */
-    protected $_subscriberFactory;
+    /** @var FormFactory */
+    protected $formFactory;
 
-    /** @var \Magento\Customer\Service\V1\Data\RegionBuilder */
-    protected $_regionBuilder;
+    /** @var SubscriberFactory */
+    protected $subscriberFactory;
 
-    /** @var \Magento\Customer\Service\V1\Data\AddressBuilder */
-    protected $_addressBuilder;
+    /** @var RegionInterfaceFactory */
+    protected $regionDataFactory;
 
-    /** @var \Magento\Customer\Service\V1\Data\CustomerDetailsBuilder */
-    protected $_customerDetailsBuilder;
+    /** @var AddressInterfaceFactory */
+    protected $addressDataFactory;
 
-    /** @var \Magento\Customer\Helper\Data */
-    protected $_customerHelperData;
+    /** @var Registration */
+    protected $registration;
 
-    /** @var \Magento\Framework\Escaper */
+    /** @var CustomerInterfaceFactory */
+    protected $customerDataFactory;
+
+    /** @var CustomerUrl */
+    protected $customerUrl;
+
+    /** @var Escaper */
     protected $escaper;
 
+    /** @var CustomerExtractor */
+    protected $customerExtractor;
+
+    /** @var \Magento\Framework\UrlInterface */
+    protected $urlModel;
+
+    /** @var DataObjectHelper  */
+    protected $dataObjectHelper;
+
     /**
-     * @param \Magento\Framework\App\Action\Context $context
-     * @param \Magento\Customer\Model\Session $customerSession
-     * @param \Magento\Customer\Helper\Address $addressHelper
-     * @param \Magento\Framework\UrlFactory $urlFactory
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
-     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
-     * @param CustomerAccountServiceInterface $customerAccountService
-     * @param \Magento\Customer\Model\Metadata\FormFactory $formFactory
-     * @param \Magento\Newsletter\Model\SubscriberFactory $subscriberFactory
-     * @param \Magento\Customer\Service\V1\Data\RegionBuilder $regionBuilder
-     * @param \Magento\Customer\Service\V1\Data\AddressBuilder $addressBuilder
-     * @param \Magento\Customer\Service\V1\Data\CustomerDetailsBuilder $customerDetailsBuilder
-     * @param \Magento\Customer\Helper\Data $customerHelperData
-     * @param \Magento\Framework\Escaper $escaper
-     * @param \Magento\Customer\Model\CustomerExtractor $customerExtractor
+     * @var Session
+     */
+    protected $session;
+
+    /**
+     * @var AccountRedirect
+     */
+    private $accountRedirect;
+
+    /**
+     * @param Context $context
+     * @param Session $customerSession
+     * @param ScopeConfigInterface $scopeConfig
+     * @param StoreManagerInterface $storeManager
+     * @param AccountManagementInterface $accountManagement
+     * @param Address $addressHelper
+     * @param UrlFactory $urlFactory
+     * @param FormFactory $formFactory
+     * @param SubscriberFactory $subscriberFactory
+     * @param RegionInterfaceFactory $regionDataFactory
+     * @param AddressInterfaceFactory $addressDataFactory
+     * @param CustomerInterfaceFactory $customerDataFactory
+     * @param CustomerUrl $customerUrl
+     * @param Registration $registration
+     * @param Escaper $escaper
+     * @param CustomerExtractor $customerExtractor
+     * @param DataObjectHelper $dataObjectHelper
+     * @param AccountRedirect $accountRedirect
      *
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
-        \Magento\Framework\App\Action\Context $context,
-        \Magento\Customer\Model\Session $customerSession,
-        \Magento\Customer\Helper\Address $addressHelper,
-        \Magento\Framework\UrlFactory $urlFactory,
-        \Magento\Framework\StoreManagerInterface $storeManager,
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        CustomerAccountServiceInterface $customerAccountService,
-        \Magento\Customer\Model\Metadata\FormFactory $formFactory,
-        \Magento\Newsletter\Model\SubscriberFactory $subscriberFactory,
-        \Magento\Customer\Service\V1\Data\RegionBuilder $regionBuilder,
-        \Magento\Customer\Service\V1\Data\AddressBuilder $addressBuilder,
-        \Magento\Customer\Service\V1\Data\CustomerDetailsBuilder $customerDetailsBuilder,
-        \Magento\Customer\Helper\Data $customerHelperData,
-        \Magento\Framework\Escaper $escaper,
-        \Magento\Customer\Model\CustomerExtractor $customerExtractor
+        Context $context,
+        Session $customerSession,
+        ScopeConfigInterface $scopeConfig,
+        StoreManagerInterface $storeManager,
+        AccountManagementInterface $accountManagement,
+        Address $addressHelper,
+        UrlFactory $urlFactory,
+        FormFactory $formFactory,
+        SubscriberFactory $subscriberFactory,
+        RegionInterfaceFactory $regionDataFactory,
+        AddressInterfaceFactory $addressDataFactory,
+        CustomerInterfaceFactory $customerDataFactory,
+        CustomerUrl $customerUrl,
+        Registration $registration,
+        Escaper $escaper,
+        CustomerExtractor $customerExtractor,
+        DataObjectHelper $dataObjectHelper,
+        AccountRedirect $accountRedirect
     ) {
-        $this->_formFactory = $formFactory;
-        $this->_subscriberFactory = $subscriberFactory;
-        $this->_regionBuilder = $regionBuilder;
-        $this->_addressBuilder = $addressBuilder;
-        $this->_customerDetailsBuilder = $customerDetailsBuilder;
-        $this->_customerHelperData = $customerHelperData;
+        $this->session = $customerSession;
+        $this->scopeConfig = $scopeConfig;
+        $this->storeManager = $storeManager;
+        $this->accountManagement = $accountManagement;
+        $this->addressHelper = $addressHelper;
+        $this->formFactory = $formFactory;
+        $this->subscriberFactory = $subscriberFactory;
+        $this->regionDataFactory = $regionDataFactory;
+        $this->addressDataFactory = $addressDataFactory;
+        $this->customerDataFactory = $customerDataFactory;
+        $this->customerUrl = $customerUrl;
+        $this->registration = $registration;
         $this->escaper = $escaper;
         $this->customerExtractor = $customerExtractor;
-        parent::__construct(
-            $context,
-            $customerSession,
-            $addressHelper,
-            $urlFactory,
-            $storeManager,
-            $scopeConfig,
-            $customerAccountService
-        );
+        $this->urlModel = $urlFactory->create();
+        $this->dataObjectHelper = $dataObjectHelper;
+        $this->accountRedirect = $accountRedirect;
+        parent::__construct($context);
     }
 
     /**
      * Add address to customer during create account
      *
-     * @return \Magento\Customer\Service\V1\Data\Address|null
+     * @return AddressInterface|null
      */
-    protected function _extractAddress()
+    protected function extractAddress()
     {
         if (!$this->getRequest()->getPost('create_address')) {
             return null;
         }
 
-        $addressForm = $this->_formFactory->create('customer_address', 'customer_register_address');
+        $addressForm = $this->formFactory->create('customer_address', 'customer_register_address');
         $allowedAttributes = $addressForm->getAllowedAttributes();
 
-        $addressData = array();
+        $addressData = [];
 
+        $regionDataObject = $this->regionDataFactory->create();
         foreach ($allowedAttributes as $attribute) {
             $attributeCode = $attribute->getAttributeCode();
             $value = $this->getRequest()->getParam($attributeCode);
-            if (is_null($value)) {
+            if ($value === null) {
                 continue;
             }
             switch ($attributeCode) {
                 case 'region_id':
-                    $this->_regionBuilder->setRegionId($value);
+                    $regionDataObject->setRegionId($value);
                     break;
                 case 'region':
-                    $this->_regionBuilder->setRegion($value);
+                    $regionDataObject->setRegion($value);
                     break;
                 default:
                     $addressData[$attributeCode] = $value;
             }
         }
-        $this->_addressBuilder->populateWithArray($addressData);
-        $this->_addressBuilder->setRegion($this->_regionBuilder->create());
+        $addressDataObject = $this->addressDataFactory->create();
+        $this->dataObjectHelper->populateWithArray(
+            $addressDataObject,
+            $addressData,
+            '\Magento\Customer\Api\Data\AddressInterface'
+        );
+        $addressDataObject->setRegion($regionDataObject);
 
-        $this->_addressBuilder->setDefaultBilling(
+        $addressDataObject->setIsDefaultBilling(
             $this->getRequest()->getParam('default_billing', false)
-        )->setDefaultShipping(
+        )->setIsDefaultShipping(
             $this->getRequest()->getParam('default_shipping', false)
         );
-        return $this->_addressBuilder->create();
-    }
-
-    /**
-     * Is registration allowed
-     *
-     * @return bool
-     */
-    protected function isRegistrationAllowed()
-    {
-        return $this->_customerHelperData->isRegistrationAllowed();
+        return $addressDataObject;
     }
 
     /**
@@ -174,61 +201,67 @@ class CreatePost extends \Magento\Customer\Controller\Account
      */
     public function execute()
     {
-        if ($this->_getSession()->isLoggedIn() || !$this->isRegistrationAllowed()) {
-            $this->_redirect('*/*/');
-            return;
+        /** @var \Magento\Framework\Controller\Result\Redirect $resultRedirect */
+        $resultRedirect = $this->resultRedirectFactory->create();
+        if ($this->session->isLoggedIn() || !$this->registration->isAllowed()) {
+            $resultRedirect->setPath('*/*/');
+            return $resultRedirect;
         }
 
         if (!$this->getRequest()->isPost()) {
-            $url = $this->_createUrl()->getUrl('*/*/create', array('_secure' => true));
-            $this->getResponse()->setRedirect($this->_redirect->error($url));
-            return;
+            $url = $this->urlModel->getUrl('*/*/create', ['_secure' => true]);
+            $resultRedirect->setUrl($this->_redirect->error($url));
+            return $resultRedirect;
         }
 
-        $this->_session->regenerateId();
+        $this->session->regenerateId();
 
         try {
+            $address = $this->extractAddress();
+            $addresses = $address === null ? [] : [$address];
+
             $customer = $this->customerExtractor->extract('customer_account_create', $this->_request);
-            $address = $this->_extractAddress();
-            $addresses = is_null($address) ? array() : array($address);
+            $customer->setAddresses($addresses);
+
             $password = $this->getRequest()->getParam('password');
-            $redirectUrl = $this->_getSession()->getBeforeAuthUrl();
-            $customerDetails = $this->_customerDetailsBuilder
-                ->setCustomer($customer)
-                ->setAddresses($addresses)
-                ->create();
-            $customer = $this->_customerAccountService->createCustomer($customerDetails, $password, $redirectUrl);
+            $confirmation = $this->getRequest()->getParam('password_confirmation');
+            $redirectUrl = $this->session->getBeforeAuthUrl();
+
+            $this->checkPasswordConfirmation($password, $confirmation);
+
+            $customer = $this->accountManagement
+                ->createAccount($customer, $password, $redirectUrl);
 
             if ($this->getRequest()->getParam('is_subscribed', false)) {
-                $this->_subscriberFactory->create()->subscribeCustomerById($customer->getId());
+                $this->subscriberFactory->create()->subscribeCustomerById($customer->getId());
             }
 
             $this->_eventManager->dispatch(
                 'customer_register_success',
-                array('account_controller' => $this, 'customer' => $customer)
+                ['account_controller' => $this, 'customer' => $customer]
             );
 
-            $confirmationStatus = $this->_customerAccountService->getConfirmationStatus($customer->getId());
-            if ($confirmationStatus === CustomerAccountServiceInterface::ACCOUNT_CONFIRMATION_REQUIRED) {
-                $email = $this->_customerHelperData->getEmailConfirmationUrl($customer->getEmail());
+            $confirmationStatus = $this->accountManagement->getConfirmationStatus($customer->getId());
+            if ($confirmationStatus === AccountManagementInterface::ACCOUNT_CONFIRMATION_REQUIRED) {
+                $email = $this->customerUrl->getEmailConfirmationUrl($customer->getEmail());
                 // @codingStandardsIgnoreStart
                 $this->messageManager->addSuccess(
                     __(
-                        'Account confirmation is required. Please, check your email for the confirmation link. To resend the confirmation email please <a href="%1">click here</a>.',
+                        'You must confirm your account. Please check your email for the confirmation link or <a href="%1">click here</a> for a new link.',
                         $email
                     )
                 );
                 // @codingStandardsIgnoreEnd
-                $url = $this->_createUrl()->getUrl('*/*/index', array('_secure' => true));
-                $this->getResponse()->setRedirect($this->_redirect->success($url));
+                $url = $this->urlModel->getUrl('*/*/index', ['_secure' => true]);
+                $resultRedirect->setUrl($this->_redirect->success($url));
             } else {
-                $this->_getSession()->setCustomerDataAsLoggedIn($customer);
-                $url = $this->_welcomeCustomer($customer);
-                $this->getResponse()->setRedirect($this->_redirect->success($url));
+                $this->session->setCustomerDataAsLoggedIn($customer);
+                $this->messageManager->addSuccess($this->getSuccessMessage());
+                $resultRedirect = $this->accountRedirect->getRedirect();
             }
-            return;
+            return $resultRedirect;
         } catch (StateException $e) {
-            $url = $this->_createUrl()->getUrl('customer/account/forgotpassword');
+            $url = $this->urlModel->getUrl('customer/account/forgotpassword');
             // @codingStandardsIgnoreStart
             $message = __(
                 'There is already an account with this email address. If you are sure that it is your email address, <a href="%1">click here</a> to get your password and access your account.',
@@ -242,11 +275,56 @@ class CreatePost extends \Magento\Customer\Controller\Account
                 $this->messageManager->addError($this->escaper->escapeHtml($error->getMessage()));
             }
         } catch (\Exception $e) {
-            $this->messageManager->addException($e, __('Cannot save the customer.'));
+            $this->messageManager->addException($e, __('We can\'t save the customer.'));
         }
 
-        $this->_getSession()->setCustomerFormData($this->getRequest()->getPost());
-        $defaultUrl = $this->_createUrl()->getUrl('*/*/create', array('_secure' => true));
-        $this->getResponse()->setRedirect($this->_redirect->error($defaultUrl));
+        $this->session->setCustomerFormData($this->getRequest()->getPostValue());
+        $defaultUrl = $this->urlModel->getUrl('*/*/create', ['_secure' => true]);
+        $resultRedirect->setUrl($this->_redirect->error($defaultUrl));
+        return $resultRedirect;
+    }
+
+    /**
+     * Make sure that password and password confirmation matched
+     *
+     * @param string $password
+     * @param string $confirmation
+     * @return void
+     * @throws InputException
+     */
+    protected function checkPasswordConfirmation($password, $confirmation)
+    {
+        if ($password != $confirmation) {
+            throw new InputException(__('Please make sure your passwords match.'));
+        }
+    }
+
+    /**
+     * Retrieve success message
+     *
+     * @return string
+     */
+    protected function getSuccessMessage()
+    {
+        if ($this->addressHelper->isVatValidationEnabled()) {
+            if ($this->addressHelper->getTaxCalculationAddressType() == Address::TYPE_SHIPPING) {
+                // @codingStandardsIgnoreStart
+                $message = __(
+                    'If you are a registered VAT customer, please <a href="%1">click here</a> to enter your shipping address for proper VAT calculation.',
+                    $this->urlModel->getUrl('customer/address/edit')
+                );
+                // @codingStandardsIgnoreEnd
+            } else {
+                // @codingStandardsIgnoreStart
+                $message = __(
+                    'If you are a registered VAT customer, please <a href="%1">click here</a> to enter your billing address for proper VAT calculation.',
+                    $this->urlModel->getUrl('customer/address/edit')
+                );
+                // @codingStandardsIgnoreEnd
+            }
+        } else {
+            $message = __('Thank you for registering with %1.', $this->storeManager->getStore()->getFrontendName());
+        }
+        return $message;
     }
 }

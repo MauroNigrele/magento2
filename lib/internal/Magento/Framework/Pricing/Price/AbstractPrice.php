@@ -1,32 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Framework\Pricing\Price;
 
-use Magento\Framework\Pricing\Object\SaleableInterface;
-use Magento\Framework\Pricing\Amount\AmountInterface;
 use Magento\Framework\Pricing\Adjustment\CalculatorInterface;
+use Magento\Framework\Pricing\Amount\AmountInterface;
+use Magento\Framework\Pricing\SaleableInterface;
 use Magento\Framework\Pricing\PriceInfoInterface;
 
 /**
@@ -76,23 +58,31 @@ abstract class AbstractPrice implements PriceInterface
     protected $value;
 
     /**
+     * @var \Magento\Framework\Pricing\PriceCurrencyInterface
+     */
+    protected $priceCurrency;
+
+    /**
      * @param SaleableInterface $saleableItem
      * @param float $quantity
      * @param CalculatorInterface $calculator
+     * @param \Magento\Framework\Pricing\PriceCurrencyInterface $priceCurrency
      */
     public function __construct(
         SaleableInterface $saleableItem,
         $quantity,
-        CalculatorInterface $calculator
+        CalculatorInterface $calculator,
+        \Magento\Framework\Pricing\PriceCurrencyInterface $priceCurrency
     ) {
         $this->product = $saleableItem;
         $this->quantity = $quantity;
         $this->calculator = $calculator;
+        $this->priceCurrency = $priceCurrency;
         $this->priceInfo = $saleableItem->getPriceInfo();
     }
 
     /**
-     * Get price value
+     * Get price value in display currency
      *
      * @return float|bool
      */
@@ -106,21 +96,25 @@ abstract class AbstractPrice implements PriceInterface
     public function getAmount()
     {
         if (null === $this->amount) {
-            $this->amount = $this->calculator->getAmount($this->getValue(), $this->product);
+            $this->amount = $this->calculator->getAmount($this->getValue(), $this->getProduct());
         }
         return $this->amount;
     }
 
     /**
      * @param float $amount
-     * @param null|bool|string $exclude
+     * @param null|bool|string|array $exclude
      * @param null|array $context
      * @return AmountInterface|bool|float
      */
     public function getCustomAmount($amount = null, $exclude = null, $context = [])
     {
-        $amount = (null === $amount) ? $this->getValue() : $amount;
-        return $this->calculator->getAmount($amount, $this->product, $exclude, $context);
+        if (null !== $amount) {
+            $amount = $this->priceCurrency->convertAndRound($amount);
+        } else {
+            $amount = $this->getValue();
+        }
+        return $this->calculator->getAmount($amount, $this->getProduct(), $exclude, $context);
     }
 
     /**
@@ -131,5 +125,21 @@ abstract class AbstractPrice implements PriceInterface
     public function getPriceCode()
     {
         return static::PRICE_CODE;
+    }
+
+    /**
+     * @return SaleableInterface
+     */
+    public function getProduct()
+    {
+        return $this->product;
+    }
+
+    /**
+     * @return float
+     */
+    public function getQuantity()
+    {
+        return $this->quantity;
     }
 }

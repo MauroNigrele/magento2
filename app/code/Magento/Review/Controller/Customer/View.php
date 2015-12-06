@@ -1,43 +1,56 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Review\Controller\Customer;
 
-class View extends \Magento\Review\Controller\Customer
+use Magento\Review\Controller\Customer as CustomerController;
+use Magento\Framework\App\Action\Context;
+use Magento\Customer\Model\Session as CustomerSession;
+use Magento\Review\Model\ReviewFactory;
+use Magento\Framework\Controller\ResultFactory;
+
+class View extends CustomerController
 {
+    /**
+     * @var \Magento\Review\Model\ReviewFactory
+     */
+    protected $reviewFactory;
+
+    /**
+     * @param \Magento\Framework\App\Action\Context $context
+     * @param \Magento\Customer\Model\Session $customerSession
+     * @param \Magento\Review\Model\ReviewFactory $reviewFactory
+     */
+    public function __construct(
+        Context $context,
+        CustomerSession $customerSession,
+        ReviewFactory $reviewFactory
+    ) {
+        $this->reviewFactory = $reviewFactory;
+        parent::__construct($context, $customerSession);
+    }
     /**
      * Render review details
      *
-     * @return void
+     * @return \Magento\Framework\Controller\ResultInterface
      */
     public function execute()
     {
-        $this->_view->loadLayout();
-        if ($navigationBlock = $this->_view->getLayout()->getBlock('customer_account_navigation')) {
+        $review = $this->reviewFactory->create()->load($this->getRequest()->getParam('id'));
+        if ($review->getCustomerId() != $this->customerSession->getCustomerId()) {
+            /** @var \Magento\Framework\Controller\Result\Forward $resultForward */
+            $resultForward = $this->resultFactory->create(ResultFactory::TYPE_FORWARD);
+            $resultForward->forward('noroute');
+            return $resultForward;
+        }
+        /** @var \Magento\Framework\View\Result\Page $resultPage */
+        $resultPage = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
+        if ($navigationBlock = $resultPage->getLayout()->getBlock('customer_account_navigation')) {
             $navigationBlock->setActive('review/customer');
         }
-        $this->_view->getLayout()->getBlock('head')->setTitle(__('Review Details'));
-        $this->_view->renderLayout();
+        $resultPage->getConfig()->getTitle()->set(__('Review Details'));
+        return $resultPage;
     }
 }

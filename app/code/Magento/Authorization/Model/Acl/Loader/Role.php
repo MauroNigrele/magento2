@@ -1,35 +1,18 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Authorization\Model\Acl\Loader;
 
 use Magento\Authorization\Model\Acl\Role\Group as RoleGroup;
 use Magento\Authorization\Model\Acl\Role\User as RoleUser;
+use Magento\Framework\App\ResourceConnection;
 
 class Role implements \Magento\Framework\Acl\LoaderInterface
 {
     /**
-     * @var \Magento\Framework\App\Resource
+     * @var \Magento\Framework\App\ResourceConnection
      */
     protected $_resource;
 
@@ -46,12 +29,12 @@ class Role implements \Magento\Framework\Acl\LoaderInterface
     /**
      * @param \Magento\Authorization\Model\Acl\Role\GroupFactory $groupFactory
      * @param \Magento\Authorization\Model\Acl\Role\UserFactory $roleFactory
-     * @param \Magento\Framework\App\Resource $resource
+     * @param \Magento\Framework\App\ResourceConnection $resource
      */
     public function __construct(
         \Magento\Authorization\Model\Acl\Role\GroupFactory $groupFactory,
         \Magento\Authorization\Model\Acl\Role\UserFactory $roleFactory,
-        \Magento\Framework\App\Resource $resource
+        \Magento\Framework\App\ResourceConnection $resource
     ) {
         $this->_resource = $resource;
         $this->_groupFactory = $groupFactory;
@@ -67,20 +50,20 @@ class Role implements \Magento\Framework\Acl\LoaderInterface
     public function populateAcl(\Magento\Framework\Acl $acl)
     {
         $roleTableName = $this->_resource->getTableName('authorization_role');
-        $adapter = $this->_resource->getConnection('core_read');
+        $connection = $this->_resource->getConnection();
 
-        $select = $adapter->select()->from($roleTableName)->order('tree_level');
+        $select = $connection->select()->from($roleTableName)->order('tree_level');
 
-        foreach ($adapter->fetchAll($select) as $role) {
+        foreach ($connection->fetchAll($select) as $role) {
             $parent = $role['parent_id'] > 0 ? $role['parent_id'] : null;
             switch ($role['role_type']) {
                 case RoleGroup::ROLE_TYPE:
-                    $acl->addRole($this->_groupFactory->create(array('roleId' => $role['role_id'])), $parent);
+                    $acl->addRole($this->_groupFactory->create(['roleId' => $role['role_id']]), $parent);
                     break;
 
                 case RoleUser::ROLE_TYPE:
                     if (!$acl->hasRole($role['role_id'])) {
-                        $acl->addRole($this->_roleFactory->create(array('roleId' => $role['role_id'])), $parent);
+                        $acl->addRole($this->_roleFactory->create(['roleId' => $role['role_id']]), $parent);
                     } else {
                         $acl->addRoleParent($role['role_id'], $parent);
                     }

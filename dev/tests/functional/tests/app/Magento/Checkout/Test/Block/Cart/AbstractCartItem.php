@@ -1,74 +1,83 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
- 
+
 namespace Magento\Checkout\Test\Block\Cart;
 
-use Mtf\Block\Block;
+use Magento\Mtf\Block\Block;
 
 /**
- * Class AbstractCartItem
- * Base product item block on checkout page
+ * Base product item block on checkout page.
  */
 class AbstractCartItem extends Block
 {
     /**
-     * Selector for product name
+     * Selector for product name.
      *
      * @var string
      */
     protected $productName = '.product-item-name > a';
 
     /**
-     * Selector for unit price
+     * Selector for unit price.
      *
      * @var string
      */
-    protected $price = './/td[@class="col price"]/*[@class="excl tax"]/span';
+    protected $price = './/td[@class="col price"]//span[@class="price"]';
 
     /**
-     * Quantity input selector
+     * Selector for unit price including tax.
      *
      * @var string
      */
-    protected $qty = './/input[@type="number" and @title="Qty"]';
+    protected $priceInclTax = './/td[@class="col price"]/*[@class="price-including-tax"]/span';
 
     /**
-     * Cart item sub-total xpath selector
+     * Selector for unit price excluding tax.
      *
      * @var string
      */
-    protected $subtotalPrice = './/td[@class="col subtotal"]//*[@class="excl tax"]//span[@class="price"]';
+    protected $priceExclTax = './/td[@class="col price"]/*[@class="price-excluding-tax"]/span';
 
     /**
-     *  Selector for options block
+     * Quantity input selector.
      *
      * @var string
      */
-    protected $optionsBlock = './/dl[@class="cart-item-options"]';
+    protected $qty = './/input[@data-role="cart-item-qty"]';
 
     /**
-     * Escape currency in price
+     * Cart item sub-total xpath selector.
+     *
+     * @var string
+     */
+    protected $subtotalPrice = '.col.subtotal .price';
+
+    /**
+     * Cart item sub-total excluding tax xpath selector.
+     *
+     * @var string
+     */
+    protected $subTotalPriceExclTax = '.col.subtotal .price-excluding-tax .price';
+
+    /**
+     * Cart item sub-total including tax xpath selector.
+     *
+     * @var string
+     */
+    protected $subTotalPriceInclTax = '.col.subtotal .price-including-tax .price';
+
+    /**
+     *  Selector for options block.
+     *
+     * @var string
+     */
+    protected $optionsBlock = './/dl[contains(@class, "item-options")]';
+
+    /**
+     * Escape currency in price.
      *
      * @param string $price
      * @return string|null

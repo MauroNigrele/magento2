@@ -1,40 +1,40 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Cms\Controller\Adminhtml\Block;
 
 class Edit extends \Magento\Cms\Controller\Adminhtml\Block
 {
     /**
+     * @var \Magento\Framework\View\Result\PageFactory
+     */
+    protected $resultPageFactory;
+
+    /**
+     * @param \Magento\Backend\App\Action\Context $context
+     * @param \Magento\Framework\Registry $coreRegistry
+     * @param \Magento\Framework\View\Result\PageFactory $resultPageFactory
+     */
+    public function __construct(
+        \Magento\Backend\App\Action\Context $context,
+        \Magento\Framework\Registry $coreRegistry,
+        \Magento\Framework\View\Result\PageFactory $resultPageFactory
+    ) {
+        $this->resultPageFactory = $resultPageFactory;
+        parent::__construct($context, $coreRegistry);
+    }
+
+    /**
      * Edit CMS block
      *
-     * @return void
+     * @return \Magento\Framework\Controller\ResultInterface
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function execute()
     {
-        $this->_title->add(__('Blocks'));
-
         // 1. Get ID and create model
         $id = $this->getRequest()->getParam('block_id');
         $model = $this->_objectManager->create('Magento\Cms\Model\Block');
@@ -44,13 +44,11 @@ class Edit extends \Magento\Cms\Controller\Adminhtml\Block
             $model->load($id);
             if (!$model->getId()) {
                 $this->messageManager->addError(__('This block no longer exists.'));
-                $this->_redirect('*/*/');
-                return;
+                /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
+                $resultRedirect = $this->resultRedirectFactory->create();
+                return $resultRedirect->setPath('*/*/');
             }
         }
-
-        $this->_title->add($model->getId() ? $model->getTitle() : __('New Block'));
-
         // 3. Set entered data if was error when we do save
         $data = $this->_objectManager->get('Magento\Backend\Model\Session')->getFormData(true);
         if (!empty($data)) {
@@ -60,11 +58,16 @@ class Edit extends \Magento\Cms\Controller\Adminhtml\Block
         // 4. Register model to use later in blocks
         $this->_coreRegistry->register('cms_block', $model);
 
+        /** @var \Magento\Backend\Model\View\Result\Page $resultPage */
+        $resultPage = $this->resultPageFactory->create();
+
         // 5. Build edit form
-        $this->_initAction()->_addBreadcrumb(
+        $this->initPage($resultPage)->addBreadcrumb(
             $id ? __('Edit Block') : __('New Block'),
             $id ? __('Edit Block') : __('New Block')
         );
-        $this->_view->renderLayout();
+        $resultPage->getConfig()->getTitle()->prepend(__('Blocks'));
+        $resultPage->getConfig()->getTitle()->prepend($model->getId() ? $model->getTitle() : __('New Block'));
+        return $resultPage;
     }
 }

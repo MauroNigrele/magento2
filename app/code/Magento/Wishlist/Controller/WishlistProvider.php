@@ -1,26 +1,8 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Wishlist\Controller;
 
@@ -73,6 +55,7 @@ class WishlistProvider implements WishlistProviderInterface
 
     /**
      * {@inheritdoc}
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function getWishlist($wishlistId = null)
     {
@@ -85,24 +68,27 @@ class WishlistProvider implements WishlistProviderInterface
             }
             $customerId = $this->customerSession->getCustomerId();
             $wishlist = $this->wishlistFactory->create();
+
+            if (!$wishlistId && !$customerId) {
+                return $wishlist;
+            }
+
             if ($wishlistId) {
                 $wishlist->load($wishlistId);
-            } else {
+            } elseif ($customerId) {
                 $wishlist->loadByCustomerId($customerId, true);
             }
 
             if (!$wishlist->getId() || $wishlist->getCustomerId() != $customerId) {
-                $wishlist = null;
                 throw new \Magento\Framework\Exception\NoSuchEntityException(
-                    __("The requested wish list doesn't exist.")
+                    __('The requested Wish List doesn\'t exist.')
                 );
             }
-
         } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
             $this->messageManager->addError($e->getMessage());
             return false;
         } catch (\Exception $e) {
-            $this->messageManager->addException($e, __('Wish List could not be created.'));
+            $this->messageManager->addException($e, __('We can\'t create the Wish List right now.'));
             return false;
         }
         $this->wishlist = $wishlist;

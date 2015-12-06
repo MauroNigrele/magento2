@@ -1,26 +1,8 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Controller\Adminhtml\Order\Status;
 
@@ -29,14 +11,15 @@ class Save extends \Magento\Sales\Controller\Adminhtml\Order\Status
     /**
      * Save status form processing
      *
-     * @return void
+     * @return \Magento\Backend\Model\View\Result\Redirect
      */
     public function execute()
     {
-        $data = $this->getRequest()->getPost();
+        $data = $this->getRequest()->getPostValue();
         $isNew = $this->getRequest()->getParam('is_new');
+        /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
+        $resultRedirect = $this->resultRedirectFactory->create();
         if ($data) {
-
             $statusCode = $this->getRequest()->getParam('status');
 
             //filter tags in labels/status
@@ -55,33 +38,30 @@ class Save extends \Magento\Sales\Controller\Adminhtml\Order\Status
             if ($isNew && $status->getStatus()) {
                 $this->messageManager->addError(__('We found another order status with the same order status code.'));
                 $this->_getSession()->setFormData($data);
-                $this->_redirect('sales/*/new');
-                return;
+                return $resultRedirect->setPath('sales/*/new');
             }
 
             $status->setData($data)->setStatus($statusCode);
 
             try {
                 $status->save();
-                $this->messageManager->addSuccess(__('You have saved the order status.'));
-                $this->_redirect('sales/*/');
-                return;
-            } catch (\Magento\Framework\Model\Exception $e) {
+                $this->messageManager->addSuccess(__('You saved the order status.'));
+                return $resultRedirect->setPath('sales/*/');
+            } catch (\Magento\Framework\Exception\LocalizedException $e) {
                 $this->messageManager->addError($e->getMessage());
             } catch (\Exception $e) {
                 $this->messageManager->addException(
                     $e,
-                    __('We couldn\'t add your order status because something went wrong saving.')
+                    __('We can\'t add the order status right now.')
                 );
             }
             $this->_getSession()->setFormData($data);
             if ($isNew) {
-                $this->_redirect('sales/*/new');
+                return $resultRedirect->setPath('sales/*/new');
             } else {
-                $this->_redirect('sales/*/edit', array('status' => $this->getRequest()->getParam('status')));
+                return $resultRedirect->setPath('sales/*/edit', ['status' => $this->getRequest()->getParam('status')]);
             }
-            return;
         }
-        $this->_redirect('sales/*/');
+        return $resultRedirect->setPath('sales/*/');
     }
 }

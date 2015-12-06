@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\User\Test\TestCase;
@@ -27,8 +9,8 @@ namespace Magento\User\Test\TestCase;
 use Magento\User\Test\Fixture\User;
 use Magento\User\Test\Page\Adminhtml\UserEdit;
 use Magento\User\Test\Page\Adminhtml\UserIndex;
-use Mtf\Fixture\FixtureFactory;
-use Mtf\TestCase\Injectable;
+use Magento\Mtf\Fixture\FixtureFactory;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
  * Test Creation for CreateAdminUserEntityTest
@@ -41,11 +23,16 @@ use Mtf\TestCase\Injectable;
  * 5. Save user
  * 6. Perform assertions
  *
- * @group ACL_(MX)
- * @ZephyrId MAGETWO-23413
+ * @group ACL_(PS)
+ * @ZephyrId MAGETWO-25699
  */
 class CreateAdminUserEntityTest extends Injectable
 {
+    /* tags */
+    const MVP = 'no';
+    const DOMAIN = 'PS';
+    /* end tags */
+
     /**
      * User grid page
      *
@@ -76,7 +63,7 @@ class CreateAdminUserEntityTest extends Injectable
     public function __prepare(FixtureFactory $fixtureFactory)
     {
         $this->fixtureFactory = $fixtureFactory;
-        $adminUser = $fixtureFactory->createByCode('user');
+        $adminUser = $fixtureFactory->createByCode('user', ['dataset' => 'custom_admin']);
         $adminUser->persist();
 
         return ['adminUser' => $adminUser];
@@ -101,13 +88,10 @@ class CreateAdminUserEntityTest extends Injectable
      * @param User $user
      * @param User $adminUser
      * @param string $isDuplicated
-     * @return void
+     * @return array
      */
-    public function test(
-        User $user,
-        User $adminUser,
-        $isDuplicated
-    ) {
+    public function test(User $user, User $adminUser, $isDuplicated)
+    {
         // Prepare data
         if ($isDuplicated != '-') {
             $data = $user->getData();
@@ -121,5 +105,7 @@ class CreateAdminUserEntityTest extends Injectable
         $this->userIndexPage->getPageActions()->addNew();
         $this->userEditPage->getUserForm()->fill($user);
         $this->userEditPage->getPageActions()->save();
+
+        return ['customAdmin' => $user];
     }
 }

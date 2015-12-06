@@ -1,27 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Model\Indexer\Product\Flat;
+
+use Magento\Framework\App\ResourceConnection;
 
 /**
  * Abstract action reindex class
@@ -44,7 +28,7 @@ abstract class AbstractAction
     protected $_tableDropSuffix = '_drop_indexer';
 
     /**
-     * @var \Magento\Framework\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
@@ -68,14 +52,14 @@ abstract class AbstractAction
      *
      * @var array
      */
-    protected $_flatTablesExist = array();
+    protected $_flatTablesExist = [];
 
     /**
      * List of product types available in installation
      *
      * @var array
      */
-    protected $_productTypes = array();
+    protected $_productTypes = [];
 
     /**
      * @var TableBuilder
@@ -88,16 +72,16 @@ abstract class AbstractAction
     protected $_flatTableBuilder;
 
     /**
-     * @param \Magento\Framework\App\Resource $resource
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\App\ResourceConnection $resource
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
      * @param \Magento\Catalog\Helper\Product\Flat\Indexer $productHelper
      * @param \Magento\Catalog\Model\Product\Type $productType
      * @param TableBuilder $tableBuilder
      * @param FlatTableBuilder $flatTableBuilder
      */
     public function __construct(
-        \Magento\Framework\App\Resource $resource,
-        \Magento\Framework\StoreManagerInterface $storeManager,
+        \Magento\Framework\App\ResourceConnection $resource,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         \Magento\Catalog\Helper\Product\Flat\Indexer $productHelper,
         \Magento\Catalog\Model\Product\Type $productType,
         TableBuilder $tableBuilder,
@@ -106,7 +90,7 @@ abstract class AbstractAction
         $this->_storeManager = $storeManager;
         $this->_productIndexerHelper = $productHelper;
         $this->_productType = $productType;
-        $this->_connection = $resource->getConnection('default');
+        $this->_connection = $resource->getConnection();
         $this->_tableBuilder = $tableBuilder;
         $this->_flatTableBuilder = $flatTableBuilder;
     }
@@ -136,6 +120,7 @@ abstract class AbstractAction
      * @param array $tablesList
      * @param int|string $storeId
      * @return void
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
     protected function _cleanOnFailure(array $tablesList, $storeId)
     {
@@ -154,7 +139,7 @@ abstract class AbstractAction
      * @return void
      * @throws \Exception
      */
-    protected function _reindex($storeId, array $changedIds = array())
+    protected function _reindex($storeId, array $changedIds = [])
     {
         try {
             $this->_tableBuilder->build($storeId, $changedIds, $this->_valueFieldSuffix);
@@ -185,8 +170,8 @@ abstract class AbstractAction
     protected function _getProductTypeInstances()
     {
         if ($this->_productTypes === null) {
-            $this->_productTypes = array();
-            $productEmulator = new \Magento\Framework\Object();
+            $this->_productTypes = [];
+            $productEmulator = new \Magento\Framework\DataObject();
             foreach (array_keys($this->_productType->getTypes()) as $typeId) {
                 $productEmulator->setTypeId($typeId);
                 $this->_productTypes[$typeId] = $this->_productType->factory($productEmulator);
@@ -201,6 +186,7 @@ abstract class AbstractAction
      * @param int $storeId
      * @param int|array $productIds Update child product(s) only
      * @return \Magento\Catalog\Model\Indexer\Product\Flat\AbstractAction
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     protected function _updateRelationProducts($storeId, $productIds = null)
     {
@@ -223,10 +209,10 @@ abstract class AbstractAction
                 unset($columns['is_child']);
                 /** @var $select \Magento\Framework\DB\Select */
                 $select = $this->_connection->select()->from(
-                    array('t' => $this->_productIndexerHelper->getTable($relation->getTable())),
-                    array($relation->getParentFieldName(), $relation->getChildFieldName(), new \Zend_Db_Expr('1'))
+                    ['t' => $this->_productIndexerHelper->getTable($relation->getTable())],
+                    [$relation->getParentFieldName(), $relation->getChildFieldName(), new \Zend_Db_Expr('1')]
                 )->join(
-                    array('e' => $this->_productIndexerHelper->getFlatTableName($storeId)),
+                    ['e' => $this->_productIndexerHelper->getFlatTableName($storeId)],
                     "e.entity_id = t.{$relation->getChildFieldName()}",
                     array_keys($columns)
                 );
@@ -234,10 +220,10 @@ abstract class AbstractAction
                     $select->where($relation->getWhere());
                 }
                 if ($productIds !== null) {
-                    $cond = array(
+                    $cond = [
                         $this->_connection->quoteInto("{$relation->getChildFieldName()} IN(?)", $productIds),
-                        $this->_connection->quoteInto("{$relation->getParentFieldName()} IN(?)", $productIds)
-                    );
+                        $this->_connection->quoteInto("{$relation->getParentFieldName()} IN(?)", $productIds),
+                    ];
 
                     $select->where(implode(' OR ', $cond));
                 }
@@ -275,10 +261,10 @@ abstract class AbstractAction
                     $this->_productIndexerHelper->getTable($relation->getTable()),
                     "{$relation->getParentFieldName()}"
                 );
-                $joinLeftCond = array(
+                $joinLeftCond = [
                     "e.entity_id = t.{$relation->getParentFieldName()}",
-                    "e.child_id = t.{$relation->getChildFieldName()}"
-                );
+                    "e.child_id = t.{$relation->getChildFieldName()}",
+                ];
                 if ($relation->getWhere() !== null) {
                     $select->where($relation->getWhere());
                     $joinLeftCond[] = $relation->getWhere();
@@ -287,12 +273,12 @@ abstract class AbstractAction
                 $entitySelect = new \Zend_Db_Expr($select->__toString());
                 /** @var $select \Magento\Framework\DB\Select */
                 $select = $this->_connection->select()->from(
-                    array('e' => $this->_productIndexerHelper->getFlatTableName($storeId)),
+                    ['e' => $this->_productIndexerHelper->getFlatTableName($storeId)],
                     null
                 )->joinLeft(
-                    array('t' => $this->_productIndexerHelper->getTable($relation->getTable())),
+                    ['t' => $this->_productIndexerHelper->getTable($relation->getTable())],
                     implode(' AND ', $joinLeftCond),
-                    array()
+                    []
                 )->where(
                     'e.is_child = ?',
                     1

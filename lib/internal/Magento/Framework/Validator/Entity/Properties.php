@@ -1,38 +1,21 @@
 <?php
 /**
- * Validates properties of entity (\Magento\Framework\Object).
+ * Validates properties of entity (\Magento\Framework\DataObject).
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Validator\Entity;
 
-use Magento\Framework\Object;
+use Magento\Framework\DataObject;
+use Magento\Framework\Model\AbstractModel;
 
 class Properties extends \Magento\Framework\Validator\AbstractValidator
 {
     /**
      * @var string[]
      */
-    protected $_readOnlyProperties = array();
+    protected $_readOnlyProperties = [];
 
     /**
      * Set read-only properties.
@@ -46,19 +29,20 @@ class Properties extends \Magento\Framework\Validator\AbstractValidator
     }
 
     /**
-     * Successful if $value is \Magento\Framework\Object an all condition are fulfilled.
+     * Successful if $value is \Magento\Framework\Model\AbstractModel an all condition are fulfilled.
      *
      * If read-only properties are set than $value mustn't have changes in them.
      *
-     * @param Object $value
+     * @param AbstractModel $value
      * @return bool
-     * @throws \InvalidArgumentException when $value is not instanceof \Magento\Framework\Object
+     * @throws \InvalidArgumentException when $value is not instanceof \Magento\Framework\DataObject
+     * @api
      */
     public function isValid($value)
     {
         $this->_clearMessages();
-        if (!$value instanceof Object) {
-            throw new \InvalidArgumentException('Instance of \Magento\Framework\Object is expected.');
+        if (!$value instanceof AbstractModel) {
+            throw new \InvalidArgumentException('Instance of \Magento\Framework\Model\AbstractModel is expected.');
         }
         if ($this->_readOnlyProperties) {
             if (!$value->hasDataChanges()) {
@@ -66,7 +50,9 @@ class Properties extends \Magento\Framework\Validator\AbstractValidator
             }
             foreach ($this->_readOnlyProperties as $property) {
                 if ($this->_hasChanges($value->getData($property), $value->getOrigData($property))) {
-                    $this->_messages[__CLASS__] = array(__("Read-only property cannot be changed."));
+                    $this->_messages[__CLASS__] = [
+                        (string)new \Magento\Framework\Phrase("Read-only property cannot be changed.")
+                    ];
                     break;
                 }
             }

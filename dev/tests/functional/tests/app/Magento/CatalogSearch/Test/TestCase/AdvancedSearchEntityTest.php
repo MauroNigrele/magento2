@@ -1,39 +1,18 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\CatalogSearch\Test\TestCase;
 
-use Mtf\TestCase\Injectable;
-use Mtf\Fixture\FixtureFactory;
-use Magento\Cms\Test\Page\CmsIndex;
-use Magento\CatalogSearch\Test\Page\AdvancedSearch;
 use Magento\Catalog\Test\Fixture\CatalogProductSimple;
+use Magento\CatalogSearch\Test\Page\AdvancedSearch;
+use Magento\Cms\Test\Page\CmsIndex;
+use Magento\Mtf\Fixture\FixtureFactory;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
- * Test Creation for AdvancedSearchEntity
- *
- * Test Flow:
  * Preconditions:
  * 1. Two specific simple product is created(unique sku,name,short/full description, tax class)
  *
@@ -49,8 +28,14 @@ use Magento\Catalog\Test\Fixture\CatalogProductSimple;
  */
 class AdvancedSearchEntityTest extends Injectable
 {
+    /* tags */
+    const MVP = 'yes';
+    const DOMAIN = 'MX';
+    const TEST_TYPE = 'acceptance_test';
+    /* end tags */
+
     /**
-     * Prepare data
+     * Prepare data.
      *
      * @param FixtureFactory $fixtureFactory
      * @return array
@@ -60,45 +45,40 @@ class AdvancedSearchEntityTest extends Injectable
         /** @var CatalogProductSimple $productSymbols */
         $productSymbols = $fixtureFactory->createByCode(
             'catalogProductSimple',
-            ['dataSet' => 'abc_dfj_simple_for_advancedsearch']
+            ['dataset' => 'abc_dfj_simple_for_advancedsearch']
         );
         $productSymbols->persist();
 
         /** @var CatalogProductSimple $productNumbers */
         $productNumbers = $fixtureFactory->createByCode(
             'catalogProductSimple',
-            ['dataSet' => 'adc_123_simple_for_advancedsearch']
+            ['dataset' => 'adc_123_simple_for_advancedsearch']
         );
         $productNumbers->persist();
 
         return [
             'productsSearch' => [
                 'simple_1' => $productSymbols,
-                'simple_2' => $productNumbers
+                'simple_2' => $productNumbers,
             ]
         ];
     }
 
     /**
-     * Run test creation for advanced search entity
+     * Run test creation for advanced search entity.
      *
-     * @param array $products
      * @param CatalogProductSimple $productSearch
      * @param CmsIndex $cmsIndex
      * @param AdvancedSearch $searchPage
      * @return void
-     *
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function testSearch(
-        array $products,
+    public function test(
         CatalogProductSimple $productSearch,
         CmsIndex $cmsIndex,
         AdvancedSearch $searchPage
     ) {
-        $this->markTestIncomplete('MAGETWO-27664');
         $cmsIndex->open();
-        $cmsIndex->getSearchBlock()->clickAdvancedSearchButton();
+        $cmsIndex->getFooterBlock()->openAdvancedSearch();
         $searchForm = $searchPage->getForm();
         $searchForm->fill($productSearch);
         $searchForm->submit();

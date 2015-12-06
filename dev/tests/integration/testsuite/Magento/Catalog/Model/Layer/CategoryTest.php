@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Model\Layer;
 
@@ -50,9 +32,9 @@ class CategoryTest extends \PHPUnit_Framework_TestCase
 
     public function testGetProductCollection()
     {
-        /** @var $collection \Magento\Catalog\Model\Resource\Product\Collection */
+        /** @var $collection \Magento\Catalog\Model\ResourceModel\Product\Collection */
         $collection = $this->_model->getProductCollection();
-        $this->assertInstanceOf('Magento\Catalog\Model\Resource\Product\Collection', $collection);
+        $this->assertInstanceOf('Magento\Catalog\Model\ResourceModel\Product\Collection', $collection);
         $ids = $collection->getAllIds();
         $this->assertContains(1, $ids);
         $this->assertContains(2, $ids);
@@ -64,28 +46,28 @@ class CategoryTest extends \PHPUnit_Framework_TestCase
         $this->_model->getState()->addFilter(
             \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
                 'Magento\Catalog\Model\Layer\Filter\Item',
-                array(
-                    'data' => array(
+                [
+                    'data' => [
                         'filter' => \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
                             'Magento\Catalog\Model\Layer\Filter\Category',
-                            array('layer' => $this->_model)
+                            ['layer' => $this->_model]
                         ),
-                        'value' => 'expected-value-string'
-                    )
-                )
+                        'value' => 'expected-value-string',
+                    ]
+                ]
             )
         )->addFilter(
             \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
                 'Magento\Catalog\Model\Layer\Filter\Item',
-                array(
-                    'data' => array(
+                [
+                    'data' => [
                         'filter' => \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
                             'Magento\Catalog\Model\Layer\Filter\Decimal',
-                            array('layer' => $this->_model)
+                            ['layer' => $this->_model]
                         ),
-                        'value' => 1234
-                    )
-                )
+                        'value' => 1234,
+                    ]
+                ]
             )
         );
 
@@ -143,14 +125,13 @@ class CategoryTest extends \PHPUnit_Framework_TestCase
             throw $e;
         }
 
-
         try {
             $model = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
                 'Magento\Catalog\Model\Layer\Category'
             );
-            $model->setCurrentCategory(new \Magento\Framework\Object());
+            $model->setCurrentCategory(new \Magento\Framework\DataObject());
             $this->fail('Assign category of invalid class.');
-        } catch (\Magento\Framework\Model\Exception $e) {
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
         }
 
         try {
@@ -161,7 +142,7 @@ class CategoryTest extends \PHPUnit_Framework_TestCase
                 \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create('Magento\Catalog\Model\Category')
             );
             $this->fail('Assign category with invalid id.');
-        } catch (\Magento\Framework\Model\Exception $e) {
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
         }
     }
 
@@ -169,7 +150,7 @@ class CategoryTest extends \PHPUnit_Framework_TestCase
     {
         $this->assertSame(
             \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
-                'Magento\Framework\StoreManagerInterface'
+                'Magento\Store\Model\StoreManagerInterface'
             )->getStore(),
             $this->_model->getCurrentStore()
         );

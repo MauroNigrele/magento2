@@ -1,35 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Framework\View\Design\Fallback;
 
-use Magento\Framework\App\Filesystem;
+use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\View\Design\Fallback\Rule\Composite;
-use Magento\Framework\View\Design\Fallback\Rule\ModularSwitch;
 use Magento\Framework\View\Design\Fallback\Rule\RuleInterface;
-use Magento\Framework\View\Design\Fallback\Rule\Simple;
-use Magento\Framework\View\Design\Fallback\Rule\Theme;
 
 /**
  * Fallback Factory
@@ -45,28 +24,72 @@ class RulePool
     const TYPE_LOCALE_FILE = 'locale';
     const TYPE_TEMPLATE_FILE = 'template';
     const TYPE_STATIC_FILE = 'static';
+    const TYPE_EMAIL_TEMPLATE = 'email';
     /**#@-*/
 
     /**
      * File system
      *
-     * @var Filesystem
+     * @var \Magento\Framework\Filesystem
      */
     protected $filesystem;
 
     /**
+     * Rules
+     *
      * @var array
      */
     private $rules = [];
 
     /**
+     * Factory for simple rule
+     *
+     * @var \Magento\Framework\View\Design\Fallback\Rule\SimpleFactory
+     */
+    private $simpleFactory;
+
+    /**
+     * Factory for theme rule
+     *
+     * @var Rule\ThemeFactory
+     */
+    private $themeFactory;
+
+    /**
+     * Factory for modular switcher
+     *
+     * @var Rule\ModularSwitchFactory
+     */
+    private $modularSwitchFactory;
+
+    /**
+     * Factory for module rule
+     *
+     * @var Rule\ModuleFactory
+     */
+    private $moduleFactory;
+
+    /**
      * Constructor
      *
-     * @param Filesystem $filesystem
+     * @param \Magento\Framework\Filesystem $filesystem
+     * @param Rule\SimpleFactory $simpleFactory
+     * @param Rule\ThemeFactory $themeFactory
+     * @param Rule\ModuleFactory $moduleFactory
+     * @param Rule\ModularSwitchFactory $modularSwitchFactory
      */
-    public function __construct(Filesystem $filesystem)
-    {
+    public function __construct(
+        \Magento\Framework\Filesystem $filesystem,
+        Rule\SimpleFactory $simpleFactory,
+        Rule\ThemeFactory $themeFactory,
+        Rule\ModuleFactory $moduleFactory,
+        Rule\ModularSwitchFactory $modularSwitchFactory
+    ) {
         $this->filesystem = $filesystem;
+        $this->simpleFactory = $simpleFactory;
+        $this->themeFactory = $themeFactory;
+        $this->moduleFactory = $moduleFactory;
+        $this->modularSwitchFactory = $modularSwitchFactory;
     }
 
     /**
@@ -76,9 +99,8 @@ class RulePool
      */
     protected function createLocaleFileRule()
     {
-        $themesDir = $this->filesystem->getPath(Filesystem::THEMES_DIR);
-        return new Theme(
-            new Simple("$themesDir/<area>/<theme_path>")
+        return $this->themeFactory->create(
+            ['rule' => $this->simpleFactory->create(['pattern' => "<theme_dir>"])]
         );
     }
 
@@ -89,19 +111,24 @@ class RulePool
      */
     protected function createTemplateFileRule()
     {
-        $themesDir = $this->filesystem->getPath(Filesystem::THEMES_DIR);
-        $modulesDir = $this->filesystem->getPath(Filesystem::MODULES_DIR);
-        return new ModularSwitch(
-            new Theme(
-                new Simple("$themesDir/<area>/<theme_path>/templates")
+        return $this->modularSwitchFactory->create(
+            ['ruleNonModular' =>
+            $this->themeFactory->create(
+                ['rule' => $this->simpleFactory->create(['pattern' => "<theme_dir>/templates"])]
             ),
-            new Composite(
-                array(
-                    new Theme(new Simple("$themesDir/<area>/<theme_path>/<namespace>_<module>/templates")),
-                    new Simple("$modulesDir/<namespace>/<module>/view/<area>/templates"),
-                    new Simple("$modulesDir/<namespace>/<module>/view/base/templates"),
-                )
-            )
+            'ruleModular' => new Composite(
+                [
+                    $this->themeFactory->create(
+                        ['rule' => $this->simpleFactory->create(['pattern' => "<theme_dir>/<module_name>/templates"])]
+                    ),
+                    $this->moduleFactory->create(
+                        ['rule' => $this->simpleFactory->create(['pattern' => "<module_dir>/view/<area>/templates"])]
+                    ),
+                    $this->moduleFactory->create(
+                        ['rule' => $this->simpleFactory->create(['pattern' => "<module_dir>/view/base/templates"])]
+                    ),
+                ]
+            )]
         );
     }
 
@@ -112,17 +139,23 @@ class RulePool
      */
     protected function createFileRule()
     {
-        $themesDir = $this->filesystem->getPath(Filesystem::THEMES_DIR);
-        $modulesDir = $this->filesystem->getPath(Filesystem::MODULES_DIR);
-        return new ModularSwitch(
-            new Theme(new Simple("$themesDir/<area>/<theme_path>")),
-            new Composite(
-                array(
-                    new Theme(new Simple("$themesDir/<area>/<theme_path>/<namespace>_<module>")),
-                    new Simple("$modulesDir/<namespace>/<module>/view/<area>"),
-                    new Simple("{$modulesDir}/<namespace>/<module>/view/base"),
-                )
-            )
+        return $this->modularSwitchFactory->create(
+            ['ruleNonModular' => $this->themeFactory->create(
+                ['rule' => $this->simpleFactory->create(['pattern' => "<theme_dir>"])]
+            ),
+            'ruleModular' => new Composite(
+                [
+                    $this->themeFactory->create(
+                        ['rule' => $this->simpleFactory->create(['pattern' => "<theme_dir>/<module_name>"])]
+                    ),
+                    $this->moduleFactory->create(
+                        ['rule' => $this->simpleFactory->create(['pattern' => "<module_dir>/view/<area>"])]
+                    ),
+                    $this->moduleFactory->create(
+                        ['rule' => $this->simpleFactory->create(['pattern' => "<module_dir>/view/base"])]
+                    ),
+                ]
+            )]
         );
     }
 
@@ -133,52 +166,99 @@ class RulePool
      */
     protected function createViewFileRule()
     {
-        $themesDir = $this->filesystem->getPath(Filesystem::THEMES_DIR);
-        $modulesDir = $this->filesystem->getPath(Filesystem::MODULES_DIR);
-        $libDir = $this->filesystem->getPath(Filesystem::LIB_WEB);
-        return new ModularSwitch(
-            new Composite(
-                array(
-                    new Theme(
+        $libDir = rtrim($this->filesystem->getDirectoryRead(DirectoryList::LIB_WEB)->getAbsolutePath(), '/');
+        return $this->modularSwitchFactory->create(
+            ['ruleNonModular' => new Composite(
+                [
+                    $this->themeFactory->create(
+                        ['rule' =>
                         new Composite(
-                            array(
-                                new Simple("$themesDir/<area>/<theme_path>/web/i18n/<locale>", array('locale')),
-                                new Simple("$themesDir/<area>/<theme_path>/web"),
-                            )
-                        )
+                            [
+                                $this->simpleFactory
+                                    ->create([
+                                        'pattern' => "<theme_dir>/web/i18n/<locale>",
+                                        'optionalParams' => ['locale']
+                                    ]),
+                                $this->simpleFactory
+                                    ->create(['pattern' => "<theme_dir>/web"])
+                            ]
+                        )]
                     ),
-                    new Simple($libDir),
-                )
+                    $this->simpleFactory->create(['pattern' => $libDir]),
+                ]
             ),
-            new Composite(
-                array(
-                    new Theme(
+            'ruleModular' => new Composite(
+                [
+                    $this->themeFactory->create(
+                        ['rule' =>
                         new Composite(
-                            array(
-                                new Simple(
-                                    "$themesDir/<area>/<theme_path>/<namespace>_<module>/web/i18n/<locale>",
-                                    array('locale')
+                            [
+                                $this->simpleFactory->create(
+                                    [
+                                        'pattern' => "<theme_dir>/<module_name>/web/i18n/<locale>",
+                                        'optionalParams' => ['locale'],
+                                    ]
                                 ),
-                                new Simple("$themesDir/<area>/<theme_path>/<namespace>_<module>/web"),
-                            )
-                        )
+                                $this->simpleFactory->create(
+                                    ['pattern' => "<theme_dir>/<module_name>/web"]
+                                ),
+                            ]
+                        )]
                     ),
-                    new Simple(
-                        "$modulesDir/<namespace>/<module>/view/<area>/web/i18n/<locale>",
-                        array('locale')
+                    $this->moduleFactory->create(
+                        ['rule' => $this->simpleFactory->create(
+                            [
+                                'pattern' => "<module_dir>/view/<area>/web/i18n/<locale>",
+                                'optionalParams' => ['locale']
+                            ]
+                        )]
                     ),
-                    new Simple(
-                        "$modulesDir/<namespace>/<module>/view/base/web/i18n/<locale>",
-                        array('locale')
+                    $this->moduleFactory->create(
+                        ['rule' => $this->simpleFactory->create(
+                            [
+                                'pattern' => "<module_dir>/view/base/web/i18n/<locale>",
+                                'optionalParams' => ['locale']
+                            ]
+                        )]
                     ),
-                    new Simple("$modulesDir/<namespace>/<module>/view/<area>/web"),
-                    new Simple("{$modulesDir}/<namespace>/<module>/view/base/web"),
-                )
-            )
+                    $this->moduleFactory->create(
+                        ['rule' => $this->simpleFactory->create(['pattern' => "<module_dir>/view/<area>/web"])]
+                    ),
+                    $this->moduleFactory->create(
+                        ['rule' => $this->simpleFactory->create(['pattern' => "<module_dir>/view/base/web"])]
+                    ),
+                ]
+            )]
         );
     }
 
     /**
+     * Retrieve newly created fallback rule for email templates.
+     *
+     * Emails are only loaded in a modular context, so a non-modular rule is not specified.
+     *
+     * @return RuleInterface
+     */
+    protected function createEmailTemplateFileRule()
+    {
+        return new Composite(
+            [
+                $this->themeFactory->create(
+                    ['rule' =>
+                    $this->simpleFactory->create(
+                        ['pattern' => "<theme_dir>/<module_name>/email"]
+                    )]
+                ),
+                $this->moduleFactory->create(
+                    ['rule' => $this->simpleFactory->create(['pattern' => "<module_dir>/view/<area>/email"])]
+                ),
+            ]
+        );
+    }
+
+    /**
+     * Get rule by type
+     *
      * @param string $type
      * @return RuleInterface
      * @throws \InvalidArgumentException
@@ -200,6 +280,9 @@ class RulePool
                 break;
             case self::TYPE_STATIC_FILE:
                 $rule = $this->createViewFileRule();
+                break;
+            case self::TYPE_EMAIL_TEMPLATE:
+                $rule = $this->createEmailTemplateFileRule();
                 break;
             default:
                 throw new \InvalidArgumentException("Fallback rule '$type' is not supported");

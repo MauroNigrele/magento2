@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Block\Product;
 
@@ -27,6 +9,7 @@ namespace Magento\Catalog\Block\Product;
  * Test class for \Magento\Catalog\Block\Product\Abstract.
  *
  * @magentoDataFixture Magento/Catalog/_files/product_with_image.php
+ * @magentoAppArea frontend
  */
 class AbstractTest extends \PHPUnit_Framework_TestCase
 {
@@ -57,7 +40,7 @@ class AbstractTest extends \PHPUnit_Framework_TestCase
         if (!self::$_isStubClass) {
             $this->getMockForAbstractClass(
                 'Magento\Catalog\Block\Product\AbstractProduct',
-                array(),
+                [],
                 self::STUB_CLASS,
                 false
             );
@@ -79,18 +62,24 @@ class AbstractTest extends \PHPUnit_Framework_TestCase
         );
         $this->_product->load(1);
         $this->_product->addData(
-            array(
+            [
                 'image' => '/m/a/magento_image.jpg',
                 'small_image' => '/m/a/magento_image.jpg',
-                'thumbnail' => '/m/a/magento_image.jpg'
-            )
+                'thumbnail' => '/m/a/magento_image.jpg',
+            ]
         );
         $this->_block->setProduct($this->_product);
     }
 
+    /**
+     * @magentoDataFixture Magento/CatalogUrlRewrite/_files/product_simple.php
+     * @magentoAppIsolation enabled
+     */
     public function testGetAddToCartUrl()
     {
-        $url = $this->_block->getAddToCartUrl($this->_product);
+        $product = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create('Magento\Catalog\Model\Product');
+        $product->load(1);
+        $url = $this->_block->getAddToCartUrl($product);
         $this->assertStringEndsWith('?options=cart', $url);
         $this->assertStringMatchesFormat('%ssimple-product.html%s', $url);
     }
@@ -99,7 +88,7 @@ class AbstractTest extends \PHPUnit_Framework_TestCase
     {
         /* by default same as add to cart */
         $this->assertStringEndsWith('?options=cart', $this->_block->getSubmitUrl($this->_product));
-        $this->_block->setData('submit_route_data', array('route' => 'catalog/product/view'));
+        $this->_block->setData('submit_route_data', ['route' => 'catalog/product/view']);
         $this->assertStringEndsWith('catalog/product/view/', $this->_block->getSubmitUrl($this->_product));
     }
 
@@ -141,14 +130,17 @@ class AbstractTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($this->_product, $this->_block->getProduct());
     }
 
-    public function testGetImageLabel()
-    {
-        $this->assertEquals('Image Alt Text', $this->_block->getImageLabel());
-    }
-
+    /**
+     * @magentoDataFixture Magento/CatalogUrlRewrite/_files/product_simple.php
+     * @magentoAppIsolation enabled
+     */
     public function testGetProductUrl()
     {
-        $this->assertStringEndsWith('simple-product.html', $this->_block->getProductUrl($this->_product));
+        $product = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
+            ->create('Magento\Catalog\Model\Product');
+        $product->load(1);
+
+        $this->assertStringEndsWith('simple-product.html', $this->_block->getProductUrl($product));
     }
 
     public function testHasProductUrl()
@@ -173,47 +165,5 @@ class AbstractTest extends \PHPUnit_Framework_TestCase
     public function testGetCanShowProductPrice()
     {
         $this->assertTrue($this->_block->getCanShowProductPrice($this->_product));
-    }
-
-    public function testThumbnail()
-    {
-        $size = $this->_block->getThumbnailSize();
-        $this->assertGreaterThan(1, $size);
-        $this->assertContains('/' . $size, $this->_block->getThumbnailUrl($this->_product));
-    }
-
-    public function testThumbnailSidebar()
-    {
-        $size = $this->_block->getThumbnailSidebarSize();
-        $this->assertGreaterThan(1, $size);
-        $this->assertContains('/' . $size, $this->_block->getThumbnailSidebarUrl($this->_product));
-    }
-
-    public function testSmallImage()
-    {
-        $size = $this->_block->getSmallImageSize();
-        $this->assertGreaterThan(1, $size);
-        $this->assertContains('/' . $size, $this->_block->getSmallImageUrl($this->_product));
-    }
-
-    public function testSmallImageSidebar()
-    {
-        $size = $this->_block->getSmallImageSidebarSize();
-        $this->assertGreaterThan(1, $size);
-        $this->assertContains('/' . $size, $this->_block->getSmallImageSidebarUrl($this->_product));
-    }
-
-    public function testBaseImage()
-    {
-        $size = $this->_block->getBaseImageSize();
-        $this->assertGreaterThan(1, $size);
-        $this->assertContains('/' . $size, $this->_block->getBaseImageUrl($this->_product));
-    }
-
-    public function testBaseImageIcon()
-    {
-        $size = $this->_block->getBaseImageIconSize();
-        $this->assertGreaterThan(1, $size);
-        $this->assertContains('/' . $size, $this->_block->getBaseImageIconUrl($this->_product));
     }
 }

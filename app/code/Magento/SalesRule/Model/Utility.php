@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\SalesRule\Model;
@@ -36,15 +18,15 @@ class Utility
     /**
      * @var array
      */
-    protected $_roundingDeltas = array();
+    protected $_roundingDeltas = [];
 
     /**
      * @var array
      */
-    protected $_baseRoundingDeltas = array();
+    protected $_baseRoundingDeltas = [];
 
     /**
-     * @var \Magento\SalesRule\Model\Resource\Coupon\UsageFactory
+     * @var \Magento\SalesRule\Model\ResourceModel\Coupon\UsageFactory
      */
     protected $usageFactory;
 
@@ -59,7 +41,7 @@ class Utility
     protected $customerFactory;
 
     /**
-     * @var \Magento\Framework\ObjectFactory
+     * @var \Magento\Framework\DataObjectFactory
      */
     protected $objectFactory;
 
@@ -69,17 +51,17 @@ class Utility
     protected $priceCurrency;
 
     /**
-     * @param Resource\Coupon\UsageFactory $usageFactory
+     * @param \Magento\SalesRule\Model\ResourceModel\Coupon\UsageFactory $usageFactory
      * @param CouponFactory $couponFactory
      * @param Rule\CustomerFactory $customerFactory
-     * @param \Magento\Framework\ObjectFactory $objectFactory
+     * @param \Magento\Framework\DataObjectFactory $objectFactory
      * @param PriceCurrencyInterface $priceCurrency
      */
-    public function __construct (
-        \Magento\SalesRule\Model\Resource\Coupon\UsageFactory $usageFactory,
+    public function __construct(
+        \Magento\SalesRule\Model\ResourceModel\Coupon\UsageFactory $usageFactory,
         \Magento\SalesRule\Model\CouponFactory $couponFactory,
         \Magento\SalesRule\Model\Rule\CustomerFactory $customerFactory,
-        \Magento\Framework\ObjectFactory $objectFactory,
+        \Magento\Framework\DataObjectFactory $objectFactory,
         PriceCurrencyInterface $priceCurrency
     ) {
         $this->couponFactory = $couponFactory;
@@ -93,8 +75,10 @@ class Utility
      * Check if rule can be applied for specific address/quote/customer
      *
      * @param \Magento\SalesRule\Model\Rule $rule
-     * @param \Magento\Sales\Model\Quote\Address $address
+     * @param \Magento\Quote\Model\Quote\Address $address
      * @return bool
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function canProcessRule($rule, $address)
     {
@@ -170,13 +154,13 @@ class Utility
 
     /**
      * @param \Magento\SalesRule\Model\Rule\Action\Discount\Data $discountData
-     * @param \Magento\Sales\Model\Quote\Item\AbstractItem $item
+     * @param \Magento\Quote\Model\Quote\Item\AbstractItem $item
      * @param float $qty
      * @return void
      */
     public function minFix(
         \Magento\SalesRule\Model\Rule\Action\Discount\Data $discountData,
-        \Magento\Sales\Model\Quote\Item\AbstractItem $item,
+        \Magento\Quote\Model\Quote\Item\AbstractItem $item,
         $qty
     ) {
         $itemPrice = $this->getItemPrice($item);
@@ -196,18 +180,19 @@ class Utility
      * Process "delta" rounding
      *
      * @param \Magento\SalesRule\Model\Rule\Action\Discount\Data $discountData
-     * @param \Magento\Sales\Model\Quote\Item\AbstractItem $item
+     * @param \Magento\Quote\Model\Quote\Item\AbstractItem $item
      * @return $this
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
     public function deltaRoundingFix(
         \Magento\SalesRule\Model\Rule\Action\Discount\Data $discountData,
-        \Magento\Sales\Model\Quote\Item\AbstractItem $item
+        \Magento\Quote\Model\Quote\Item\AbstractItem $item
     ) {
         $store = $item->getQuote()->getStore();
         $discountAmount = $discountData->getAmount();
         $baseDiscountAmount = $discountData->getBaseAmount();
 
-        //TODO Seems \Magento\Sales\Model\Quote\Item\AbstractItem::getDiscountPercent() returns float value
+        //TODO Seems \Magento\Quote\Model\Quote\Item\AbstractItem::getDiscountPercent() returns float value
         //that can not be used as array index
         $percentKey = $item->getDiscountPercent();
         if ($percentKey) {
@@ -231,7 +216,7 @@ class Utility
     /**
      * Return item price
      *
-     * @param \Magento\Sales\Model\Quote\Item\AbstractItem $item
+     * @param \Magento\Quote\Model\Quote\Item\AbstractItem $item
      * @return float
      */
     public function getItemPrice($item)
@@ -244,7 +229,7 @@ class Utility
     /**
      * Return item base price
      *
-     * @param \Magento\Sales\Model\Quote\Item\AbstractItem $item
+     * @param \Magento\Quote\Model\Quote\Item\AbstractItem $item
      * @return float
      */
     public function getItemBasePrice($item)
@@ -256,7 +241,7 @@ class Utility
     /**
      * Return discount item qty
      *
-     * @param \Magento\Sales\Model\Quote\Item\AbstractItem $item
+     * @param \Magento\Quote\Model\Quote\Item\AbstractItem $item
      * @param \Magento\SalesRule\Model\Rule $rule
      * @return int
      */
@@ -278,10 +263,10 @@ class Utility
     public function mergeIds($a1, $a2, $asString = true)
     {
         if (!is_array($a1)) {
-            $a1 = empty($a1) ? array() : explode(',', $a1);
+            $a1 = empty($a1) ? [] : explode(',', $a1);
         }
         if (!is_array($a2)) {
-            $a2 = empty($a2) ? array() : explode(',', $a2);
+            $a2 = empty($a2) ? [] : explode(',', $a2);
         }
         $a = array_unique(array_merge($a1, $a2));
         if ($asString) {

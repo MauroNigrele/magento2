@@ -1,33 +1,15 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Review\Test\Constraint;
 
-use Mtf\Fixture\FixtureInterface;
-use Mtf\Constraint\AbstractConstraint;
-use Magento\Review\Test\Fixture\ReviewInjectable;
+use Magento\Review\Test\Fixture\Review;
 use Magento\Review\Test\Page\Adminhtml\ReviewIndex;
+use Magento\Mtf\Constraint\AbstractConstraint;
+use Magento\Mtf\Fixture\FixtureInterface;
 
 /**
  * Class AssertProductReviewNotInGrid
@@ -35,13 +17,6 @@ use Magento\Review\Test\Page\Adminhtml\ReviewIndex;
  */
 class AssertProductReviewNotInGrid extends AbstractConstraint
 {
-    /**
-     * Constraint severeness
-     *
-     * @var string
-     */
-    protected $severeness = 'low';
-
     /**
      * Filter params
      *
@@ -56,23 +31,23 @@ class AssertProductReviewNotInGrid extends AbstractConstraint
         'visible_in' => 'select_stores',
         'type',
         'name',
-        'sku'
+        'sku',
     ];
 
     /**
      * Asserts Product Review not available in grid
      *
      * @param ReviewIndex $reviewIndex
-     * @param ReviewInjectable $review
+     * @param Review $review
      * @param string $gridStatus
-     * @param ReviewInjectable $reviewInitial
+     * @param Review $reviewInitial
      * @return void
      */
     public function processAssert(
         ReviewIndex $reviewIndex,
-        ReviewInjectable $review,
+        Review $review,
         $gridStatus = '',
-        ReviewInjectable $reviewInitial = null
+        Review $reviewInitial = null
     ) {
         $product = $reviewInitial === null
             ? $review->getDataFieldConfig('entity_id')['source']->getEntity()
@@ -91,11 +66,11 @@ class AssertProductReviewNotInGrid extends AbstractConstraint
      * Prepare filter for assert
      *
      * @param FixtureInterface $product
-     * @param ReviewInjectable $review
+     * @param Review $review
      * @param string $gridStatus
      * @return array
      */
-    public function prepareFilter(FixtureInterface $product, ReviewInjectable $review, $gridStatus)
+    public function prepareFilter(FixtureInterface $product, Review $review, $gridStatus)
     {
         $filter = [];
         foreach ($this->filter as $key => $item) {

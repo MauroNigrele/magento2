@@ -1,52 +1,74 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Controller\Download;
 
-use \Magento\Catalog\Model\Product\Type\AbstractType\AbstractProductType;
+use Magento\Sales\Model\Download;
+use Magento\Framework\App\Action\Context;
+use Magento\Catalog\Model\Product\Type\AbstractType;
+use Magento\Framework\Controller\Result\ForwardFactory;
+use \Magento\Framework\Unserialize\Unserialize;
 
 class DownloadCustomOption extends \Magento\Framework\App\Action\Action
 {
     /**
+     * @var ForwardFactory
+     */
+    protected $resultForwardFactory;
+
+    /**
+     * @var Download
+     */
+    protected $download;
+
+    /**
+     * @var Unserialize
+     */
+    protected $unserialize;
+
+    /**
+     * @param Context $context
+     * @param ForwardFactory $resultForwardFactory
+     * @param Download $download
+     * @param Unserialize $unserialize
+     */
+    public function __construct(
+        Context $context,
+        ForwardFactory $resultForwardFactory,
+        Download $download,
+        Unserialize $unserialize
+    ) {
+        parent::__construct($context);
+        $this->resultForwardFactory = $resultForwardFactory;
+        $this->download = $download;
+        $this->unserialize = $unserialize;
+    }
+
+    /**
      * Custom options download action
      *
-     * @return void
+     * @return void|\Magento\Framework\Controller\Result\Forward
+     *
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function execute()
     {
         $quoteItemOptionId = $this->getRequest()->getParam('id');
-        /** @var $option \Magento\Sales\Model\Quote\Item\Option */
-        $option = $this->_objectManager->create('Magento\Sales\Model\Quote\Item\Option')->load($quoteItemOptionId);
+        /** @var $option \Magento\Quote\Model\Quote\Item\Option */
+        $option = $this->_objectManager->create('Magento\Quote\Model\Quote\Item\Option')->load($quoteItemOptionId);
+        /** @var \Magento\Framework\Controller\Result\Forward $resultForward */
+        $resultForward = $this->resultForwardFactory->create();
 
         if (!$option->getId()) {
-            $this->_forward('noroute');
-            return;
+            return $resultForward->forward('noroute');
         }
 
         $optionId = null;
-        if (strpos($option->getCode(), AbstractProductType::OPTION_PREFIX) === 0) {
-            $optionId = str_replace(AbstractProductType::OPTION_PREFIX, '', $option->getCode());
+        if (strpos($option->getCode(), AbstractType::OPTION_PREFIX) === 0) {
+            $optionId = str_replace(AbstractType::OPTION_PREFIX, '', $option->getCode());
             if ((int)$optionId != $optionId) {
                 $optionId = null;
             }
@@ -61,20 +83,29 @@ class DownloadCustomOption extends \Magento\Framework\App\Action\Action
             $productOption->getProductId() != $option->getProductId() ||
             $productOption->getType() != 'file'
         ) {
-            $this->_forward('noroute');
-            return;
+            return $resultForward->forward('noroute');
         }
 
         try {
-            $info = unserialize($option->getValue());
+            $info = $this->unserialize->unserialize($option->getValue());
             if ($this->getRequest()->getParam('key') != $info['secret_key']) {
-                $this->_forward('noroute');
-                return;
+                return $resultForward->forward('noroute');
             }
-            $this->_download->downloadFile($info);
+            $this->download->downloadFile($info);
         } catch (\Exception $e) {
-            $this->_forward('noroute');
+            return $resultForward->forward('noroute');
         }
+        $this->endExecute();
+    }
+
+    /**
+     * Ends execution process
+     *
+     * @return void
+     * @SuppressWarnings(PHPMD.ExitExpression)
+     */
+    protected function endExecute()
+    {
         exit(0);
     }
 }

@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Bundle\Model\Sales\Order\Pdf\Items;
 
@@ -33,12 +15,12 @@ abstract class AbstractItems extends \Magento\Sales\Model\Order\Pdf\Items\Abstra
     /**
      * Getting all available children for Invoice, Shipment or CreditMemo item
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @return array
      */
-    public function getChilds($item)
+    public function getChildren($item)
     {
-        $itemsArray = array();
+        $itemsArray = [];
 
         $items = null;
         if ($item instanceof \Magento\Sales\Model\Order\Invoice\Item) {
@@ -70,8 +52,9 @@ abstract class AbstractItems extends \Magento\Sales\Model\Order\Pdf\Items\Abstra
     /**
      * Retrieve is Shipment Separately flag for Item
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @return bool
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function isShipmentSeparately($item = null)
     {
@@ -107,8 +90,9 @@ abstract class AbstractItems extends \Magento\Sales\Model\Order\Pdf\Items\Abstra
     /**
      * Retrieve is Child Calculated
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @return bool
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function isChildCalculated($item = null)
     {
@@ -146,8 +130,9 @@ abstract class AbstractItems extends \Magento\Sales\Model\Order\Pdf\Items\Abstra
     /**
      * Retrieve Bundle Options
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @return array
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function getBundleOptions($item = null)
     {
@@ -155,13 +140,13 @@ abstract class AbstractItems extends \Magento\Sales\Model\Order\Pdf\Items\Abstra
         if ($options && isset($options['bundle_options'])) {
             return $options['bundle_options'];
         }
-        return array();
+        return [];
     }
 
     /**
      * Retrieve Selection attributes
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @return mixed
      */
     public function getSelectionAttributes($item)
@@ -180,12 +165,13 @@ abstract class AbstractItems extends \Magento\Sales\Model\Order\Pdf\Items\Abstra
     /**
      * Retrieve Order options
      *
-     * @param \Magento\Framework\Object $item
+     * @param \Magento\Framework\DataObject $item
      * @return array
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function getOrderOptions($item = null)
     {
-        $result = array();
+        $result = [];
         $options = $this->getOrderItem()->getProductOptions();
         if ($options) {
             if (isset($options['options'])) {
@@ -227,7 +213,7 @@ abstract class AbstractItems extends \Magento\Sales\Model\Order\Pdf\Items\Abstra
         if (!$this->isShipmentSeparately($item)) {
             $attributes = $this->getSelectionAttributes($item);
             if ($attributes) {
-                $result = $this->filterManager->sprintf($attributes['qty'], array('format' => '%d')) . ' x ' . $result;
+                $result = $this->filterManager->sprintf($attributes['qty'], ['format' => '%d']) . ' x ' . $result;
             }
         }
         if (!$this->isChildCalculated($item)) {

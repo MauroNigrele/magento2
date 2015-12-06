@@ -1,35 +1,18 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Customer\Block\Adminhtml\Edit\Tab;
 
+use Magento\Customer\Api\AccountManagementInterface;
 use Magento\Customer\Controller\RegistryConstants;
-use Magento\Customer\Service\V1\CustomerAccountServiceInterface;
+use Magento\Ui\Component\Layout\Tabs\TabInterface;
 
 /**
  * Customer account form block
  */
-class Newsletter extends \Magento\Backend\Block\Widget\Form\Generic
+class Newsletter extends \Magento\Backend\Block\Widget\Form\Generic implements TabInterface
 {
     /**
      * @var string
@@ -42,9 +25,16 @@ class Newsletter extends \Magento\Backend\Block\Widget\Form\Generic
     protected $_subscriberFactory;
 
     /**
-     * @var CustomerAccountServiceInterface
+     * @var AccountManagementInterface
      */
-    protected $_customerAccountService;
+    protected $customerAccountManagement;
+
+    /**
+     * Core registry
+     *
+     * @var \Magento\Framework\Registry
+     */
+    protected $_coreRegistry = null;
 
     /**
      * Constructor
@@ -53,7 +43,7 @@ class Newsletter extends \Magento\Backend\Block\Widget\Form\Generic
      * @param \Magento\Framework\Registry $registry
      * @param \Magento\Framework\Data\FormFactory $formFactory
      * @param \Magento\Newsletter\Model\SubscriberFactory $subscriberFactory
-     * @param CustomerAccountServiceInterface $customerAccountService
+     * @param AccountManagementInterface $customerAccountManagement
      * @param array $data
      */
     public function __construct(
@@ -61,12 +51,82 @@ class Newsletter extends \Magento\Backend\Block\Widget\Form\Generic
         \Magento\Framework\Registry $registry,
         \Magento\Framework\Data\FormFactory $formFactory,
         \Magento\Newsletter\Model\SubscriberFactory $subscriberFactory,
-        CustomerAccountServiceInterface $customerAccountService,
-        array $data = array()
+        AccountManagementInterface $customerAccountManagement,
+        array $data = []
     ) {
         $this->_subscriberFactory = $subscriberFactory;
-        $this->_customerAccountService = $customerAccountService;
+        $this->customerAccountManagement = $customerAccountManagement;
         parent::__construct($context, $registry, $formFactory, $data);
+    }
+
+    /**
+     * Return Tab label
+     *
+     * @return \Magento\Framework\Phrase
+     */
+    public function getTabLabel()
+    {
+        return __('Newsletter');
+    }
+
+    /**
+     * Return Tab title
+     *
+     * @return \Magento\Framework\Phrase
+     */
+    public function getTabTitle()
+    {
+        return __('Newsletter');
+    }
+
+    /**
+     * Tab class getter
+     *
+     * @return string
+     */
+    public function getTabClass()
+    {
+        return '';
+    }
+
+    /**
+     * Return URL link to Tab content
+     *
+     * @return string
+     */
+    public function getTabUrl()
+    {
+        return '';
+    }
+
+    /**
+     * Tab should be loaded trough Ajax call
+     *
+     * @return bool
+     */
+    public function isAjaxLoaded()
+    {
+        return false;
+    }
+
+    /**
+     * Can show tab in tabs
+     *
+     * @return boolean
+     */
+    public function canShowTab()
+    {
+        return $this->_coreRegistry->registry(RegistryConstants::CURRENT_CUSTOMER_ID);
+    }
+
+    /**
+     * Tab is hidden
+     *
+     * @return boolean
+     */
+    public function isHidden()
+    {
+        return false;
     }
 
     /**
@@ -76,6 +136,9 @@ class Newsletter extends \Magento\Backend\Block\Widget\Form\Generic
      */
     public function initForm()
     {
+        if (!$this->canShowTab()) {
+            return $this;
+        }
         /**@var \Magento\Framework\Data\Form $form */
         $form = $this->_formFactory->create();
         $form->setHtmlIdPrefix('_newsletter');
@@ -83,30 +146,36 @@ class Newsletter extends \Magento\Backend\Block\Widget\Form\Generic
         $subscriber = $this->_subscriberFactory->create()->loadByCustomerId($customerId);
         $this->_coreRegistry->register('subscriber', $subscriber);
 
-        $fieldset = $form->addFieldset('base_fieldset', array('legend' => __('Newsletter Information')));
+        $fieldset = $form->addFieldset('base_fieldset', ['legend' => __('Newsletter Information')]);
 
         $fieldset->addField(
             'subscription',
             'checkbox',
-            array('label' => __('Subscribed to Newsletter'), 'name' => 'subscription')
+            [
+                'label' => __('Subscribed to Newsletter'),
+                'name' => 'subscription',
+                'data-form-part' => $this->getData('target_form'),
+                'onchange' => 'this.value = this.checked;'
+            ]
         );
 
-        if (!$this->_customerAccountService->canModify($customerId)) {
+        if ($this->customerAccountManagement->isReadOnly($customerId)) {
             $form->getElement('subscription')->setReadonly(true, true);
         }
-
-        $form->getElement('subscription')->setIsChecked($subscriber->isSubscribed());
+        $isSubscribed = $subscriber->isSubscribed();
+        $form->setValues(['subscription' => $isSubscribed ? 'true' : 'false']);
+        $form->getElement('subscription')->setIsChecked($isSubscribed);
 
         $changedDate = $this->getStatusChangedDate();
         if ($changedDate) {
             $fieldset->addField(
                 'change_status_date',
                 'label',
-                array(
-                    'label' => $subscriber->isSubscribed() ? __('Last Date Subscribed') : __('Last Date Unsubscribed'),
+                [
+                    'label' => $isSubscribed ? __('Last Date Subscribed') : __('Last Date Unsubscribed'),
                     'value' => $changedDate,
                     'bold' => true
-                )
+                ]
             );
         }
 
@@ -125,7 +194,7 @@ class Newsletter extends \Magento\Backend\Block\Widget\Form\Generic
         if ($subscriber->getChangeStatusAt()) {
             return $this->formatDate(
                 $subscriber->getChangeStatusAt(),
-                \Magento\Framework\Stdlib\DateTime\TimezoneInterface::FORMAT_TYPE_MEDIUM,
+                \IntlDateFormatter::MEDIUM,
                 true
             );
         }
@@ -147,6 +216,20 @@ class Newsletter extends \Magento\Backend\Block\Widget\Form\Generic
                 'newsletter.grid'
             )
         );
-        return parent::_prepareLayout();
+        parent::_prepareLayout();
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    protected function _toHtml()
+    {
+        if ($this->canShowTab()) {
+            $this->initForm();
+            return parent::_toHtml();
+        } else {
+            return '';
+        }
     }
 }

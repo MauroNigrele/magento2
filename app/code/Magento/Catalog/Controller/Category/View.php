@@ -1,29 +1,19 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Controller\Category;
 
+use Magento\Catalog\Api\CategoryRepositoryInterface;
+use Magento\Catalog\Model\Layer\Resolver;
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\View\Result\PageFactory;
+
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 class View extends \Magento\Framework\App\Action\Action
 {
     /**
@@ -48,39 +38,74 @@ class View extends \Magento\Framework\App\Action\Action
     protected $_catalogDesign;
 
     /**
-     * Category factory
-     *
-     * @var \Magento\Catalog\Model\CategoryFactory
-     */
-    protected $_categoryFactory;
-
-    /**
-     * @var \Magento\Framework\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
+     * @var \Magento\CatalogUrlRewrite\Model\CategoryUrlPathGenerator
+     */
+    protected $categoryUrlPathGenerator;
+
+    /**
+     * @var \Magento\Framework\View\Result\PageFactory
+     */
+    protected $resultPageFactory;
+
+    /**
+     * @var \Magento\Framework\Controller\Result\ForwardFactory
+     */
+    protected $resultForwardFactory;
+
+    /**
+     * Catalog Layer Resolver
+     *
+     * @var Resolver
+     */
+    private $layerResolver;
+
+    /**
+     * @var CategoryRepositoryInterface
+     */
+    protected $categoryRepository;
+
+    /**
+     * Constructor
+     *
      * @param \Magento\Framework\App\Action\Context $context
-     * @param \Magento\Catalog\Model\CategoryFactory $categoryFactory
      * @param \Magento\Catalog\Model\Design $catalogDesign
      * @param \Magento\Catalog\Model\Session $catalogSession
      * @param \Magento\Framework\Registry $coreRegistry
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\CatalogUrlRewrite\Model\CategoryUrlPathGenerator $categoryUrlPathGenerator
+     * @param \Magento\Framework\View\Result\PageFactory $resultPageFactory
+     * @param \Magento\Framework\Controller\Result\ForwardFactory $resultForwardFactory
+     * @param Resolver $layerResolver
+     * @param CategoryRepositoryInterface $categoryRepository
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
-        \Magento\Catalog\Model\CategoryFactory $categoryFactory,
         \Magento\Catalog\Model\Design $catalogDesign,
         \Magento\Catalog\Model\Session $catalogSession,
         \Magento\Framework\Registry $coreRegistry,
-        \Magento\Framework\StoreManagerInterface $storeManager
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\CatalogUrlRewrite\Model\CategoryUrlPathGenerator $categoryUrlPathGenerator,
+        PageFactory $resultPageFactory,
+        \Magento\Framework\Controller\Result\ForwardFactory $resultForwardFactory,
+        Resolver $layerResolver,
+        CategoryRepositoryInterface $categoryRepository
     ) {
+        parent::__construct($context);
         $this->_storeManager = $storeManager;
-        $this->_categoryFactory = $categoryFactory;
         $this->_catalogDesign = $catalogDesign;
         $this->_catalogSession = $catalogSession;
         $this->_coreRegistry = $coreRegistry;
-        parent::__construct($context);
+        $this->categoryUrlPathGenerator = $categoryUrlPathGenerator;
+        $this->resultPageFactory = $resultPageFactory;
+        $this->resultForwardFactory = $resultForwardFactory;
+        $this->layerResolver = $layerResolver;
+        $this->categoryRepository = $categoryRepository;
     }
 
     /**
@@ -95,13 +120,11 @@ class View extends \Magento\Framework\App\Action\Action
             return false;
         }
 
-        /** @var \Magento\Catalog\Model\Category $category */
-        $category = $this->_categoryFactory->create()->setStoreId(
-            $this->_storeManager->getStore()->getId()
-        )->load(
-            $categoryId
-        );
-
+        try {
+            $category = $this->categoryRepository->get($categoryId, $this->_storeManager->getStore()->getId());
+        } catch (NoSuchEntityException $e) {
+            return false;
+        }
         if (!$this->_objectManager->get('Magento\Catalog\Helper\Category')->canShow($category)) {
             return false;
         }
@@ -110,10 +133,10 @@ class View extends \Magento\Framework\App\Action\Action
         try {
             $this->_eventManager->dispatch(
                 'catalog_controller_category_init_after',
-                array('category' => $category, 'controller_action' => $this)
+                ['category' => $category, 'controller_action' => $this]
             );
-        } catch (\Magento\Framework\Model\Exception $e) {
-            $this->_objectManager->get('Magento\Framework\Logger')->logException($e);
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+            $this->_objectManager->get('Psr\Log\LoggerInterface')->critical($e);
             return false;
         }
 
@@ -123,18 +146,19 @@ class View extends \Magento\Framework\App\Action\Action
     /**
      * Category view action
      *
-     * @return void
+     * @return \Magento\Framework\Controller\ResultInterface
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
     public function execute()
     {
-        if ($this->_request->getParam(\Magento\Framework\App\Action\Action::PARAM_NAME_URL_ENCODED)) {
-            $this->getResponse()->setRedirect($this->_redirect->getRedirectUrl());
-            return;
+        if ($this->_request->getParam(\Magento\Framework\App\ActionInterface::PARAM_NAME_URL_ENCODED)) {
+            return $this->resultRedirectFactory->create()->setUrl($this->_redirect->getRedirectUrl());
         }
         $category = $this->_initCategory();
         if ($category) {
+            $this->layerResolver->create(Resolver::CATALOG_LAYER_CATEGORY);
             $settings = $this->_catalogDesign->getDesignSettings($category);
-            $pageConfig = $this->_view->getPage()->getConfig();
 
             // apply custom design
             if ($settings->getCustomDesign()) {
@@ -143,12 +167,11 @@ class View extends \Magento\Framework\App\Action\Action
 
             $this->_catalogSession->setLastViewedCategoryId($category->getId());
 
+            $page = $this->resultPageFactory->create();
             // apply custom layout (page) template once the blocks are generated
             if ($settings->getPageLayout()) {
-                $pageConfig->setPageLayout($settings->getPageLayout());
+                $page->getConfig()->setPageLayout($settings->getPageLayout());
             }
-            $this->_view->getPage()->initLayout();
-            $update = $this->_view->getLayout()->getUpdate();
             if ($category->getIsAnchor()) {
                 $type = $category->hasChildren() ? 'layered' : 'layered_without_children';
             } else {
@@ -158,31 +181,25 @@ class View extends \Magento\Framework\App\Action\Action
             if (!$category->hasChildren()) {
                 // Two levels removed from parent.  Need to add default page type.
                 $parentType = strtok($type, '_');
-                $this->_view->addPageLayoutHandles(array('type' => $parentType));
+                $page->addPageLayoutHandles(['type' => $parentType]);
             }
-            $this->_view->addPageLayoutHandles(array('type' => $type, 'id' => $category->getId()));
-
-            $this->_view->loadLayoutUpdates();
+            $page->addPageLayoutHandles(['type' => $type, 'id' => $category->getId()]);
 
             // apply custom layout update once layout is loaded
             $layoutUpdates = $settings->getLayoutUpdates();
             if ($layoutUpdates && is_array($layoutUpdates)) {
                 foreach ($layoutUpdates as $layoutUpdate) {
-                    $update->addUpdate($layoutUpdate);
+                    $page->addUpdate($layoutUpdate);
                 }
             }
 
-            $this->_view->generateLayoutXml();
-            $this->_view->generateLayoutBlocks();
-
-            $pageConfig->addBodyClass('page-products')
-                ->addBodyClass('categorypath-' . $category->getUrlPath())
+            $page->getConfig()->addBodyClass('page-products')
+                ->addBodyClass('categorypath-' . $this->categoryUrlPathGenerator->getUrlPath($category))
                 ->addBodyClass('category-' . $category->getUrlKey());
 
-            $this->_view->getLayout()->initMessages();
-            $this->_view->renderLayout();
+            return $page;
         } elseif (!$this->getResponse()->isRedirect()) {
-            $this->_forward('noroute');
+            return $this->resultForwardFactory->create()->forward('noroute');
         }
     }
 }

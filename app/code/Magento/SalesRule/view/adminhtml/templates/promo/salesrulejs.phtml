@@ -1,36 +1,25 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 ?>
-<script type="text/javascript">
-require(['jquery', "prototype"], function(jQuery){
+<script>
+require([
+    'jquery',
+    "uiRegistry",
+    'Magento_Ui/js/modal/alert',
+    'prototype'
+], function(jQuery, registry, alert){
 
 //<![CDATA[
-var couponTypeSpecific = '<?php echo \Magento\SalesRule\Model\Rule::COUPON_TYPE_SPECIFIC ?>';
-var tmpButtonsActionsStorage = [];
+var couponTypeSpecific = '<?php /* @escapeNotVerified */ echo \Magento\SalesRule\Model\Rule::COUPON_TYPE_SPECIFIC ?>',
+    tmpButtonsActionsStorage = [];
 
 function disableEnableCouponsTabContent(disable) {
-    var containerId = 'promo_catalog_edit_tabs_coupons_section_content';
+    var containerId = 'promo_catalog_edit_tabs_coupons_section_content',
+        couponCode = $('rule_coupon_code');
+
     if($(containerId)){
         var dataFields = $(containerId).select('input', 'select', 'textarea', 'button');
         for(var i = 0; i < dataFields.length; i++) {
@@ -38,7 +27,8 @@ function disableEnableCouponsTabContent(disable) {
                 : dataFields[i].enable().removeClassName('disabled');
         }
     }
-    disable ? $('rule_coupon_code').enable() : $('rule_coupon_code').disable();
+
+    couponCode.disabled = !disable;
 }
 
 function handleCouponsTabContentActivity() {
@@ -82,7 +72,12 @@ function generateCouponCodes(idPrefix, generateUrl, grid) {
 
     var params = Form.serializeElements(elements, true);
     params.form_key = FORM_KEY;
-    $('messages').update();
+    if ($$('#'+idPrefix + 'information_fieldset .messages')) {
+        $$('#'+idPrefix + 'information_fieldset .messages')[0].update();
+    }
+    if ($('messages')) {
+        $('messages').update();
+    }
     var couponCodesGrid = eval(grid);
     new Ajax.Request(generateUrl, {
         parameters :params,
@@ -90,16 +85,26 @@ function generateCouponCodes(idPrefix, generateUrl, grid) {
         onComplete : function (transport, param){
             var response = false;
             if (transport && transport.responseText) {
-                response = eval('(' + transport.responseText + ')');
+                try {
+                    response = JSON.parse(transport.responseText);
+                } catch (e) {
+                    console.warn('An error occured while parsing response');
+                }
             }
             if (couponCodesGrid) {
                 couponCodesGrid.reload();
             }
             if (response && response.messages) {
-                $('messages').update(response.messages);
+                if ($$('#'+idPrefix + 'information_fieldset .messages')) {
+                    $$('#'+idPrefix + 'information_fieldset .messages')[0].update(response.messages);
+                } else if ($('messages')) {
+                    $('messages').update(response.messages);
+                }
             }
             if (response && response.error) {
-                alert(response.error);
+                alert({
+                    content: response.error
+                });
             }
         }
     });
@@ -122,9 +127,10 @@ window.handleCouponTypeChange = handleCouponTypeChange;
 window.handleCouponsTabContentActivity = handleCouponsTabContentActivity;
 window.disableEnableCouponsTabContent = disableEnableCouponsTabContent;
 
-document.observe("dom:loaded", handleCouponsTabContentActivity);
-document.observe("dom:loaded", handleCouponTypeChange);
-//]]>
+registry.get('formDependenceController', function() {
+    handleCouponsTabContentActivity();
+    handleCouponTypeChange();
+});
 
 });
 </script>

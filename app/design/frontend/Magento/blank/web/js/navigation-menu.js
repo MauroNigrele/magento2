@@ -1,35 +1,18 @@
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 /*jshint jquery:true*/
 
 define([
     "jquery",
-    "jquery/template",
     "matchMedia",
+    "mage/template",
     "mage/dropdowns",
     "mage/terms"
-],function($) {
+],function($, mediaCheck, mageTemplate) {
     'use strict';
+
     $.widget('mage.navigationMenu', {
         options: {
             itemsContainer: '> ul',
@@ -42,10 +25,10 @@ define([
             submenuAnimationSpeed: 200,
             collapsable: true,
             collapsableDropdownTemplate:
-                '<script type="text/x-jquery-tmpl">' +
+                '<script type="text/x-magento-template">' +
                     '<li class="level0 level-top more parent">' +
                         '<div class="submenu">' +
-                            '<ul>{{html elems}}</ul>' +
+                            '<ul><%= elems %></ul>' +
                         '</div>' +
                     '</li>' +
                 '</script>'
@@ -176,27 +159,20 @@ define([
             });
             this.elemsToCollapseClone = $('<div></div>').append(this.elemsToCollapse.clone()).html();
 
-            this.collapsableDropdown = $(this.options.collapsableDropdownTemplate).tmpl({elems: this.elemsToCollapseClone});
+            this.collapsableDropdown = $(
+                mageTemplate(
+                    this.options.collapsableDropdownTemplate,
+                    {elems: this.elemsToCollapseClone}
+                )
+            );
 
-            this.itemsContainer
-                .append(this.collapsableDropdown);
-
+            this.itemsContainer.append(this.collapsableDropdown);
             this.elemsToCollapse.detach();
         },
 
         _expandMenu: function() {
-            if ($.browser.version != 8.0) {
-                this.elemsToCollapse && this.elemsToCollapse.appendTo(this.itemsContainer);
-                this.collapsableDropdown && this.collapsableDropdown.remove();
-            } else {
-                setTimeout($.proxy(function() {
-                    var moreWrapper = $('.more', this.element);
-
-                    if (moreWrapper.length > 1) {
-                        moreWrapper.eq(moreWrapper.length - 1).remove();
-                    }
-                }, this), 1);
-            }
+            this.elemsToCollapse && this.elemsToCollapse.appendTo(this.itemsContainer);
+            this.collapsableDropdown && this.collapsableDropdown.remove();
         },
 
         _destroy: function() {
@@ -318,26 +294,26 @@ define([
             titleWithSubmenu: 'li.parent > a',
             submenu: 'li.parent > .submenu',
             toggleActionTemplate:
-                '<script type="text/x-jquery-tmpl">' +
+                '<script type="text/x-magento-template">' +
                     '<span data-action="toggle-nav" class="action toggle nav">Toggle Nav</span>' +
                 '</script>',
             submenuActionsTemplate:
-                '<script type="text/x-jquery-tmpl">' +
+                '<script type="text/x-magento-template">' +
                     '<li class="action all">' +
-                        '<a href="${ categoryURL }"><span>All ${ category }</span></a>' +
+                        '<a href="<%= categoryURL %>"><span>All <%= category %></span></a>' +
                     '</li>' +
                 '</script>',
             navigationSectionsWrapperTemplate:
-                '<script type="text/x-jquery-tmpl">' +
+                '<script type="text/x-magento-template">' +
                     '<dl class="navigation-tabs" data-sections="tabs">' +
                     '</dl>' +
                 '</script>',
             navigationItemWrapperTemplate:
-                '<script type="text/x-jquery-tmpl">' +
-                    '<dt class="item title {{if active}}active{{/if}}" data-section="title">' +
-                        '<a class="switch" data-toggle="switch" href="#TODO">${ title }</a>' +
+                '<script type="text/x-magento-template">' +
+                    '<dt class="item title <% if (active) { %>active<% } %>" data-section="title">' +
+                        '<a class="switch" data-toggle="switch" href="#TODO"><%= title %></a>' +
                     '</dt>' +
-                    '<dd class="item content {{if active}}active{{/if}}" data-section="content">' +
+                    '<dd class="item content <% if (active) { %>active<%}%>" data-section="content">' +
                     '</dd>' +
                 '</script>'
         },
@@ -347,7 +323,7 @@ define([
 
             this.mainContainer = $(this.options.mainContainer);
             this.pageWrapper = $(this.options.pageWrapper);
-            this.toggleAction = $(this.options.toggleActionTemplate).tmpl({});
+            this.toggleAction = $(mageTemplate(this.options.toggleActionTemplate, {}));
 
             if (this.options.responsive) {
                 mediaCheck({
@@ -429,16 +405,26 @@ define([
         },
 
         _renderSubmenuActions: function() {
-            $.each($(this.options.itemWithSubmenu), $.proxy(function(index, item) {
-                var actions = $(this.options.submenuActionsTemplate).tmpl({
-                        category: $('> a > span', item).text(),
-                        categoryURL: $('> a', item).attr('href')
-                    }),
-                    submenu = $('> .submenu', item),
-                    items = $('> ul', submenu);
-
-                items.prepend(actions);
-            }, this));
+            $.each(
+                $(this.options.itemWithSubmenu),
+                $.proxy(
+                    function(index, item) {
+                        var actions = $(
+                            mageTemplate(
+                                this.options.submenuActionsTemplate,
+                                {
+                                    category: $('> a > span', item).text(),
+                                    categoryURL: $('> a', item).attr('href')
+                                }
+                            )
+                            ),
+                            submenu = $('> .submenu', item),
+                            items = $('> ul', submenu);
+                            items.prepend(actions);
+                    },
+                    this
+                )
+            );
         },
 
         _toggleMobileMode: function() {
@@ -510,31 +496,27 @@ define([
             var account = $('> .account', this.mobileNav),
                 settings = $('> .settings', this.mobileNav),
                 nav = $('> .nav', this.mobileNav),
-                navigationSectionsWrapper = $(this.options.navigationSectionsWrapperTemplate).tmpl(),
+                navigationSectionsWrapper = $(mageTemplate(this.options.navigationSectionsWrapperTemplate, {})),
                 navigationItemWrapper;
 
             this.mobileNav.append(navigationSectionsWrapper);
 
             if (nav.length) {
-                navigationItemWrapper = $(this.options.navigationItemWrapperTemplate).tmpl({
-                    title: 'Menu'
-                });
+                navigationItemWrapper = $(mageTemplate(this.options.navigationItemWrapperTemplate, {title: 'Menu'}));
                 navigationSectionsWrapper.append(navigationItemWrapper);
                 navigationItemWrapper.eq(1).append(nav);
             }
 
             if (account.length) {
-                navigationItemWrapper = $(this.options.navigationItemWrapperTemplate).tmpl({
-                    title: 'Account'
-                });
+                navigationItemWrapper = $(mageTemplate(this.options.navigationItemWrapperTemplate, {title: 'Account'}));
                 navigationSectionsWrapper.append(navigationItemWrapper);
                 navigationItemWrapper.eq(1).append(account);
             }
 
             if (settings.length) {
-                navigationItemWrapper = $(this.options.navigationItemWrapperTemplate).tmpl({
-                    title: 'Settings'
-                });
+                navigationItemWrapper = $(
+                    mageTemplate(this.options.navigationItemWrapperTemplate, {title: 'Settings'})
+                );
                 navigationSectionsWrapper.append(navigationItemWrapper);
                 navigationItemWrapper.eq(1).append(settings);
             }
@@ -568,4 +550,6 @@ define([
             }
         }
     });
+
+    return $.mage.navigationMenu;
 });

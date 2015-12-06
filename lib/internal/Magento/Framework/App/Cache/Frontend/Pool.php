@@ -1,27 +1,12 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\App\Cache\Frontend;
+
+use Magento\Framework\App\Cache\Type\FrontendPool;
+use Magento\Framework\App\DeploymentConfig;
 
 /**
  * In-memory readonly pool of all cache front-end instances known to the system
@@ -34,9 +19,9 @@ class Pool implements \Iterator
     const DEFAULT_FRONTEND_ID = 'default';
 
     /**
-     * @var \Magento\Framework\App\Arguments
+     * @var DeploymentConfig
      */
-    private $_arguments;
+    private $deploymentConfig;
 
     /**
      * @var Factory
@@ -54,18 +39,18 @@ class Pool implements \Iterator
     private $_frontendSettings;
 
     /**
-     * @param \Magento\Framework\App\Arguments $arguments
+     * @param DeploymentConfig $deploymentConfig
      * @param Factory $frontendFactory
      * @param array $frontendSettings Format: array('<frontend_id>' => array(<cache_settings>), ...)
      */
     public function __construct(
-        \Magento\Framework\App\Arguments $arguments,
+        DeploymentConfig $deploymentConfig,
         Factory $frontendFactory,
-        array $frontendSettings = array()
+        array $frontendSettings = []
     ) {
-        $this->_arguments = $arguments;
+        $this->deploymentConfig = $deploymentConfig;
         $this->_factory = $frontendFactory;
-        $this->_frontendSettings = $frontendSettings + array(self::DEFAULT_FRONTEND_ID => array());
+        $this->_frontendSettings = $frontendSettings + [self::DEFAULT_FRONTEND_ID => []];
     }
 
     /**
@@ -77,7 +62,7 @@ class Pool implements \Iterator
     protected function _initialize()
     {
         if ($this->_instances === null) {
-            $this->_instances = array();
+            $this->_instances = [];
             foreach ($this->_getCacheSettings() as $frontendId => $frontendOptions) {
                 $this->_instances[$frontendId] = $this->_factory->create($frontendOptions);
             }
@@ -95,7 +80,11 @@ class Pool implements \Iterator
          * Merging is intentionally implemented through array_merge() instead of array_replace_recursive()
          * to avoid "inheritance" of the default settings that become irrelevant as soon as cache storage type changes
          */
-        return array_merge($this->_frontendSettings, $this->_arguments->getCacheFrontendSettings());
+        $cacheInfo = $this->deploymentConfig->getConfigData(FrontendPool::KEY_CACHE);
+        if (null !== $cacheInfo) {
+            return array_merge($this->_frontendSettings, $cacheInfo[FrontendPool::KEY_FRONTEND_CACHE]);
+        }
+        return $this->_frontendSettings;
     }
 
     /**

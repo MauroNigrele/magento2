@@ -1,29 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Paypal\Helper\Shortcut;
 
+/**
+ * @SuppressWarnings(PHPMD.UnusedPrivateField)
+ */
 class Validator implements ValidatorInterface
 {
     /**
@@ -98,7 +83,7 @@ class Validator implements ValidatorInterface
 
         // check visibility on cart or product page
         $context = $isInCatalog ? 'visible_on_product' : 'visible_on_cart';
-        if (!$config->getConfigValue($context)) {
+        if (!$config->getValue($context)) {
             return false;
         }
         return true;
@@ -116,7 +101,7 @@ class Validator implements ValidatorInterface
             // Show PayPal shortcut on a product view page only if product has nonzero price
             /** @var $currentProduct \Magento\Catalog\Model\Product */
             $currentProduct = $this->_registry->registry('current_product');
-            if (!is_null($currentProduct)) {
+            if ($currentProduct !== null) {
                 $productPrice = (double)$currentProduct->getFinalPrice();
                 $typeInstance = $currentProduct->getTypeInstance();
                 if (empty($productPrice)
@@ -141,7 +126,7 @@ class Validator implements ValidatorInterface
         // check payment method availability
         /** @var \Magento\Payment\Model\Method\AbstractMethod $methodInstance */
         $methodInstance = $this->_paymentData->getMethodInstance($paymentCode);
-        if (!$methodInstance || !$methodInstance->isAvailable()) {
+        if (!$methodInstance->isAvailable()) {
             return false;
         }
         return true;

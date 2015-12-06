@@ -1,27 +1,8 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 
 /**
  * Entity/Attribute/Model - attribute frontend abstract
@@ -46,6 +27,7 @@ abstract class AbstractFrontend implements \Magento\Eav\Model\Entity\Attribute\F
 
     /**
      * @param \Magento\Eav\Model\Entity\Attribute\Source\BooleanFactory $attrBooleanFactory
+     * @codeCoverageIgnore
      */
     public function __construct(\Magento\Eav\Model\Entity\Attribute\Source\BooleanFactory $attrBooleanFactory)
     {
@@ -57,6 +39,7 @@ abstract class AbstractFrontend implements \Magento\Eav\Model\Entity\Attribute\F
      *
      * @param \Magento\Eav\Model\Entity\Attribute\AbstractAttribute $attribute
      * @return $this
+     * @codeCoverageIgnore
      */
     public function setAttribute($attribute)
     {
@@ -68,6 +51,7 @@ abstract class AbstractFrontend implements \Magento\Eav\Model\Entity\Attribute\F
      * Get attribute instance
      *
      * @return \Magento\Eav\Model\Entity\Attribute\AbstractAttribute
+     * @codeCoverageIgnore
      */
     public function getAttribute()
     {
@@ -78,6 +62,7 @@ abstract class AbstractFrontend implements \Magento\Eav\Model\Entity\Attribute\F
      * Get attribute type for user interface form
      *
      * @return string
+     * @codeCoverageIgnore
      */
     public function getInputType()
     {
@@ -85,7 +70,7 @@ abstract class AbstractFrontend implements \Magento\Eav\Model\Entity\Attribute\F
     }
 
     /**
-     * Retrieve lable
+     * Retrieve label
      *
      * @return string
      */
@@ -100,15 +85,25 @@ abstract class AbstractFrontend implements \Magento\Eav\Model\Entity\Attribute\F
     }
 
     /**
+     * Retrieve localized label
+     *
+     * @return \Magento\Framework\Phrase
+     */
+    public function getLocalizedLabel()
+    {
+        return __($this->getLabel());
+    }
+
+    /**
      * Retrieve attribute value
      *
-     * @param \Magento\Framework\Object $object
+     * @param \Magento\Framework\DataObject $object
      * @return mixed
      */
-    public function getValue(\Magento\Framework\Object $object)
+    public function getValue(\Magento\Framework\DataObject $object)
     {
         $value = $object->getData($this->getAttribute()->getAttributeCode());
-        if (in_array($this->getConfigField('input'), array('select', 'boolean'))) {
+        if (in_array($this->getConfigField('input'), ['select', 'boolean'])) {
             $valueOption = $this->getOption($value);
             if (!$valueOption) {
                 $opt = $this->_attrBooleanFactory->create();
@@ -136,6 +131,7 @@ abstract class AbstractFrontend implements \Magento\Eav\Model\Entity\Attribute\F
      * Checks if attribute is visible on frontend
      *
      * @return bool
+     * @codeCoverageIgnore
      */
     public function isVisible()
     {
@@ -149,7 +145,7 @@ abstract class AbstractFrontend implements \Magento\Eav\Model\Entity\Attribute\F
      */
     public function getClass()
     {
-        $out = array();
+        $out = [];
         $out[] = $this->getAttribute()->getFrontendClass();
         if ($this->getAttribute()->getIsRequired()) {
             $out[] = 'required-entry';
@@ -206,6 +202,7 @@ abstract class AbstractFrontend implements \Magento\Eav\Model\Entity\Attribute\F
      *
      * @param string $fieldName
      * @return mixed
+     * @codeCoverageIgnore
      */
     public function getConfigField($fieldName)
     {
@@ -241,6 +238,7 @@ abstract class AbstractFrontend implements \Magento\Eav\Model\Entity\Attribute\F
      * Retrieve Input Renderer Class
      *
      * @return string|null
+     * @codeCoverageIgnore
      */
     public function getInputRendererClass()
     {

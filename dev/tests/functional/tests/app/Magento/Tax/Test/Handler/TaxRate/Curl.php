@@ -1,81 +1,59 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Tax\Test\Handler\TaxRate;
 
-use Mtf\Fixture\FixtureInterface;
-use Mtf\Handler\Curl as AbstractCurl;
-use Mtf\Util\Protocol\CurlInterface;
-use Mtf\Util\Protocol\CurlTransport;
-use Mtf\Util\Protocol\CurlTransport\BackendDecorator;
-use Mtf\System\Config;
+use Magento\Tax\Test\Fixture\TaxRate;
+use Magento\Mtf\Fixture\FixtureInterface;
+use Magento\Mtf\Handler\Curl as AbstractCurl;
+use Magento\Mtf\Util\Protocol\CurlTransport;
+use Magento\Mtf\Util\Protocol\CurlTransport\BackendDecorator;
 
 /**
- * Class Curl
- * Curl handler for creating Tax Rate
+ * Curl handler for creating Tax Rate.
  */
 class Curl extends AbstractCurl implements TaxRateInterface
 {
     /**
-     * Mapping for countries
+     * Mapping values for data.
      *
      * @var array
      */
-    protected $countryId = [
-        'AU' => 'Australia',
-        'US' => 'United States',
-        'GB' => 'United Kingdom',
+    protected $mappingData = [
+        'tax_country_id' => [
+            'Australia' => 'AU',
+            'United States' => 'US',
+            'United Kingdom' => 'GB',
+        ],
+        'tax_region_id' => [
+            '*' => '0',
+            'California' => '12',
+            'New York' => '43',
+            'Texas' => '57',
+        ],
+        'zip_is_range' => [
+            'Yes' => '1',
+            'No' => '0'
+        ]
     ];
 
     /**
-     * Mapping for regions
-     *
-     * @var array
-     */
-    protected $regionId = [
-        '0' => '*',
-        '12' => 'California',
-        '43' => 'New York',
-    ];
-
-    /**
-     * Post request for creating tax rate
+     * Post request for creating tax rate.
      *
      * @param FixtureInterface $fixture [optional]
-     * @return mixed|string
+     * @return array
      */
     public function persist(FixtureInterface $fixture = null)
     {
-        $data = $fixture->getData();
-        $data['tax_country_id'] = array_search($data['tax_country_id'], $this->countryId);
-        if (isset($data['tax_region_id'])) {
-            $data['tax_region_id'] = array_search($data['tax_region_id'], $this->regionId);
-        }
+        /** @var TaxRate $fixture */
+        $data = $this->prepareData($fixture);
 
         $url = $_ENV['app_backend_url'] . 'tax/rate/ajaxSave/?isAjax=true';
-        $curl = new BackendDecorator(new CurlTransport(), new Config());
-        $curl->write(CurlInterface::POST, $url, '1.0', array(), $data);
+        $curl = new BackendDecorator(new CurlTransport(), $this->_configuration);
+        $curl->write($url, $data);
         $response = $curl->read();
         $curl->close();
 
@@ -84,7 +62,18 @@ class Curl extends AbstractCurl implements TaxRateInterface
     }
 
     /**
-     * Return saved tax rate id
+     * Prepare tax rate data.
+     *
+     * @param TaxRate $taxRate
+     * @return array
+     */
+    public function prepareData(TaxRate $taxRate)
+    {
+        return $this->replaceMappingData($taxRate->getData());
+    }
+
+    /**
+     * Return saved tax rate id.
      *
      * @param $response
      * @return int|null

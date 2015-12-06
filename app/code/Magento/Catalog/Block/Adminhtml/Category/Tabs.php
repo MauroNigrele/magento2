@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -56,7 +38,7 @@ class Tabs extends \Magento\Backend\Block\Widget\Tabs
     protected $_helperCatalog = null;
 
     /**
-     * @var \Magento\Eav\Model\Resource\Entity\Attribute\Group\CollectionFactory
+     * @var \Magento\Eav\Model\ResourceModel\Entity\Attribute\Group\CollectionFactory
      */
     protected $_collectionFactory;
 
@@ -64,7 +46,7 @@ class Tabs extends \Magento\Backend\Block\Widget\Tabs
      * @param \Magento\Backend\Block\Template\Context $context
      * @param \Magento\Framework\Json\EncoderInterface $jsonEncoder
      * @param \Magento\Backend\Model\Auth\Session $authSession
-     * @param \Magento\Eav\Model\Resource\Entity\Attribute\Group\CollectionFactory $collectionFactory
+     * @param \Magento\Eav\Model\ResourceModel\Entity\Attribute\Group\CollectionFactory $collectionFactory
      * @param \Magento\Catalog\Helper\Catalog $helperCatalog
      * @param \Magento\Framework\Registry $registry
      * @param array $data
@@ -73,10 +55,10 @@ class Tabs extends \Magento\Backend\Block\Widget\Tabs
         \Magento\Backend\Block\Template\Context $context,
         \Magento\Framework\Json\EncoderInterface $jsonEncoder,
         \Magento\Backend\Model\Auth\Session $authSession,
-        \Magento\Eav\Model\Resource\Entity\Attribute\Group\CollectionFactory $collectionFactory,
+        \Magento\Eav\Model\ResourceModel\Entity\Attribute\Group\CollectionFactory $collectionFactory,
         \Magento\Catalog\Helper\Catalog $helperCatalog,
         \Magento\Framework\Registry $registry,
-        array $data = array()
+        array $data = []
     ) {
         $this->_collectionFactory = $collectionFactory;
         $this->_coreRegistry = $registry;
@@ -124,6 +106,7 @@ class Tabs extends \Magento\Backend\Block\Widget\Tabs
      * Prepare Layout Content
      *
      * @return $this
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     protected function _prepareLayout()
     {
@@ -138,7 +121,7 @@ class Tabs extends \Magento\Backend\Block\Widget\Tabs
         }
 
         $attributeSetId = $this->getCategory()->getDefaultAttributeSetId();
-        /** @var $groupCollection \Magento\Eav\Model\Resource\Entity\Attribute\Group\Collection */
+        /** @var $groupCollection \Magento\Eav\Model\ResourceModel\Entity\Attribute\Group\Collection */
         $groupCollection = $this->_collectionFactory->create()->setAttributeSetFilter(
             $attributeSetId
         )->setSortOrder()->load();
@@ -152,7 +135,7 @@ class Tabs extends \Magento\Backend\Block\Widget\Tabs
 
         foreach ($groupCollection as $group) {
             /* @var $group \Magento\Eav\Model\Entity\Attribute\Group */
-            $attributes = array();
+            $attributes = [];
             foreach ($categoryAttributes as $attribute) {
                 /* @var $attribute \Magento\Eav\Model\Entity\Attribute */
                 if ($attribute->isInGroup($attributeSetId, $group->getId())) {
@@ -178,23 +161,23 @@ class Tabs extends \Magento\Backend\Block\Widget\Tabs
             )->toHtml();
             $this->addTab(
                 'group_' . $group->getId(),
-                array('label' => __($group->getAttributeGroupName()), 'content' => $block, 'active' => $active)
+                ['label' => __($group->getAttributeGroupName()), 'content' => $block, 'active' => $active]
             );
         }
 
         $this->addTab(
             'products',
-            array(
+            [
                 'label' => __('Category Products'),
                 'content' => $this->getLayout()->createBlock(
                     'Magento\Catalog\Block\Adminhtml\Category\Tab\Product',
                     'category.product.grid'
                 )->toHtml()
-            )
+            ]
         );
 
         // dispatch event add custom tabs
-        $this->_eventManager->dispatch('adminhtml_catalog_category_tabs', array('tabs' => $this));
+        $this->_eventManager->dispatch('adminhtml_catalog_category_tabs', ['tabs' => $this]);
 
         /*$this->addTab('features', array(
           'label'     => __('Feature Products'),

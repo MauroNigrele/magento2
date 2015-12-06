@@ -1,97 +1,93 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Test\Block\Product\Compare;
 
-use Mtf\Block\Block;
-use Mtf\Client\Element;
-use Mtf\Client\Element\Locator;
+use Magento\Mtf\Block\Block;
+use Magento\Mtf\Client\Locator;
+use Magento\Catalog\Test\Fixture\CatalogProductAttribute;
+use Magento\Mtf\Client\Element\SimpleElement;
 
 /**
- * Class ListCompare
- * Compare list product block
+ * Compare list product block.
  */
 class ListCompare extends Block
 {
     /**
-     * Selector by product info
+     * Selector by product info.
      *
      * @var string
      */
     protected $productInfo = '//td[contains(@class, "cell product info")][%d]';
 
     /**
-     * Selector by product attribute
+     * Selector by product attribute.
      *
      * @var string
      */
     protected $productAttribute = '//tr[th//*[normalize-space(text()) = "%s"]]';
 
     /**
-     * Selector by name product
+     * Selector by name product.
      *
      * @var string
      */
     protected $nameSelector = './/*[contains(@class, "product-item-name")]/a';
 
     /**
-     * Selector for search product via name
+     * Selector for search product via name.
      *
      * @var string
      */
     protected $productName = '[normalize-space(text()) = "%s"]';
 
     /**
-     * Selector by price product
+     * Selector by price product.
      *
      * @var string
      */
     protected $priceSelector = './/div[contains(@class,"price-box")]';
 
     /**
-     * Selector by sku product
+     * Selector by sku product.
      *
      * @var string
      */
     protected $attributeSelector = './td[%d]/div';
 
     /**
-     * Remove button selector
+     * Global attribute selector.
+     *
+     * @var string
+     */
+    protected $attribute = 'span.attribute';
+
+    /**
+     * Remove button selector.
      *
      * @var string
      */
     protected $removeButton = './/thead//td[%d]//a[contains(@class,"action delete")]';
 
     /**
-     * Selector for empty message
+     * Selector for empty message.
      *
      * @var string
      */
-    protected $isEmpty = 'p.empty';
+    protected $isEmpty = 'div.empty:last-child';
 
     /**
-     * Get product info
+     * Selector for message block.
+     *
+     * @var string
+     */
+    protected $messageBlock = '#messages';
+
+    /**
+     * Get product info.
      *
      * @param int $index
      * @param string $attributeKey
@@ -118,10 +114,10 @@ class ListCompare extends Block
     }
 
     /**
-     * Get item compare product info
+     * Get item compare product info.
      *
      * @param int $index
-     * @return Element
+     * @return SimpleElement
      */
     protected function getCompareProductInfo($index)
     {
@@ -129,18 +125,48 @@ class ListCompare extends Block
     }
 
     /**
-     * Get item compare product attribute
+     * Get list of comparable product attributes.
+     *
+     * @return array
+     */
+    public function getComparableAttributes()
+    {
+        $rootElement = $this->_rootElement;
+        $element = $this->nameSelector;
+        $this->_rootElement->waitUntil(
+            function () use ($rootElement, $element) {
+                return $rootElement->find($element, Locator::SELECTOR_XPATH)->isVisible() ? true : null;
+            }
+        );
+
+        $data = [];
+        $attributes = $this->_rootElement->getElements($this->attribute);
+        foreach ($attributes as $attribute) {
+            $data[] = $attribute->getText();
+        }
+        return $data;
+    }
+
+    /**
+     * Get item compare product attribute.
      *
      * @param string $key
-     * @return Element
+     * @return SimpleElement
      */
-    protected function getCompareProductAttribute($key)
+    public function getCompareProductAttribute($key)
     {
+        $rootElement = $this->_rootElement;
+        $element = $this->nameSelector;
+        $this->_rootElement->waitUntil(
+            function () use ($rootElement, $element) {
+                return $rootElement->find($element, Locator::SELECTOR_XPATH)->isVisible() ? true : null;
+            }
+        );
         return $this->_rootElement->find(sprintf($this->productAttribute, $key), Locator::SELECTOR_XPATH);
     }
 
     /**
-     * Get item attribute
+     * Get item attribute.
      *
      * @param int $indexProduct
      * @param string $attributeKey
@@ -155,7 +181,7 @@ class ListCompare extends Block
     }
 
     /**
-     * Remove product from compare product list
+     * Remove product from compare product list.
      *
      * @param int $index [optional]
      * @return void
@@ -166,20 +192,27 @@ class ListCompare extends Block
     }
 
     /**
-     * Remove all products from compare product list
+     * Remove all products from compare product list.
      *
      * @return void
      */
     public function removeAllProducts()
     {
+        $this->waitForElementVisible(sprintf($this->removeButton, 1), Locator::SELECTOR_XPATH);
+        /** @var \Magento\Backend\Test\Block\Messages $messageBlock */
+        $messageBlock = $this->blockFactory->create(
+            'Magento\Backend\Test\Block\Messages',
+            ['element' => $this->browser->find($this->messageBlock)]
+        );
+
         while ($this->isProductVisible()) {
             $this->removeProduct();
-            $this->reinitRootElement();
+            $messageBlock->waitSuccessMessage();
         }
     }
 
     /**
-     * Visible product in compare product list
+     * Visible product in compare product list.
      *
      * @param int $index [optional]
      * @return bool
@@ -190,7 +223,7 @@ class ListCompare extends Block
     }
 
     /**
-     * Verify product is visible in compare product block
+     * Verify product is visible in compare product block.
      *
      * @param string $productName
      * @return bool
@@ -202,17 +235,20 @@ class ListCompare extends Block
     }
 
     /**
-     * Get empty message on compare product block
-     * Returns message absence of compared products or false, if the message isn't visible
+     * Get empty message on compare product block.
      *
-     * @return string|bool
+     * @return string
      */
     public function getEmptyMessage()
     {
+        $rootElement = $this->_rootElement;
+        $selector = $this->isEmpty;
+        $this->_rootElement->waitUntil(
+            function () use ($rootElement, $selector) {
+                return $rootElement->find($selector)->isVisible() ? true : null;
+            }
+        );
         $isEmpty = $this->_rootElement->find($this->isEmpty);
-        if ($isEmpty->isVisible()) {
-            return $isEmpty->getText();
-        }
-        return false;
+        return $isEmpty->getText();
     }
 }

@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Sales\Block\Adminhtml\Order;
 
@@ -45,7 +27,7 @@ class Create extends \Magento\Backend\Block\Widget\Form\Container
     public function __construct(
         \Magento\Backend\Block\Widget\Context $context,
         \Magento\Backend\Model\Session\Quote $sessionQuote,
-        array $data = array()
+        array $data = []
     ) {
         $this->_sessionQuote = $sessionQuote;
         parent::__construct($context, $data);
@@ -69,15 +51,14 @@ class Create extends \Magento\Backend\Block\Widget\Form\Container
         $customerId = $this->_sessionQuote->getCustomerId();
         $storeId = $this->_sessionQuote->getStoreId();
 
-
         $this->buttonList->update('save', 'label', __('Submit Order'));
         $this->buttonList->update('save', 'onclick', 'order.submit()');
         $this->buttonList->update('save', 'class', 'primary');
         // Temporary solution, unset button widget. Will have to wait till jQuery migration is complete
-        $this->buttonList->update('save', 'data_attribute', array());
+        $this->buttonList->update('save', 'data_attribute', []);
 
         $this->buttonList->update('save', 'id', 'submit_order_top_button');
-        if (is_null($customerId) || !$storeId) {
+        if ($customerId === null || !$storeId) {
             $this->buttonList->update('save', 'style', 'display:none');
         }
 
@@ -86,7 +67,7 @@ class Create extends \Magento\Backend\Block\Widget\Form\Container
 
         $this->buttonList->update('reset', 'id', 'reset_order_top_button');
 
-        if (is_null($customerId)) {
+        if ($customerId === null) {
             $this->buttonList->update('reset', 'style', 'display:none');
         } else {
             $this->buttonList->update('back', 'style', 'display:none');
@@ -100,11 +81,20 @@ class Create extends \Magento\Backend\Block\Widget\Form\Container
             'onclick',
             'deleteConfirm(\'' . $confirm . '\', \'' . $this->getCancelUrl() . '\')'
         );
+    }
 
+    /**
+     * {@inheritdoc}
+     *
+     * @return $this
+     */
+    protected function _prepareLayout()
+    {
         $pageTitle = $this->getLayout()->createBlock('Magento\Sales\Block\Adminhtml\Order\Create\Header')->toHtml();
-        if (is_object($this->getLayout()->getBlock('page-title'))) {
-            $this->getLayout()->getBlock('page-title')->setPageTitle($pageTitle);
+        if (is_object($this->getLayout()->getBlock('page.title'))) {
+            $this->getLayout()->getBlock('page.title')->setPageTitle($pageTitle);
         }
+        return parent::_prepareLayout();
     }
 
     /**
@@ -148,7 +138,7 @@ class Create extends \Magento\Backend\Block\Widget\Form\Container
     public function getCancelUrl()
     {
         if ($this->_sessionQuote->getOrder()->getId()) {
-            $url = $this->getUrl('sales/order/view', array('order_id' => $this->_sessionQuote->getOrder()->getId()));
+            $url = $this->getUrl('sales/order/view', ['order_id' => $this->_sessionQuote->getOrder()->getId()]);
         } else {
             $url = $this->getUrl('sales/*/cancel');
         }

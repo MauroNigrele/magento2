@@ -1,27 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Test\Integrity\Modular;
+
+use Magento\Framework\App\Filesystem\DirectoryList;
 
 class DiConfigFilesTest extends \PHPUnit_Framework_TestCase
 {
@@ -29,32 +13,33 @@ class DiConfigFilesTest extends \PHPUnit_Framework_TestCase
      * Primary DI configs from app/etc
      * @var array
      */
-    protected static $_primaryFiles = array();
+    protected static $_primaryFiles = [];
 
     /**
      * Global DI configs from all modules
      * @var array
      */
-    protected static $_moduleGlobalFiles = array();
+    protected static $_moduleGlobalFiles = [];
 
     /**
      * Area DI configs from all modules
      * @var array
      */
-    protected static $_moduleAreaFiles = array();
+    protected static $_moduleAreaFiles = [];
 
     protected function _prepareFiles()
     {
         //init primary configs
         $objectManager = \Magento\TestFramework\Helper\Bootstrap::getObjectManager();
-        /** @var $filesystem \Magento\Framework\App\Filesystem */
-        $filesystem = $objectManager->get('Magento\Framework\App\Filesystem');
-        $configDirectory = $filesystem->getDirectoryRead(\Magento\Framework\App\Filesystem::CONFIG_DIR);
+        /** @var $filesystem \Magento\Framework\Filesystem */
+        $filesystem = $objectManager->get('Magento\Framework\Filesystem');
+        $configDirectory = $filesystem->getDirectoryRead(DirectoryList::CONFIG);
         $fileIteratorFactory = $objectManager->get('Magento\Framework\Config\FileIteratorFactory');
-        self::$_primaryFiles = $fileIteratorFactory->create(
-            $configDirectory,
-            $configDirectory->search('{*/di.xml,di.xml}')
-        );
+        $search = [];
+        foreach ($configDirectory->search('{*/di.xml,di.xml}') as $path) {
+            $search[] = $configDirectory->getAbsolutePath($path);
+        }
+        self::$_primaryFiles = $fileIteratorFactory->create($search);
         //init module global configs
         /** @var $modulesReader \Magento\Framework\Module\Dir\Reader */
         $modulesReader = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()
@@ -62,7 +47,7 @@ class DiConfigFilesTest extends \PHPUnit_Framework_TestCase
         self::$_moduleGlobalFiles = $modulesReader->getConfigurationFiles('di.xml');
 
         //init module area configs
-        $areas = array('adminhtml', 'frontend');
+        $areas = ['adminhtml', 'frontend'];
         foreach ($areas as $area) {
             $moduleAreaFiles = $modulesReader->getConfigurationFiles($area . '/di.xml');
             self::$_moduleAreaFiles[$area] = $moduleAreaFiles;
@@ -83,7 +68,12 @@ class DiConfigFilesTest extends \PHPUnit_Framework_TestCase
 
         $dom = new \DOMDocument();
         $dom->loadXML($xml);
-        if (!@$dom->schemaValidate($schemaLocator->getSchema())) {
+
+        libxml_use_internal_errors(true);
+        $result = \Magento\Framework\Config\Dom::validateDomDocument($dom, $schemaLocator->getSchema());
+        libxml_use_internal_errors(false);
+
+        if (!empty($result)) {
             $this->fail('File ' . $xml . ' has invalid xml structure.');
         }
     }
@@ -102,7 +92,7 @@ class DiConfigFilesTest extends \PHPUnit_Framework_TestCase
 
         $output = [];
         foreach ($common as $path => $file) {
-            $output[$path] = [$file];
+            $output[substr($path, strlen(BP))] = [$file];
         }
 
         return $output;
@@ -114,11 +104,11 @@ class DiConfigFilesTest extends \PHPUnit_Framework_TestCase
      */
     public function testMergedDiConfig(array $files)
     {
-        $mapperMock = $this->getMock('Magento\Framework\ObjectManager\Config\Mapper\Dom', array(), array(), '', false);
+        $mapperMock = $this->getMock('Magento\Framework\ObjectManager\Config\Mapper\Dom', [], [], '', false);
         $fileResolverMock = $this->getMock('Magento\Framework\Config\FileResolverInterface');
         $fileResolverMock->expects($this->any())->method('read')->will($this->returnValue($files));
         $validationStateMock = $this->getMock('Magento\Framework\Config\ValidationStateInterface');
-        $validationStateMock->expects($this->any())->method('isValidated')->will($this->returnValue(true));
+        $validationStateMock->expects($this->any())->method('isValidationRequired')->will($this->returnValue(true));
 
         /** @var \Magento\Framework\ObjectManager\Config\SchemaLocator $schemaLocator */
         $schemaLocator = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
@@ -139,21 +129,21 @@ class DiConfigFilesTest extends \PHPUnit_Framework_TestCase
             $this->_prepareFiles();
         }
         foreach (self::$_primaryFiles->toArray() as $file) {
-            $primaryFiles[] = array(array($file));
+            $primaryFiles[] = [[$file]];
         }
-        $primaryFiles['all primary config files'] = array(self::$_primaryFiles->toArray());
+        $primaryFiles['all primary config files'] = [self::$_primaryFiles->toArray()];
 
         foreach (self::$_moduleGlobalFiles->toArray() as $file) {
-            $moduleFiles[] = array(array($file));
+            $moduleFiles[] = [[$file]];
         }
-        $moduleFiles['all module global config files'] = array(self::$_moduleGlobalFiles->toArray());
+        $moduleFiles['all module global config files'] = [self::$_moduleGlobalFiles->toArray()];
 
-        $areaFiles = array();
+        $areaFiles = [];
         foreach (self::$_moduleAreaFiles as $area => $files) {
             foreach ($files->toArray() as $file) {
-                $areaFiles[] = array(array($file));
+                $areaFiles[] = [[$file]];
             }
-            $areaFiles["all {$area} config files"] = array(self::$_moduleAreaFiles[$area]->toArray());
+            $areaFiles["all {$area} config files"] = [self::$_moduleAreaFiles[$area]->toArray()];
         }
 
         return $primaryFiles + $moduleFiles + $areaFiles;

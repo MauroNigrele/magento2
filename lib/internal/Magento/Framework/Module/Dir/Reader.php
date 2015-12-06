@@ -2,35 +2,16 @@
 /**
  * Module configuration file reader
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Module\Dir;
 
-use Magento\Framework\App\Filesystem;
 use Magento\Framework\Config\FileIterator;
 use Magento\Framework\Config\FileIteratorFactory;
-use Magento\Framework\Filesystem\Directory\Read;
-use Magento\Framework\Module\ModuleListInterface;
+use Magento\Framework\Filesystem;
 use Magento\Framework\Module\Dir;
+use Magento\Framework\Module\ModuleListInterface;
 
 class Reader
 {
@@ -39,7 +20,7 @@ class Reader
      *
      * @var array
      */
-    protected $customModuleDirs = array();
+    protected $customModuleDirs = [];
 
     /**
      * Directory registry
@@ -56,31 +37,31 @@ class Reader
     protected $modulesList;
 
     /**
-     * @var Read
-     */
-    protected $modulesDirectory;
-
-    /**
      * @var FileIteratorFactory
      */
     protected $fileIteratorFactory;
 
     /**
+     * @var Filesystem\Directory\ReadFactory
+     */
+    protected $readFactory;
+
+    /**
      * @param Dir $moduleDirs
      * @param ModuleListInterface $moduleList
-     * @param Filesystem $filesystem
      * @param FileIteratorFactory $fileIteratorFactory
+     * @param Filesystem\Directory\ReadFactory $readFactory
      */
     public function __construct(
         Dir $moduleDirs,
         ModuleListInterface $moduleList,
-        Filesystem $filesystem,
-        FileIteratorFactory $fileIteratorFactory
+        FileIteratorFactory $fileIteratorFactory,
+        Filesystem\Directory\ReadFactory $readFactory
     ) {
         $this->moduleDirs = $moduleDirs;
         $this->modulesList = $moduleList;
         $this->fileIteratorFactory = $fileIteratorFactory;
-        $this->modulesDirectory = $filesystem->getDirectoryRead(Filesystem::MODULES_DIR);
+        $this->readFactory = $readFactory;
     }
 
     /**
@@ -91,15 +72,39 @@ class Reader
      */
     public function getConfigurationFiles($filename)
     {
-        $result = array();
-        foreach (array_keys($this->modulesList->getModules()) as $moduleName) {
-            $file = $this->getModuleDir('etc', $moduleName) . '/' . $filename;
-            $path = $this->modulesDirectory->getRelativePath($file);
-            if ($this->modulesDirectory->isExist($path)) {
-                $result[] = $path;
+        return $this->fileIteratorFactory->create($this->getFiles($filename, Dir::MODULE_ETC_DIR));
+    }
+
+    /**
+     * Go through all modules and find composer.json files of active modules
+     *
+     * @return FileIterator
+     */
+    public function getComposerJsonFiles()
+    {
+        return $this->fileIteratorFactory->create($this->getFiles('composer.json'));
+    }
+
+    /**
+     * Go through all modules and find corresponding files of active modules
+     *
+     * @param string $filename
+     * @param string $subDir
+     * @return array
+     */
+    private function getFiles($filename, $subDir = '')
+    {
+        $result = [];
+        foreach ($this->modulesList->getNames() as $moduleName) {
+            $moduleEtcDir = $this->getModuleDir($subDir, $moduleName);
+            $file = $moduleEtcDir . '/' . $filename;
+            $directoryRead = $this->readFactory->create($moduleEtcDir);
+            $path = $directoryRead->getRelativePath($file);
+            if ($directoryRead->isExist($path)) {
+                $result[] = $file;
             }
         }
-        return $this->fileIteratorFactory->create($this->modulesDirectory, $result);
+        return $result;
     }
 
     /**
@@ -109,17 +114,20 @@ class Reader
      */
     public function getActionFiles()
     {
-        $actions = array();
-        foreach (array_keys($this->modulesList->getModules()) as $moduleName) {
-            $actionDir = $this->getModuleDir('Controller', $moduleName);
+        $actions = [];
+        foreach ($this->modulesList->getNames() as $moduleName) {
+            $actionDir = $this->getModuleDir(Dir::MODULE_CONTROLLER_DIR, $moduleName);
             if (!file_exists($actionDir)) {
                 continue;
             }
             $dirIterator = new \RecursiveDirectoryIterator($actionDir, \RecursiveDirectoryIterator::SKIP_DOTS);
             $recursiveIterator = new \RecursiveIteratorIterator($dirIterator, \RecursiveIteratorIterator::LEAVES_ONLY);
+            $namespace = str_replace('_', '\\', $moduleName);
             /** @var \SplFileInfo $actionFile */
             foreach ($recursiveIterator as $actionFile) {
-                $actions[] = $this->modulesDirectory->getRelativePath($actionFile->getPathname());
+                $actionName = str_replace('/', '\\', str_replace($actionDir, '', $actionFile->getPathname()));
+                $action = $namespace . "\\" . Dir::MODULE_CONTROLLER_DIR . substr($actionName, 0, -4);
+                $actions[strtolower($action)] = $action;
             }
         }
         return $actions;

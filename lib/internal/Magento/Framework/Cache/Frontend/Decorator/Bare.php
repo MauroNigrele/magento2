@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -46,6 +28,18 @@ class Bare implements \Magento\Framework\Cache\FrontendInterface
     }
 
     /**
+     * Set frontend
+     *
+     * @param \Magento\Framework\Cache\FrontendInterface $frontend
+     * @return $this
+     */
+    protected function setFrontend(\Magento\Framework\Cache\FrontendInterface $frontend)
+    {
+        $this->_frontend = $frontend;
+        return $this;
+    }
+
+    /**
      * Retrieve cache frontend instance being decorated
      *
      * @return \Magento\Framework\Cache\FrontendInterface
@@ -60,7 +54,7 @@ class Bare implements \Magento\Framework\Cache\FrontendInterface
      */
     public function test($identifier)
     {
-        return $this->_frontend->test($identifier);
+        return $this->_getFrontend()->test($identifier);
     }
 
     /**
@@ -68,7 +62,7 @@ class Bare implements \Magento\Framework\Cache\FrontendInterface
      */
     public function load($identifier)
     {
-        return $this->_frontend->load($identifier);
+        return $this->_getFrontend()->load($identifier);
     }
 
     /**
@@ -76,9 +70,9 @@ class Bare implements \Magento\Framework\Cache\FrontendInterface
      *
      * {@inheritdoc}
      */
-    public function save($data, $identifier, array $tags = array(), $lifeTime = null)
+    public function save($data, $identifier, array $tags = [], $lifeTime = null)
     {
-        return $this->_frontend->save($data, $identifier, $tags, $lifeTime);
+        return $this->_getFrontend()->save($data, $identifier, $tags, $lifeTime);
     }
 
     /**
@@ -86,15 +80,15 @@ class Bare implements \Magento\Framework\Cache\FrontendInterface
      */
     public function remove($identifier)
     {
-        return $this->_frontend->remove($identifier);
+        return $this->_getFrontend()->remove($identifier);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function clean($mode = \Zend_Cache::CLEANING_MODE_ALL, array $tags = array())
+    public function clean($mode = \Zend_Cache::CLEANING_MODE_ALL, array $tags = [])
     {
-        return $this->_frontend->clean($mode, $tags);
+        return $this->_getFrontend()->clean($mode, $tags);
     }
 
     /**
@@ -102,7 +96,7 @@ class Bare implements \Magento\Framework\Cache\FrontendInterface
      */
     public function getBackend()
     {
-        return $this->_frontend->getBackend();
+        return $this->_getFrontend()->getBackend();
     }
 
     /**
@@ -110,6 +104,6 @@ class Bare implements \Magento\Framework\Cache\FrontendInterface
      */
     public function getLowLevelFrontend()
     {
-        return $this->_frontend->getLowLevelFrontend();
+        return $this->_getFrontend()->getLowLevelFrontend();
     }
 }

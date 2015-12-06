@@ -1,65 +1,38 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Review\Test\Constraint;
 
-use Mtf\Client\Browser;
-use Mtf\Fixture\FixtureInterface;
-use Mtf\Constraint\AbstractConstraint;
-use Magento\Review\Test\Fixture\ReviewInjectable;
 use Magento\Backend\Test\Page\Adminhtml\AdminCache;
-use Magento\Catalog\Test\Fixture\CatalogProductSimple;
 use Magento\Catalog\Test\Page\Product\CatalogProductView;
+use Magento\Review\Test\Fixture\Review;
+use Magento\Mtf\Client\BrowserInterface;
+use Magento\Mtf\Constraint\AbstractConstraint;
+use Magento\Mtf\Fixture\FixtureInterface;
 
 /**
- * Class AssertProductReviewOnProductPage
- * Assert that product review available on product page
+ * Assert that product review available on product page.
  */
 class AssertProductReviewOnProductPage extends AbstractConstraint
 {
     /**
-     * Constraint severeness
-     *
-     * @var string
-     */
-    protected $severeness = 'middle';
-
-    /**
-     * Assert that product review available on product page
+     * Assert that product review available on product page.
      *
      * @param CatalogProductView $catalogProductView
-     * @param ReviewInjectable $review
+     * @param Review $review
      * @param FixtureInterface $product
-     * @param Browser $browser
+     * @param BrowserInterface $browser
      * @param AdminCache $cachePage
      * @return void
      */
     public function processAssert(
         CatalogProductView $catalogProductView,
-        ReviewInjectable $review,
+        Review $review,
         FixtureInterface $product,
-        Browser $browser,
+        BrowserInterface $browser,
         AdminCache $cachePage
     ) {
         $errors = [];
@@ -68,6 +41,12 @@ class AssertProductReviewOnProductPage extends AbstractConstraint
 
         $reviewBlock = $catalogProductView->getCustomerReviewBlock();
         $catalogProductView->getViewBlock()->selectTab('Reviews');
+
+        \PHPUnit_Framework_Assert::assertContains(
+            sprintf("You're reviewing:\n%s", $product->getName()),
+            $catalogProductView->getReviewFormBlock()->getLegend()->getText()
+        );
+
         foreach ($review->getData() as $name => $value) {
             $reviewValue = $reviewBlock->getFieldValue($name);
             if (($reviewValue !== null) && (0 !== strcasecmp($value, trim($reviewValue)))) {
@@ -82,7 +61,7 @@ class AssertProductReviewOnProductPage extends AbstractConstraint
     }
 
     /**
-     * Returns a string representation of the object
+     * Returns a string representation of the object.
      *
      * @return string
      */

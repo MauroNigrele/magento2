@@ -1,34 +1,18 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Model;
+
+use Magento\Framework\Api\AttributeValueFactory;
 
 /**
  * Abstract model for catalog entities
  *
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-abstract class AbstractModel extends \Magento\Framework\Model\AbstractModel
+abstract class AbstractModel extends \Magento\Framework\Model\AbstractExtensibleModel
 {
     /**
      * Attribute default values
@@ -38,21 +22,21 @@ abstract class AbstractModel extends \Magento\Framework\Model\AbstractModel
      *
      * @var array
      */
-    protected $_defaultValues = array();
+    protected $_defaultValues = [];
 
     /**
      * This array contains codes of attributes which have value in current store
      *
      * @var array
      */
-    protected $_storeValuesFlags = array();
+    protected $_storeValuesFlags = [];
 
     /**
      * Locked attributes
      *
      * @var array
      */
-    protected $_lockedAttributes = array();
+    protected $_lockedAttributes = [];
 
     /**
      * Is model deleteable
@@ -71,28 +55,40 @@ abstract class AbstractModel extends \Magento\Framework\Model\AbstractModel
     /**
      * Store manager
      *
-     * @var \Magento\Framework\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
     protected $_storeManager;
 
     /**
      * @param \Magento\Framework\Model\Context $context
      * @param \Magento\Framework\Registry $registry
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
-     * @param \Magento\Framework\Model\Resource\AbstractResource $resource
-     * @param \Magento\Framework\Data\Collection\Db $resourceCollection
+     * @param \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory
+     * @param AttributeValueFactory $customAttributeFactory
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
      * @param array $data
      */
     public function __construct(
         \Magento\Framework\Model\Context $context,
         \Magento\Framework\Registry $registry,
-        \Magento\Framework\StoreManagerInterface $storeManager,
-        \Magento\Framework\Model\Resource\AbstractResource $resource = null,
-        \Magento\Framework\Data\Collection\Db $resourceCollection = null,
-        array $data = array()
+        \Magento\Framework\Api\ExtensionAttributesFactory $extensionFactory,
+        AttributeValueFactory $customAttributeFactory,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
+        array $data = []
     ) {
         $this->_storeManager = $storeManager;
-        parent::__construct($context, $registry, $resource, $resourceCollection, $data);
+        parent::__construct(
+            $context,
+            $registry,
+            $extensionFactory,
+            $customAttributeFactory,
+            $resource,
+            $resourceCollection,
+            $data
+        );
     }
 
     /**
@@ -129,7 +125,7 @@ abstract class AbstractModel extends \Magento\Framework\Model\AbstractModel
      */
     public function unlockAttributes()
     {
-        $this->_lockedAttributes = array();
+        $this->_lockedAttributes = [];
         return $this;
     }
 
@@ -176,7 +172,7 @@ abstract class AbstractModel extends \Magento\Framework\Model\AbstractModel
      *
      * @param string|array $key
      * @param mixed $value
-     * @return \Magento\Framework\Object
+     * @return \Magento\Framework\DataObject
      */
     public function setData($key, $value = null)
     {
@@ -209,7 +205,7 @@ abstract class AbstractModel extends \Magento\Framework\Model\AbstractModel
      */
     public function unsetData($key = null)
     {
-        if (!is_null($key) && $this->isLockedAttribute($key) || $this->isReadonly()) {
+        if ($key !== null && $this->isLockedAttribute($key) || $this->isReadonly()) {
             return $this;
         }
 
@@ -219,7 +215,7 @@ abstract class AbstractModel extends \Magento\Framework\Model\AbstractModel
     /**
      * Get collection instance
      *
-     * @return \Magento\Catalog\Model\Resource\Collection\AbstractCollection
+     * @return \Magento\Catalog\Model\ResourceModel\Collection\AbstractCollection
      */
     public function getResourceCollection()
     {
@@ -317,6 +313,7 @@ abstract class AbstractModel extends \Magento\Framework\Model\AbstractModel
      *
      * @param   string $attributeCode
      * @return  bool
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName)
      */
     public function getExistsStoreValueFlag($attributeCode)
     {
@@ -328,10 +325,10 @@ abstract class AbstractModel extends \Magento\Framework\Model\AbstractModel
      *
      * @return \Magento\Catalog\Model\AbstractModel
      */
-    protected function _beforeSave()
+    public function beforeSave()
     {
         $this->unlockAttributes();
-        return parent::_beforeSave();
+        return parent::beforeSave();
     }
 
     /**

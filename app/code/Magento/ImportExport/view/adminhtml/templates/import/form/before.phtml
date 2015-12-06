@@ -1,32 +1,20 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
 ?>
 <?php
-/** @var $this \Magento\ImportExport\Block\Adminhtml\Import\Edit\Before */
+/** @var $block \Magento\ImportExport\Block\Adminhtml\Import\Edit\Before */
 ?>
-<script type="text/javascript">
-require(['jquery', 'prototype'], function(jQuery){
+<script>
+require([
+    'jquery',
+    'Magento_Ui/js/modal/alert',
+    'prototype'
+], function(jQuery, alert){
 
 //<![CDATA[
     // Temporary Class will be replaced after refactoring of import/export functionality
@@ -41,13 +29,25 @@ require(['jquery', 'prototype'], function(jQuery){
          * List of existing behavior sets
          * @type {Array}
          */
-        uniqueBehaviors: <?php echo $this->getUniqueBehaviors() ?>,
+        uniqueBehaviors: <?php /* @escapeNotVerified */ echo $block->getUniqueBehaviors() ?>,
 
         /**
          * Behaviour codes for import entities
          * @type {Array}
          */
-        entityBehaviors: <?php echo $this->getEntityBehaviors() ?>,
+        entityBehaviors: <?php /* @escapeNotVerified */ echo $block->getEntityBehaviors() ?>,
+
+        /**
+         * Behaviour notes for import entities
+         * @type {Array}
+         */
+        entityBehaviorsNotes: <?php /* @escapeNotVerified */ echo $block->getEntityBehaviorsNotes() ?>,
+
+        /**
+         * Base url
+         * @type {string}
+         */
+        sampleFilesBaseUrl: '<?php /* @escapeNotVerified */ echo $block->getUrl('*/*/download/', ['filename' => 'entity-name']) ?>',
 
         /**
          * Reset selected index
@@ -79,17 +79,23 @@ require(['jquery', 'prototype'], function(jQuery){
          */
         showBehaviorFieldset: function(behaviorId, isShow) {
             var behaviorFieldset = jQuery('#' + behaviorId + '_fieldset'),
-                behavior = jQuery('#' + behaviorId);
+                behaviorFields = jQuery('.' + behaviorId);
             if (isShow) {
                 behaviorFieldset.show();
-                behavior.prop('disabled', false);
-                behavior.addClass('required-entry');
             } else {
                 behaviorFieldset.hide();
                 this.resetSelectIndex(behaviorId);
-                behavior.prop('disabled', 'disabled');
-                behavior.removeClass('required-entry');
             }
+            behaviorFields.each(function(k, behaviorField){
+                behaviorField = jQuery(behaviorField);
+                if (isShow) {
+                    behaviorField.prop('disabled', false);
+                    behaviorField.addClass('required-entry');
+                } else {
+                    behaviorField.prop('disabled', 'disabled');
+                    behaviorField.removeClass('required-entry');
+                }
+            });
         },
 
         /**
@@ -105,6 +111,23 @@ require(['jquery', 'prototype'], function(jQuery){
         },
 
         /**
+         * Show/hide sample file link
+         * @param {string} entityId
+         */
+        showSampleFile: function(entityId) {
+            var sampleFileSpan = jQuery('#sample-file-span');
+            if (entityId) {
+                var sampleFileLink = this.sampleFilesBaseUrl.replace('entity-name', entityId);
+                jQuery('#sample-file-link').attr('href', sampleFileLink);
+                if (sampleFileSpan.is(':hidden')) {
+                    sampleFileSpan.show();
+                }
+            } else {
+                sampleFileSpan.hide();
+            }
+        },
+
+        /**
          * Handle value change in entity type selector
          */
         handleEntityTypeSelector: function() {
@@ -112,9 +135,30 @@ require(['jquery', 'prototype'], function(jQuery){
             if (entity && entity.val()) {
                 this.showBehavior(entity.val());
                 this.showUploadFile(true);
+                this.showSampleFile(entity.val());
             } else {
                 this.showBehavior(false);
                 this.showUploadFile(false);
+                this.showSampleFile(false);
+            }
+            this.handleImportBehaviorSelector();
+        },
+
+        /**
+         * Handle value change in behavior selector
+         */
+        handleImportBehaviorSelector: function() {
+            var entity = jQuery('#entity');
+            if (entity && entity.val()) {
+                var notes = this.entityBehaviorsNotes[entity.val()];
+                var requiredBehavior = this.entityBehaviors[entity.val()];
+                var behaviorInput = jQuery('#' + requiredBehavior);
+                var behavior = behaviorInput && behaviorInput.val();
+                if (behavior && notes[behavior]) {
+                    jQuery('#' + requiredBehavior + '-note').html(notes[behavior]);
+                } else {
+                    jQuery('#' + requiredBehavior + '-note').html('');
+                }
             }
         },
 
@@ -160,7 +204,11 @@ require(['jquery', 'prototype'], function(jQuery){
          */
         postToFrameProcessResponse: function(response) {
             if ('object' != typeof(response)) {
-                return alert('Invalid response');
+                alert({
+                    content: 'Invalid response'
+                });
+
+                return false;
             }
             $H(response).each(function(pair) {
                 switch (pair.key) {
@@ -191,7 +239,9 @@ require(['jquery', 'prototype'], function(jQuery){
                         });
                         break;
                     default:
-                        alert(pair.key + ': ' + pair.value);
+                        alert({
+                            content: pair.key + ': ' + pair.value
+                        });
                         break;
                 }
             });

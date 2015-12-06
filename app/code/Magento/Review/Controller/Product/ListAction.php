@@ -1,90 +1,68 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Review\Controller\Product;
 
-use \Magento\Review\Model\Review;
+use Magento\Review\Controller\Product as ProductController;
+use Magento\Review\Model\Review;
 use Magento\Catalog\Model\Product as CatalogProduct;
+use Magento\Framework\Controller\ResultFactory;
 
-class ListAction extends \Magento\Review\Controller\Product
+class ListAction extends ProductController
 {
     /**
      * Load specific layout handles by product type id
      *
      * @param CatalogProduct $product
-     * @return void
+     * @return \Magento\Framework\View\Result\Page
      */
-    protected function _initProductLayout($product)
+    protected function getProductPage($product)
     {
-        $this->_view->getPage()->initLayout();
+        /** @var \Magento\Framework\View\Result\Page $resultPage */
+        $resultPage = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
         if ($product->getPageLayout()) {
-            /** @var \Magento\Framework\View\Page\Config $pageConfig */
-            $pageConfig = $this->_objectManager->get('Magento\Framework\View\Page\Config');
-            $pageConfig->setPageLayout($product->getPageLayout());
+            $resultPage->getConfig()->setPageLayout($product->getPageLayout());
         }
-        $update = $this->_view->getLayout()->getUpdate();
-        $this->_view->addPageLayoutHandles(
-            array('id' => $product->getId(), 'sku' => $product->getSku(), 'type' => $product->getTypeId())
+        $urlSafeSku = rawurlencode($product->getSku());
+        $resultPage->addPageLayoutHandles(
+            ['id' => $product->getId(), 'sku' => $urlSafeSku, 'type' => $product->getTypeId()]
         );
-
-        $this->_view->loadLayoutUpdates();
-        $update->addUpdate($product->getCustomLayoutUpdate());
-        $this->_view->generateLayoutXml();
-        $this->_view->generateLayoutBlocks();
+        $resultPage->addUpdate($product->getCustomLayoutUpdate());
+        return $resultPage;
     }
 
     /**
      * Show list of product's reviews
      *
-     * @return void
+     * @return \Magento\Framework\Controller\ResultInterface
      */
     public function execute()
     {
-        $product = $this->_initProduct();
+        $product = $this->initProduct();
         if ($product) {
-            $this->_coreRegistry->register('productId', $product->getId());
+            $this->coreRegistry->register('productId', $product->getId());
 
-            $design = $this->_catalogDesign;
-            $settings = $design->getDesignSettings($product);
+            $settings = $this->catalogDesign->getDesignSettings($product);
             if ($settings->getCustomDesign()) {
-                $design->applyCustomDesign($settings->getCustomDesign());
+                $this->catalogDesign->applyCustomDesign($settings->getCustomDesign());
             }
-            $this->_initProductLayout($product);
-
+            $resultPage = $this->getProductPage($product);
             // update breadcrumbs
-            $breadcrumbsBlock = $this->_view->getLayout()->getBlock('breadcrumbs');
+            $breadcrumbsBlock = $resultPage->getLayout()->getBlock('breadcrumbs');
             if ($breadcrumbsBlock) {
                 $breadcrumbsBlock->addCrumb(
                     'product',
-                    array('label' => $product->getName(), 'link' => $product->getProductUrl(), 'readonly' => true)
+                    ['label' => $product->getName(), 'link' => $product->getProductUrl(), 'readonly' => true]
                 );
-                $breadcrumbsBlock->addCrumb('reviews', array('label' => __('Product Reviews')));
+                $breadcrumbsBlock->addCrumb('reviews', ['label' => __('Product Reviews')]);
             }
-
-            $this->_view->renderLayout();
-        } elseif (!$this->getResponse()->isRedirect()) {
-            $this->_forward('noroute');
+            return $resultPage;
         }
+        /** @var \Magento\Framework\Controller\Result\Forward $resultForward */
+        $resultForward = $this->resultFactory->create(ResultFactory::TYPE_FORWARD);
+        $resultForward->forward('noroute');
+        return $resultForward;
     }
 }

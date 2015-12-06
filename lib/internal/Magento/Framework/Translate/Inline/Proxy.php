@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Framework\Translate\Inline;
@@ -32,7 +14,7 @@ class Proxy extends \Magento\Framework\Translate\Inline
     /**
      * Object Manager instance
      *
-     * @var \Magento\Framework\ObjectManager
+     * @var \Magento\Framework\ObjectManagerInterface
      */
     protected $objectManager;
 
@@ -46,7 +28,7 @@ class Proxy extends \Magento\Framework\Translate\Inline
     /**
      * Proxied instance
      *
-     * @var \Magento\DesignEditor\Model\Translate\Inline
+     * @var \Magento\Framework\Translate\Inline
      */
     protected $subject;
 
@@ -58,12 +40,12 @@ class Proxy extends \Magento\Framework\Translate\Inline
     protected $isShared;
 
     /**
-     * @param \Magento\Framework\ObjectManager $objectManager
+     * @param \Magento\Framework\ObjectManagerInterface $objectManager
      * @param string $instanceName
      * @param bool $shared
      */
     public function __construct(
-        \Magento\Framework\ObjectManager $objectManager,
+        \Magento\Framework\ObjectManagerInterface $objectManager,
         $instanceName = 'Magento\Framework\Translate\Inline',
         $shared = true
     ) {
@@ -77,7 +59,7 @@ class Proxy extends \Magento\Framework\Translate\Inline
      */
     public function __sleep()
     {
-        return array('_subject', '_isShared');
+        return ['_subject', '_isShared'];
     }
 
     /**
@@ -103,7 +85,7 @@ class Proxy extends \Magento\Framework\Translate\Inline
     /**
      * Get proxied instance
      *
-     * @return \Magento\DesignEditor\Model\Translate\Inline
+     * @return \Magento\Framework\Translate\Inline
      */
     protected function _getSubject()
     {

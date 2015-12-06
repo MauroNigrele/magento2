@@ -1,55 +1,40 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Test\Integrity\Modular;
 
+use Magento\Customer\Model\Context;
+
 /**
- * @magentoAppIsolation
+ * @magentoAppIsolation enabled
  */
 class TemplateFilesTest extends \Magento\TestFramework\TestCase\AbstractIntegrity
 {
     public function testAllTemplates()
     {
-        $invoker = new \Magento\TestFramework\Utility\AggregateInvoker($this);
+        $invoker = new \Magento\Framework\App\Utility\AggregateInvoker($this);
         $invoker(
             function ($module, $template, $class, $area) {
                 \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
                     'Magento\Framework\View\DesignInterface'
                 )->setDefaultDesignTheme();
                 // intentionally to make sure the module files will be requested
-                $params = array(
+                $params = [
                     'area' => $area,
                     'themeModel' => \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
                         'Magento\Framework\View\Design\ThemeInterface'
                     ),
-                    'module' => $module
-                );
+                    'module' => $module,
+                ];
                 $file = \Magento\TestFramework\Helper\Bootstrap::getObjectmanager()->get(
                     'Magento\Framework\View\FileSystem'
                 )->getTemplateFileName(
                     $template,
                     $params
                 );
+                $this->assertInternalType('string', $file, "Block class: {$class} {$template}");
                 $this->assertFileExists($file, "Block class: {$class}");
             },
             $this->allTemplatesDataProvider()
@@ -58,6 +43,7 @@ class TemplateFilesTest extends \Magento\TestFramework\TestCase\AbstractIntegrit
 
     /**
      * @return array
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
     public function allTemplatesDataProvider()
     {
@@ -65,14 +51,14 @@ class TemplateFilesTest extends \Magento\TestFramework\TestCase\AbstractIntegrit
         try {
             /** @var $website \Magento\Store\Model\Website */
             \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
-                'Magento\Framework\StoreManagerInterface'
+                'Magento\Store\Model\StoreManagerInterface'
             )->getStore()->setWebsiteId(
                 0
             );
 
-            $templates = array();
+            $templates = [];
             $skippedBlocks = $this->_getBlocksToSkip();
-            foreach (\Magento\TestFramework\Utility\Classes::collectModuleClasses('Block') as $blockClass => $module) {
+            foreach (\Magento\Framework\App\Utility\Classes::collectModuleClasses('Block') as $blockClass => $module) {
                 if (!in_array($module, $this->_getEnabledModules()) || in_array($blockClass, $skippedBlocks)) {
                     continue;
                 }
@@ -82,9 +68,7 @@ class TemplateFilesTest extends \Magento\TestFramework\TestCase\AbstractIntegrit
                 }
 
                 $area = 'frontend';
-                if ($module == 'Magento_Install') {
-                    $area = 'install';
-                } elseif ($module == 'Magento_Adminhtml' || strpos(
+                if ($module == 'Magento_Backend' || strpos(
                     $blockClass,
                     '\\Adminhtml\\'
                 ) || strpos(
@@ -117,21 +101,21 @@ class TemplateFilesTest extends \Magento\TestFramework\TestCase\AbstractIntegrit
                 $context = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
                     'Magento\Framework\App\Http\Context'
                 );
-                $context->setValue(\Magento\Customer\Helper\Data::CONTEXT_AUTH, false, false);
+                $context->setValue(Context::CONTEXT_AUTH, false, false);
                 $context->setValue(
-                    \Magento\Customer\Helper\Data::CONTEXT_GROUP,
-                    \Magento\Customer\Service\V1\CustomerGroupServiceInterface::NOT_LOGGED_IN_ID,
-                    \Magento\Customer\Service\V1\CustomerGroupServiceInterface::NOT_LOGGED_IN_ID
+                    Context::CONTEXT_GROUP,
+                    \Magento\Customer\Model\GroupManagement::NOT_LOGGED_IN_ID,
+                    \Magento\Customer\Model\GroupManagement::NOT_LOGGED_IN_ID
                 );
                 $block = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create($blockClass);
                 $template = $block->getTemplate();
                 if ($template) {
-                    $templates[$module . ', ' . $template . ', ' . $blockClass . ', ' . $area] = array(
+                    $templates[$module . ', ' . $template . ', ' . $blockClass . ', ' . $area] = [
                         $module,
                         $template,
                         $blockClass,
-                        $area
-                    );
+                        $area,
+                    ];
                 }
             }
             return $templates;
@@ -149,7 +133,7 @@ class TemplateFilesTest extends \Magento\TestFramework\TestCase\AbstractIntegrit
      */
     protected function _getBlocksToSkip()
     {
-        $result = array();
+        $result = [];
         foreach (glob(__DIR__ . '/_files/skip_template_blocks*.php') as $file) {
             $blocks = include $file;
             $result = array_merge($result, $blocks);

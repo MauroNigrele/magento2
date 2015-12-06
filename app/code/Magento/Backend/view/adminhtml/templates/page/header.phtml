@@ -1,53 +1,68 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE_AFL.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
-/** @var $this \Magento\Backend\Block\Page\Header */
+// @codingStandardsIgnoreFile
+
+/** @var $block \Magento\Backend\Block\Page\Header */
 ?>
-<?php switch($this->getShowPart()):
+<?php switch ($block->getShowPart()):
     case 'logo': ?>
-        <?php $edition = $this->getEdition() ? 'data-edition="' . $this->getEdition() . '"' : ''; ?>
-        <a href="<?php echo $this->getHomeLink() ?>" <?php echo $edition; ?> class="logo" title="<?php echo __('Magento Admin Panel') ?>"><span><?php echo __('Magento Admin Panel') ?></span></a>
+        <?php $edition = $block->hasEdition() ? 'data-edition="' . $block->escapeHtml($block->getEdition()) . '"' : ''; ?>
+        <?php $logoSrc = ($block->hasLogoImageSrc()) ? $block->escapeHtml($block->getLogoImageSrc()) : 'images/magento-logo.svg' ?>
+        <a
+            href="<?php /* @escapeNotVerified */ echo $block->getHomeLink() ?>"
+            <?php /* @escapeNotVerified */ echo $edition; ?>
+            class="logo">
+            <img class="logo-img" src="<?php /* @escapeNotVerified */ echo $block->getViewFileUrl($logoSrc) ?>"
+            alt="<?php echo $block->escapeHtml(__('Magento Admin Panel')) ?>"/>
+        </a>
     <?php break; ?>
     <?php case 'user': ?>
-        <div class="admin-user">
-            <a href="<?php echo $this->getUrl('adminhtml/system_account/index') ?>" class="admin-user-account" title="<?php echo __('My Account') ?>" data-toggle="dropdown">
-                <?php echo $this->escapeHtml($this->getUser()->getUsername()); ?>
+        <div class="admin-user admin__action-dropdown-wrap">
+            <a
+                href="<?php /* @escapeNotVerified */ echo $block->getUrl('adminhtml/system_account/index') ?>"
+                class="admin__action-dropdown"
+                title="<?php echo $block->escapeHtml(__('My Account')) ?>"
+                data-mage-init='{"dropdown":{}}'
+                data-toggle="dropdown">
+                <span class="admin__action-dropdown-text">
+                    <span class="admin-user-account-text"><?php echo $block->escapeHtml($block->getUser()->getUsername()); ?></span>
+                </span>
             </a>
-            <ul class="dropdown-menu admin-user-menu">
-                <?php if ($this->getAuthorization()->isAllowed('Magento_Adminhtml::myaccount')): ?>
+            <ul class="admin__action-dropdown-menu">
+                <?php if ($block->getAuthorization()->isAllowed('Magento_Backend::myaccount')): ?>
                 <li>
-                    <a href="<?php echo $this->getUrl('adminhtml/system_account/index') ?>" <?php echo $this->getUiId('user', 'account', 'settings')?> title="<?php echo __('Account Setting') ?>"><?php echo __('Account Setting') ?> <span><?php echo $this->escapeHtml($this->getUser()->getUsername()); ?></span></a>
+                    <a
+                        href="<?php /* @escapeNotVerified */ echo $block->getUrl('adminhtml/system_account/index') ?>"
+                        <?php /* @escapeNotVerified */ echo $block->getUiId('user', 'account', 'settings')?>
+                        title="<?php echo $block->escapeHtml(__('Account Setting')) ?>">
+                        <?php /* @escapeNotVerified */ echo __('Account Setting') ?> (<span class="admin-user-name"><?php echo $block->escapeHtml($block->getUser()->getUsername()); ?></span>)
+                    </a>
                 </li>
                 <?php endif; ?>
-                <li><a href="<?php echo $this->getBaseUrl(); ?>" title="<?php echo __('Customer View'); ?>" target="_blank" class="store-front"><?php echo __('Customer View'); ?></a></li>
                 <li>
-                    <a href="<?php echo $this->getLogoutLink() ?>" class="account-signout" title="<?php echo __('Sign Out') ?>"><?php echo __('Sign Out') ?></a>
+                    <a
+                        href="<?php /* @escapeNotVerified */ echo $block->getBaseUrl(); ?>"
+                        title="<?php echo $block->escapeHtml(__('Customer View')); ?>"
+                        target="_blank" class="store-front">
+                        <?php /* @escapeNotVerified */ echo __('Customer View'); ?>
+                    </a>
+                </li>
+                <li>
+                    <a
+                        href="<?php /* @escapeNotVerified */ echo $block->getLogoutLink() ?>"
+                        class="account-signout"
+                        title="<?php echo $block->escapeHtml(__('Sign Out')) ?>">
+                        <?php /* @escapeNotVerified */ echo __('Sign Out') ?>
+                    </a>
                 </li>
             </ul>
         </div>
     <?php break; ?>
     <?php case 'other': ?>
-        <?php echo $this->getChildHtml(); ?>
+        <?php echo $block->getChildHtml(); ?>
     <?php break; ?>
 <?php endswitch; ?>

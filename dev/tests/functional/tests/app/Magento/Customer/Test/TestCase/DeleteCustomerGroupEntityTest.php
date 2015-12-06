@@ -1,33 +1,15 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Customer\Test\TestCase;
 
-use Magento\Customer\Test\Fixture\CustomerGroupInjectable;
+use Magento\Customer\Test\Fixture\CustomerGroup;
 use Magento\Customer\Test\Page\Adminhtml\CustomerGroupIndex;
 use Magento\Customer\Test\Page\Adminhtml\CustomerGroupNew;
-use Mtf\TestCase\Injectable;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
  * Test Creation for DeleteCustomerGroupEntity
@@ -48,6 +30,11 @@ use Mtf\TestCase\Injectable;
  */
 class DeleteCustomerGroupEntityTest extends Injectable
 {
+    /* tags */
+    const MVP = 'yes';
+    const DOMAIN = 'CS';
+    /* end tags */
+
     /**
      * Page CustomerGroupIndex
      *
@@ -80,10 +67,10 @@ class DeleteCustomerGroupEntityTest extends Injectable
     /**
      * Delete Customer Group
      *
-     * @param CustomerGroupInjectable $customerGroup
+     * @param CustomerGroup $customerGroup
      * @return void
      */
-    public function test(CustomerGroupInjectable $customerGroup)
+    public function test(CustomerGroup $customerGroup)
     {
         // Precondition
         $customerGroup->persist();
@@ -93,5 +80,6 @@ class DeleteCustomerGroupEntityTest extends Injectable
         $this->customerGroupIndex->open();
         $this->customerGroupIndex->getCustomerGroupGrid()->searchAndOpen($filter);
         $this->customerGroupNew->getPageMainActions()->delete();
+        $this->customerGroupNew->getModalBlock()->acceptAlert();
     }
 }

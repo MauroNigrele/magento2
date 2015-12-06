@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -36,7 +18,7 @@ abstract class AbstractController extends \PHPUnit_Framework_TestCase
 
     protected $_runScope = 'store';
 
-    protected $_runOptions = array();
+    protected $_runOptions = [];
 
     /**
      * @var \Magento\TestFramework\Request
@@ -96,7 +78,7 @@ abstract class AbstractController extends \PHPUnit_Framework_TestCase
         if ($this->_assertSessionErrors) {
             // equalTo() is intentionally used instead of isEmpty() to provide the informative diff
             $this->assertSessionMessages(
-                $this->equalTo(array()),
+                $this->equalTo([]),
                 \Magento\Framework\Message\MessageInterface::TYPE_ERROR
             );
         }
@@ -160,9 +142,9 @@ abstract class AbstractController extends \PHPUnit_Framework_TestCase
         $headerFound = false;
         $headers = $this->getResponse()->getHeaders();
         foreach ($headers as $header) {
-            if ($header['name'] === $headerName) {
+            if ($header->getFieldName() === $headerName) {
                 $headerFound = true;
-                $this->assertRegExp($valueRegex, $header['value']);
+                $this->assertRegExp($valueRegex, $header->getFieldValue());
             }
         }
         if (!$headerFound) {
@@ -187,8 +169,8 @@ abstract class AbstractController extends \PHPUnit_Framework_TestCase
         if ($urlConstraint) {
             $actualUrl = '';
             foreach ($this->getResponse()->getHeaders() as $header) {
-                if ($header['name'] == 'Location') {
-                    $actualUrl = $header['value'];
+                if ($header->getFieldName() == 'Location') {
+                    $actualUrl = $header->getFieldValue();
                     break;
                 }
             }
@@ -217,7 +199,7 @@ abstract class AbstractController extends \PHPUnit_Framework_TestCase
         /** @var $messageManager \Magento\Framework\Message\ManagerInterface */
         $messageManager = $this->_objectManager->get($messageManagerClass);
         /** @var $messages \Magento\Framework\Message\AbstractMessage[] */
-        if (is_null($messageType)) {
+        if ($messageType === null) {
             $messages = $messageManager->getMessages()->getItems();
         } else {
             $messages = $messageManager->getMessages()->getItemsByType($messageType);

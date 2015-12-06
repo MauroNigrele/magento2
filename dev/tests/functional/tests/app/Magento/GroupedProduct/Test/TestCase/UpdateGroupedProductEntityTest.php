@@ -1,39 +1,17 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\GroupedProduct\Test\TestCase;
 
-use Mtf\TestCase\Injectable;
 use Magento\Catalog\Test\Page\Adminhtml\CatalogProductEdit;
 use Magento\Catalog\Test\Page\Adminhtml\CatalogProductIndex;
-use Magento\GroupedProduct\Test\Fixture\GroupedProductInjectable;
+use Magento\GroupedProduct\Test\Fixture\GroupedProduct;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
- * Test Creation for Update GroupedProductEntity
- *
- * Test Flow:
- *
  * Preconditions:
  * 1. Create Grouped Product.
  *
@@ -50,22 +28,27 @@ use Magento\GroupedProduct\Test\Fixture\GroupedProductInjectable;
  */
 class UpdateGroupedProductEntityTest extends Injectable
 {
+    /* tags */
+    const MVP = 'no';
+    const DOMAIN = 'MX';
+    /* end tags */
+
     /**
-     * Page product on backend
+     * Page product on backend.
      *
      * @var CatalogProductIndex
      */
     protected $catalogProductIndex;
 
     /**
-     * Edit page on backend
+     * Edit page on backend.
      *
      * @var CatalogProductEdit
      */
     protected $catalogProductEdit;
 
     /**
-     * Filling objects of the class
+     * Filling objects of the class.
      *
      * @param CatalogProductIndex $catalogProductIndexNewPage
      * @param CatalogProductEdit $catalogProductEditPage
@@ -80,13 +63,13 @@ class UpdateGroupedProductEntityTest extends Injectable
     }
 
     /**
-     * Test update grouped product
+     * Test update grouped product.
      *
-     * @param GroupedProductInjectable $product
-     * @param GroupedProductInjectable $originalProduct
+     * @param GroupedProduct $product
+     * @param GroupedProduct $originalProduct
      * @return void
      */
-    public function test(GroupedProductInjectable $product, GroupedProductInjectable $originalProduct)
+    public function test(GroupedProduct $product, GroupedProduct $originalProduct)
     {
         // Precondition
         $originalProduct->persist();

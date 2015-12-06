@@ -1,30 +1,13 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Customer\Block\Adminhtml;
 
+use Magento\Customer\Api\AccountManagementInterface;
+use Magento\Customer\Api\CustomerRepositoryInterface;
 use Magento\Customer\Controller\RegistryConstants;
-use Magento\Customer\Service\V1\CustomerAccountServiceInterface;
 
 /**
  * Customer edit block
@@ -38,8 +21,15 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
      */
     protected $_coreRegistry = null;
 
-    /** @var CustomerAccountServiceInterface */
-    protected $_customerAccountService;
+    /**
+     * @var AccountManagementInterface
+     */
+    protected $customerAccountManagement;
+
+    /**
+     * @var CustomerRepositoryInterface
+     */
+    protected $customerRepository;
 
     /**
      * Customer view helper
@@ -53,19 +43,22 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
      *
      * @param \Magento\Backend\Block\Widget\Context $context
      * @param \Magento\Framework\Registry $registry
-     * @param CustomerAccountServiceInterface $customerAccountService
+     * @param AccountManagementInterface $customerAccountManagement
+     * @param CustomerRepositoryInterface $customerRepository
      * @param \Magento\Customer\Helper\View $viewHelper
      * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Widget\Context $context,
         \Magento\Framework\Registry $registry,
-        CustomerAccountServiceInterface $customerAccountService,
+        AccountManagementInterface $customerAccountManagement,
+        CustomerRepositoryInterface $customerRepository,
         \Magento\Customer\Helper\View $viewHelper,
-        array $data = array()
+        array $data = []
     ) {
         $this->_coreRegistry = $registry;
-        $this->_customerAccountService = $customerAccountService;
+        $this->customerAccountManagement = $customerAccountManagement;
+        $this->customerRepository = $customerRepository;
         $this->_viewHelper = $viewHelper;
         parent::__construct($context, $data);
     }
@@ -84,11 +77,11 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
         if ($customerId && $this->_authorization->isAllowed('Magento_Sales::create')) {
             $this->buttonList->add(
                 'order',
-                array(
+                [
                     'label' => __('Create Order'),
                     'onclick' => 'setLocation(\'' . $this->getCreateOrderUrl() . '\')',
                     'class' => 'add'
-                ),
+                ],
                 0
             );
         }
@@ -98,38 +91,38 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
         $this->buttonList->update('save', 'label', __('Save Customer'));
         $this->buttonList->update('delete', 'label', __('Delete Customer'));
 
-        if ($customerId && !$this->_customerAccountService->canModify($customerId)) {
+        if ($customerId && $this->customerAccountManagement->isReadonly($customerId)) {
             $this->buttonList->remove('save');
             $this->buttonList->remove('reset');
         }
 
-        if (!$customerId || !$this->_customerAccountService->canDelete($customerId)) {
+        if (!$customerId || $this->customerAccountManagement->isReadonly($customerId)) {
             $this->buttonList->remove('delete');
         }
 
         if ($customerId) {
-            $url = $this->getUrl('customer/index/resetPassword', array('customer_id' => $customerId));
+            $url = $this->getUrl('customer/index/resetPassword', ['customer_id' => $customerId]);
             $this->buttonList->add(
                 'reset_password',
-                array(
+                [
                     'label' => __('Reset Password'),
                     'onclick' => 'setLocation(\'' . $url . '\')',
                     'class' => 'reset reset-password'
-                ),
+                ],
                 0
             );
         }
 
         if ($customerId) {
-            $url = $this->getUrl('customer/customer/invalidateToken', array('customer_id' => $customerId));
+            $url = $this->getUrl('customer/customer/invalidateToken', ['customer_id' => $customerId]);
             $deleteConfirmMsg = __("Are you sure you want to revoke the customer\'s tokens?");
             $this->buttonList->add(
                 'invalidate_token',
-                array(
+                [
                     'label' => __('Force Sign-In'),
                     'onclick' => 'deleteConfirm(\'' . $deleteConfirmMsg . '\', \'' . $url . '\')',
                     'class' => 'invalidate-token'
-                ),
+                ],
                 10
             );
         }
@@ -142,7 +135,7 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
      */
     public function getCreateOrderUrl()
     {
-        return $this->getUrl('sales/order_create/start', array('customer_id' => $this->getCustomerId()));
+        return $this->getUrl('sales/order_create/start', ['customer_id' => $this->getCustomerId()]);
     }
 
     /**
@@ -159,13 +152,13 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
     /**
      * Retrieve the header text, either the name of an existing customer or 'New Customer'.
      *
-     * @return string
+     * @return \Magento\Framework\Phrase|string
      */
     public function getHeaderText()
     {
         $customerId = $this->getCustomerId();
         if ($customerId) {
-            $customerData = $this->_customerAccountService->getCustomer($customerId);
+            $customerData = $this->customerRepository->getById($customerId);
             return $this->escapeHtml($this->_viewHelper->getCustomerName($customerData));
         } else {
             return __('New Customer');
@@ -193,7 +186,7 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
      */
     public function getValidationUrl()
     {
-        return $this->getUrl('customer/*/validate', array('_current' => true));
+        return $this->getUrl('customer/*/validate', ['_current' => true]);
     }
 
     /**
@@ -204,18 +197,18 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
     protected function _prepareLayout()
     {
         $customerId = $this->getCustomerId();
-        if (!$customerId || $this->_customerAccountService->canModify($customerId)) {
+        if (!$customerId || !$this->customerAccountManagement->isReadonly($customerId)) {
             $this->buttonList->add(
                 'save_and_continue',
-                array(
+                [
                     'label' => __('Save and Continue Edit'),
                     'class' => 'save',
-                    'data_attribute' => array(
-                        'mage-init' => array(
-                            'button' => array('event' => 'saveAndContinueEdit', 'target' => '#edit_form')
-                        )
-                    )
-                ),
+                    'data_attribute' => [
+                        'mage-init' => [
+                            'button' => ['event' => 'saveAndContinueEdit', 'target' => '#edit_form'],
+                        ],
+                    ]
+                ],
                 10
             );
         }
@@ -232,7 +225,7 @@ class Edit extends \Magento\Backend\Block\Widget\Form\Container
     {
         return $this->getUrl(
             'customer/index/save',
-            array('_current' => true, 'back' => 'edit', 'tab' => '{{tab_id}}')
+            ['_current' => true, 'back' => 'edit', 'tab' => '{{tab_id}}']
         );
     }
 }

@@ -2,35 +2,19 @@
 /**
  * Front controller for WebAPI SOAP area.
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Webapi\Controller;
 
 use Magento\Framework\Exception\AuthorizationException;
-use Magento\Webapi\Exception as WebapiException;
-use Magento\Webapi\Model\PathProcessor;
+use Magento\Framework\Webapi\ErrorProcessor;
+use Magento\Framework\Webapi\Request;
+use Magento\Framework\Webapi\Response;
 
 /**
- * TODO: Consider warnings suppression removal
+ *
+ * SOAP Web API entry point.
  *
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
@@ -56,7 +40,7 @@ class Soap implements \Magento\Framework\App\FrontControllerInterface
     protected $_wsdlGenerator;
 
     /**
-     * @var \Magento\Webapi\Controller\Soap\Request
+     * @var Request
      */
     protected $_request;
 
@@ -69,11 +53,6 @@ class Soap implements \Magento\Framework\App\FrontControllerInterface
      * @var ErrorProcessor
      */
     protected $_errorProcessor;
-
-    /**
-     * @var \Magento\Framework\View\LayoutInterface
-     */
-    protected $_layout;
 
     /**
      * @var \Magento\Framework\Locale\ResolverInterface
@@ -91,29 +70,33 @@ class Soap implements \Magento\Framework\App\FrontControllerInterface
     protected $areaList;
 
     /**
-     * @param Soap\Request $request
+     * @var \Magento\Framework\Webapi\Rest\Response\RendererFactory
+     */
+    protected $rendererFactory;
+
+    /**
+     * @param Request $request
      * @param Response $response
      * @param \Magento\Webapi\Model\Soap\Wsdl\Generator $wsdlGenerator
      * @param \Magento\Webapi\Model\Soap\Server $soapServer
      * @param ErrorProcessor $errorProcessor
      * @param \Magento\Framework\App\State $appState
-     * @param \Magento\Framework\View\LayoutInterface $layout
      * @param \Magento\Framework\Locale\ResolverInterface $localeResolver
      * @param PathProcessor $pathProcessor
+     * @param \Magento\Framework\Webapi\Rest\Response\RendererFactory $rendererFactory
      * @param \Magento\Framework\App\AreaList $areaList
-     *
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
-        \Magento\Webapi\Controller\Soap\Request $request,
-        Response $response,
+        Request $request,
+        \Magento\Framework\Webapi\Response $response,
         \Magento\Webapi\Model\Soap\Wsdl\Generator $wsdlGenerator,
         \Magento\Webapi\Model\Soap\Server $soapServer,
         ErrorProcessor $errorProcessor,
         \Magento\Framework\App\State $appState,
-        \Magento\Framework\View\LayoutInterface $layout,
         \Magento\Framework\Locale\ResolverInterface $localeResolver,
         PathProcessor $pathProcessor,
+        \Magento\Framework\Webapi\Rest\Response\RendererFactory $rendererFactory,
         \Magento\Framework\App\AreaList $areaList
     ) {
         $this->_request = $request;
@@ -123,9 +106,9 @@ class Soap implements \Magento\Framework\App\FrontControllerInterface
         $this->_errorProcessor = $errorProcessor;
         $this->_appState = $appState;
         $this->_localeResolver = $localeResolver;
-        $this->_layout = $layout;
         $this->_pathProcessor = $pathProcessor;
         $this->areaList = $areaList;
+        $this->rendererFactory = $rendererFactory;
     }
 
     /**
@@ -138,16 +121,27 @@ class Soap implements \Magento\Framework\App\FrontControllerInterface
     {
         $path = $this->_pathProcessor->process($request->getPathInfo());
         $this->_request->setPathInfo($path);
-        $this->areaList->getArea($this->_appState->getAreaCode())
-            ->load(\Magento\Framework\App\Area::PART_TRANSLATE);
+        $this->areaList->getArea($this->_appState->getAreaCode())->load(\Magento\Framework\App\Area::PART_TRANSLATE);
         try {
             if ($this->_isWsdlRequest()) {
+                $this->validateWsdlRequest();
                 $responseBody = $this->_wsdlGenerator->generate(
                     $this->_request->getRequestedServices(),
+                    $this->_request->getScheme(),
+                    $this->_request->getHttpHost(),
                     $this->_soapServer->generateUri()
                 );
                 $this->_setResponseContentType(self::CONTENT_TYPE_WSDL_REQUEST);
                 $this->_setResponseBody($responseBody);
+            } else if ($this->_isWsdlListRequest()) {
+                $servicesList = [];
+                foreach (array_keys($this->_wsdlGenerator->getListOfServices()) as $serviceName) {
+                    $servicesList[$serviceName]['wsdl_endpoint'] = $this->_soapServer->getEndpointUri()
+                        . '?' . \Magento\Webapi\Model\Soap\Server::REQUEST_PARAM_WSDL . '&services=' . $serviceName;
+                }
+                $renderer = $this->rendererFactory->get();
+                $this->_setResponseContentType($renderer->getMimeType());
+                $this->_setResponseBody($renderer->render($servicesList));
             } else {
                 $this->_soapServer->handle();
             }
@@ -168,6 +162,16 @@ class Soap implements \Magento\Framework\App\FrontControllerInterface
     }
 
     /**
+     * Check if current request is WSDL request. SOAP operation execution request is another type of requests.
+     *
+     * @return bool
+     */
+    protected function _isWsdlListRequest()
+    {
+        return $this->_request->getParam(\Magento\Webapi\Model\Soap\Server::REQUEST_PARAM_LIST_WSDL) !== null;
+    }
+
+    /**
      * Parse the Authorization header and return the access token e.g. Authorization: Bearer <access-token>
      *
      * @return string Access token
@@ -181,9 +185,9 @@ class Soap implements \Magento\Framework\App\FrontControllerInterface
             if (isset($token[1]) && is_string($token[1])) {
                 return $token[1];
             }
-            throw new AuthorizationException('Authentication header format is invalid.');
+            throw new AuthorizationException(__('Authentication header format is invalid.'));
         }
-        throw new AuthorizationException('Authentication header is absent.');
+        throw new AuthorizationException(__('Authentication header is absent.'));
     }
 
     /**
@@ -211,7 +215,6 @@ class Soap implements \Magento\Framework\App\FrontControllerInterface
             $this->_localeResolver,
             $this->_appState
         );
-        // TODO: Generate list of available URLs when invalid WSDL URL specified
         $this->_setResponseBody($soapFault->toXml());
     }
 
@@ -246,5 +249,30 @@ class Soap implements \Magento\Framework\App\FrontControllerInterface
             )
         );
         return $this;
+    }
+
+    /**
+     * Validate wsdl request
+     *
+     * @return void
+     * @throws \Magento\Framework\Webapi\Exception
+     */
+    protected function validateWsdlRequest()
+    {
+        $wsdlParam = \Magento\Webapi\Model\Soap\Server::REQUEST_PARAM_WSDL;
+        $servicesParam = Request::REQUEST_PARAM_SERVICES;
+        $requestParams = array_keys($this->_request->getParams());
+        $allowedParams = [$wsdlParam, $servicesParam];
+        $notAllowedParameters = array_diff($requestParams, $allowedParams);
+        if (count($notAllowedParameters)) {
+            $notAllowed = implode(', ', $notAllowedParameters);
+            $message = __(
+                'Not allowed parameters: %1. Please use only %2 and %3.',
+                $notAllowed,
+                $wsdlParam,
+                $servicesParam
+            );
+            throw new \Magento\Framework\Webapi\Exception($message);
+        }
     }
 }

@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Backup\Model\Config\Backend;
 
@@ -38,25 +20,22 @@ class Cron extends \Magento\Framework\App\Config\Value
 
     const XML_PATH_BACKUP_FREQUENCY = 'groups/backup/fields/frequency/value';
 
-    /**
-     * Config value factory
-     *
-     * @var \Magento\Framework\App\Config\ValueFactory
-     */
+    /** @var \Magento\Framework\App\Config\ValueFactory */
     protected $_configValueFactory;
 
-    /**
-     * @var string
-     */
+
+    /** @var string */
     protected $_runModelPath = '';
+
 
     /**
      * @param \Magento\Framework\Model\Context $context
      * @param \Magento\Framework\Registry $registry
      * @param \Magento\Framework\App\Config\ScopeConfigInterface $config
+     * @param \Magento\Framework\App\Cache\TypeListInterface $cacheTypeList
      * @param \Magento\Framework\App\Config\ValueFactory $configValueFactory
-     * @param \Magento\Framework\Model\Resource\AbstractResource $resource
-     * @param \Magento\Framework\Data\Collection\Db $resourceCollection
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
      * @param string $runModelPath
      * @param array $data
      */
@@ -64,24 +43,25 @@ class Cron extends \Magento\Framework\App\Config\Value
         \Magento\Framework\Model\Context $context,
         \Magento\Framework\Registry $registry,
         \Magento\Framework\App\Config\ScopeConfigInterface $config,
+        \Magento\Framework\App\Cache\TypeListInterface $cacheTypeList,
         \Magento\Framework\App\Config\ValueFactory $configValueFactory,
-        \Magento\Framework\Model\Resource\AbstractResource $resource = null,
-        \Magento\Framework\Data\Collection\Db $resourceCollection = null,
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
         $runModelPath = '',
-        array $data = array()
+        array $data = []
     ) {
         $this->_runModelPath = $runModelPath;
         $this->_configValueFactory = $configValueFactory;
-        parent::__construct($context, $registry, $config, $resource, $resourceCollection, $data);
+        parent::__construct($context, $registry, $config, $cacheTypeList, $resource, $resourceCollection, $data);
     }
 
     /**
      * Cron settings after save
      *
-     * @return void
-     * @throws \Magento\Framework\Model\Exception
+     * @return $this
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
-    protected function _afterSave()
+    public function afterSave()
     {
         $enabled = $this->getData(self::XML_PATH_BACKUP_ENABLED);
         $time = $this->getData(self::XML_PATH_BACKUP_TIME);
@@ -91,13 +71,13 @@ class Cron extends \Magento\Framework\App\Config\Value
         $frequencyMonthly = \Magento\Cron\Model\Config\Source\Frequency::CRON_MONTHLY;
 
         if ($enabled) {
-            $cronExprArray = array(
+            $cronExprArray = [
                 intval($time[1]),                                 # Minute
                 intval($time[0]),                                 # Hour
                 $frequency == $frequencyMonthly ? '1' : '*',      # Day of the Month
                 '*',                                              # Month of the Year
-                $frequency == $frequencyWeekly ? '1' : '*'        # Day of the Week
-            );
+                $frequency == $frequencyWeekly ? '1' : '*',        # Day of the Week
+            ];
             $cronExprString = join(' ', $cronExprArray);
         } else {
             $cronExprString = '';
@@ -122,7 +102,8 @@ class Cron extends \Magento\Framework\App\Config\Value
                 self::CRON_MODEL_PATH
             )->save();
         } catch (\Exception $e) {
-            throw new \Magento\Framework\Model\Exception(__('We can\'t save the Cron expression.'));
+            throw new \Magento\Framework\Exception\LocalizedException(__('We can\'t save the Cron expression.'));
         }
+        return parent::afterSave();
     }
 }

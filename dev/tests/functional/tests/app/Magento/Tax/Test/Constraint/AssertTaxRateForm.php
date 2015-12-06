@@ -1,46 +1,21 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Tax\Test\Constraint;
 
-use Mtf\Constraint\AbstractConstraint;
+use Magento\Tax\Test\Fixture\TaxRate;
 use Magento\Tax\Test\Page\Adminhtml\TaxRateIndex;
 use Magento\Tax\Test\Page\Adminhtml\TaxRateNew;
-use Magento\Tax\Test\Fixture\TaxRate;
+use Magento\Mtf\Constraint\AbstractConstraint;
 
 /**
  * Class AssertTaxRateForm
  */
 class AssertTaxRateForm extends AbstractConstraint
 {
-    /**
-     * Constraint severeness
-     *
-     * @var string
-     */
-    protected $severeness = 'high';
-
     /**
      * Assert that tax rate form filled correctly
      *
@@ -56,10 +31,7 @@ class AssertTaxRateForm extends AbstractConstraint
         TaxRate $taxRate,
         TaxRate $initialTaxRate = null
     ) {
-        $data = ($initialTaxRate !== null)
-            ? array_merge($initialTaxRate->getData(), $taxRate->getData())
-            : $taxRate->getData();
-        $data = $this->prepareData($data);
+        $data = $this->prepareData($taxRate, $initialTaxRate);
         $filter = [
             'code' => $data['code'],
         ];
@@ -78,16 +50,26 @@ class AssertTaxRateForm extends AbstractConstraint
     /**
      * Preparing data for verification
      *
-     * @param array $data
+     * @param TaxRate $taxRate
+     * @param TaxRate $initialTaxRate
      * @return array
      */
-    protected function prepareData(array $data)
+    protected function prepareData(TaxRate $taxRate, TaxRate $initialTaxRate = null)
     {
+        if ($initialTaxRate !== null) {
+            $data = array_merge($initialTaxRate->getData(), $taxRate->getData());
+            if ($taxRate->hasData('tax_country_id') && !$taxRate->hasData('tax_region_id')) {
+                unset($data['tax_region_id']);
+            }
+        } else {
+            $data = $taxRate->getData();
+        }
         if ($data['zip_is_range'] === 'Yes') {
             unset($data['tax_postcode']);
         } else {
             unset($data['zip_from'], $data['zip_to']);
         }
+        $data['rate'] = number_format($data['rate'], 4);
 
         return $data;
     }

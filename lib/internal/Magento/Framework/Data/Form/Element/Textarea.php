@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -34,6 +16,16 @@ use Magento\Framework\Escaper;
 class Textarea extends AbstractElement
 {
     /**
+     * Default number of rows
+     */
+    const DEFAULT_ROWS = 2;
+
+    /**
+     * Default number of columns
+     */
+    const DEFAULT_COLS = 15;
+
+    /**
      * @param Factory $factoryElement
      * @param CollectionFactory $factoryCollection
      * @param Escaper $escaper
@@ -43,13 +35,17 @@ class Textarea extends AbstractElement
         Factory $factoryElement,
         CollectionFactory $factoryCollection,
         Escaper $escaper,
-        $data = array()
+        $data = []
     ) {
         parent::__construct($factoryElement, $factoryCollection, $escaper, $data);
         $this->setType('textarea');
         $this->setExtType('textarea');
-        $this->setRows(2);
-        $this->setCols(15);
+        if (!$this->getRows()) {
+            $this->setRows(self::DEFAULT_ROWS);
+        }
+        if (!$this->getCols()) {
+            $this->setCols(self::DEFAULT_COLS);
+        }
     }
 
     /**
@@ -59,7 +55,7 @@ class Textarea extends AbstractElement
      */
     public function getHtmlAttributes()
     {
-        return array(
+        return [
             'title',
             'class',
             'style',
@@ -70,8 +66,11 @@ class Textarea extends AbstractElement
             'readonly',
             'disabled',
             'onkeyup',
-            'tabindex'
-        );
+            'tabindex',
+            'data-form-part',
+            'data-role',
+            'data-action'
+        ];
     }
 
     /**
@@ -81,10 +80,9 @@ class Textarea extends AbstractElement
      */
     public function getElementHtml()
     {
-        $this->addClass('textarea');
-        $html = '<textarea id="' . $this->getHtmlId() . '" name="' . $this->getName() . '" ' . $this->serialize(
-            $this->getHtmlAttributes()
-        ) . $this->_getUiId() . ' >';
+        $this->addClass('textarea admin__control-textarea');
+        $html = '<textarea id="' . $this->getHtmlId() . '" name="' . $this->getName() . '" '
+            . $this->serialize($this->getHtmlAttributes()) . $this->_getUiId() . ' >';
         $html .= $this->getEscapedValue();
         $html .= "</textarea>";
         $html .= $this->getAfterElementHtml();

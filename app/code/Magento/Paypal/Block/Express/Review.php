@@ -1,29 +1,15 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
+
+// @codingStandardsIgnoreFile
+
 namespace Magento\Paypal\Block\Express;
 
 use Magento\Framework\Pricing\PriceCurrencyInterface;
+use Magento\Quote\Model\Quote\Address\Rate;
 
 /**
  * Paypal Express Onepage checkout block
@@ -33,12 +19,12 @@ use Magento\Framework\Pricing\PriceCurrencyInterface;
 class Review extends \Magento\Framework\View\Element\Template
 {
     /**
-     * @var \Magento\Sales\Model\Quote
+     * @var \Magento\Quote\Model\Quote
      */
     protected $_quote;
 
     /**
-     * @var \Magento\Sales\Model\Quote\Address
+     * @var \Magento\Quote\Model\Quote\Address
      */
     protected $_address;
 
@@ -50,7 +36,7 @@ class Review extends \Magento\Framework\View\Element\Template
     /**
      * Currently selected shipping rate
      *
-     * @var \Magento\Sales\Model\Quote\Address\Rate
+     * @var Rate
      */
     protected $_currentShippingRate = null;
 
@@ -83,7 +69,7 @@ class Review extends \Magento\Framework\View\Element\Template
         \Magento\Tax\Helper\Data $taxHelper,
         \Magento\Customer\Model\Address\Config $addressConfig,
         PriceCurrencyInterface $priceCurrency,
-        array $data = array()
+        array $data = []
     ) {
         $this->priceCurrency = $priceCurrency;
         $this->_taxHelper = $taxHelper;
@@ -94,10 +80,10 @@ class Review extends \Magento\Framework\View\Element\Template
     /**
      * Quote object setter
      *
-     * @param \Magento\Sales\Model\Quote $quote
+     * @param \Magento\Quote\Model\Quote $quote
      * @return $this
      */
-    public function setQuote(\Magento\Sales\Model\Quote $quote)
+    public function setQuote(\Magento\Quote\Model\Quote $quote)
     {
         $this->_quote = $quote;
         return $this;
@@ -106,7 +92,7 @@ class Review extends \Magento\Framework\View\Element\Template
     /**
      * Return quote billing address
      *
-     * @return \Magento\Sales\Model\Quote\Address
+     * @return \Magento\Quote\Model\Quote\Address
      */
     public function getBillingAddress()
     {
@@ -116,7 +102,7 @@ class Review extends \Magento\Framework\View\Element\Template
     /**
      * Return quote shipping address
      *
-     * @return false|\Magento\Sales\Model\Quote\Address
+     * @return false|\Magento\Quote\Model\Quote\Address
      */
     public function getShippingAddress()
     {
@@ -129,7 +115,7 @@ class Review extends \Magento\Framework\View\Element\Template
     /**
      * Get HTML output for specified address
      *
-     * @param \Magento\Sales\Model\Quote\Address $address
+     * @param \Magento\Quote\Model\Quote\Address $address
      * @return string
      */
     public function renderAddress($address)
@@ -157,10 +143,10 @@ class Review extends \Magento\Framework\View\Element\Template
     /**
      * Get either shipping rate code or empty value on error
      *
-     * @param \Magento\Framework\Object $rate
+     * @param \Magento\Framework\DataObject $rate
      * @return string
      */
-    public function renderShippingRateValue(\Magento\Framework\Object $rate)
+    public function renderShippingRateValue(\Magento\Framework\DataObject $rate)
     {
         if ($rate->getErrorMessage()) {
             return '';
@@ -171,7 +157,7 @@ class Review extends \Magento\Framework\View\Element\Template
     /**
      * Get shipping rate code title and its price or error message
      *
-     * @param \Magento\Framework\Object $rate
+     * @param \Magento\Framework\DataObject $rate
      * @param string $format
      * @param string $inclTaxFormat
      * @return string
@@ -189,7 +175,7 @@ class Review extends \Magento\Framework\View\Element\Template
 
             $incl = $this->_getShippingPrice($rate->getPrice(), true);
             if ($incl != $price && $this->_taxHelper->displayShippingBothPrices()) {
-                $renderedInclTax = sprintf($inclTaxFormat, __('Incl. Tax'), $incl);
+                $renderedInclTax = sprintf($inclTaxFormat, $this->escapeHtml(__('Incl. Tax')), $incl);
             }
         }
         return sprintf($format, $this->escapeHtml($rate->getMethodTitle()), $price, $renderedInclTax);
@@ -198,11 +184,32 @@ class Review extends \Magento\Framework\View\Element\Template
     /**
      * Getter for current shipping rate
      *
-     * @return \Magento\Sales\Model\Quote\Address\Rate
+     * @return Rate
      */
     public function getCurrentShippingRate()
     {
         return $this->_currentShippingRate;
+    }
+
+    /**
+     * Whether can edit shipping method
+     *
+     * @return bool
+     */
+    public function canEditShippingMethod()
+    {
+        return $this->getData('can_edit_shipping_method') || !$this->getCurrentShippingRate();
+    }
+
+    /**
+     * Get quote email
+     *
+     * @return string
+     */
+    public function getEmail()
+    {
+        $billingAddress = $this->getBillingAddress();
+        return $billingAddress ? $billingAddress->getEmail() : '';
     }
 
     /**
@@ -248,6 +255,7 @@ class Review extends \Magento\Framework\View\Element\Template
      * Retrieve payment method and assign additional template values
      *
      * @return $this
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
     protected function _beforeToHtml()
     {

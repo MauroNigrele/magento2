@@ -1,34 +1,15 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Wishlist\Controller\Index;
 
-use Magento\Wishlist\Controller\IndexInterface;
 use Magento\Framework\App\Action;
-use Magento\Framework\App\Action\NotFoundException;
+use Magento\Framework\Exception\NotFoundException;
+use Magento\Framework\Controller\ResultFactory;
 
-class Remove extends Action\Action implements IndexInterface
+class Remove extends \Magento\Wishlist\Controller\AbstractIndex
 {
     /**
      * @var \Magento\Wishlist\Controller\WishlistProviderInterface
@@ -50,7 +31,7 @@ class Remove extends Action\Action implements IndexInterface
     /**
      * Remove item
      *
-     * @return void
+     * @return \Magento\Framework\Controller\Result\Redirect
      * @throws NotFoundException
      */
     public function execute()
@@ -58,26 +39,38 @@ class Remove extends Action\Action implements IndexInterface
         $id = (int)$this->getRequest()->getParam('item');
         $item = $this->_objectManager->create('Magento\Wishlist\Model\Item')->load($id);
         if (!$item->getId()) {
-            throw new NotFoundException();
+            throw new NotFoundException(__('Page not found.'));
         }
         $wishlist = $this->wishlistProvider->getWishlist($item->getWishlistId());
         if (!$wishlist) {
-            throw new NotFoundException();
+            throw new NotFoundException(__('Page not found.'));
         }
         try {
             $item->delete();
             $wishlist->save();
-        } catch (\Magento\Framework\Model\Exception $e) {
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
             $this->messageManager->addError(
-                __('An error occurred while deleting the item from wish list: %1', $e->getMessage())
+                __('We can\'t delete the item from Wish List right now because of an error: %1.', $e->getMessage())
             );
         } catch (\Exception $e) {
-            $this->messageManager->addError(__('An error occurred while deleting the item from wish list.'));
+            $this->messageManager->addError(__('We can\'t delete the item from the Wish List right now.'));
         }
 
         $this->_objectManager->get('Magento\Wishlist\Helper\Data')->calculate();
-
-        $url = $this->_redirect->getRedirectUrl($this->_url->getUrl('*/*'));
-        $this->getResponse()->setRedirect($url);
+        $request = $this->getRequest();
+        $refererUrl = (string)$request->getServer('HTTP_REFERER');
+        $url = (string)$request->getParam(\Magento\Framework\App\Response\RedirectInterface::PARAM_NAME_REFERER_URL);
+        if ($url) {
+            $refererUrl = $url;
+        }
+        if ($request->getParam(\Magento\Framework\App\ActionInterface::PARAM_NAME_URL_ENCODED) && $refererUrl) {
+            $redirectUrl = $refererUrl;
+        } else {
+            $redirectUrl = $this->_redirect->getRedirectUrl($this->_url->getUrl('*/*'));
+        }
+        /** @var \Magento\Framework\Controller\Result\Redirect $resultRedirect */
+        $resultRedirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
+        $resultRedirect->setUrl($redirectUrl);
+        return $resultRedirect;
     }
 }

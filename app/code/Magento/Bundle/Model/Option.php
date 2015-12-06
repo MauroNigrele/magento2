@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Bundle\Model;
 
@@ -27,17 +9,24 @@ namespace Magento\Bundle\Model;
  * Bundle Option Model
  *
  * @method int getParentId()
- * @method int getPosition()
- * @method int getRequired()
  * @method null|\Magento\Catalog\Model\Product[] getSelections()
- * @method string getType()
  * @method Option setParentId(int $value)
- * @method Option setPosition(int $value)
- * @method Option setRequired(int $value)
- * @method Option setType(string $value)
  */
-class Option extends \Magento\Framework\Model\AbstractModel
+class Option extends \Magento\Framework\Model\AbstractExtensibleModel implements
+    \Magento\Bundle\Api\Data\OptionInterface
 {
+    /**#@+
+     * Constants
+     */
+    const KEY_OPTION_ID = 'option_id';
+    const KEY_TITLE = 'title';
+    const KEY_REQUIRED = 'required';
+    const KEY_TYPE = 'type';
+    const KEY_POSITION = 'position';
+    const KEY_SKU = 'sku';
+    const KEY_PRODUCT_LINKS = 'product_links';
+    /**#@-*/
+
     /**
      * Default selection object
      *
@@ -52,7 +41,7 @@ class Option extends \Magento\Framework\Model\AbstractModel
      */
     protected function _construct()
     {
-        $this->_init('Magento\Bundle\Model\Resource\Option');
+        $this->_init('Magento\Bundle\Model\ResourceModel\Option');
         parent::_construct();
     }
 
@@ -64,7 +53,10 @@ class Option extends \Magento\Framework\Model\AbstractModel
      */
     public function addSelection(\Magento\Catalog\Model\Product $selection)
     {
-        $selections = $this->getDataSetDefault('selections', []);
+        if (!$this->hasData('selections')) {
+            $this->setData('selections', []);
+        }
+        $selections = $this->getData('selections');
         $selections[] = $selection;
         $this->setSelections($selections);
     }
@@ -146,4 +138,160 @@ class Option extends \Magento\Framework\Model\AbstractModel
         }
         return $foundSelection;
     }
+
+    //@codeCoverageIgnoreStart
+    /**
+     * {@inheritdoc}
+     */
+    public function getOptionId()
+    {
+        return $this->getData(self::KEY_OPTION_ID);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getTitle()
+    {
+        return $this->getData(self::KEY_TITLE);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getRequired()
+    {
+        return $this->getData(self::KEY_REQUIRED);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getType()
+    {
+        return $this->getData(self::KEY_TYPE);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getPosition()
+    {
+        return $this->getData(self::KEY_POSITION);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getSku()
+    {
+        return $this->getData(self::KEY_SKU);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getProductLinks()
+    {
+        return $this->getData(self::KEY_PRODUCT_LINKS);
+    }
+
+    /**
+     * Set option id
+     *
+     * @param int $optionId
+     * @return $this
+     */
+    public function setOptionId($optionId)
+    {
+        return $this->setData(self::KEY_OPTION_ID, $optionId);
+    }
+
+    /**
+     * Set option title
+     *
+     * @param string $title
+     * @return $this
+     */
+    public function setTitle($title)
+    {
+        return $this->setData(self::KEY_TITLE, $title);
+    }
+
+    /**
+     * Set whether option is required
+     *
+     * @param bool $required
+     * @return $this
+     */
+    public function setRequired($required)
+    {
+        return $this->setData(self::KEY_REQUIRED, $required);
+    }
+
+    /**
+     * Set input type
+     *
+     * @param string $type
+     * @return $this
+     */
+    public function setType($type)
+    {
+        return $this->setData(self::KEY_TYPE, $type);
+    }
+
+    /**
+     * Set option position
+     *
+     * @param int $position
+     * @return $this
+     */
+    public function setPosition($position)
+    {
+        return $this->setData(self::KEY_POSITION, $position);
+    }
+
+    /**
+     * Set product sku
+     *
+     * @param string $sku
+     * @return $this
+     */
+    public function setSku($sku)
+    {
+        return $this->setData(self::KEY_SKU, $sku);
+    }
+
+    /**
+     * Set product links
+     *
+     * @param \Magento\Bundle\Api\Data\LinkInterface[] $productLinks
+     * @return $this
+     */
+    public function setProductLinks(array $productLinks = null)
+    {
+        return $this->setData(self::KEY_PRODUCT_LINKS, $productLinks);
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @return \Magento\Bundle\Api\Data\OptionExtensionInterface|null
+     */
+    public function getExtensionAttributes()
+    {
+        return $this->_getExtensionAttributes();
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @param \Magento\Bundle\Api\Data\OptionExtensionInterface $extensionAttributes
+     * @return $this
+     */
+    public function setExtensionAttributes(\Magento\Bundle\Api\Data\OptionExtensionInterface $extensionAttributes)
+    {
+        return $this->_setExtensionAttributes($extensionAttributes);
+    }
+    //@codeCoverageIgnoreEnd
 }

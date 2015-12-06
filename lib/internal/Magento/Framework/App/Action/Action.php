@@ -1,37 +1,25 @@
 <?php
 /**
- * Default implementation of application action controller
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\App\Action;
 
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\ResponseInterface;
+use Magento\Framework\Controller\ResultInterface;
+use Magento\Framework\Exception\NotFoundException;
 
-class Action extends AbstractAction
+/**
+ * Default implementation of application action controller
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ * @SuppressWarnings(PHPMD.NumberOfChildren)
+ */
+abstract class Action extends AbstractAction
 {
     /**
-     * @var \Magento\Framework\ObjectManager
+     * @var \Magento\Framework\ObjectManagerInterface
      */
     protected $_objectManager;
 
@@ -78,7 +66,7 @@ class Action extends AbstractAction
      */
     public function __construct(Context $context)
     {
-        parent::__construct($context->getRequest(), $context->getResponse());
+        parent::__construct($context);
         $this->_objectManager = $context->getObjectManager();
         $this->_eventManager = $context->getEventManager();
         $this->_url = $context->getUrl();
@@ -99,7 +87,7 @@ class Action extends AbstractAction
     {
         $this->_request = $request;
         $profilerKey = 'CONTROLLER_ACTION:' . $request->getFullActionName();
-        $eventParameters = array('controller_action' => $this, 'request' => $request);
+        $eventParameters = ['controller_action' => $this, 'request' => $request];
         $this->_eventManager->dispatch('controller_action_predispatch', $eventParameters);
         $this->_eventManager->dispatch('controller_action_predispatch_' . $request->getRouteName(), $eventParameters);
         $this->_eventManager->dispatch(
@@ -108,9 +96,10 @@ class Action extends AbstractAction
         );
         \Magento\Framework\Profiler::start($profilerKey);
 
+        $result = null;
         if ($request->isDispatched() && !$this->_actionFlag->get('', self::FLAG_NO_DISPATCH)) {
             \Magento\Framework\Profiler::start('action_body');
-            $this->execute();
+            $result = $this->execute();
             \Magento\Framework\Profiler::start('postdispatch');
             if (!$this->_actionFlag->get('', self::FLAG_NO_POST_DISPATCH)) {
                 $this->_eventManager->dispatch(
@@ -127,7 +116,7 @@ class Action extends AbstractAction
             \Magento\Framework\Profiler::stop('action_body');
         }
         \Magento\Framework\Profiler::stop($profilerKey);
-        return $this->_response;
+        return $result ?: $this->_response;
     }
 
     /**
@@ -169,12 +158,12 @@ class Action extends AbstractAction
      * @param   array $arguments
      * @return  ResponseInterface
      */
-    protected function _redirect($path, $arguments = array())
+    protected function _redirect($path, $arguments = [])
     {
         $this->_redirect->redirect($this->getResponse(), $path, $arguments);
         return $this->getResponse();
     }
-    
+
     /**
      * @return \Magento\Framework\App\ActionFlag
      */

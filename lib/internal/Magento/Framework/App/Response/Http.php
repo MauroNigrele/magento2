@@ -2,121 +2,91 @@
 /**
  * HTTP response
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\App\Response;
 
-use Magento\Framework\App\ObjectManager;
-use Magento\Framework\Stdlib\CookieManager;
-use Magento\Framework\Stdlib\Cookie\CookieMetadataFactory;
 use Magento\Framework\App\Http\Context;
+use Magento\Framework\App\ObjectManager;
+use Magento\Framework\Stdlib\Cookie\CookieMetadataFactory;
+use Magento\Framework\Stdlib\CookieManagerInterface;
+use Magento\Framework\Stdlib\DateTime;
+use Magento\Framework\App\Request\Http as HttpRequest;
 
-class Http extends \Zend_Controller_Response_Http implements HttpInterface
+class Http extends \Magento\Framework\HTTP\PhpEnvironment\Response
 {
-    /**
-     * Cookie to store page vary string
-     */
+    /** Cookie to store page vary string */
     const COOKIE_VARY_STRING = 'X-Magento-Vary';
 
-    /**
-     * @var \Magento\Framework\Stdlib\CookieManager
-     */
+    /** Format for expiration timestamp headers */
+    const EXPIRATION_TIMESTAMP_FORMAT = 'D, d M Y H:i:s T';
+
+    /** X-FRAME-OPTIONS Header name */
+    const HEADER_X_FRAME_OPT = 'X-Frame-Options';
+
+    /** @var \Magento\Framework\App\Request\Http */
+    protected $request;
+
+    /** @var \Magento\Framework\Stdlib\CookieManagerInterface */
     protected $cookieManager;
 
-    /**
-     * @var \Magento\Framework\Stdlib\Cookie\CookieMetadataFactory
-     */
+    /** @var \Magento\Framework\Stdlib\Cookie\CookieMetadataFactory */
     protected $cookieMetadataFactory;
 
-    /**
-     * @var \Magento\Framework\App\Http\Context
-     */
+    /** @var \Magento\Framework\App\Http\Context */
     protected $context;
 
+    /** @var DateTime */
+    protected $dateTime;
+
     /**
-     * @param \Magento\Framework\Stdlib\CookieManager $cookieManager
-     * @param \Magento\Framework\Stdlib\Cookie\CookieMetadataFactory $cookieMetadataFactory
-     * @param \Magento\Framework\App\Http\Context $context
+     * @param HttpRequest $request
+     * @param CookieManagerInterface $cookieManager
+     * @param CookieMetadataFactory $cookieMetadataFactory
+     * @param Context $context
+     * @param DateTime $dateTime
      */
     public function __construct(
-        CookieManager $cookieManager,
+        HttpRequest $request,
+        CookieManagerInterface $cookieManager,
         CookieMetadataFactory $cookieMetadataFactory,
-        Context $context
+        Context $context,
+        DateTime $dateTime
     ) {
+        $this->request = $request;
         $this->cookieManager = $cookieManager;
         $this->cookieMetadataFactory = $cookieMetadataFactory;
         $this->context = $context;
+        $this->dateTime = $dateTime;
     }
 
     /**
-     * Get header value by name.
-     * Returns first found header by passed name.
-     * If header with specified name was not found returns false.
+     * Sends the X-FRAME-OPTIONS header to protect against click-jacking
      *
-     * @param string $name
-     * @return array|bool
+     * @param string $value
+     * @return void
      */
-    public function getHeader($name)
+    public function setXFrameOptions($value)
     {
-        foreach ($this->_headers as $header) {
-            if ($header['name'] == $name) {
-                return $header;
-            }
-        }
-        return false;
+        $this->setHeader(self::HEADER_X_FRAME_OPT, $value);
     }
 
     /**
-     * Send Vary coookie
+     * Send Vary cookie
      *
      * @return void
      */
     public function sendVary()
     {
-
-        $data = $this->context->getData();
-        if (!empty($data)) {
-            ksort($data);
-            $cookieValue = sha1(serialize($data));
-            $sensitiveCookMetadata = $this->cookieMetadataFactory->createSensitiveCookieMetadata()
-                ->setPath('/');
-            $this->cookieManager->setSensitiveCookie(self::COOKIE_VARY_STRING, $cookieValue, $sensitiveCookMetadata);
-        } else {
-            $cookieMetadata = $this->cookieMetadataFactory->createCookieMetadata()
-                ->setPath('/');
+        $varyString = $this->context->getVaryString();
+        if ($varyString) {
+            $sensitiveCookMetadata = $this->cookieMetadataFactory->createSensitiveCookieMetadata()->setPath('/');
+            $this->cookieManager->setSensitiveCookie(self::COOKIE_VARY_STRING, $varyString, $sensitiveCookMetadata);
+        } elseif ($this->request->get(self::COOKIE_VARY_STRING)) {
+            $cookieMetadata = $this->cookieMetadataFactory->createSensitiveCookieMetadata()->setPath('/');
             $this->cookieManager->deleteCookie(self::COOKIE_VARY_STRING, $cookieMetadata);
         }
-    }
-
-    /**
-     * Send the response, including all headers, rendering exceptions if so
-     * requested.
-     *
-     * @return void
-     */
-    public function sendResponse()
-    {
-        $this->sendVary();
-        parent::sendResponse();
     }
 
     /**
@@ -134,7 +104,7 @@ class Http extends \Zend_Controller_Response_Http implements HttpInterface
         }
         $this->setHeader('pragma', 'cache', true);
         $this->setHeader('cache-control', 'public, max-age=' . $ttl . ', s-maxage=' . $ttl, true);
-        $this->setHeader('expires', gmdate('D, d M Y H:i:s T', strtotime('+' . $ttl . ' seconds')), true);
+        $this->setHeader('expires', $this->getExpirationHeader('+' . $ttl . ' seconds'), true);
     }
 
     /**
@@ -151,19 +121,20 @@ class Http extends \Zend_Controller_Response_Http implements HttpInterface
         }
         $this->setHeader('pragma', 'cache', true);
         $this->setHeader('cache-control', 'private, max-age=' . $ttl, true);
-        $this->setHeader('expires', gmdate('D, d M Y H:i:s T', strtotime('+' . $ttl . ' seconds')), true);
+        $this->setHeader('expires', $this->getExpirationHeader('+' . $ttl . ' seconds'), true);
     }
 
     /**
      * Set headers for no-cache responses
      *
      * @return void
+     * @codeCoverageIgnore
      */
     public function setNoCacheHeaders()
     {
         $this->setHeader('pragma', 'no-cache', true);
         $this->setHeader('cache-control', 'no-store, no-cache, must-revalidate, max-age=0', true);
-        $this->setHeader('expires', gmdate('D, d M Y H:i:s T', strtotime('-1 year')), true);
+        $this->setHeader('expires', $this->getExpirationHeader('-1 year'), true);
     }
 
     /**
@@ -171,30 +142,46 @@ class Http extends \Zend_Controller_Response_Http implements HttpInterface
      *
      * @param string $content String in JSON format
      * @return \Magento\Framework\App\Response\Http
+     * @codeCoverageIgnore
      */
     public function representJson($content)
     {
         $this->setHeader('Content-Type', 'application/json', true);
-        return $this->setBody($content);
+        return $this->setContent($content);
     }
 
     /**
      * @return string[]
+     * @codeCoverageIgnore
      */
     public function __sleep()
     {
-        return ['_body', '_exceptions', '_headers', '_headersRaw', '_httpResponseCode', 'context'];
+        return ['content', 'isRedirect', 'statusCode', 'context'];
     }
 
     /**
      * Need to reconstruct dependencies when being de-serialized.
      *
      * @return void
+     * @codeCoverageIgnore
      */
     public function __wakeup()
     {
         $objectManager = ObjectManager::getInstance();
-        $this->cookieManager = $objectManager->create('Magento\Framework\Stdlib\CookieManager');
+        $this->cookieManager = $objectManager->create('Magento\Framework\Stdlib\CookieManagerInterface');
         $this->cookieMetadataFactory = $objectManager->get('Magento\Framework\Stdlib\Cookie\CookieMetadataFactory');
+        $this->request = $objectManager->get('Magento\Framework\App\Request\Http');
+    }
+
+    /**
+     * Given a time input, returns the formatted header
+     *
+     * @param string $time
+     * @return string
+     * @codeCoverageIgnore
+     */
+    protected function getExpirationHeader($time)
+    {
+        return $this->dateTime->gmDate(self::EXPIRATION_TIMESTAMP_FORMAT, $this->dateTime->strToTime($time));
     }
 }

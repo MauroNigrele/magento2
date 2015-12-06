@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Bundle\Helper\Catalog\Product;
 
@@ -35,9 +17,9 @@ class Configuration extends AbstractHelper implements ConfigurationInterface
     /**
      * Core data
      *
-     * @var \Magento\Core\Helper\Data
+     * @var \Magento\Framework\Pricing\Helper\Data
      */
-    protected $coreData;
+    protected $pricingHelper;
 
     /**
      * Catalog product configuration
@@ -56,17 +38,17 @@ class Configuration extends AbstractHelper implements ConfigurationInterface
     /**
      * @param \Magento\Framework\App\Helper\Context $context
      * @param \Magento\Catalog\Helper\Product\Configuration $productConfiguration
-     * @param \Magento\Core\Helper\Data $coreData
+     * @param \Magento\Framework\Pricing\Helper\Data $pricingHelper
      * @param \Magento\Framework\Escaper $escaper
      */
     public function __construct(
         \Magento\Framework\App\Helper\Context $context,
         \Magento\Catalog\Helper\Product\Configuration $productConfiguration,
-        \Magento\Core\Helper\Data $coreData,
+        \Magento\Framework\Pricing\Helper\Data $pricingHelper,
         \Magento\Framework\Escaper $escaper
     ) {
         $this->productConfiguration = $productConfiguration;
-        $this->coreData = $coreData;
+        $this->pricingHelper = $pricingHelper;
         $this->escaper = $escaper;
         parent::__construct($context);
     }
@@ -123,7 +105,7 @@ class Configuration extends AbstractHelper implements ConfigurationInterface
      */
     public function getBundleOptions(ItemInterface $item)
     {
-        $options = array();
+        $options = [];
         $product = $item->getProduct();
 
         /** @var \Magento\Bundle\Model\Product\Type $typeInstance */
@@ -131,9 +113,9 @@ class Configuration extends AbstractHelper implements ConfigurationInterface
 
         // get bundle options
         $optionsQuoteItemOption = $item->getOptionByCode('bundle_option_ids');
-        $bundleOptionsIds = $optionsQuoteItemOption ? unserialize($optionsQuoteItemOption->getValue()) : array();
+        $bundleOptionsIds = $optionsQuoteItemOption ? unserialize($optionsQuoteItemOption->getValue()) : [];
         if ($bundleOptionsIds) {
-            /** @var \Magento\Bundle\Model\Resource\Option\Collection $optionsCollection */
+            /** @var \Magento\Bundle\Model\ResourceModel\Option\Collection $optionsCollection */
             $optionsCollection = $typeInstance->getOptionsByIds($bundleOptionsIds, $product);
 
             // get and add bundle selections collection
@@ -147,7 +129,7 @@ class Configuration extends AbstractHelper implements ConfigurationInterface
                 $bundleOptions = $optionsCollection->appendSelections($selectionsCollection, true);
                 foreach ($bundleOptions as $bundleOption) {
                     if ($bundleOption->getSelections()) {
-                        $option = array('label' => $bundleOption->getTitle(), 'value' => array());
+                        $option = ['label' => $bundleOption->getTitle(), 'value' => []];
 
                         $bundleSelections = $bundleOption->getSelections();
 
@@ -157,7 +139,9 @@ class Configuration extends AbstractHelper implements ConfigurationInterface
                                 $option['value'][] = $qty . ' x '
                                     . $this->escaper->escapeHtml($bundleSelection->getName())
                                     . ' '
-                                    . $this->coreData->currency($this->getSelectionFinalPrice($item, $bundleSelection));
+                                    . $this->pricingHelper->currency(
+                                        $this->getSelectionFinalPrice($item, $bundleSelection)
+                                    );
                             }
                         }
 

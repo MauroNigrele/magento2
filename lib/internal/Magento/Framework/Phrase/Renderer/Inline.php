@@ -2,30 +2,17 @@
 /**
  * Translate Inline Phrase renderer
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Phrase\Renderer;
 
-class Inline implements \Magento\Framework\Phrase\RendererInterface
+use Magento\Framework\Phrase\RendererInterface;
+use Magento\Framework\TranslateInterface;
+use Magento\Framework\Translate\Inline\ProviderInterface;
+use Psr\Log\LoggerInterface;
+
+class Inline implements RendererInterface
 {
     /**
      * @var \Magento\Framework\TranslateInterface
@@ -38,15 +25,23 @@ class Inline implements \Magento\Framework\Phrase\RendererInterface
     protected $inlineProvider;
 
     /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    protected $logger;
+
+    /**
      * @param \Magento\Framework\TranslateInterface $translator
      * @param \Magento\Framework\Translate\Inline\ProviderInterface $inlineProvider
+     * @param \Psr\Log\LoggerInterface $logger
      */
     public function __construct(
-        \Magento\Framework\TranslateInterface $translator,
-        \Magento\Framework\Translate\Inline\ProviderInterface $inlineProvider
+        TranslateInterface $translator,
+        ProviderInterface $inlineProvider,
+        LoggerInterface $logger
     ) {
         $this->translator = $translator;
         $this->inlineProvider = $inlineProvider;
+        $this->logger = $logger;
     }
 
     /**
@@ -55,22 +50,29 @@ class Inline implements \Magento\Framework\Phrase\RendererInterface
      * @param [] $source
      * @param [] $arguments
      * @return string
+     * @throws \Exception
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function render(array $source, array $arguments)
     {
         $text = end($source);
 
-        if (!$this->inlineProvider->get()->isAllowed()) {
-            return $text;
-        }
+        try {
+            if (!$this->inlineProvider->get()->isAllowed()) {
+                return $text;
+            }
 
-        if (strpos($text, '{{{') === false
-            || strpos($text, '}}}') === false
-            || strpos($text, '}}{{') === false
-        ) {
-            $text = '{{{'
-                . implode('}}{{', array_reverse($source))
-                . '}}{{' . $this->translator->getTheme() . '}}}';
+            if (strpos($text, '{{{') === false
+                || strpos($text, '}}}') === false
+                || strpos($text, '}}{{') === false
+            ) {
+                $text = '{{{'
+                    . implode('}}{{', array_reverse($source))
+                    . '}}{{' . $this->translator->getTheme() . '}}}';
+            }
+        } catch (\Exception $e) {
+            $this->logger->critical($e->getMessage());
+            throw $e;
         }
 
         return $text;

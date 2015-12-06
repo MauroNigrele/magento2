@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright  Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license    http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Data\Form;
 
@@ -31,11 +13,11 @@ use Magento\Framework\Data\Form\Element\Factory;
 use Magento\Framework\Data\Form\Element\Fieldset;
 
 /**
- * Abstract class for form, coumn and fieldset
+ * Abstract class for form, column and fieldset
  *
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-class AbstractForm extends \Magento\Framework\Object
+class AbstractForm extends \Magento\Framework\DataObject
 {
     /**
      * Form level elements collection
@@ -49,7 +31,7 @@ class AbstractForm extends \Magento\Framework\Object
      *
      * @var array
      */
-    protected $_types = array();
+    protected $_types = [];
 
     /**
      * @var Factory
@@ -62,11 +44,16 @@ class AbstractForm extends \Magento\Framework\Object
     protected $_factoryCollection;
 
     /**
+     * @var array
+     */
+    protected $customAttributes = [];
+
+    /**
      * @param Factory $factoryElement
      * @param CollectionFactory $factoryCollection
      * @param array $data
      */
-    public function __construct(Factory $factoryElement, CollectionFactory $factoryCollection, $data = array())
+    public function __construct(Factory $factoryElement, CollectionFactory $factoryCollection, $data = [])
     {
         $this->_factoryElement = $factoryElement;
         $this->_factoryCollection = $factoryCollection;
@@ -106,7 +93,7 @@ class AbstractForm extends \Magento\Framework\Object
     public function getElements()
     {
         if (empty($this->_elements)) {
-            $this->_elements = $this->_factoryCollection->create(array('container' => $this));
+            $this->_elements = $this->_factoryCollection->create(['container' => $this]);
         }
         return $this->_elements;
     }
@@ -165,7 +152,7 @@ class AbstractForm extends \Magento\Framework\Object
         if (isset($this->_types[$type])) {
             $type = $this->_types[$type];
         }
-        $element = $this->_factoryElement->create($type, array('data' => $config));
+        $element = $this->_factoryElement->create($type, ['data' => $config]);
         $element->setId($elementId);
         $this->addElement($element, $after);
         return $element;
@@ -194,7 +181,7 @@ class AbstractForm extends \Magento\Framework\Object
      */
     public function addFieldset($elementId, $config, $after = false, $isAdvanced = false)
     {
-        $element = $this->_factoryElement->create('fieldset', array('data' => $config));
+        $element = $this->_factoryElement->create('fieldset', ['data' => $config]);
         $element->setId($elementId);
         $element->setAdvanced($isAdvanced);
         $this->addElement($element, $after);
@@ -210,7 +197,7 @@ class AbstractForm extends \Magento\Framework\Object
      */
     public function addColumn($elementId, $config)
     {
-        $element = $this->_factoryElement->create('column', array('data' => $config));
+        $element = $this->_factoryElement->create('column', ['data' => $config]);
         $element->setForm($this)->setId($elementId);
         $this->addElement($element);
         return $element;
@@ -221,15 +208,61 @@ class AbstractForm extends \Magento\Framework\Object
      *
      * @param array $arrAttributes
      * @return array
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function convertToArray(array $arrAttributes = array())
+    public function convertToArray(array $arrAttributes = [])
     {
-        $res = array();
+        $res = [];
         $res['config'] = $this->getData();
-        $res['formElements'] = array();
+        $res['formElements'] = [];
         foreach ($this->getElements() as $element) {
             $res['formElements'][] = $element->toArray();
         }
         return $res;
+    }
+
+    /**
+     * Add custom attribute
+     *
+     * @param string $key
+     * @param mixed $value
+     * @return $this
+     */
+    public function addCustomAttribute($key, $value)
+    {
+        $this->customAttributes[$key] = $value;
+        return $this;
+    }
+
+    /**
+     * Convert data into string with defined keys and values
+     *
+     * @param array $keys
+     * @param string $valueSeparator
+     * @param string $fieldSeparator
+     * @param string $quote
+     * @return string
+     */
+    public function serialize($keys = [], $valueSeparator = '=', $fieldSeparator = ' ', $quote = '"')
+    {
+        $data = [];
+        if (empty($keys)) {
+            $keys = array_keys($this->_data);
+        }
+
+        $customAttributes = array_filter($this->customAttributes);
+        $keys = array_merge($keys, array_keys(array_diff($this->customAttributes, $customAttributes)));
+
+        foreach ($this->_data as $key => $value) {
+            if (in_array($key, $keys)) {
+                $data[] = $key . $valueSeparator . $quote . $value . $quote;
+            }
+        }
+
+        foreach ($customAttributes as $key => $value) {
+            $data[] = $key . $valueSeparator . $quote . $value . $quote;
+        }
+
+        return implode($fieldSeparator, $data);
     }
 }

@@ -1,31 +1,17 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Controller\Adminhtml\Product\Action\Attribute;
 
 use Magento\Backend\App\Action;
 
+/**
+ * Class Save
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 class Save extends \Magento\Catalog\Controller\Adminhtml\Product\Action\Attribute
 {
     /**
@@ -46,9 +32,9 @@ class Save extends \Magento\Catalog\Controller\Adminhtml\Product\Action\Attribut
     protected $_catalogProduct;
 
     /**
-     * @var \Magento\CatalogInventory\Service\V1\Data\StockItemBuilder
+     * @var \Magento\CatalogInventory\Api\Data\StockItemInterfaceFactory
      */
-    protected $stockItemBuilder;
+    protected $stockItemFactory;
 
     /**
      * Stock Indexer
@@ -58,13 +44,19 @@ class Save extends \Magento\Catalog\Controller\Adminhtml\Product\Action\Attribut
     protected $_stockIndexerProcessor;
 
     /**
+     * @var \Magento\Framework\Api\DataObjectHelper
+     */
+    protected $dataObjectHelper;
+
+    /**
      * @param Action\Context $context
      * @param \Magento\Catalog\Helper\Product\Edit\Action\Attribute $attributeHelper
      * @param \Magento\Catalog\Model\Indexer\Product\Flat\Processor $productFlatIndexerProcessor
      * @param \Magento\Catalog\Model\Indexer\Product\Price\Processor $productPriceIndexerProcessor
      * @param \Magento\CatalogInventory\Model\Indexer\Stock\Processor $stockIndexerProcessor
      * @param \Magento\Catalog\Helper\Product $catalogProduct
-     * @param \Magento\CatalogInventory\Service\V1\Data\StockItemBuilder $stockItemBuilder
+     * @param \Magento\CatalogInventory\Api\Data\StockItemInterfaceFactory $stockItemFactory
+     * @param \Magento\Framework\Api\DataObjectHelper $dataObjectHelper
      */
     public function __construct(
         Action\Context $context,
@@ -73,35 +65,41 @@ class Save extends \Magento\Catalog\Controller\Adminhtml\Product\Action\Attribut
         \Magento\Catalog\Model\Indexer\Product\Price\Processor $productPriceIndexerProcessor,
         \Magento\CatalogInventory\Model\Indexer\Stock\Processor $stockIndexerProcessor,
         \Magento\Catalog\Helper\Product $catalogProduct,
-        \Magento\CatalogInventory\Service\V1\Data\StockItemBuilder $stockItemBuilder
+        \Magento\CatalogInventory\Api\Data\StockItemInterfaceFactory $stockItemFactory,
+        \Magento\Framework\Api\DataObjectHelper $dataObjectHelper
     ) {
         $this->_productFlatIndexerProcessor = $productFlatIndexerProcessor;
         $this->_productPriceIndexerProcessor = $productPriceIndexerProcessor;
         $this->_stockIndexerProcessor = $stockIndexerProcessor;
         $this->_catalogProduct = $catalogProduct;
-        $this->stockItemBuilder = $stockItemBuilder;
+        $this->stockItemFactory = $stockItemFactory;
         parent::__construct($context, $attributeHelper);
+        $this->dataObjectHelper = $dataObjectHelper;
     }
 
     /**
      * Update product attributes
      *
-     * @return void
+     * @return \Magento\Backend\Model\View\Result\Redirect
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      */
     public function execute()
     {
         if (!$this->_validateProducts()) {
-            return;
+            return $this->resultRedirectFactory->create()->setPath('catalog/product/', ['_current' => true]);
         }
 
         /* Collect Data */
-        $inventoryData = $this->getRequest()->getParam('inventory', array());
-        $attributesData = $this->getRequest()->getParam('attributes', array());
-        $websiteRemoveData = $this->getRequest()->getParam('remove_website_ids', array());
-        $websiteAddData = $this->getRequest()->getParam('add_website_ids', array());
+        $inventoryData = $this->getRequest()->getParam('inventory', []);
+        $attributesData = $this->getRequest()->getParam('attributes', []);
+        $websiteRemoveData = $this->getRequest()->getParam('remove_website_ids', []);
+        $websiteAddData = $this->getRequest()->getParam('add_website_ids', []);
 
         /* Prepare inventory data item options (use config settings) */
-        $options = $this->_objectManager->get('Magento\CatalogInventory\Helper\Data')->getConfigItemOptions();
+        $options = $this->_objectManager->get('Magento\CatalogInventory\Api\StockConfigurationInterface')
+            ->getConfigItemOptions();
         foreach ($options as $option) {
             if (isset($inventoryData[$option]) && !isset($inventoryData['use_config_' . $option])) {
                 $inventoryData['use_config_' . $option] = 0;
@@ -109,10 +107,10 @@ class Save extends \Magento\Catalog\Controller\Adminhtml\Product\Action\Attribut
         }
 
         try {
+            $storeId = $this->attributeHelper->getSelectedStoreId();
             if ($attributesData) {
                 $dateFormat = $this->_objectManager->get('Magento\Framework\Stdlib\DateTime\TimezoneInterface')
-                    ->getDateFormat(\Magento\Framework\Stdlib\DateTime\TimezoneInterface::FORMAT_TYPE_SHORT);
-                $storeId = $this->attributeHelper->getSelectedStoreId();
+                    ->getDateFormat(\IntlDateFormatter::SHORT);
 
                 foreach ($attributesData as $attributeCode => $value) {
                     $attribute = $this->_objectManager->get('Magento\Eav\Model\Config')
@@ -123,9 +121,9 @@ class Save extends \Magento\Catalog\Controller\Adminhtml\Product\Action\Attribut
                     }
                     if ($attribute->getBackendType() == 'datetime') {
                         if (!empty($value)) {
-                            $filterInput = new \Zend_Filter_LocalizedToNormalized(array('date_format' => $dateFormat));
+                            $filterInput = new \Zend_Filter_LocalizedToNormalized(['date_format' => $dateFormat]);
                             $filterInternal = new \Zend_Filter_NormalizedToLocalized(
-                                array('date_format' => \Magento\Framework\Stdlib\DateTime::DATE_INTERNAL_FORMAT)
+                                ['date_format' => \Magento\Framework\Stdlib\DateTime::DATE_INTERNAL_FORMAT]
                             );
                             $value = $filterInternal->filter($filterInput->filter($value));
                         } else {
@@ -134,7 +132,7 @@ class Save extends \Magento\Catalog\Controller\Adminhtml\Product\Action\Attribut
                         $attributesData[$attributeCode] = $value;
                     } elseif ($attribute->getFrontendInput() == 'multiselect') {
                         // Check if 'Change' checkbox has been checked by admin for this attribute
-                        $isChanged = (bool) $this->getRequest()->getPost($attributeCode . '_checkbox');
+                        $isChanged = (bool)$this->getRequest()->getPost($attributeCode . '_checkbox');
                         if (!$isChanged) {
                             unset($attributesData[$attributeCode]);
                             continue;
@@ -151,18 +149,30 @@ class Save extends \Magento\Catalog\Controller\Adminhtml\Product\Action\Attribut
             }
 
             if ($inventoryData) {
-                /** @var \Magento\CatalogInventory\Service\V1\StockItemService $stockItemService */
-                $stockItemService = $this->_objectManager
-                    ->create('Magento\CatalogInventory\Service\V1\StockItemService');
+                // TODO why use ObjectManager?
+                /** @var \Magento\CatalogInventory\Api\StockRegistryInterface $stockRegistry */
+                $stockRegistry = $this->_objectManager
+                    ->create('Magento\CatalogInventory\Api\StockRegistryInterface');
+                /** @var \Magento\CatalogInventory\Api\StockItemRepositoryInterface $stockItemRepository */
+                $stockItemRepository = $this->_objectManager
+                    ->create('Magento\CatalogInventory\Api\StockItemRepositoryInterface');
                 foreach ($this->attributeHelper->getProductIds() as $productId) {
-                    $stockItemDo = $stockItemService->getStockItem($productId);
+                    $stockItemDo = $stockRegistry->getStockItem(
+                        $productId,
+                        $this->attributeHelper->getStoreWebsiteId($storeId)
+                    );
                     if (!$stockItemDo->getProductId()) {
                         $inventoryData[] = $productId;
                     }
 
-                    $stockItemService->saveStockItem(
-                        $this->stockItemBuilder->mergeDataObjectWithArray($stockItemDo, $inventoryData)
+                    $stockItemId = $stockItemDo->getId();
+                    $this->dataObjectHelper->populateWithArray(
+                        $stockItemDo,
+                        $inventoryData,
+                        '\Magento\CatalogInventory\Api\Data\StockItemInterface'
                     );
+                    $stockItemDo->setItemId($stockItemId);
+                    $stockItemRepository->save($stockItemDo);
                 }
                 $this->_stockIndexerProcessor->reindexList($this->attributeHelper->getProductIds());
             }
@@ -179,15 +189,7 @@ class Save extends \Magento\Catalog\Controller\Adminhtml\Product\Action\Attribut
                     $actionModel->updateWebsites($productIds, $websiteAddData, 'add');
                 }
 
-                $this->_eventManager->dispatch('catalog_product_to_website_change', array('products' => $productIds));
-
-                $this->messageManager->addNotice(
-                    __(
-                        'Please refresh "Catalog URL Rewrites" and "Product Attributes" in System -> ' .
-                        '<a href="%1">Index Management</a>.',
-                        $this->getUrl('adminhtml/process/list')
-                    )
-                );
+                $this->_eventManager->dispatch('catalog_product_to_website_change', ['products' => $productIds]);
             }
 
             $this->messageManager->addSuccess(
@@ -202,7 +204,7 @@ class Save extends \Magento\Catalog\Controller\Adminhtml\Product\Action\Attribut
             ) {
                 $this->_productPriceIndexerProcessor->reindexList($this->attributeHelper->getProductIds());
             }
-        } catch (\Magento\Framework\Model\Exception $e) {
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
             $this->messageManager->addError($e->getMessage());
         } catch (\Exception $e) {
             $this->messageManager->addException(
@@ -211,6 +213,7 @@ class Save extends \Magento\Catalog\Controller\Adminhtml\Product\Action\Attribut
             );
         }
 
-        $this->_redirect('catalog/product/', array('store' => $this->attributeHelper->getSelectedStoreId()));
+        return $this->resultRedirectFactory->create()
+            ->setPath('catalog/product/', ['store' => $this->attributeHelper->getSelectedStoreId()]);
     }
 }

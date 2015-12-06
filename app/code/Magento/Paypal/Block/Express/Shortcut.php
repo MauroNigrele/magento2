@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Paypal\Block\Express;
 
@@ -28,6 +10,8 @@ use Magento\Paypal\Helper\Shortcut\ValidatorInterface;
 
 /**
  * Paypal express checkout shortcut link
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class Shortcut extends \Magento\Framework\View\Element\Template implements CatalogBlock\ShortcutInterface
 {
@@ -121,8 +105,10 @@ class Shortcut extends \Magento\Framework\View\Element\Template implements Catal
      * @param string $startAction
      * @param string $checkoutType
      * @param string $alias
+     * @param string $shortcutTemplate
      * @param \Magento\Checkout\Model\Session $checkoutSession
      * @param array $data
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
         \Magento\Framework\View\Element\Template\Context $context,
@@ -137,8 +123,9 @@ class Shortcut extends \Magento\Framework\View\Element\Template implements Catal
         $startAction,
         $checkoutType,
         $alias,
+        $shortcutTemplate,
         \Magento\Checkout\Model\Session $checkoutSession = null,
-        array $data = array()
+        array $data = []
     ) {
         $this->_paypalData = $paypalData;
         $this->_paypalConfigFactory = $paypalConfigFactory;
@@ -152,9 +139,9 @@ class Shortcut extends \Magento\Framework\View\Element\Template implements Catal
         $this->_startAction = $startAction;
         $this->_checkoutType = $checkoutType;
         $this->_alias = $alias;
+        $this->setTemplate($shortcutTemplate);
 
         parent::__construct($context, $data);
-        $this->_isScopePrivate = true;
         $this->currentCustomer = $currentCustomer;
     }
 
@@ -186,10 +173,10 @@ class Shortcut extends \Magento\Framework\View\Element\Template implements Catal
 
         // use static image if in catalog
         if ($isInCatalog || null === $quote) {
-            $this->setImageUrl($config->getExpressCheckoutShortcutImageUrl($this->_localeResolver->getLocaleCode()));
+            $this->setImageUrl($config->getExpressCheckoutShortcutImageUrl($this->_localeResolver->getLocale()));
         } else {
             /**@todo refactor checkout model. Move getCheckoutShortcutImageUrl to helper or separate model */
-            $parameters = array('params' => array('quote' => $quote, 'config' => $config));
+            $parameters = ['params' => ['quote' => $quote, 'config' => $config]];
             $checkoutModel = $this->_checkoutFactory->create($this->_checkoutType, $parameters);
             $this->setImageUrl($checkoutModel->getCheckoutShortcutImageUrl());
         }
@@ -200,11 +187,11 @@ class Shortcut extends \Magento\Framework\View\Element\Template implements Catal
             $this->setConfirmationUrl(
                 $this->getUrl(
                     $this->_startAction,
-                    array(\Magento\Paypal\Model\Express\Checkout::PAYMENT_INFO_TRANSPORT_BILLING_AGREEMENT => 1)
+                    [\Magento\Paypal\Model\Express\Checkout::PAYMENT_INFO_TRANSPORT_BILLING_AGREEMENT => 1]
                 )
             );
             $this->setConfirmationMessage(
-                __('Would you like to sign a billing agreement ' . 'to streamline further purchases with PayPal?')
+                __('Would you like to sign a billing agreement to streamline further purchases with PayPal?')
             );
         }
 

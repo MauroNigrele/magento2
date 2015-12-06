@@ -1,33 +1,16 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Wishlist\Controller\Index;
 
-use Magento\Wishlist\Controller\IndexInterface;
+use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Framework\App\Action;
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Controller\ResultFactory;
 
-class UpdateItemOptions extends Action\Action implements IndexInterface
+class UpdateItemOptions extends \Magento\Wishlist\Controller\AbstractIndex
 {
     /**
      * @var \Magento\Wishlist\Controller\WishlistProviderInterface
@@ -40,38 +23,53 @@ class UpdateItemOptions extends Action\Action implements IndexInterface
     protected $_customerSession;
 
     /**
+     * @var ProductRepositoryInterface
+     */
+    protected $productRepository;
+
+    /**
      * @param Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
      * @param \Magento\Wishlist\Controller\WishlistProviderInterface $wishlistProvider
+     * @param ProductRepositoryInterface $productRepository
      */
     public function __construct(
         Action\Context $context,
         \Magento\Customer\Model\Session $customerSession,
-        \Magento\Wishlist\Controller\WishlistProviderInterface $wishlistProvider
+        \Magento\Wishlist\Controller\WishlistProviderInterface $wishlistProvider,
+        ProductRepositoryInterface $productRepository
     ) {
         $this->_customerSession = $customerSession;
         $this->wishlistProvider = $wishlistProvider;
         parent::__construct($context);
+        $this->productRepository = $productRepository;
     }
 
     /**
      * Action to accept new configuration for a wishlist item
      *
-     * @return void
+     * @return \Magento\Framework\Controller\Result\Redirect
      */
     public function execute()
     {
         $productId = (int)$this->getRequest()->getParam('product');
+        /** @var \Magento\Framework\Controller\Result\Redirect $resultRedirect */
+        $resultRedirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
         if (!$productId) {
-            $this->_redirect('*/');
-            return;
+            $resultRedirect->setPath('*/');
+            return $resultRedirect;
         }
 
-        $product = $this->_objectManager->create('Magento\Catalog\Model\Product')->load($productId);
-        if (!$product->getId() || !$product->isVisibleInCatalog()) {
+        try {
+            $product = $this->productRepository->getById($productId);
+        } catch (NoSuchEntityException $e) {
+            $product = null;
+        }
+
+        if (!$product || !$product->isVisibleInCatalog()) {
             $this->messageManager->addError(__('We can\'t specify a product.'));
-            $this->_redirect('*/');
-            return;
+            $resultRedirect->setPath('*/');
+            return $resultRedirect;
         }
 
         try {
@@ -81,30 +79,31 @@ class UpdateItemOptions extends Action\Action implements IndexInterface
             $item->load($id);
             $wishlist = $this->wishlistProvider->getWishlist($item->getWishlistId());
             if (!$wishlist) {
-                $this->_redirect('*/');
-                return;
+                $resultRedirect->setPath('*/');
+                return $resultRedirect;
             }
 
-            $buyRequest = new \Magento\Framework\Object($this->getRequest()->getParams());
+            $buyRequest = new \Magento\Framework\DataObject($this->getRequest()->getParams());
 
             $wishlist->updateItem($id, $buyRequest)->save();
 
             $this->_objectManager->get('Magento\Wishlist\Helper\Data')->calculate();
             $this->_eventManager->dispatch(
                 'wishlist_update_item',
-                array('wishlist' => $wishlist, 'product' => $product, 'item' => $wishlist->getItem($id))
+                ['wishlist' => $wishlist, 'product' => $product, 'item' => $wishlist->getItem($id)]
             );
 
             $this->_objectManager->get('Magento\Wishlist\Helper\Data')->calculate();
 
-            $message = __('%1 has been updated in your wish list.', $product->getName());
+            $message = __('%1 has been updated in your Wish List.', $product->getName());
             $this->messageManager->addSuccess($message);
-        } catch (\Magento\Framework\Model\Exception $e) {
+        } catch (\Magento\Framework\Exception\LocalizedException $e) {
             $this->messageManager->addError($e->getMessage());
         } catch (\Exception $e) {
-            $this->messageManager->addError(__('An error occurred while updating wish list.'));
-            $this->_objectManager->get('Magento\Framework\Logger')->logException($e);
+            $this->messageManager->addError(__('We can\'t update your Wish List right now.'));
+            $this->_objectManager->get('Psr\Log\LoggerInterface')->critical($e);
         }
-        $this->_redirect('*/*', array('wishlist_id' => $wishlist->getId()));
+        $resultRedirect->setPath('*/*', ['wishlist_id' => $wishlist->getId()]);
+        return $resultRedirect;
     }
 }

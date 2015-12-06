@@ -1,31 +1,13 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Test\Block\Adminhtml\Product\Attribute\Set;
 
-use Mtf\Block\Block;
-use Mtf\Client\Element\Locator;
+use Magento\Mtf\Block\Block;
+use Magento\Mtf\Client\Locator;
 
 /**
  * Class Main
@@ -62,13 +44,27 @@ class Main extends Block
     protected $addGroupButton = '[data-ui-id="adminhtml-catalog-product-set-edit-add-group-button"]';
 
     /**
+     * Selector for note block element.
+     *
+     * @var string
+     */
+    protected $noteBlock = '.attribute-set .title';
+
+    /**
+     * Selector for prompt.
+     *
+     * @var string
+     */
+    protected $promptModal = '.prompt._show[data-role=modal]';
+
+    /**
      * Move Attribute to Attribute Group
      *
      * @param array $attributeData
      * @param string $attributeGroup
      * @return void
      */
-    public function moveAttribute(array $attributeData, $attributeGroup)
+    public function moveAttribute(array $attributeData, $attributeGroup = 'Product Details')
     {
         if (isset($attributeData['attribute_code'])) {
             $attribute = $attributeData['attribute_code'];
@@ -78,6 +74,9 @@ class Main extends Block
 
         $attributeGroupLocator = sprintf($this->groups, $attributeGroup);
         $target = $this->_rootElement->find($attributeGroupLocator, Locator::SELECTOR_XPATH);
+
+        $target->click(); // Handle small resolution screen issue
+        $this->browser->find($this->noteBlock)->click();
 
         $attributeLabelLocator = sprintf($this->attribute, $attribute);
         $this->_rootElement->find($attributeLabelLocator, Locator::SELECTOR_XPATH)->dragAndDrop($target);
@@ -131,7 +130,10 @@ class Main extends Block
     public function addAttributeSetGroup($groupName)
     {
         $this->_rootElement->find($this->addGroupButton)->click();
-        $this->_rootElement->setAlertText($groupName);
-        $this->_rootElement->acceptAlert();
+        $element = $this->browser->find($this->promptModal);
+        /** @var \Magento\Ui\Test\Block\Adminhtml\Modal $modal */
+        $modal = $this->blockFactory->create('Magento\Ui\Test\Block\Adminhtml\Modal', ['element' => $element]);
+        $modal->setAlertText($groupName);
+        $modal->acceptAlert();
     }
 }

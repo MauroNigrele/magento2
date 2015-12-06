@@ -1,5 +1,5 @@
 Back,Back
-Product,Product
+Product Name,Product Name
 Quantity,Quantity
 Configure,Configure
 "You added %1 to your shopping cart.","You added %1 to your shopping cart."
@@ -65,7 +65,7 @@ Message,Message
 "An error occurred while deleting the item from wish list.","An error occurred while deleting the item from wish list."
 "Cannot add item to shopping cart","Cannot add item to shopping cart"
 "The requested cart item doesn't exist.","The requested cart item doesn't exist."
-"%1 has been moved to wish list %2","%1 has been moved to wish list %2"
+"%1 has been moved to your wish list.","%1 has been moved to your wish list."
 "We can't move the item to the wish list.","We can't move the item to the wish list."
 "Message length must not exceed %1 symbols","Message length must not exceed %1 symbols"
 "Email address can't be empty.","Email address can't be empty."
@@ -95,9 +95,11 @@ Message,Message
 "General Options","General Options"
 "Share Options","Share Options"
 "Max Emails Allowed to be Sent","Max Emails Allowed to be Sent"
+"10 by default. Max - 10000","10 by default. Max - 10000"
 "Email Text Length Limit","Email Text Length Limit"
+"255 by default","255 by default"
 "My Wish List Link","My Wish List Link"
 "Display Wish List Summary","Display Wish List Summary"
 "No Items Found","No Items Found"
-"User description","User description"
+"User Description","User Description"
 "Product Details and Comment","Product Details and Comment"

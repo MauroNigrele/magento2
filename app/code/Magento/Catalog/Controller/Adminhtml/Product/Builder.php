@@ -1,34 +1,16 @@
 <?php
 /**
  *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Catalog\Controller\Adminhtml\Product;
 
-use Magento\Framework\App\RequestInterface;
 use Magento\Catalog\Model\ProductFactory;
 use Magento\Cms\Model\Wysiwyg as WysiwygModel;
+use Magento\Framework\App\RequestInterface;
+use Psr\Log\LoggerInterface as Logger;
 use Magento\Framework\Registry;
-use Magento\Framework\Logger;
 
 class Builder
 {
@@ -38,7 +20,7 @@ class Builder
     protected $productFactory;
 
     /**
-     * @var \Magento\Framework\Logger
+     * @var \Psr\Log\LoggerInterface
      */
     protected $logger;
 
@@ -94,7 +76,7 @@ class Builder
                 $product->load($productId);
             } catch (\Exception $e) {
                 $product->setTypeId(\Magento\Catalog\Model\Product\Type::DEFAULT_TYPE);
-                $this->logger->logException($e);
+                $this->logger->critical($e);
             }
         }
 

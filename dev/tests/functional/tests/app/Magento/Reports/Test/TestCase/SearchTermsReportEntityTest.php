@@ -1,39 +1,17 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Reports\Test\TestCase;
 
-use Mtf\TestCase\Injectable;
-use Mtf\Fixture\FixtureFactory;
 use Magento\Cms\Test\Page\CmsIndex;
 use Magento\Reports\Test\Page\Adminhtml\SearchIndex;
-use Magento\Catalog\Test\Fixture\CatalogProductSimple;
+use Magento\Mtf\Fixture\FixtureFactory;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
- * Test Creation for SearchTermsReportEntity
- *
- * Test Flow:
  * Preconditions:
  * 1. Products is created.
  *
@@ -48,29 +26,34 @@ use Magento\Catalog\Test\Fixture\CatalogProductSimple;
  */
 class SearchTermsReportEntityTest extends Injectable
 {
+    /* tags */
+    const MVP = 'no';
+    const DOMAIN = 'MX';
+    /* end tags */
+
     /**
-     * Index page
+     * Index page.
      *
      * @var CmsIndex
      */
     protected $cmsIndex;
 
     /**
-     * Search Index page
+     * Search Index page.
      *
      * @var SearchIndex
      */
     protected $searchIndex;
 
     /**
-     * FixtureFactory
+     * FixtureFactory.
      *
      * @var FixtureFactory
      */
     protected $fixtureFactory;
 
     /**
-     * Inject pages
+     * Inject pages.
      *
      * @param CmsIndex $cmsIndex
      * @param SearchIndex $searchIndex
@@ -85,16 +68,15 @@ class SearchTermsReportEntityTest extends Injectable
     }
 
     /**
-     * Search Terms Report
+     * Search Terms Report.
      *
-     * @param CatalogProductSimple $product
+     * @param string $product
      * @param int $countProducts
      * @param int $countSearch
      * @return array
      */
-    public function test(CatalogProductSimple $product, $countProducts, $countSearch)
+    public function test($product, $countProducts, $countSearch)
     {
-        $this->markTestIncomplete('MAGETWO-27150, MAGETWO-27151');
         // Preconditions
         $productName = $this->createProducts($product, $countProducts);
 
@@ -107,22 +89,27 @@ class SearchTermsReportEntityTest extends Injectable
     }
 
     /**
-     * Create products
+     * Create products.
      *
-     * @param CatalogProductSimple $product
+     * @param string $product
      * @param int $countProduct
      * @return string
      */
-    protected function createProducts(CatalogProductSimple $product, $countProduct)
+    protected function createProducts($product, $countProduct)
     {
+        $name = 'simpleProductName' . mt_rand();
         for ($i = 0; $i < $countProduct; $i++) {
-            $product->persist();
+            $productFixture = $this->fixtureFactory->createByCode(
+                'catalogProductSimple',
+                ['dataset' => $product, 'data' => ['name' => $name]]
+            );
+            $productFixture->persist();
         }
-        return $product->getName();
+        return $name;
     }
 
     /**
-     * Search products
+     * Search products.
      *
      * @param string $productName
      * @param int $countSearch

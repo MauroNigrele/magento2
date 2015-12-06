@@ -1,34 +1,18 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
-
 namespace Magento\Framework\View\File\Collector\Override;
 
-use Magento\Framework\View\File\CollectorInterface;
+use Magento\Framework\Component\ComponentRegistrar;
+use Magento\Framework\Component\ComponentRegistrarInterface;
+use Magento\Framework\Filesystem;
+use Magento\Framework\Filesystem\Directory\ReadFactory;
 use Magento\Framework\View\Design\ThemeInterface;
-use Magento\Framework\App\Filesystem;
-use Magento\Framework\Filesystem\Directory\ReadInterface;
-use Magento\Framework\View\File\Factory;
+use Magento\Framework\View\File\CollectorInterface;
+use Magento\Framework\View\File\Factory as FileFactory;
+use Magento\Framework\View\Helper\PathPattern;
 
 /**
  * Source of view files that explicitly override base files introduced by modules
@@ -36,38 +20,60 @@ use Magento\Framework\View\File\Factory;
 class Base implements CollectorInterface
 {
     /**
+     * Pattern helper
+     *
+     * @var PathPattern
+     */
+    private $pathPatternHelper;
+
+    /**
      * File factory
      *
-     * @var \Magento\Framework\View\File\Factory
+     * @var FileFactory
      */
     private $fileFactory;
 
     /**
-     * Themes directory
+     * Directory factory
      *
-     * @var ReadInterface
+     * @var ReadFactory
      */
-    protected $themesDirectory;
+    private $readDirFactory;
 
     /**
+     * Component registrar
+     *
+     * @var ComponentRegistrarInterface
+     */
+    private $componentRegistrar;
+
+    /**
+     * Sub-directory path
+     *
      * @var string
      */
-    protected $subDir;
+    private $subDir;
 
     /**
      * Constructor
      *
-     * @param Filesystem $filesystem
-     * @param Factory $fileFactory
+     * @param FileFactory $fileFactory
+     * @param ReadFactory $readDirFactory
+     * @param ComponentRegistrarInterface $componentRegistrar
+     * @param PathPattern $pathPatternHelper
      * @param string $subDir
      */
     public function __construct(
-        Filesystem $filesystem,
-        Factory $fileFactory,
+        FileFactory $fileFactory,
+        ReadFactory $readDirFactory,
+        ComponentRegistrarInterface $componentRegistrar,
+        PathPattern $pathPatternHelper,
         $subDir = ''
     ) {
-        $this->themesDirectory = $filesystem->getDirectoryRead(Filesystem::THEMES_DIR);
+        $this->pathPatternHelper = $pathPatternHelper;
         $this->fileFactory = $fileFactory;
+        $this->readDirFactory = $readDirFactory;
+        $this->componentRegistrar = $componentRegistrar;
         $this->subDir = $subDir ? $subDir . '/' : '';
     }
 
@@ -76,19 +82,27 @@ class Base implements CollectorInterface
      *
      * @param ThemeInterface $theme
      * @param string $filePath
-     * @return array|\Magento\Framework\View\File[]
+     * @return \Magento\Framework\View\File[]
      */
     public function getFiles(ThemeInterface $theme, $filePath)
     {
         $namespace = $module = '*';
         $themePath = $theme->getFullPath();
-        $searchPattern = "{$themePath}/{$namespace}_{$module}/{$this->subDir}{$filePath}";
-        $files = $this->themesDirectory->search($searchPattern);
-        $result = array();
-        $pattern = "#(?<moduleName>[^/]+)/{$this->subDir}" . strtr(preg_quote($filePath), array('\*' => '[^/]+'))
-            . "$#i";
+        if (empty($themePath)) {
+            return [];
+        }
+        $themeAbsolutePath = $this->componentRegistrar->getPath(ComponentRegistrar::THEME, $themePath);
+        if (!$themeAbsolutePath) {
+            return [];
+        }
+        $themeDir = $this->readDirFactory->create($themeAbsolutePath);
+        $searchPattern = "{$namespace}_{$module}/{$this->subDir}{$filePath}";
+        $files = $themeDir->search($searchPattern);
+        $result = [];
+        $pattern = "#(?<moduleName>[^/]+)/{$this->subDir}"
+            . $this->pathPatternHelper->translatePatternFromGlob($filePath) . "$#i";
         foreach ($files as $file) {
-            $filename = $this->themesDirectory->getAbsolutePath($file);
+            $filename = $themeDir->getAbsolutePath($file);
             if (!preg_match($pattern, $filename, $matches)) {
                 continue;
             }

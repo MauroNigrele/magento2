@@ -1,25 +1,7 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 /**
@@ -48,10 +30,10 @@ class CustomerTest extends \PHPUnit_Framework_TestCase
      */
     public function testExport()
     {
-        $expectedAttributes = array();
-        /** @var $collection \Magento\Customer\Model\Resource\Attribute\Collection */
+        $expectedAttributes = [];
+        /** @var $collection \Magento\Customer\Model\ResourceModel\Attribute\Collection */
         $collection = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
-            'Magento\Customer\Model\Resource\Attribute\Collection'
+            'Magento\Customer\Model\ResourceModel\Attribute\Collection'
         );
         /** @var $attribute \Magento\Customer\Model\Attribute */
         foreach ($collection as $attribute) {
@@ -112,7 +94,7 @@ class CustomerTest extends \PHPUnit_Framework_TestCase
     public function testGetAttributeCollection()
     {
         $this->assertInstanceOf(
-            'Magento\Customer\Model\Resource\Attribute\Collection',
+            'Magento\Customer\Model\ResourceModel\Attribute\Collection',
             $this->_model->getAttributeCollection()
         );
     }
@@ -122,13 +104,13 @@ class CustomerTest extends \PHPUnit_Framework_TestCase
      */
     public function testFilterAttributeCollection()
     {
-        /** @var $collection \Magento\Customer\Model\Resource\Attribute\Collection */
+        /** @var $collection \Magento\Customer\Model\ResourceModel\Attribute\Collection */
         $collection = $this->_model->getAttributeCollection();
         $collection = $this->_model->filterAttributeCollection($collection);
         /**
          * Check that disabled attributes is not existed in attribute collection
          */
-        $existedAttributes = array();
+        $existedAttributes = [];
         /** @var $attribute \Magento\Customer\Model\Attribute */
         foreach ($collection as $attribute) {
             $existedAttributes[] = $attribute->getAttributeCode();
@@ -185,7 +167,7 @@ class CustomerTest extends \PHPUnit_Framework_TestCase
          * Change type of created_at attribute. In this case we have possibility to test date rage filter
          */
         $attributeCollection = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
-            'Magento\Customer\Model\Resource\Attribute\Collection'
+            'Magento\Customer\Model\ResourceModel\Attribute\Collection'
         );
         $attributeCollection->addFieldToFilter('attribute_code', 'created_at');
         /** @var $createdAtAttribute \Magento\Customer\Model\Attribute */
@@ -195,20 +177,20 @@ class CustomerTest extends \PHPUnit_Framework_TestCase
         /**
          * Prepare filter.asd
          */
-        $parameters = array(
-            \Magento\ImportExport\Model\Export::FILTER_ELEMENT_GROUP => array(
+        $parameters = [
+            \Magento\ImportExport\Model\Export::FILTER_ELEMENT_GROUP => [
                 'email' => 'example.com',
-                'created_at' => array($createdAtDate, ''),
+                'created_at' => [$createdAtDate, ''],
                 'store_id' => \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
-                    'Magento\Framework\StoreManagerInterface'
+                    'Magento\Store\Model\StoreManagerInterface'
                 )->getStore()->getId()
-            )
-        );
+            ]
+        ];
         $this->_model->setParameters($parameters);
-        /** @var $customers \Magento\Customer\Model\Resource\Customer\Collection */
+        /** @var $customers \Magento\Customer\Model\ResourceModel\Customer\Collection */
         $collection = $this->_model->filterEntityCollection(
             \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->create(
-                'Magento\Customer\Model\Resource\Customer\Collection'
+                'Magento\Customer\Model\ResourceModel\Customer\Collection'
             )
         );
         $collection->load();
@@ -226,7 +208,7 @@ class CustomerTest extends \PHPUnit_Framework_TestCase
      */
     protected function _csvToArray($content, $entityId = null)
     {
-        $data = array('header' => array(), 'data' => array());
+        $data = ['header' => [], 'data' => []];
 
         $lines = str_getcsv($content, "\n");
         foreach ($lines as $index => $line) {
@@ -234,7 +216,7 @@ class CustomerTest extends \PHPUnit_Framework_TestCase
                 $data['header'] = str_getcsv($line);
             } else {
                 $row = array_combine($data['header'], str_getcsv($line));
-                if (!is_null($entityId) && !empty($row[$entityId])) {
+                if ($entityId !== null && !empty($row[$entityId])) {
                     $data['data'][$row[$entityId]] = $row;
                 } else {
                     $data['data'][] = $row;

@@ -1,30 +1,15 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Backend\App\Action;
 
+use Magento\Framework\Controller\ResultFactory;
+
 /**
  * Backend Controller context
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class Context extends \Magento\Framework\App\Action\Context
 {
@@ -49,14 +34,9 @@ class Context extends \Magento\Framework\App\Action\Context
     protected $_backendUrl;
 
     /**
-     * @var \Magento\Core\App\Action\FormKeyValidator
+     * @var \Magento\Framework\Data\Form\FormKey\Validator
      */
     protected $_formKeyValidator;
-
-    /**
-     * @var \Magento\Framework\App\Action\Title
-     */
-    protected $_title;
 
     /**
      * @var bool
@@ -76,40 +56,43 @@ class Context extends \Magento\Framework\App\Action\Context
     /**
      * @param \Magento\Framework\App\RequestInterface $request
      * @param \Magento\Framework\App\ResponseInterface $response
-     * @param \Magento\Framework\ObjectManager $objectManager
+     * @param \Magento\Framework\ObjectManagerInterface $objectManager
      * @param \Magento\Framework\Event\ManagerInterface $eventManager
      * @param \Magento\Framework\UrlInterface $url
      * @param \Magento\Framework\App\Response\RedirectInterface $redirect
      * @param \Magento\Framework\App\ActionFlag $actionFlag
      * @param \Magento\Framework\App\ViewInterface $view
      * @param \Magento\Framework\Message\ManagerInterface $messageManager
+     * @param \Magento\Backend\Model\View\Result\RedirectFactory $resultRedirectFactory
+     * @param \Magento\Framework\Controller\ResultFactory $resultFactory
      * @param \Magento\Backend\Model\Session $session
      * @param \Magento\Framework\AuthorizationInterface $authorization
      * @param \Magento\Backend\Model\Auth $auth
      * @param \Magento\Backend\Helper\Data $helper
      * @param \Magento\Backend\Model\UrlInterface $backendUrl
-     * @param \Magento\Core\App\Action\FormKeyValidator $formKeyValidator
-     * @param \Magento\Framework\App\Action\Title $title
+     * @param \Magento\Framework\Data\Form\FormKey\Validator $formKeyValidator
      * @param \Magento\Framework\Locale\ResolverInterface $localeResolver
      * @param bool $canUseBaseUrl
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
         \Magento\Framework\App\RequestInterface $request,
         \Magento\Framework\App\ResponseInterface $response,
-        \Magento\Framework\ObjectManager $objectManager,
+        \Magento\Framework\ObjectManagerInterface $objectManager,
         \Magento\Framework\Event\ManagerInterface $eventManager,
         \Magento\Framework\UrlInterface $url,
         \Magento\Framework\App\Response\RedirectInterface $redirect,
         \Magento\Framework\App\ActionFlag $actionFlag,
         \Magento\Framework\App\ViewInterface $view,
         \Magento\Framework\Message\ManagerInterface $messageManager,
+        \Magento\Backend\Model\View\Result\RedirectFactory $resultRedirectFactory,
+        ResultFactory $resultFactory,
         \Magento\Backend\Model\Session $session,
         \Magento\Framework\AuthorizationInterface $authorization,
         \Magento\Backend\Model\Auth $auth,
         \Magento\Backend\Helper\Data $helper,
         \Magento\Backend\Model\UrlInterface $backendUrl,
-        \Magento\Core\App\Action\FormKeyValidator $formKeyValidator,
-        \Magento\Framework\App\Action\Title $title,
+        \Magento\Framework\Data\Form\FormKey\Validator $formKeyValidator,
         \Magento\Framework\Locale\ResolverInterface $localeResolver,
         $canUseBaseUrl = false
     ) {
@@ -122,7 +105,9 @@ class Context extends \Magento\Framework\App\Action\Context
             $redirect,
             $actionFlag,
             $view,
-            $messageManager
+            $messageManager,
+            $resultRedirectFactory,
+            $resultFactory
         );
 
         $this->_session = $session;
@@ -131,7 +116,6 @@ class Context extends \Magento\Framework\App\Action\Context
         $this->_helper = $helper;
         $this->_backendUrl = $backendUrl;
         $this->_formKeyValidator = $formKeyValidator;
-        $this->_title = $title;
         $this->_localeResolver = $localeResolver;
         $this->_canUseBaseUrl = $canUseBaseUrl;
     }
@@ -162,6 +146,7 @@ class Context extends \Magento\Framework\App\Action\Context
 
     /**
      * @return boolean
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName)
      */
     public function getCanUseBaseUrl()
     {
@@ -169,7 +154,7 @@ class Context extends \Magento\Framework\App\Action\Context
     }
 
     /**
-     * @return \Magento\Core\App\Action\FormKeyValidator
+     * @return \Magento\Framework\Data\Form\FormKey\Validator
      */
     public function getFormKeyValidator()
     {
@@ -190,14 +175,6 @@ class Context extends \Magento\Framework\App\Action\Context
     public function getLocaleResolver()
     {
         return $this->_localeResolver;
-    }
-
-    /**
-     * @return \Magento\Framework\App\Action\Title
-     */
-    public function getTitle()
-    {
-        return $this->_title;
     }
 
     /**

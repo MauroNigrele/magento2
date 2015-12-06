@@ -1,38 +1,17 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Framework\Message;
 
 /**
- * Message manager interface
+ * Adds different types of messages to the session, and allows access to existing messages.
+ *
+ * @api
  */
 interface ManagerInterface
 {
-    /**
-     * Default message group
-     */
-    const DEFAULT_GROUP = 'default';
-
     /**
      * Retrieve messages
      *
@@ -50,7 +29,7 @@ interface ManagerInterface
     public function getDefaultGroup();
 
     /**
-     * Adding new message to message collection
+     * Adds new message to message collection
      *
      * @param MessageInterface $message
      * @param string|null $group
@@ -59,61 +38,141 @@ interface ManagerInterface
     public function addMessage(MessageInterface $message, $group = null);
 
     /**
-     * Adding messages array to message collection
+     * Adds messages array to message collection
      *
-     * @param array $messages
+     * @param MessageInterface[] $messages
      * @param string|null $group
      * @return ManagerInterface
      */
     public function addMessages(array $messages, $group = null);
 
     /**
-     * Adding new error message
+     * Adds new error message
      *
      * @param string $message
      * @param string|null $group
      * @return ManagerInterface
+     * @see \Magento\Framework\Message\ManagerInterface::addErrorMessage
      */
     public function addError($message, $group = null);
 
     /**
-     * Adding new warning message
+     * Adds new warning message
      *
      * @param string $message
      * @param string|null $group
      * @return ManagerInterface
+     * @see \Magento\Framework\Message\ManagerInterface::addWarningMessage
      */
     public function addWarning($message, $group = null);
 
     /**
-     * Adding new notice message
+     * Adds new notice message
      *
      * @param string $message
      * @param string|null $group
      * @return ManagerInterface
+     * @see \Magento\Framework\Message\ManagerInterface::addNoticeMessage
      */
     public function addNotice($message, $group = null);
 
     /**
-     * Adding new success message
+     * Adds new success message
+     *
+     * @param string $message
+     * @param string|null $group
+     * @return ManagerInterface
+     * @see \Magento\Framework\Message\ManagerInterface::addSuccessMessage
+     */
+    public function addSuccess($message, $group = null);
+
+    /**
+     * Adds new error message
      *
      * @param string $message
      * @param string|null $group
      * @return ManagerInterface
      */
-    public function addSuccess($message, $group = null);
+    public function addErrorMessage($message, $group = null);
 
     /**
-     * Adds messages array to message collection, but doesn't add duplicates to it
+     * Adds new warning message
      *
-     * @param array|MessageInterface $messages
+     * @param string $message
      * @param string|null $group
      * @return ManagerInterface
      */
-    public function addUniqueMessages($messages, $group = null);
+    public function addWarningMessage($message, $group = null);
 
     /**
-     * Not Magento exception handling
+     * Adds new notice message
+     *
+     * @param string $message
+     * @param string|null $group
+     * @return ManagerInterface
+     */
+    public function addNoticeMessage($message, $group = null);
+
+    /**
+     * Adds new success message
+     *
+     * @param string $message
+     * @param string|null $group
+     * @return ManagerInterface
+     */
+    public function addSuccessMessage($message, $group = null);
+
+    /**
+     * Adds new complex error message
+     *
+     * @param string $identifier
+     * @param array $data
+     * @param string|null $group
+     * @return ManagerInterface
+     */
+    public function addComplexErrorMessage($identifier, array $data = [], $group = null);
+
+    /**
+     * Adds new complex warning message
+     *
+     * @param string $identifier
+     * @param array $data
+     * @param string|null $group
+     * @return ManagerInterface
+     */
+    public function addComplexWarningMessage($identifier, array $data = [], $group = null);
+
+    /**
+     * Adds new complex notice message
+     *
+     * @param string $identifier
+     * @param array $data
+     * @param string|null $group
+     * @return ManagerInterface
+     */
+    public function addComplexNoticeMessage($identifier, array $data = [], $group = null);
+
+    /**
+     * Adds new complex success message
+     *
+     * @param string $identifier
+     * @param array $data
+     * @param string|null $group
+     * @return ManagerInterface
+     */
+    public function addComplexSuccessMessage($identifier, array $data = [], $group = null);
+
+    /**
+     * Adds messages array to message collection, without adding duplicate messages
+     *
+     * @param MessageInterface[] $messages
+     * @param string|null $group
+     * @return ManagerInterface
+     */
+    public function addUniqueMessages(array $messages, $group = null);
+
+    /**
+     * Adds a message describing an exception. Does not contain Exception handling logic.
      *
      * @param \Exception $exception
      * @param string $alternativeText
@@ -121,4 +180,24 @@ interface ManagerInterface
      * @return ManagerInterface
      */
     public function addException(\Exception $exception, $alternativeText, $group = null);
+
+    /**
+     * Adds a message describing an exception. Does not contain Exception handling logic.
+     *
+     * @param \Exception $exception
+     * @param string $alternativeText
+     * @param string|null $group
+     * @return ManagerInterface
+     */
+    public function addExceptionMessage(\Exception $exception, $alternativeText, $group = null);
+
+    /**
+     * Creates identified message
+     *
+     * @param string $type
+     * @param string|null $identifier
+     * @return MessageInterface
+     * @throws \InvalidArgumentException
+     */
+    public function createMessage($type, $identifier = null);
 }

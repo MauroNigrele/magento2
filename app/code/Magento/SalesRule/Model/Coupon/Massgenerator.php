@@ -1,32 +1,14 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\SalesRule\Model\Coupon;
 
 /**
  * SalesRule Mass Coupon Generator
  *
- * @method \Magento\SalesRule\Model\Resource\Coupon getResource()
+ * @method \Magento\SalesRule\Model\ResourceModel\Coupon getResource()
  *
  * @author      Magento Core Team <core@magentocommerce.com>
  */
@@ -48,6 +30,11 @@ class Massgenerator extends \Magento\Framework\Model\AbstractModel implements
      * @var int
      */
     protected $generatedCount = 0;
+
+    /**
+     * @var array
+     */
+    protected $generatedCodes = [];
 
     /**
      * Sales rule coupon
@@ -78,8 +65,8 @@ class Massgenerator extends \Magento\Framework\Model\AbstractModel implements
      * @param \Magento\SalesRule\Model\CouponFactory $couponFactory
      * @param \Magento\Framework\Stdlib\DateTime\DateTime $date
      * @param \Magento\Framework\Stdlib\DateTime $dateTime
-     * @param \Magento\Framework\Model\Resource\AbstractResource $resource
-     * @param \Magento\Framework\Data\Collection\Db $resourceCollection
+     * @param \Magento\Framework\Model\ResourceModel\AbstractResource $resource
+     * @param \Magento\Framework\Data\Collection\AbstractDb $resourceCollection
      * @param array $data
      */
     public function __construct(
@@ -89,8 +76,8 @@ class Massgenerator extends \Magento\Framework\Model\AbstractModel implements
         \Magento\SalesRule\Model\CouponFactory $couponFactory,
         \Magento\Framework\Stdlib\DateTime\DateTime $date,
         \Magento\Framework\Stdlib\DateTime $dateTime,
-        \Magento\Framework\Model\Resource\AbstractResource $resource = null,
-        \Magento\Framework\Data\Collection\Db $resourceCollection = null,
+        \Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
+        \Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
         array $data = []
     ) {
         $this->salesRuleCoupon = $salesRuleCoupon;
@@ -107,7 +94,7 @@ class Massgenerator extends \Magento\Framework\Model\AbstractModel implements
      */
     protected function _construct()
     {
-        $this->_init('Magento\SalesRule\Model\Resource\Coupon');
+        $this->_init('Magento\SalesRule\Model\ResourceModel\Coupon');
     }
 
     /**
@@ -157,12 +144,13 @@ class Massgenerator extends \Magento\Framework\Model\AbstractModel implements
     /**
      * Generate Coupons Pool
      *
-     * @throws \Magento\Framework\Model\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      * @return $this
      */
     public function generatePool()
     {
         $this->generatedCount = 0;
+        $this->generatedCodes = [];
         $size = $this->getQty();
         $maxAttempts = $this->getMaxAttempts() ? $this->getMaxAttempts() : self::MAX_GENERATE_ATTEMPTS;
         $this->increaseLength();
@@ -174,7 +162,7 @@ class Massgenerator extends \Magento\Framework\Model\AbstractModel implements
             $attempt = 0;
             do {
                 if ($attempt >= $maxAttempts) {
-                    throw new \Magento\Framework\Model\Exception(
+                    throw new \Magento\Framework\Exception\LocalizedException(
                         __('We cannot create the requested Coupon Qty. Please check your settings and try again.')
                     );
                 }
@@ -183,16 +171,14 @@ class Massgenerator extends \Magento\Framework\Model\AbstractModel implements
             } while ($this->getResource()->exists($code));
 
             $expirationDate = $this->getToDate();
-            if ($expirationDate instanceof \Zend_Date) {
-                $expirationDate = $expirationDate->toString(
-                    \Magento\Framework\Stdlib\DateTime::DATETIME_INTERNAL_FORMAT
-                );
+            if ($expirationDate instanceof \DateTime) {
+                $expirationDate = $expirationDate->format('Y-m-d H:i:s');
             }
 
             $coupon->setId(null)
                 ->setRuleId($this->getRuleId())
                 ->setUsageLimit($this->getUsesPerCoupon())
-                ->setUsagePerCustomer($this->getUsesPerCustomer())
+                ->setUsagePerCustomer($this->getUsagePerCustomer())
                 ->setExpirationDate($expirationDate)
                 ->setCreatedAt($nowTimestamp)
                 ->setType(\Magento\SalesRule\Helper\Coupon::COUPON_TYPE_SPECIFIC_AUTOGENERATED)
@@ -200,6 +186,7 @@ class Massgenerator extends \Magento\Framework\Model\AbstractModel implements
                 ->save();
 
             $this->generatedCount += 1;
+            $this->generatedCodes[] = $code;
         }
 
         return $this;
@@ -245,6 +232,16 @@ class Massgenerator extends \Magento\Framework\Model\AbstractModel implements
         && (int)$data['qty'] > 0
         && (int)$data['rule_id'] > 0
         && (int)$data['length'] > 0;
+    }
+
+    /**
+     * Return the generated coupon codes
+     *
+     * @return array
+     */
+    public function getGeneratedCodes()
+    {
+        return $this->generatedCodes;
     }
 
     /**

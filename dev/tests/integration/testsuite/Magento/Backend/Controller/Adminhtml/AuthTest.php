@@ -1,27 +1,11 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Backend\Controller\Adminhtml;
+
+use Magento\Framework\Message\MessageInterface;
 
 /**
  * Test class for \Magento\Backend\Controller\Adminhtml\Auth
@@ -81,11 +65,13 @@ class AuthTest extends \Magento\TestFramework\TestCase\AbstractController
     public function testNotLoggedLoginAction()
     {
         $this->dispatch('backend/admin/auth/login');
-        $this->assertFalse($this->getResponse()->isRedirect());
-
-        $body = $this->getResponse()->getBody();
-        $this->assertSelectCount('form#login-form input#username[type=text]', true, $body);
-        $this->assertSelectCount('form#login-form input#login[type=password]', true, $body);
+        /** @var $backendUrlModel \Magento\Backend\Model\UrlInterface */
+        $backendUrlModel = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
+            'Magento\Backend\Model\UrlInterface'
+        );
+        $backendUrlModel->turnOffSecretKey();
+        $url = $backendUrlModel->getUrl('admin');
+        $this->assertRedirect($this->stringStartsWith($url));
     }
 
     /**
@@ -114,13 +100,16 @@ class AuthTest extends \Magento\TestFramework\TestCase\AbstractController
      */
     public function testNotLoggedLoginActionWithRedirect()
     {
-        $this->getRequest()->setPost(
-            array(
-                'login' => array(
+        /** @var \Magento\Framework\Data\Form\FormKey $formKey */
+        $formKey = $this->_objectManager->get('Magento\Framework\Data\Form\FormKey');
+        $this->getRequest()->setPostValue(
+            [
+                'login' => [
                     'username' => \Magento\TestFramework\Bootstrap::ADMIN_NAME,
-                    'password' => \Magento\TestFramework\Bootstrap::ADMIN_PASSWORD
-                )
-            )
+                    'password' => \Magento\TestFramework\Bootstrap::ADMIN_PASSWORD,
+                ],
+                'form_key' => $formKey->getFormKey(),
+            ]
         );
 
         $this->dispatch('backend/admin/index/index');
@@ -164,12 +153,12 @@ class AuthTest extends \Magento\TestFramework\TestCase\AbstractController
     {
         $this->_login();
         $this->dispatch('backend/admin/auth/deniedJson');
-        $data = array(
+        $data = [
             'ajaxExpired' => 1,
             'ajaxRedirect' => \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
                 'Magento\Backend\Helper\Data'
-            )->getHomePageUrl()
-        );
+            )->getHomePageUrl(),
+        ];
         $expected = json_encode($data);
         $this->assertEquals($expected, $this->getResponse()->getBody());
         $this->_logout();
@@ -187,7 +176,7 @@ class AuthTest extends \Magento\TestFramework\TestCase\AbstractController
         $homeUrl = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
             'Magento\Backend\Helper\Data'
         )->getHomePageUrl();
-        $expected = '<script type="text/javascript">parent.window.location =';
+        $expected = '<script>parent.window.location =';
         $this->assertStringStartsWith($expected, $this->getResponse()->getBody());
         $this->assertContains($homeUrl, $this->getResponse()->getBody());
         $this->_logout();
@@ -202,38 +191,50 @@ class AuthTest extends \Magento\TestFramework\TestCase\AbstractController
      */
     public function testIncorrectLogin($params)
     {
-        $this->getRequest()->setPost($params);
+        /** @var \Magento\Framework\Data\Form\FormKey $formKey */
+        $formKey = $this->_objectManager->get('Magento\Framework\Data\Form\FormKey');
+        $params['form_key'] = $formKey->getFormKey();
+        $this->getRequest()->setPostValue($params);
         $this->dispatch('backend/admin/auth/login');
-        $this->assertContains('Please correct the user name or password.', $this->getResponse()->getBody());
+        $this->assertSessionMessages(
+            $this->equalTo(['You did not sign in correctly or your account is temporarily disabled.']),
+            MessageInterface::TYPE_ERROR
+        );
+        $backendUrlModel = \Magento\TestFramework\Helper\Bootstrap::getObjectManager()->get(
+            'Magento\Backend\Model\UrlInterface'
+        );
+        $backendUrlModel->turnOffSecretKey();
+        $url = $backendUrlModel->getUrl('admin');
+        $this->assertRedirect($this->stringStartsWith($url));
     }
 
     public function incorrectLoginDataProvider()
     {
-        return array(
-            'login dummy user' => array(
-                array(
-                    'login' => array(
+        return [
+            'login dummy user' => [
+                [
+                    'login' => [
                         'username' => 'test1',
-                        'password' => \Magento\TestFramework\Bootstrap::ADMIN_PASSWORD
-                    )
-                )
-            ),
-            'login without role' => array(
-                array(
-                    'login' => array(
+                        'password' => \Magento\TestFramework\Bootstrap::ADMIN_PASSWORD,
+                    ],
+                ],
+            ],
+            'login without role' => [
+                [
+                    'login' => [
                         'username' => 'test2',
-                        'password' => \Magento\TestFramework\Bootstrap::ADMIN_PASSWORD
-                    )
-                )
-            ),
-            'login not active user' => array(
-                array(
-                    'login' => array(
+                        'password' => \Magento\TestFramework\Bootstrap::ADMIN_PASSWORD,
+                    ],
+                ],
+            ],
+            'login not active user' => [
+                [
+                    'login' => [
                         'username' => 'test3',
-                        'password' => \Magento\TestFramework\Bootstrap::ADMIN_PASSWORD
-                    )
-                )
-            )
-        );
+                        'password' => \Magento\TestFramework\Bootstrap::ADMIN_PASSWORD,
+                    ],
+                ],
+            ]
+        ];
     }
 }

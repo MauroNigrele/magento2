@@ -1,49 +1,46 @@
 <?php
 /**
- *
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\ProductAlert\Controller\Add;
 
+use Magento\ProductAlert\Controller\Add as AddController;
 use Magento\Framework\App\Action\Context;
+use Magento\Customer\Model\Session as CustomerSession;
+use Magento\Store\Model\StoreManagerInterface;
+use Magento\Catalog\Api\ProductRepositoryInterface;
+use Magento\Framework\UrlInterface;
+use Magento\Framework\App\Action\Action;
+use Magento\Framework\Controller\ResultFactory;
+use Magento\Framework\Exception\NoSuchEntityException;
 
-class Price extends \Magento\ProductAlert\Controller\Add
+class Price extends AddController
 {
     /**
-     * @var \Magento\Framework\StoreManagerInterface
+     * @var \Magento\Store\Model\StoreManagerInterface
      */
-    protected $_storeManager;
+    protected $storeManager;
 
     /**
-     * @param Context $context
+     * @var  \Magento\Catalog\Api\ProductRepositoryInterface
+     */
+    protected $productRepository;
+
+    /**
+     * @param \Magento\Framework\App\Action\Context $context
      * @param \Magento\Customer\Model\Session $customerSession
-     * @param \Magento\Framework\StoreManagerInterface $storeManager
+     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
+     * @param \Magento\Catalog\Api\ProductRepositoryInterface $productRepository
      */
     public function __construct(
         Context $context,
-        \Magento\Customer\Model\Session $customerSession,
-        \Magento\Framework\StoreManagerInterface $storeManager
+        CustomerSession $customerSession,
+        StoreManagerInterface $storeManager,
+        ProductRepositoryInterface $productRepository
     ) {
-        $this->_storeManager = $storeManager;
+        $this->storeManager = $storeManager;
+        $this->productRepository = $productRepository;
         parent::__construct($context, $customerSession);
     }
 
@@ -53,62 +50,57 @@ class Price extends \Magento\ProductAlert\Controller\Add
      * @param string $url
      * @return bool
      */
-    protected function _isInternal($url)
+    protected function isInternal($url)
     {
         if (strpos($url, 'http') === false) {
             return false;
         }
-        $currentStore = $this->_storeManager->getStore();
-        return strpos(
-            $url,
-            $currentStore->getBaseUrl()
-        ) === 0 || strpos(
-            $url,
-            $currentStore->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_LINK, true)
-        ) === 0;
+        $currentStore = $this->storeManager->getStore();
+        return strpos($url, $currentStore->getBaseUrl()) === 0
+            || strpos($url, $currentStore->getBaseUrl(UrlInterface::URL_TYPE_LINK, true)) === 0;
     }
 
     /**
-     * @return void
+     * @return \Magento\Framework\Controller\Result\Redirect
      */
     public function execute()
     {
-        $backUrl = $this->getRequest()->getParam(\Magento\Framework\App\Action\Action::PARAM_NAME_URL_ENCODED);
+        $backUrl = $this->getRequest()->getParam(Action::PARAM_NAME_URL_ENCODED);
         $productId = (int)$this->getRequest()->getParam('product_id');
+        /** @var \Magento\Framework\Controller\Result\Redirect $resultRedirect */
+        $resultRedirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
         if (!$backUrl || !$productId) {
-            $this->_redirect('/');
-            return;
-        }
-
-        $product = $this->_objectManager->create('Magento\Catalog\Model\Product')->load($productId);
-        if (!$product->getId()) {
-            /* @var $product \Magento\Catalog\Model\Product */
-            $this->messageManager->addError(__('There are not enough parameters.'));
-            if ($this->_isInternal($backUrl)) {
-                $this->getResponse()->setRedirect($backUrl);
-            } else {
-                $this->_redirect('/');
-            }
-            return;
+            $resultRedirect->setPath('/');
+            return $resultRedirect;
         }
 
         try {
-            $model = $this->_objectManager->create(
-                'Magento\ProductAlert\Model\Price'
-            )->setCustomerId(
-                $this->_customerSession->getCustomerId()
-            )->setProductId(
-                $product->getId()
-            )->setPrice(
-                $product->getFinalPrice()
-            )->setWebsiteId(
-                $this->_objectManager->get('Magento\Framework\StoreManagerInterface')->getStore()->getWebsiteId()
-            );
+            /* @var $product \Magento\Catalog\Model\Product */
+            $product = $this->productRepository->getById($productId);
+            /** @var \Magento\ProductAlert\Model\Price $model */
+            $model = $this->_objectManager->create('Magento\ProductAlert\Model\Price')
+                ->setCustomerId($this->customerSession->getCustomerId())
+                ->setProductId($product->getId())
+                ->setPrice($product->getFinalPrice())
+                ->setWebsiteId(
+                    $this->_objectManager->get('Magento\Store\Model\StoreManagerInterface')
+                        ->getStore()
+                        ->getWebsiteId()
+                );
             $model->save();
             $this->messageManager->addSuccess(__('You saved the alert subscription.'));
+        } catch (NoSuchEntityException $noEntityException) {
+            $this->messageManager->addError(__('There are not enough parameters.'));
+            if ($this->isInternal($backUrl)) {
+                $resultRedirect->setUrl($backUrl);
+            } else {
+                $resultRedirect->setPath('/');
+            }
+            return $resultRedirect;
         } catch (\Exception $e) {
-            $this->messageManager->addException($e, __('Unable to update the alert subscription.'));
+            $this->messageManager->addException($e, __('We can\'t update the alert subscription right now.'));
         }
-        $this->getResponse()->setRedirect($this->_redirect->getRedirectUrl());
+        $resultRedirect->setUrl($this->_redirect->getRedirectUrl());
+        return $resultRedirect;
     }
 }

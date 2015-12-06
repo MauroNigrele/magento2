@@ -1,110 +1,85 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 
 namespace Magento\Catalog\Test\TestCase\Product;
 
-use Mtf\Client\Browser;
-use Mtf\TestCase\Injectable;
-use Mtf\Fixture\FixtureFactory;
-use Mtf\Fixture\InjectableFixture;
-use Magento\Cms\Test\Page\CmsIndex;
-use Mtf\Constraint\AbstractConstraint;
-use Magento\Customer\Test\Page\CustomerAccountLogin;
-use Magento\Customer\Test\Fixture\CustomerInjectable;
-use Magento\Catalog\Test\Page\Product\CatalogProductView;
 use Magento\Catalog\Test\Page\Product\CatalogProductCompare;
+use Magento\Catalog\Test\Page\Product\CatalogProductView;
+use Magento\Cms\Test\Page\CmsIndex;
+use Magento\Customer\Test\Fixture\Customer;
+use Magento\Mtf\Client\BrowserInterface;
+use Magento\Mtf\Constraint\AbstractConstraint;
+use Magento\Mtf\Fixture\FixtureFactory;
+use Magento\Mtf\Fixture\InjectableFixture;
+use Magento\Mtf\TestCase\Injectable;
 
 /**
- * Class AbstractCompareProductsTest
- * Abstract class for compare products class
+ * Abstract class for compare products class.
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 abstract class AbstractCompareProductsTest extends Injectable
 {
     /**
-     * Array products
+     * Array products.
      *
      * @var array
      */
     protected $products;
 
     /**
-     * Cms index page
+     * Cms index page.
      *
      * @var CmsIndex
      */
     protected $cmsIndex;
 
     /**
-     * Browser
+     * Browser.
      *
-     * @var Browser
+     * @var BrowserInterface
      */
     protected $browser;
 
     /**
-     * Catalog product compare page
+     * Catalog product compare page.
      *
      * @var CatalogProductCompare
      */
     protected $catalogProductCompare;
 
     /**
-     * Catalog product page
+     * Catalog product page.
      *
      * @var CatalogProductView
      */
     protected $catalogProductView;
 
     /**
-     * Customer login page
-     *
-     * @var CustomerAccountLogin
-     */
-    protected $customerAccountLogin;
-
-    /**
-     * Fixture factory
+     * Fixture factory.
      *
      * @var FixtureFactory
      */
     protected $fixtureFactory;
 
     /**
-     * Fixture customer
+     * Fixture customer.
      *
-     * @var CustomerInjectable
+     * @var Customer
      */
     protected $customer;
 
     /**
-     * Prepare data
+     * Prepare data.
      *
      * @param FixtureFactory $fixtureFactory
-     * @param CustomerInjectable $customer
+     * @param Customer $customer
      * @return void
      */
-    public function __prepare(FixtureFactory $fixtureFactory, CustomerInjectable $customer)
+    public function __prepare(FixtureFactory $fixtureFactory, Customer $customer)
     {
         $this->fixtureFactory = $fixtureFactory;
         $customer->persist();
@@ -112,41 +87,38 @@ abstract class AbstractCompareProductsTest extends Injectable
     }
 
     /**
-     * Injection data
+     * Injection data.
      *
      * @param CmsIndex $cmsIndex
      * @param CatalogProductView $catalogProductView
-     * @param Browser $browser
-     * @param CustomerAccountLogin $customerAccountLogin
+     * @param BrowserInterface $browser
      * @return void
      */
     public function __inject(
         CmsIndex $cmsIndex,
         CatalogProductView $catalogProductView,
-        Browser $browser,
-        CustomerAccountLogin $customerAccountLogin
+        BrowserInterface $browser
     ) {
         $this->cmsIndex = $cmsIndex;
         $this->catalogProductView = $catalogProductView;
-        $this->customerAccountLogin = $customerAccountLogin;
         $this->browser = $browser;
     }
 
     /**
-     * Login customer
+     * Login customer.
      *
      * @return void
      */
     protected function loginCustomer()
     {
-        if (!$this->cmsIndex->getLinksBlock()->isLinkVisible('Log Out')) {
-            $this->cmsIndex->getLinksBlock()->openLink("Log In");
-            $this->customerAccountLogin->getLoginBlock()->login($this->customer);
-        }
+        $this->objectManager->create(
+            'Magento\Customer\Test\TestStep\LoginCustomerOnFrontendStep',
+            ['customer' => $this->customer]
+        )->run();
     }
 
     /**
-     * Create products
+     * Create products.
      *
      * @param string $products
      * @return array
@@ -155,8 +127,8 @@ abstract class AbstractCompareProductsTest extends Injectable
     {
         $products = explode(',', $products);
         foreach ($products as $key => $product) {
-            list($fixture, $dataSet) = explode('::', $product);
-            $product = $this->fixtureFactory->createByCode($fixture, ['dataSet' => $dataSet]);
+            list($fixture, $dataset) = explode('::', $product);
+            $product = $this->fixtureFactory->createByCode($fixture, ['dataset' => $dataset]);
             $product->persist();
             $products[$key] = $product;
         }
@@ -164,7 +136,7 @@ abstract class AbstractCompareProductsTest extends Injectable
     }
 
     /**
-     * Add products to compare list
+     * Add products to compare list.
      *
      * @param array $products
      * @param AbstractConstraint $assert
@@ -182,7 +154,7 @@ abstract class AbstractCompareProductsTest extends Injectable
     }
 
     /**
-     * Perform assert
+     * Perform assert.
      *
      * @param AbstractConstraint $assert
      * @param InjectableFixture $product
@@ -190,10 +162,7 @@ abstract class AbstractCompareProductsTest extends Injectable
      */
     protected function productCompareAssert(AbstractConstraint $assert, InjectableFixture $product)
     {
-        $assert->configure(
-            $this,
-            ['catalogProductView' => $this->catalogProductView, 'product' => $product]
-        );
+        $assert->configure(['catalogProductView' => $this->catalogProductView, 'product' => $product]);
         \PHPUnit_Framework_Assert::assertThat($this->getName(), $assert);
     }
 }

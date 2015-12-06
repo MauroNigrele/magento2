@@ -1,36 +1,19 @@
 <?php
 /**
- * Magento
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Open Software License (OSL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/osl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@magentocommerce.com so we can send you a copy immediately.
- *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade Magento to newer
- * versions in the future. If you wish to customize Magento for your
- * needs please refer to http://www.magentocommerce.com for more information.
- *
- * @copyright   Copyright (c) 2014 X.commerce, Inc. (http://www.magentocommerce.com)
- * @license     http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
+ * Copyright © 2015 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 namespace Magento\Customer\Controller\Adminhtml\Cart\Product\Composite;
 
-use Magento\Framework\Model\Exception;
+use Magento\Backend\App\Action;
+use Magento\Framework\Exception\LocalizedException;
 
 /**
  * Catalog composite product configuration controller
  *
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-class Cart extends \Magento\Backend\App\Action
+abstract class Cart extends \Magento\Backend\App\Action
 {
     /**
      * Customer we're working with
@@ -42,44 +25,70 @@ class Cart extends \Magento\Backend\App\Action
     /**
      * Quote we're working with
      *
-     * @var \Magento\Sales\Model\Quote
+     * @var \Magento\Quote\Model\Quote
      */
     protected $_quote = null;
 
     /**
      * Quote item we're working with
      *
-     * @var \Magento\Sales\Model\Quote\Item
+     * @var \Magento\Quote\Model\Quote\Item
      */
     protected $_quoteItem = null;
+
+    /**
+     * @var \Magento\Quote\Api\CartRepositoryInterface
+     */
+    protected $quoteRepository;
+
+    /**
+     * @var \Magento\Quote\Model\QuoteFactory
+     */
+    protected $quoteFactory;
+
+    /**
+     * @param Action\Context $context
+     * @param \Magento\Quote\Api\CartRepositoryInterface $quoteRepository
+     * @param \Magento\Quote\Model\QuoteFactory $quoteFactory
+     */
+    public function __construct(
+        Action\Context $context,
+        \Magento\Quote\Api\CartRepositoryInterface $quoteRepository,
+        \Magento\Quote\Model\QuoteFactory $quoteFactory
+    ) {
+        $this->quoteRepository = $quoteRepository;
+        $this->quoteFactory = $quoteFactory;
+        parent::__construct($context);
+    }
 
     /**
      * Loads customer, quote and quote item by request params
      *
      * @return $this
-     * @throws \Magento\Framework\Model\Exception
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     protected function _initData()
     {
         $this->_customerId = (int)$this->getRequest()->getParam('customer_id');
         if (!$this->_customerId) {
-            throw new \Magento\Framework\Model\Exception(__('No customer ID defined.'));
+            throw new \Magento\Framework\Exception\LocalizedException(__('No customer ID defined.'));
         }
 
         $quoteItemId = (int)$this->getRequest()->getParam('id');
         $websiteId = (int)$this->getRequest()->getParam('website_id');
 
-        $this->_quote = $this->_objectManager->create(
-            'Magento\Sales\Model\Quote'
-        )->setWebsite(
-            $this->_objectManager->get('Magento\Framework\StoreManagerInterface')->getWebsite($websiteId)
-        )->loadByCustomer(
-            $this->_customerId
+        try {
+            $this->_quote = $this->quoteRepository->getForCustomer($this->_customerId);
+        } catch (\Magento\Framework\Exception\NoSuchEntityException $e) {
+            $this->_quote = $this->quoteFactory->create();
+        }
+        $this->_quote->setWebsite(
+            $this->_objectManager->get('Magento\Store\Model\StoreManagerInterface')->getWebsite($websiteId)
         );
 
         $this->_quoteItem = $this->_quote->getItemById($quoteItemId);
         if (!$this->_quoteItem) {
-            throw new Exception(__('Please correct the quote items and try again.'));
+            throw new LocalizedException(__('Please correct the quote items and try again.'));
         }
 
         return $this;
