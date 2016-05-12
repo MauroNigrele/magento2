@@ -1,5 +1,5 @@
 // /**
-//  * Copyright © 2015 Magento. All rights reserved.
+//  * Copyright © 2016 Magento. All rights reserved.
 //  * See COPYING.txt for license details.
 //  */
 
@@ -15,22 +15,32 @@
     .admin__field-control & {
         padding-top: .3rem;
     }
+
     ul {
         list-style: none;
         padding-left: 16px;
         border-left: dotted 1px #888;
     }
+
     li {
         margin: 0 0 10px;
     }
+
     .x-tree ul {
         padding-left: 0 !important;
         border-left: none !important;
     }
+
+    .legend {
+        font-weight: @font-weight__semibold;
+    }
 }
 
 .rule-tree .fieldset {
+    border: 0;
+    margin: 0;
     min-width: 0; // Fixed Chrome fieldset issue
+    padding: 0;
 }
 
 @-moz-document url-prefix() { // Fixed Firefox fieldset issue
@@ -64,9 +74,11 @@
     .lib-clearfix();
     display: block;
     margin-bottom: 17px;
+
     .input-text {
         margin-top: 5px;
     }
+
     .ui-datepicker-trigger {
         margin-left: 5px;
         margin-top:-2px;
